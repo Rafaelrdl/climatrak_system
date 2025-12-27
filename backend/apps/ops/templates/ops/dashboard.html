@@ -1,0 +1,301 @@
+{% extends "ops/base_ops.html" %}
+
+{% block title %}Dashboard - Control Center{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ops:index' %}">Início</a></li>
+<li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="ops-card">
+            <h2 class="mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-graph-up-arrow me-2" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
+                </svg>
+                Dashboard de Telemetria
+            </h2>
+            
+            <div class="alert alert-info">
+                <strong>Gráficos Interativos:</strong> Visualize tendências temporais e compare múltiplos sensores no mesmo gráfico.
+            </div>
+
+            <!-- Filter Form -->
+            <form method="get" id="dashboardForm" class="filter-form">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="id_tenant_slug" class="form-label">
+                            <strong>Tenant *</strong>
+                        </label>
+                        <select name="tenant_slug" id="id_tenant_slug" class="form-select" required onchange="this.form.submit()">
+                            <option value="">-- Selecione um Tenant --</option>
+                            {% for t in tenants %}
+                            <option value="{{ t.slug }}" {% if t.slug == tenant_slug %}selected{% endif %}>
+                                {{ t.name }} ({{ t.slug }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="id_bucket" class="form-label">Agregação</label>
+                        <select name="bucket" id="id_bucket" class="form-select">
+                            <option value="1m" {% if bucket == '1m' %}selected{% endif %}>1 minuto</option>
+                            <option value="5m" {% if bucket == '5m' %}selected{% endif %}>5 minutos</option>
+                            <option value="1h" {% if bucket == '1h' %}selected{% endif %}>1 hora</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="button" id="updateChartBtn" class="btn btn-primary w-100" onclick="updateChart()">
+                            Atualizar Gráfico
+                        </button>
+                    </div>
+                </div>
+
+                {% if available_sensors %}
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label class="form-label"><strong>Selecione Sensores (máx 10)</strong></label>
+                        <div class="row">
+                            {% for sensor in available_sensors %}
+                            <div class="col-md-3 col-sm-6">
+                                <div class="form-check">
+                                    <input class="form-check-input sensor-checkbox" type="checkbox" name="sensor_{{ forloop.counter }}" value="{{ sensor }}" id="sensor_{{ sensor }}" {% if sensor in sensor_ids %}checked{% endif %}>
+                                    <label class="form-check-label" for="sensor_{{ sensor }}">
+                                        {{ sensor }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="id_from_timestamp" class="form-label">De (opcional)</label>
+                        <input type="datetime-local" name="from_timestamp" id="id_from_timestamp" class="form-control" value="{{ from_timestamp }}">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="id_to_timestamp" class="form-label">Até (opcional)</label>
+                        <input type="datetime-local" name="to_timestamp" id="id_to_timestamp" class="form-control" value="{{ to_timestamp }}">
+                    </div>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+
+{% if tenant_slug %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="ops-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Visualização do Gráfico</h3>
+                <div>
+                    <span id="loadingIndicator" class="badge bg-warning" style="display:none;">Carregando...</span>
+                    <span id="dataCount" class="badge bg-info"></span>
+                </div>
+            </div>
+            
+            <div style="position: relative; height:400px;">
+                <canvas id="telemetryChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+<script>
+let myChart = null;
+
+// Color palette for sensors
+const colors = [
+    '#667eea', '#764ba2', '#f093fb', '#4facfe',
+    '#43e97b', '#fa709a', '#fee140', '#30cfd0',
+    '#a8edea', '#fed6e3'
+];
+
+function getSelectedSensors() {
+    const checkboxes = document.querySelectorAll('.sensor-checkbox:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function updateChart() {
+    const tenantSlug = document.getElementById('id_tenant_slug').value;
+    const sensorIds = getSelectedSensors();
+    const bucket = document.getElementById('id_bucket').value;
+    const fromTs = document.getElementById('id_from_timestamp')?.value || '';
+    const toTs = document.getElementById('id_to_timestamp')?.value || '';
+    
+    if (!tenantSlug) {
+        alert('Por favor, selecione um tenant primeiro');
+        return;
+    }
+    
+    if (sensorIds.length === 0) {
+        alert('Por favor, selecione pelo menos um sensor');
+        return;
+    }
+    
+    if (sensorIds.length > 10) {
+        alert('Máximo de 10 sensores permitidos');
+        return;
+    }
+    
+    // Show loading
+    document.getElementById('loadingIndicator').style.display = 'inline-block';
+    
+    // Build URL
+    const params = new URLSearchParams({
+        tenant_slug: tenantSlug,
+        sensor_ids: sensorIds.join(','),
+        bucket: bucket,
+    });
+    
+    if (fromTs) params.append('from_timestamp', fromTs);
+    if (toTs) params.append('to_timestamp', toTs);
+    
+    // Fetch data
+    fetch(`{% url 'ops:chart_data_api' %}?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Erro: ' + data.error);
+                return;
+            }
+            
+            renderChart(data);
+            document.getElementById('loadingIndicator').style.display = 'none';
+        })
+        .catch(error => {
+            console.error('Erro ao buscar dados do gráfico:', error);
+            alert('Falha ao carregar dados do gráfico');
+            document.getElementById('loadingIndicator').style.display = 'none';
+        });
+}
+
+function renderChart(data) {
+    const ctx = document.getElementById('telemetryChart').getContext('2d');
+    
+    // Destroy existing chart
+    if (myChart) {
+        myChart.destroy();
+    }
+    
+    // Prepare datasets
+    const datasets = data.datasets.map((dataset, index) => ({
+        label: dataset.label,
+        data: dataset.data,
+        borderColor: colors[index % colors.length],
+        backgroundColor: colors[index % colors.length] + '20',
+        borderWidth: 2,
+        tension: 0.4,
+        fill: false,
+        pointRadius: 3,
+        pointHoverRadius: 6,
+    }));
+    
+    // Calculate total points
+    const totalPoints = datasets.reduce((sum, ds) => sum + ds.data.length, 0);
+    document.getElementById('dataCount').textContent = `${totalPoints} pontos de dados`;
+    
+    // Create chart
+    myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: `${data.tenant.name} - Agregação: ${data.bucket}`,
+                    font: {
+                        size: 16
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const point = context.raw;
+                            let label = context.dataset.label || '';
+                            if (label) label += ': ';
+                            label += point.y?.toFixed(2) || 'N/A';
+                            if (point.min !== undefined && point.max !== undefined) {
+                                label += ` (mín: ${point.min.toFixed(2)}, máx: ${point.max.toFixed(2)})`;
+                            }
+                            return label;
+                        }
+                    }
+                },
+                legend: {
+                    display: true,
+                    position: 'top',
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        displayFormats: {
+                            minute: 'HH:mm',
+                            hour: 'dd/MM HH:mm'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Tempo'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Valor'
+                    },
+                    beginAtZero: false
+                }
+            }
+        }
+    });
+}
+
+// Auto-load chart if sensors are already selected
+document.addEventListener('DOMContentLoaded', function() {
+    const selectedSensors = getSelectedSensors();
+    if (selectedSensors.length > 0 && document.getElementById('id_tenant_slug').value) {
+        updateChart();
+    }
+});
+
+// Limit checkbox selection to 10
+document.querySelectorAll('.sensor-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const checked = document.querySelectorAll('.sensor-checkbox:checked').length;
+        if (checked > 10) {
+            this.checked = false;
+            alert('Máximo de 10 sensores permitidos');
+        }
+    });
+});
+</script>
+{% endblock %}

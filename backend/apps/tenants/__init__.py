@@ -1,0 +1,3 @@
+"""
+Tenants app initialization.
+"""

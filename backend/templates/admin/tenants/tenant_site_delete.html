@@ -1,0 +1,83 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:tenants_tenant_changelist' %}">Tenants</a>
+    &rsaquo; <a href="{% url 'admin:tenants_tenant_change' tenant.pk %}">{{ tenant.name }}</a>
+    &rsaquo; <a href="{% url 'admin:tenant_sites' tenant.pk %}">Sites</a>
+    &rsaquo; Excluir: {{ site.name }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="module filtered">
+        <h2 style="color: #dc3545;">🗑️ Excluir Site: {{ site.name }}</h2>
+        <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
+            Tenant: <strong>{{ tenant.name }}</strong> | 
+            Schema: <code style="background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px;">{{ tenant.schema_name }}</code>
+        </p>
+        
+        {% if asset_count > 0 %}
+        <div style="background-color: #fff3cd; border: 1px solid #ffeeba; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+            <p style="color: #856404; font-weight: bold; margin-bottom: 10px;">⚠️ Atenção!</p>
+            <p style="color: #856404; margin: 0;">
+                Este site possui <strong>{{ asset_count }}</strong> asset{{ asset_count|pluralize }} associado{{ asset_count|pluralize }}.
+                <br>Excluir este site pode afetar esses assets.
+            </p>
+        </div>
+        {% endif %}
+        
+        <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; margin-bottom: 20px; border-radius: 4px;">
+            <p style="color: #721c24; font-weight: bold; margin-bottom: 10px; font-size: 16px;">⚠️ Confirmação de Exclusão</p>
+            <p style="color: #721c24; margin: 0; font-size: 14px;">
+                Você tem certeza que deseja excluir o site <strong>"{{ site.name }}"</strong>?
+                <br><br>
+                <strong>Esta ação não pode ser desfeita.</strong>
+            </p>
+        </div>
+        
+        <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">📋 Informações do Site:</h3>
+            <table style="width: 100%; font-size: 13px;">
+                <tr>
+                    <td style="padding: 5px; font-weight: bold; width: 150px;">Nome:</td>
+                    <td style="padding: 5px;">{{ site.name }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px; font-weight: bold;">Empresa:</td>
+                    <td style="padding: 5px;">{{ site.company|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px; font-weight: bold;">Setor:</td>
+                    <td style="padding: 5px;">{{ site.sector|default:"-" }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px; font-weight: bold;">Timezone:</td>
+                    <td style="padding: 5px;">{{ site.timezone }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px; font-weight: bold;">Criado em:</td>
+                    <td style="padding: 5px;">{{ site.created_at|date:"d/m/Y H:i" }}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="confirm" value="yes">
+            
+            <div class="submit-row" style="padding: 15px; border-top: 1px solid #e0e0e0; background-color: #f9f9f9;">
+                <input type="submit" value="🗑️ Sim, excluir este site" 
+                       style="padding: 10px 20px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px;">
+                <a href="{% url 'admin:tenant_sites' tenant.pk %}" 
+                   style="padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px; display: inline-block; margin-left: 10px; font-size: 14px;">
+                    ✖️ Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

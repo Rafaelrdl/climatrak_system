@@ -1,0 +1,233 @@
+{% extends "ops/base_ops.html" %}
+
+{% block title %}Exports Assíncronos - Control Center{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ops:index' %}">Início</a></li>
+<li class="breadcrumb-item active" aria-current="page">Exports</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="ops-card">
+            <h2 class="mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-download me-2" viewBox="0 0 16 16">
+                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+                </svg>
+                Exports Assíncronos
+            </h2>
+            
+            <div class="alert alert-info">
+                <strong>Export em Background:</strong> Solicite exports grandes sem travar o navegador. 
+                Você receberá um email quando o arquivo estiver pronto (válido por 24h).
+            </div>
+            
+            <!-- Display Django Messages -->
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            
+            <!-- New Export Form -->
+            <form method="post" action="{% url 'ops:export_request' %}" class="filter-form mb-4">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-4">
+                        <label for="id_tenant_slug" class="form-label"><strong>Tenant *</strong></label>
+                        <select name="tenant_slug" id="id_tenant_slug" class="form-select" required>
+                            <option value="">-- Selecione um Tenant --</option>
+                            {% for t in tenants %}
+                            <option value="{{ t.slug }}">{{ t.name }} ({{ t.slug }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="id_sensor_id" class="form-label">Sensor ID (opcional)</label>
+                        <input type="text" name="sensor_id" id="id_sensor_id" class="form-control" placeholder="Deixe vazio para todos">
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="id_from_timestamp" class="form-label">De (opcional)</label>
+                        <input type="datetime-local" name="from_timestamp" id="id_from_timestamp" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="id_to_timestamp" class="form-label">Até (opcional)</label>
+                        <input type="datetime-local" name="to_timestamp" id="id_to_timestamp" class="form-control">
+                    </div>
+                    
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="submit" class="btn btn-success w-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16">
+                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/>
+                            </svg>
+                            Criar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Export Jobs List -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="ops-card">
+            <h3 class="mb-3">Histórico de Exports</h3>
+            
+            {% if jobs %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Status</th>
+                            <th>Tenant</th>
+                            <th>Sensor</th>
+                            <th>Período</th>
+                            <th>Registros</th>
+                            <th>Tamanho</th>
+                            <th>Criado em</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in jobs %}
+                        <tr>
+                            <td><strong>#{{ job.pk }}</strong></td>
+                            <td>
+                                {% if job.status == 'pending' %}
+                                <span class="badge bg-secondary">⏳ Pendente</span>
+                                {% elif job.status == 'processing' %}
+                                <span class="badge bg-info">⚙️ Processando</span>
+                                {% elif job.status == 'completed' %}
+                                <span class="badge bg-success">✅ Concluído</span>
+                                {% elif job.status == 'failed' %}
+                                <span class="badge bg-danger">❌ Falhou</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ job.tenant_name|default:job.tenant_slug }}</strong>
+                                <br><small class="text-muted">{{ job.tenant_slug }}</small>
+                            </td>
+                            <td>
+                                {% if job.sensor_id %}
+                                <code>{{ job.sensor_id }}</code>
+                                {% else %}
+                                <em class="text-muted">Todos</em>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if job.from_timestamp or job.to_timestamp %}
+                                <small>
+                                    {{ job.from_timestamp|date:"d/m/Y H:i"|default:"Início" }}
+                                    <br>até<br>
+                                    {{ job.to_timestamp|date:"d/m/Y H:i"|default:"Agora" }}
+                                </small>
+                                {% else %}
+                                <em class="text-muted">Todos</em>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if job.record_count %}
+                                <strong>{{ job.record_count|floatformat:0 }}</strong>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if job.file_size_mb %}
+                                {{ job.file_size_mb }} MB
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ job.created_at|date:"d/m/Y H:i" }}
+                                <br>
+                                {% if job.user %}
+                                <small class="text-muted">por {{ job.user.username }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if job.status == 'completed' %}
+                                    {% if job.is_expired %}
+                                    <span class="badge bg-warning">Expirado</span>
+                                    {% else %}
+                                    <a href="{% url 'ops:export_download' job.pk %}" class="btn btn-sm btn-primary" target="_blank">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
+                                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+                                            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+                                        </svg>
+                                        Download
+                                    </a>
+                                    <br><small class="text-muted">Expira: {{ job.expires_at|date:"d/m H:i" }}</small>
+                                    {% endif %}
+                                {% elif job.status == 'failed' %}
+                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#errorModal{{ job.pk }}">
+                                        Ver Erro
+                                    </button>
+                                    
+                                    <!-- Error Modal -->
+                                    <div class="modal fade" id="errorModal{{ job.pk }}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Erro no Export #{{ job.pk }}</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <pre class="bg-light p-3 rounded">{{ job.error_message }}</pre>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% elif job.status in 'pending,processing' %}
+                                    <form method="post" action="{% url 'ops:export_cancel' job.pk %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Cancelar export #{{ job.pk }}?')">
+                                            Cancelar
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-secondary">
+                Nenhum export encontrado. Crie seu primeiro export usando o formulário acima!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Auto-refresh for pending jobs -->
+{% if jobs %}
+<script>
+// Auto-refresh page every 10s if there are pending/processing jobs
+const hasPendingJobs = {% if jobs|length > 0 %}true{% else %}false{% endif %};
+if (hasPendingJobs) {
+    setTimeout(() => {
+        location.reload();
+    }, 10000); // 10 seconds
+}
+</script>
+{% endif %}
+
+{% endblock %}

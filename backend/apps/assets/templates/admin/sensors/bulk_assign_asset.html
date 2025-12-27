@@ -1,0 +1,176 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .bulk-assign-container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .sensor-list {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        margin: 20px 0;
+        background: #f9f9f9;
+    }
+    
+    .sensor-item {
+        padding: 8px;
+        margin: 4px 0;
+        background: white;
+        border-left: 3px solid #417690;
+        border-radius: 3px;
+    }
+    
+    .sensor-tag {
+        font-weight: bold;
+        color: #417690;
+    }
+    
+    .sensor-details {
+        font-size: 12px;
+        color: #666;
+        margin-left: 10px;
+    }
+    
+    .form-group {
+        margin: 20px 0;
+    }
+    
+    .form-group label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: #333;
+    }
+    
+    .form-group select,
+    .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .help-text {
+        font-size: 12px;
+        color: #666;
+        margin-top: 4px;
+    }
+    
+    .button-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-primary {
+        background: #417690;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #2e5266;
+    }
+    
+    .btn-secondary {
+        background: #ddd;
+        color: #333;
+    }
+    
+    .btn-secondary:hover {
+        background: #ccc;
+    }
+    
+    .warning-box {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 20px 0;
+    }
+    
+    .warning-box strong {
+        color: #856404;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bulk-assign-container">
+    <h1>🔗 Vincular Sensores ao Ativo</h1>
+    
+    <p style="color: #666; margin-bottom: 20px;">
+        Você está prestes a vincular <strong>{{ sensors|length }}</strong> sensor(es) a um ativo.
+        O sistema criará automaticamente um Device (Gateway) para o ativo selecionado, se necessário.
+    </p>
+    
+    <div class="sensor-list">
+        <h3 style="margin-top: 0;">Sensores Selecionados:</h3>
+        {% for sensor in sensors %}
+        <div class="sensor-item">
+            <span class="sensor-tag">{{ sensor.tag }}</span>
+            <span class="sensor-details">
+                {{ sensor.get_metric_type_display }} ({{ sensor.unit }})
+                {% if sensor.device %}
+                    - Atualmente em: {{ sensor.device.asset.tag }}
+                {% else %}
+                    - Não vinculado
+                {% endif %}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="warning-box">
+        <strong>⚠️ Atenção:</strong> Os sensores que já estiverem vinculados a outro ativo serão movidos para o ativo selecionado.
+    </div>
+    
+    <form method="post" action="">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="{{ form.asset.id_for_label }}">{{ form.asset.label }}</label>
+            {{ form.asset }}
+            <div class="help-text">{{ form.asset.help_text }}</div>
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.mqtt_client_id.id_for_label }}">{{ form.mqtt_client_id.label }}</label>
+            {{ form.mqtt_client_id }}
+            <div class="help-text">{{ form.mqtt_client_id.help_text }}</div>
+        </div>
+        
+        <div class="button-group">
+            <button type="submit" name="apply" class="btn btn-primary">
+                ✅ Confirmar e Vincular
+            </button>
+            <a href="{% url 'admin:assets_sensor_changelist' %}" class="btn btn-secondary">
+                ❌ Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

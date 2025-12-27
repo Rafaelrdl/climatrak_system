@@ -1,0 +1,141 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:tenants_tenant_changelist' %}">Tenants</a>
+    &rsaquo; <a href="{% url 'admin:tenants_tenant_change' tenant.pk %}">{{ tenant.name }}</a>
+    &rsaquo; <a href="{% url 'admin:tenant_sites' tenant.pk %}">Sites</a>
+    &rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="module filtered">
+        <h2>{% if site %}📝 Editar Site: {{ site.name }}{% else %}➕ Adicionar Novo Site{% endif %}</h2>
+        <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
+            Tenant: <strong>{{ tenant.name }}</strong> | 
+            Schema: <code style="background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px;">{{ tenant.schema_name }}</code>
+        </p>
+        
+        {% if form.errors %}
+        <div class="errornote" style="background: #fff0f0; color: #c53f3f; padding: 10px; margin-bottom: 15px; border-radius: 4px; border: 1px solid #ffcfcf;">
+            <p style="margin: 0; font-weight: bold;">⚠️ Por favor, corrija os erros abaixo:</p>
+            {% if form.non_field_errors %}
+                <ul style="margin: 5px 0 0 20px;">
+                    {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            <fieldset class="module aligned">
+                <h3>Informações Básicas</h3>
+                {% for field in form %}
+                <div class="form-row field-{{ field.name }} {% if field.errors %}errors{% endif %}">
+                    <div>
+                        {% if field.errors %}
+                        <ul class="errorlist">
+                            {% for error in field.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                        <label for="id_{{ field.name }}">{{ field.label }}{% if field.field.required %} <span style="color: red;">*</span>{% endif %}:</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                        <div class="help">{{ field.help_text|safe }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </fieldset>
+            
+            <div class="submit-row" style="padding: 15px; border-top: 1px solid #e0e0e0; background-color: #f9f9f9; margin-top: 20px;">
+                <input type="submit" value="{% if site %}💾 Salvar Alterações{% else %}➕ Criar Site{% endif %}" 
+                       class="default" 
+                       style="padding: 10px 20px; background-color: #5cb85c; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px;">
+                <a href="{% url 'admin:tenant_sites' tenant.pk %}" 
+                   style="padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px; display: inline-block; margin-left: 10px; font-size: 14px;">
+                    ✖️ Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.form-row {
+    padding: 15px 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.form-row.errors {
+    background-color: #fff5f5;
+}
+
+.form-row label {
+    display: block;
+    padding: 0 0 5px;
+    font-weight: bold;
+    font-size: 13px;
+    color: #333;
+}
+
+.form-row input[type="text"],
+.form-row input[type="number"],
+.form-row select,
+.form-row textarea {
+    width: 100%;
+    max-width: 600px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.form-row input[type="checkbox"] {
+    width: auto;
+    margin-right: 5px;
+}
+
+.form-row .help {
+    color: #999;
+    font-size: 12px;
+    padding: 5px 0 0 0;
+    font-style: italic;
+}
+
+.errorlist {
+    color: #ba2121;
+    padding: 5px 0;
+    list-style-type: none;
+    margin: 0 0 5px 0;
+    background-color: #fff0f0;
+    border: 1px solid #ffcfcf;
+    border-radius: 3px;
+    padding: 5px 10px;
+}
+
+.errorlist li {
+    margin: 0;
+}
+
+fieldset h3 {
+    margin: 0 0 15px 0;
+    padding: 10px;
+    background-color: #f8f8f8;
+    border-left: 4px solid #79aec8;
+    font-size: 14px;
+    color: #333;
+}
+</style>
+{% endblock %}

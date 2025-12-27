@@ -1,0 +1,126 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:tenants_tenant_changelist' %}">Tenants</a>
+    &rsaquo; <a href="{% url 'admin:tenants_tenant_change' tenant.pk %}">{{ tenant.name }}</a>
+    &rsaquo; Devices
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="module filtered">
+        <h2>📡 Devices do Tenant: {{ tenant.name }}</h2>
+        <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
+            Schema: <code style="background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px;">{{ tenant.schema_name }}</code>
+        </p>
+        
+        <div class="results">
+            <table id="result_list">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>MQTT Client ID</th>
+                        <th>Tipo</th>
+                        <th>Asset</th>
+                        <th>Site</th>
+                        <th>Status</th>
+                        <th># Sensores</th>
+                        <th>Criado em</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for device in devices %}
+                    <tr class="{% cycle 'row1' 'row2' %}">
+                        <td><strong>{{ device.name }}</strong></td>
+                        <td><code style="background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 11px;">{{ device.mqtt_client_id|default:"-" }}</code></td>
+                        <td>{{ device.get_device_type_display }}</td>
+                        <td>{{ device.asset.name|default:"-" }}</td>
+                        <td>{{ device.asset.site.name|default:"-" }}</td>
+                        <td>
+                            {% if device.status == 'ONLINE' %}
+                                <span style="padding: 3px 8px; background-color: #28a745; color: white; border-radius: 3px; font-size: 11px;">● Online</span>
+                            {% elif device.status == 'OFFLINE' %}
+                                <span style="padding: 3px 8px; background-color: #6c757d; color: white; border-radius: 3px; font-size: 11px;">○ Offline</span>
+                            {% elif device.status == 'ERROR' %}
+                                <span style="padding: 3px 8px; background-color: #dc3545; color: white; border-radius: 3px; font-size: 11px;">✗ Erro</span>
+                            {% else %}
+                                <span style="padding: 3px 8px; background-color: #ffc107; color: white; border-radius: 3px; font-size: 11px;">🔧 Manutenção</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ device.sensors.count }}</strong></td>
+                        <td>{{ device.created_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 30px; color: #999;">
+                            <div style="font-size: 48px; margin-bottom: 10px;">📡</div>
+                            <p style="font-size: 16px; margin: 0;">Nenhum device encontrado para este tenant.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            {% if devices %}
+            <p style="padding: 15px; color: #666; font-size: 12px; border-top: 1px solid #e0e0e0; margin-top: 0;">
+                Total: <strong>{{ devices|length }} device{{ devices|length|pluralize }}</strong>
+            </p>
+            {% endif %}
+        </div>
+        
+        <div class="submit-row" style="padding: 15px; border-top: 1px solid #e0e0e0; background-color: #f9f9f9;">
+            <a href="{% url 'admin:tenants_tenant_changelist' %}" 
+               style="padding: 8px 15px; background-color: #417690; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">
+                ← Voltar para Lista de Tenants
+            </a>
+            <a href="{% url 'admin:tenant_assets' tenant.pk %}" 
+               style="padding: 8px 15px; margin-left: 10px; background-color: #79aec8; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">
+                Ver Assets
+            </a>
+            <a href="{% url 'admin:tenant_sensors' tenant.pk %}" 
+               style="padding: 8px 15px; margin-left: 10px; background-color: #79aec8; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">
+                Ver Sensors →
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+#result_list {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+#result_list th {
+    background-color: #79aec8;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-weight: normal;
+    font-size: 13px;
+}
+
+#result_list td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 13px;
+}
+
+#result_list tr.row1 {
+    background-color: #f9f9f9;
+}
+
+#result_list tr.row2 {
+    background-color: #ffffff;
+}
+
+#result_list tr:hover {
+    background-color: #f0f0f0;
+}
+</style>
+{% endblock %}

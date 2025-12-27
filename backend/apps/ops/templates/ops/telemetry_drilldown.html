@@ -1,0 +1,172 @@
+{% extends "ops/base_ops.html" %}
+
+{% block title %}Sensor Drill-down - Control Center{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'ops:index' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'ops:telemetry_list' %}?tenant_slug={{ tenant_slug }}">Telemetry Results</a></li>
+<li class="breadcrumb-item active" aria-current="page">Drill-down: {{ sensor_id }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="ops-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-search me-2" viewBox="0 0 16 16">
+                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+                    </svg>
+                    Sensor Drill-down
+                </h2>
+                <a href="javascript:history.back()" class="btn btn-outline-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left me-1" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+                    </svg>
+                    Back
+                </a>
+            </div>
+
+            <!-- Sensor Info -->
+            <div class="alert alert-secondary">
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Tenant:</strong> {{ tenant.name }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Sensor ID:</strong> <code>{{ sensor_id }}</code>
+                    </div>
+                    {% if device_id %}
+                    <div class="col-md-3">
+                        <strong>Device ID:</strong> <code>{{ device_id }}</code>
+                    </div>
+                    {% endif %}
+                    <div class="col-md-3 text-end">
+                        <strong>Showing:</strong> Last {{ limit }} readings
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            {% if stats %}
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-label">Total Readings</div>
+                        <div class="stats-value">{{ stats.total_count|default:0 }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-label">Average Value</div>
+                        <div class="stats-value">
+                            {% if stats.avg_value is not None %}
+                                {{ stats.avg_value|floatformat:2 }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-label">Min / Max</div>
+                        <div class="stats-value" style="font-size: 1.4em;">
+                            {% if stats.min_value is not None and stats.max_value is not None %}
+                                {{ stats.min_value|floatformat:2 }} / {{ stats.max_value|floatformat:2 }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-label">Time Range</div>
+                        <div class="stats-value" style="font-size: 1.1em;">
+                            {% if stats.earliest_ts and stats.latest_ts %}
+                                <small>{{ stats.earliest_ts|date:"m/d H:i" }}</small>
+                                <br>
+                                <small>→ {{ stats.latest_ts|date:"m/d H:i" }}</small>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Raw Readings Table -->
+            <h4 class="mb-3">Raw Readings (Most Recent)</h4>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-sm">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width: 25%;">Timestamp</th>
+                            <th style="width: 20%;">Device ID</th>
+                            <th style="width: 20%;">Sensor ID</th>
+                            <th class="text-end" style="width: 15%;">Value</th>
+                            <th style="width: 20%;">Labels</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for point in points %}
+                        <tr>
+                            <td>
+                                <code>{{ point.ts|date:"Y-m-d H:i:s.u" }}</code>
+                            </td>
+                            <td>{{ point.device_id }}</td>
+                            <td><strong>{{ point.sensor_id }}</strong></td>
+                            <td class="text-end">
+                                {% if point.value is not None %}
+                                    <span class="badge bg-success">{{ point.value|floatformat:4 }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if point.labels %}
+                                    <small>
+                                        {% for key, value in point.labels.items %}
+                                            <span class="badge bg-secondary">{{ key }}: {{ value }}</span>
+                                        {% endfor %}
+                                    </small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                <p>No raw readings found for this sensor.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if points %}
+            <div class="alert alert-info mt-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle me-2" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                    <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533z"/>
+                    <circle cx="8" cy="4.5" r="1"/>
+                </svg>
+                <strong>Tip:</strong> This view shows the last {{ limit }} raw readings ordered by timestamp (most recent first).
+                The statistics above cover all available readings for this sensor.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Optional: Add chart visualization using Chart.js
+    // You can add a time-series chart here to visualize the readings
+</script>
+{% endblock %}

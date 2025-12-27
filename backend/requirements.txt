@@ -1,0 +1,48 @@
+# Django Core
+Django==5.0.1
+djangorestframework==3.14.0
+django-filter==24.2
+djangorestframework-simplejwt==5.3.1
+
+# Multi-tenancy
+django-tenants==3.6.1
+
+# Admin Interface
+django-jazzmin==3.0.0
+
+# Static Files (Production)
+whitenoise==6.6.0
+
+# API Documentation
+drf-spectacular==0.27.0
+
+# CORS
+django-cors-headers==4.3.1
+
+# Database
+psycopg[binary]==3.1.16
+
+# WSGI Server
+gunicorn==21.2.0
+
+# Redis & Cache
+redis==5.0.1
+
+# S3/MinIO
+minio==7.2.3
+
+# Image Processing
+Pillow==10.2.0
+
+# Async Tasks
+celery==5.3.6
+
+# Configuration
+python-dotenv==1.0.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# Development
+black==23.12.1
+isort==5.13.2
+ruff==0.1.11

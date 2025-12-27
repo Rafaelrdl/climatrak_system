@@ -1,0 +1,136 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:tenants_tenant_changelist' %}">Tenants</a>
+    &rsaquo; <a href="{% url 'admin:tenants_tenant_change' tenant.pk %}">{{ tenant.name }}</a>
+    &rsaquo; Sites
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <!-- Botão Adicionar Site -->
+    <div style="text-align: right; padding: 10px 0;">
+        <a href="{% url 'admin:tenant_site_add' tenant.pk %}" 
+           style="padding: 8px 15px; background-color: #5cb85c; color: white; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">
+            ➕ Adicionar Site
+        </a>
+    </div>
+
+    <div class="module filtered">
+        <h2>📍 Sites do Tenant: {{ tenant.name }}</h2>
+        <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
+            Schema: <code style="background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px;">{{ tenant.schema_name }}</code>
+        </p>
+        
+        <div class="results">
+            <table id="result_list">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Empresa</th>
+                        <th>Setor</th>
+                        <th>Timezone</th>
+                        <th>Status</th>
+                        <th># Assets</th>
+                        <th>Criado em</th>
+                        <th style="width: 180px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for site in sites %}
+                    <tr class="{% cycle 'row1' 'row2' %}">
+                        <td><strong>{{ site.name }}</strong></td>
+                        <td>{{ site.company|default:"-" }}</td>
+                        <td>{{ site.sector|default:"-" }}</td>
+                        <td>{{ site.timezone|default:"America/Sao_Paulo" }}</td>
+                        <td>
+                            {% if site.is_active %}
+                                <span style="color: #28a745; font-weight: bold;">✓ Ativo</span>
+                            {% else %}
+                                <span style="color: #dc3545; font-weight: bold;">✗ Inativo</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ site.assets.count }}</strong></td>
+                        <td>{{ site.created_at|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'admin:tenant_site_edit' tenant.pk site.pk %}" 
+                               class="btn-action" style="background-color: #007bff; color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 12px; margin-right: 5px; display: inline-block;">
+                                ✏️ Editar
+                            </a>
+                            <a href="{% url 'admin:tenant_site_delete' tenant.pk site.pk %}" 
+                               class="btn-action" style="background-color: #dc3545; color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 12px; display: inline-block;"
+                               onclick="return confirm('Tem certeza que deseja excluir o site \'{{ site.name }}\'?');">
+                                🗑️ Excluir
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 30px; color: #999;">
+                            <div style="font-size: 48px; margin-bottom: 10px;">📍</div>
+                            <p style="font-size: 16px; margin: 0;">Nenhum site encontrado para este tenant.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            {% if sites %}
+            <p style="padding: 15px; color: #666; font-size: 12px; border-top: 1px solid #e0e0e0; margin-top: 0;">
+                Total: <strong>{{ sites|length }} site{{ sites|length|pluralize }}</strong>
+            </p>
+            {% endif %}
+        </div>
+        
+        <div class="submit-row" style="padding: 15px; border-top: 1px solid #e0e0e0; background-color: #f9f9f9;">
+            <a href="{% url 'admin:tenants_tenant_changelist' %}" 
+               style="padding: 8px 15px; background-color: #417690; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">
+                ← Voltar para Lista de Tenants
+            </a>
+            <a href="{% url 'admin:tenant_assets' tenant.pk %}" 
+               style="padding: 8px 15px; margin-left: 10px; background-color: #79aec8; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">
+                Ver Assets →
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+#result_list {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+#result_list th {
+    background-color: #79aec8;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-weight: normal;
+    font-size: 13px;
+}
+
+#result_list td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 13px;
+}
+
+#result_list tr.row1 {
+    background-color: #f9f9f9;
+}
+
+#result_list tr.row2 {
+    background-color: #ffffff;
+}
+
+#result_list tr:hover {
+    background-color: #f0f0f0;
+}
+</style>
+{% endblock %}

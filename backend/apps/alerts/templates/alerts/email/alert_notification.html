@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alert Notification</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .severity-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-top: 10px;
+        }
+        .severity-critical {
+            background-color: #dc2626;
+            color: white;
+        }
+        .severity-high {
+            background-color: #ea580c;
+            color: white;
+        }
+        .severity-medium {
+            background-color: #f59e0b;
+            color: white;
+        }
+        .severity-low {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .content {
+            background: white;
+            padding: 30px;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+        }
+        .alert-info {
+            background: #f9fafb;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .alert-info p {
+            margin: 8px 0;
+        }
+        .alert-info strong {
+            color: #4b5563;
+            display: inline-block;
+            min-width: 120px;
+        }
+        .footer {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 0 0 8px 8px;
+            text-align: center;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .button {
+            display: inline-block;
+            background: #667eea;
+            color: white !important;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        .button:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚨 Alert Notification</h1>
+        <span class="severity-badge severity-{{ alert.severity }}">
+            {{ severity_label }}
+        </span>
+    </div>
+    
+    <div class="content">
+        <h2>{{ rule.name }}</h2>
+        
+        <p>Hello {{ user.first_name|default:user.email }},</p>
+        
+        <p>An alert has been triggered for your equipment:</p>
+        
+        <div class="alert-info">
+            <p><strong>Equipment:</strong> {{ alert.equipment_name }}</p>
+            <p><strong>Asset Tag:</strong> {{ alert.asset_tag }}</p>
+            <p><strong>Rule:</strong> {{ rule.name }}</p>
+            <p><strong>Condition:</strong> {{ rule.parameter_key }} {{ rule.operator }} {{ rule.threshold }}</p>
+            <p><strong>Severity:</strong> {{ severity_label }}</p>
+            <p><strong>Triggered At:</strong> {{ alert.triggered_at|date:"d/m/Y H:i:s" }}</p>
+        </div>
+        
+        {% if alert.message %}
+        <p><strong>Message:</strong></p>
+        <p>{{ alert.message }}</p>
+        {% endif %}
+        
+        <div style="text-align: center;">
+            <a href="{{ settings.FRONTEND_URL }}/alerts/{{ alert.id }}" class="button">
+                View Alert Details
+            </a>
+        </div>
+        
+        <p style="margin-top: 30px; font-size: 14px; color: #6b7280;">
+            <strong>Next Steps:</strong><br>
+            1. Review the alert details<br>
+            2. Investigate the equipment status<br>
+            3. Take corrective action if needed<br>
+            4. Acknowledge or resolve the alert
+        </p>
+    </div>
+    
+    <div class="footer">
+        <p>
+            This is an automated alert from TrakSense HVAC Monitoring System.<br>
+            You are receiving this because you have enabled {{ severity_label }} alert notifications.
+        </p>
+        <p>
+            To manage your notification preferences, 
+            <a href="{{ settings.FRONTEND_URL }}/preferences">click here</a>.
+        </p>
+    </div>
+</body>
+</html>

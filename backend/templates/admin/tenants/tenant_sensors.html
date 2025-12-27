@@ -1,0 +1,130 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:tenants_tenant_changelist' %}">Tenants</a>
+    &rsaquo; <a href="{% url 'admin:tenants_tenant_change' tenant.pk %}">{{ tenant.name }}</a>
+    &rsaquo; Sensors
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="module filtered">
+        <h2>🔬 Sensores do Tenant: {{ tenant.name }}</h2>
+        <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
+            Schema: <code style="background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px;">{{ tenant.schema_name }}</code>
+        </p>
+        
+        <div class="results">
+            <table id="result_list">
+                <thead>
+                    <tr>
+                        <th>Tag</th>
+                        <th>Nome</th>
+                        <th>Tipo Métrica</th>
+                        <th>Unidade</th>
+                        <th>Device</th>
+                        <th>Asset</th>
+                        <th>Status</th>
+                        <th>Última Leitura</th>
+                        <th>Criado em</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sensor in sensors %}
+                    <tr class="{% cycle 'row1' 'row2' %}">
+                        <td><code style="background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 11px;">{{ sensor.tag }}</code></td>
+                        <td><strong>{{ sensor.name|default:"-" }}</strong></td>
+                        <td>{{ sensor.get_metric_type_display }}</td>
+                        <td>{{ sensor.unit|default:"-" }}</td>
+                        <td>{{ sensor.device.name|default:"-" }}</td>
+                        <td>{{ sensor.device.asset.name|default:"-" }}</td>
+                        <td>
+                            {% if sensor.is_active %}
+                                {% if sensor.is_online %}
+                                    <span style="padding: 3px 8px; background-color: #28a745; color: white; border-radius: 3px; font-size: 11px;">● Online</span>
+                                {% else %}
+                                    <span style="padding: 3px 8px; background-color: #ffc107; color: white; border-radius: 3px; font-size: 11px;">○ Offline</span>
+                                {% endif %}
+                            {% else %}
+                                <span style="padding: 3px 8px; background-color: #6c757d; color: white; border-radius: 3px; font-size: 11px;">✗ Inativo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if sensor.last_reading_at %}
+                                {{ sensor.last_reading_at|date:"d/m/Y H:i" }}
+                            {% else %}
+                                <span style="color: #999;">Nunca</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ sensor.created_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 30px; color: #999;">
+                            <div style="font-size: 48px; margin-bottom: 10px;">🔬</div>
+                            <p style="font-size: 16px; margin: 0;">Nenhum sensor encontrado para este tenant.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            {% if sensors %}
+            <p style="padding: 15px; color: #666; font-size: 12px; border-top: 1px solid #e0e0e0; margin-top: 0;">
+                Total: <strong>{{ sensors|length }} sensor{{ sensors|length|pluralize:"es" }}</strong>
+            </p>
+            {% endif %}
+        </div>
+        
+        <div class="submit-row" style="padding: 15px; border-top: 1px solid #e0e0e0; background-color: #f9f9f9;">
+            <a href="{% url 'admin:tenants_tenant_changelist' %}" 
+               style="padding: 8px 15px; background-color: #417690; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">
+                ← Voltar para Lista de Tenants
+            </a>
+            <a href="{% url 'admin:tenant_devices' tenant.pk %}" 
+               style="padding: 8px 15px; margin-left: 10px; background-color: #79aec8; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">
+                Ver Devices
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+#result_list {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+#result_list th {
+    background-color: #79aec8;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-weight: normal;
+    font-size: 13px;
+}
+
+#result_list td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 13px;
+}
+
+#result_list tr.row1 {
+    background-color: #f9f9f9;
+}
+
+#result_list tr.row2 {
+    background-color: #ffffff;
+}
+
+#result_list tr:hover {
+    background-color: #f0f0f0;
+}
+</style>
+{% endblock %}
