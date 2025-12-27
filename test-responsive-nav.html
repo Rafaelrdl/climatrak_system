@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ResponsiveTopNav V2 - Teste Visual</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 { margin-bottom: 24px; color: #333; }
+    .demo-section {
+      margin-bottom: 40px;
+      border: 2px dashed #e0e0e0;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    .demo-section h2 {
+      margin-bottom: 16px;
+      font-size: 18px;
+      color: #666;
+    }
+    .resize-info {
+      background: #e3f2fd;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: #1976d2;
+    }
+    
+    /* Priority Nav Styles */
+    .priority-nav__container{display:flex;align-items:center;gap:8px;background:#fff;padding:12px;border-radius:8px;border:1px solid #e0e0e0}
+    .priority-nav__list{display:flex;gap:6px;flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap}
+    .priority-nav__item{flex:0 0 auto}
+    .priority-nav__link{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;white-space:nowrap;text-decoration:none;color:#333;background:#f8f9fa;transition:all 0.2s}
+    .priority-nav__link:hover{background:#e9ecef;color:#000}
+    .priority-nav__link.active{background:#0066cc;color:white}
+    .priority-nav__more{position:relative;flex:0 0 auto}
+    .priority-nav__moreBtn{padding:8px 12px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:18px;font-weight:bold;transition:all 0.2s}
+    .priority-nav__moreBtn:hover{background:#f0f0f0}
+    .priority-nav__menu{position:absolute;right:0;top:calc(100% + 6px);min-width:180px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:100}
+    .priority-nav__menuItem{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;white-space:nowrap;text-decoration:none;color:#333;transition:all 0.2s}
+    .priority-nav__menuItem:hover{background:#f0f0f0}
+    .priority-nav[data-compact="true"] .priority-nav__link .label{display:none}
+    .priority-nav[data-compact="true"] .priority-nav__menu .label{display:inline}
+    .icon{width:18px;height:18px;display:inline-grid;place-items:center;font-size:16px}
+
+    .status-bar {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 16px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #666;
+    }
+    .status-bar strong { color: #333; }
+    .status-compact { color: #d32f2f; font-weight: bold; }
+    .status-normal { color: #2e7d32; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎯 ResponsiveTopNav V2 - Teste Visual</h1>
+    
+    <div class="resize-info">
+      <strong>📏 Como testar:</strong> Redimensione a janela do navegador para ver o comportamento responsivo.
+      <br>• <strong>Largo (1200px+)</strong>: Todos os itens com labels
+      <br>• <strong>Médio (800px)</strong>: Alguns itens no menu "…"
+      <br>• <strong>Pequeno (600px)</strong>: Modo compacto (ícones apenas)
+      <br>• <strong>Muito pequeno (400px)</strong>: Poucos ícones + menu "…"
+    </div>
+
+    <div class="demo-section">
+      <h2>Demo 1: Navegação Completa (10 itens)</h2>
+      <nav class="priority-nav" id="nav1" data-compact="false">
+        <div class="priority-nav__container" id="container1">
+          <ul class="priority-nav__list" id="list1">
+            <li class="priority-nav__item">
+              <a href="#home" class="priority-nav__link active">
+                <span class="icon">🏠</span>
+                <span class="label">Visão Geral</span>
+              </a>
+            </li>
+            <li class="priority-nav__item">
+              <a href="#assets" class="priority-nav__link">
+                <span class="icon">📦</span>
+                <span class="label">Ativos</span>
+              </a>
+            </li>
+            <li class="priority-nav__item">
+              <a href="#orders" class="priority-nav__link">
+                <span class="icon">📋</span>
+                <span class="label">Ordens de Serviço</span>
+              </a>
+            </li>
+            <li class="priority-nav__item">
+              <a href="#requests" class="priority-nav__link">
+                <span class="icon">💬</span>
+                <span class="label">Solicitações</span>
+              </a>
+            </li>
+            <li class="priority-nav__item">
+              <a href="#plans" class="priority-nav__link">
+                <span class="icon">📅</span>
+                <span class="label">Planos</span>
+              </a>
+            </li>
+            <li class="priority-nav__item">
+              <a href="#metrics" class="priority-nav__link">
+                <span class="icon">📊</span>
+                <span class="label">Métricas</span>
+              </a>
+            </li>
+            <li class="priority-nav__item">
+              <a href="#inventory" class="priority-nav__link">
+                <span class="icon">🏪</span>
+                <span class="label">Estoque</span>
+              </a>
+            </li>
+            <li class="priority-nav__item">
+              <a href="#procedures" class="priority-nav__link">
+                <span class="icon">📖</span>
+                <span class="label">Procedimentos</span>
+              </a>
+            </li>
+            <li class="priority-nav__item">
+              <a href="#reports" class="priority-nav__link">
+                <span class="icon">📄</span>
+                <span class="label">Relatórios</span>
+              </a>
+            </li>
+            <li class="priority-nav__item">
+              <a href="#help" class="priority-nav__link">
+                <span class="icon">❓</span>
+                <span class="label">Ajuda</span>
+              </a>
+            </li>
+          </ul>
+          <div class="priority-nav__more">
+            <button class="priority-nav__moreBtn" id="moreBtn1" aria-expanded="false">…</button>
+            <div class="priority-nav__menu" id="menu1" style="display:none"></div>
+          </div>
+        </div>
+      </nav>
+      <div class="status-bar" id="status1">
+        <strong>Largura:</strong> <span id="width1">-</span>px | 
+        <strong>Modo:</strong> <span id="mode1">-</span> | 
+        <strong>Visíveis:</strong> <span id="visible1">-</span> | 
+        <strong>Overflow:</strong> <span id="overflow1">-</span>
+      </div>
+    </div>
+
+    <div class="demo-section">
+      <h2>Demo 2: Navegação Básica (5 itens)</h2>
+      <nav class="priority-nav" id="nav2" data-compact="false">
+        <div class="priority-nav__container" id="container2">
+          <ul class="priority-nav__list" id="list2">
+            <li class="priority-nav__item">
+              <a href="#home" class="priority-nav__link">
+                <span class="icon">🏠</span>
+                <span class="label">Início</span>
+              </a>
+            </li>
+            <li class="priority-nav__item">
+              <a href="#products" class="priority-nav__link">
+                <span class="icon">📦</span>
+                <span class="label">Produtos</span>
+              </a>
+            </li>
+            <li class="priority-nav__item">
+              <a href="#services" class="priority-nav__link">
+                <span class="icon">⚙️</span>
+                <span class="label">Serviços</span>
+              </a>
+            </li>
+            <li class="priority-nav__item">
+              <a href="#about" class="priority-nav__link">
+                <span class="icon">ℹ️</span>
+                <span class="label">Sobre</span>
+              </a>
+            </li>
+            <li class="priority-nav__item">
+              <a href="#contact" class="priority-nav__link">
+                <span class="icon">📞</span>
+                <span class="label">Contato</span>
+              </a>
+            </li>
+          </ul>
+          <div class="priority-nav__more">
+            <button class="priority-nav__moreBtn" id="moreBtn2">…</button>
+            <div class="priority-nav__menu" id="menu2" style="display:none"></div>
+          </div>
+        </div>
+      </nav>
+      <div class="status-bar" id="status2">
+        <strong>Largura:</strong> <span id="width2">-</span>px | 
+        <strong>Modo:</strong> <span id="mode2">-</span> | 
+        <strong>Visíveis:</strong> <span id="visible2">-</span> | 
+        <strong>Overflow:</strong> <span id="overflow2">-</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Simples implementação do algoritmo para demonstração HTML
+    function measureNav(navId, containerId, listId, moreBtnId, menuId, statusId) {
+      const nav = document.getElementById(navId);
+      const container = document.getElementById(containerId);
+      const list = document.getElementById(listId);
+      const moreBtn = document.getElementById(moreBtnId);
+      const menu = document.getElementById(menuId);
+      
+      if (!container || !list || !moreBtn) return;
+      
+      const items = Array.from(list.querySelectorAll('.priority-nav__item'));
+      const totalW = container.clientWidth;
+      
+      // Passo 1: Tentar com labels
+      let visLabels = fitCount(items, totalW, 'labels');
+      
+      if (visLabels === items.length) {
+        nav.setAttribute('data-compact', 'false');
+        updateVisibility(items, visLabels, menu, statusId, totalW, false);
+        return;
+      }
+      
+      // Passo 2: Com botão "Mais"
+      const available = totalW - moreBtn.offsetWidth - 8;
+      visLabels = fitCount(items, available, 'labels');
+      const visIcons = fitCount(items, available, 'icons');
+      
+      // Passo 3: Escolher modo
+      const compact = visIcons > visLabels;
+      const visibleCount = compact ? visIcons : visLabels;
+      
+      nav.setAttribute('data-compact', compact ? 'true' : 'false');
+      updateVisibility(items, visibleCount, menu, statusId, totalW, compact);
+    }
+    
+    function fitCount(items, available, mode) {
+      let acc = 0;
+      let vis = 0;
+      
+      for (const item of items) {
+        const link = item.querySelector('.priority-nav__link');
+        const label = link.querySelector('.label');
+        
+        const linkW = link.getBoundingClientRect().width;
+        const labelW = label ? label.getBoundingClientRect().width : 0;
+        
+        const w = mode === 'labels' ? linkW : Math.max(0, linkW - labelW);
+        
+        if (acc + w <= available) {
+          acc += w;
+          vis++;
+        } else break;
+      }
+      
+      return vis;
+    }
+    
+    function updateVisibility(items, visibleCount, menu, statusId, width, compact) {
+      items.forEach((item, i) => {
+        item.style.display = i < visibleCount ? '' : 'none';
+      });
+      
+      const overflowItems = items.slice(visibleCount);
+      menu.innerHTML = overflowItems.map(item => {
+        const link = item.querySelector('.priority-nav__link');
+        return `<a href="${link.href}" class="priority-nav__menuItem">${link.innerHTML}</a>`;
+      }).join('');
+      
+      // Atualizar status
+      const widthSpan = document.querySelector(`#${statusId} #width${statusId.slice(-1)}`);
+      const modeSpan = document.querySelector(`#${statusId} #mode${statusId.slice(-1)}`);
+      const visibleSpan = document.querySelector(`#${statusId} #visible${statusId.slice(-1)}`);
+      const overflowSpan = document.querySelector(`#${statusId} #overflow${statusId.slice(-1)}`);
+      
+      if (widthSpan) widthSpan.textContent = Math.round(width);
+      if (modeSpan) {
+        modeSpan.textContent = compact ? 'Compacto (ícones)' : 'Normal (labels)';
+        modeSpan.className = compact ? 'status-compact' : 'status-normal';
+      }
+      if (visibleSpan) visibleSpan.textContent = visibleCount;
+      if (overflowSpan) overflowSpan.textContent = overflowItems.length;
+    }
+    
+    // Menu toggle
+    document.querySelectorAll('.priority-nav__moreBtn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const menu = btn.nextElementSibling;
+        const isOpen = menu.style.display === 'block';
+        menu.style.display = isOpen ? 'none' : 'block';
+        btn.setAttribute('aria-expanded', !isOpen);
+      });
+    });
+    
+    // Close menu on outside click
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.priority-nav__more')) {
+        document.querySelectorAll('.priority-nav__menu').forEach(m => m.style.display = 'none');
+      }
+    });
+    
+    // Medições iniciais e em resize
+    function measureAll() {
+      measureNav('nav1', 'container1', 'list1', 'moreBtn1', 'menu1', 'status1');
+      measureNav('nav2', 'container2', 'list2', 'moreBtn2', 'menu2', 'status2');
+    }
+    
+    // ResizeObserver para detectar mudanças
+    const ro = new ResizeObserver(measureAll);
+    ro.observe(document.querySelector('#container1'));
+    ro.observe(document.querySelector('#container2'));
+    
+    // Primeira medição
+    setTimeout(measureAll, 100);
+  </script>
+</body>
+</html>
