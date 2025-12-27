@@ -16,3 +16,6 @@ export * from './hooks';
 
 // API utilities
 export * from './api';
+
+// Shared Pages
+export * from './pages';

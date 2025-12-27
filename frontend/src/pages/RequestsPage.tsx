@@ -1,11 +1,10 @@
 import { useState, useMemo } from 'react';
-import { PageHeader } from '@/components/PageHeader';
+import { PageHeader, StatusBadge } from '@/shared/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { MessageSquare, Users, Calendar, Loader2, Plus, Eye, ArrowRightCircle } from 'lucide-react';
-import { StatusBadge } from '@/components/StatusBadge';
 import { SolicitationModal } from '@/components/SolicitationModal';
 import { SolicitationFilters, type SolicitationFilters as SolicitationFiltersType } from '@/components/SolicitationFilters';
 import { CreateRequestModal } from '@/components/CreateRequestModal';

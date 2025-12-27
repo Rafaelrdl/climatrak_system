@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useHelpCenter } from '@/hooks/useHelpCenter';
 import { HelpContent, HelpCategory, ContentType } from '@/models/helpCenter';
-import { PageHeader } from '@/components/PageHeader';
+import { PageHeader } from '@/shared/ui';
 import { HelpCenterTour, useHelpCenterTour, QuickStartCard } from '@/components/tour/HelpCenterTour';
 
 // Content type icons

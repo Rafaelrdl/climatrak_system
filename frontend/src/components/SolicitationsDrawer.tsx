@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, ArrowRight, PlayCircle, CheckCircle } from 'lucide-react';
-import { StatusBadge } from '@/components/StatusBadge';
+import { StatusBadge } from '@/shared/ui';
 import { toast } from 'sonner';
 import { IfCan } from '@/components/auth/IfCan';
 import type { Solicitation, SolicitationItem, StockItem } from '@/types';

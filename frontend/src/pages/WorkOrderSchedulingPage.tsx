@@ -33,13 +33,12 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
-import { PageHeader } from '@/components/PageHeader';
+import { PageHeader, StatusBadge } from '@/shared/ui';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { StatusBadge } from '@/components/StatusBadge';
 import { 
   ChevronLeft, 
   ChevronRight, 

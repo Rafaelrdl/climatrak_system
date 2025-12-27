@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { StatusBadge } from '@/components/StatusBadge';
+import { StatusBadge } from '@/shared/ui';
 import {
   Dialog,
   DialogContent,

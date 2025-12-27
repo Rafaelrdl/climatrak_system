@@ -30,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { PageHeader } from '@/components/PageHeader';
+import { PageHeader } from '@/shared/ui';
 import { KPICard as LegacyKPICard } from '@/components/KPICard';
 import { MetricsToolbar } from '@/components/metrics/MetricsToolbar';
 import { useMetrics } from '@/hooks/useMetrics';

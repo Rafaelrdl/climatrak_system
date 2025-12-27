@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { PageHeader } from '@/components/PageHeader';
+import { PageHeader } from '@/shared/ui';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileTabs } from '@/components/profile/ProfileTabs';
 import { ProfileDataForm } from '@/components/profile/forms/ProfileDataForm';

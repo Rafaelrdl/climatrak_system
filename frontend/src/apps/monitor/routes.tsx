@@ -8,9 +8,9 @@ import {
   EditableOverviewPage,
   CustomDashboardPage
 } from './pages';
-import { ProfilePage } from '@/pages/ProfilePage';
-import { TeamPage } from '@/pages/TeamPage';
-import { SettingsPage } from '@/pages/SettingsPage';
+
+// Páginas compartilhadas
+import { ProfilePage, TeamPage, SettingsPage } from '@/shared/pages';
 
 /**
  * Rotas do módulo Monitor (TrakSense)

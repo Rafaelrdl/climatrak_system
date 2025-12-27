@@ -6,71 +6,38 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
-  Home,
-  Package,
-  ClipboardList,
-  MessageSquare,
-  Calendar,
-  BarChart3,
-  Warehouse,
-  BookOpen,
-  FileText,
   HelpCircle,
   Menu,
   MoreHorizontal,
-  Activity,
-  Gauge,
-  Bell,
   Settings,
-  Cpu,
-  AlertTriangle,
-  Box,
-  Wrench,
-  LayoutDashboard,
-  LayoutGrid
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavbarOverflow } from '@/hooks/useNavbarOverflow';
 
-// Tipos para navegação
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  exact?: boolean;
-}
-
-// Rotas do módulo CMMS (TrakNor)
-const cmmsNavigation: NavItem[] = [
-  { name: 'Visão Geral', href: '/cmms', icon: Home, exact: true },
-  { name: 'Ativos', href: '/cmms/ativos', icon: Package },
-  { name: 'Ordens de Serviço', href: '/cmms/work-orders', icon: ClipboardList },
-  { name: 'Solicitações', href: '/cmms/requests', icon: MessageSquare },
-  { name: 'Planos', href: '/cmms/plans', icon: Calendar },
-  { name: 'Métricas', href: '/cmms/metrics', icon: BarChart3 },
-  { name: 'Estoque', href: '/cmms/inventory', icon: Warehouse },
-  { name: 'Procedimentos', href: '/cmms/procedures', icon: BookOpen },
-  { name: 'Relatórios', href: '/cmms/reports', icon: FileText },
-];
-
-// Rotas do módulo Monitor (TrakSense)
-const monitorNavigation: NavItem[] = [
-  { name: 'Visão Geral', href: '/monitor', icon: LayoutDashboard, exact: true },
-  { name: 'Dashboards', href: '/monitor/dashboards', icon: LayoutGrid },
-  { name: 'Ativos', href: '/monitor/ativos', icon: Box },
-  { name: 'Sensores', href: '/monitor/sensores', icon: Cpu },
-  { name: 'Alertas', href: '/monitor/alertas', icon: Bell },
-  { name: 'Regras', href: '/monitor/regras', icon: AlertTriangle },
-];
+// Importar navegação dos módulos
+import { cmmsNavigation, cmmsModuleName, cmmsTheme, type NavItem } from '@/apps/cmms/navigation';
+import { monitorNavigation, monitorModuleName, monitorTheme } from '@/apps/monitor/navigation';
 
 // Hook para obter a navegação baseada no módulo ativo
-function useModuleNavigation(): NavItem[] {
+function useModuleNavigation(): { 
+  navigation: NavItem[]; 
+  moduleName: string; 
+  theme: typeof cmmsTheme;
+} {
   const location = useLocation();
   
   if (location.pathname.startsWith('/monitor')) {
-    return monitorNavigation;
+    return { 
+      navigation: monitorNavigation, 
+      moduleName: monitorModuleName, 
+      theme: monitorTheme 
+    };
   }
-  return cmmsNavigation;
+  return { 
+    navigation: cmmsNavigation, 
+    moduleName: cmmsModuleName, 
+    theme: cmmsTheme 
+  };
 }
 
 // Helper para verificar se uma rota está ativa
@@ -88,7 +55,7 @@ interface MobileNavbarProps {
 
 export function MobileNavbar({ isOpen, onOpenChange }: MobileNavbarProps) {
   const location = useLocation();
-  const navigation = useModuleNavigation();
+  const { navigation, moduleName, theme } = useModuleNavigation();
   const isMonitor = location.pathname.startsWith('/monitor');
 
   useEffect(() => {
@@ -137,13 +104,10 @@ export function MobileNavbar({ isOpen, onOpenChange }: MobileNavbarProps) {
               {/* Header */}
               <div className={cn(
                 "flex items-center justify-start p-4 border-b",
-                isMonitor ? "border-green-200 bg-green-50" : "border-blue-200 bg-blue-50"
+                theme.borderColor, theme.bgColor
               )}>
-                <span className={cn(
-                  "font-semibold text-lg",
-                  isMonitor ? "text-green-700" : "text-blue-700"
-                )}>
-                  {isMonitor ? 'TrakSense Monitor' : 'TrakNor CMMS'}
+                <span className={cn("font-semibold text-lg", theme.textColor)}>
+                  {moduleName}
                 </span>
               </div>
 
@@ -195,7 +159,7 @@ interface DesktopNavbarProps extends React.HTMLAttributes<HTMLElement> {
 
 export function DesktopNavbar({ className, ...props }: DesktopNavbarProps) {
   const location = useLocation();
-  const navigation = useModuleNavigation();
+  const { navigation } = useModuleNavigation();
   const isMonitor = location.pathname.startsWith('/monitor');
   
   // Hook dinâmico Priority+ Nav V2 (medição real do DOM)

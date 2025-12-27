@@ -1,4 +1,4 @@
-import { PageHeader } from '@/components/PageHeader';
+import { PageHeader } from '@/shared/ui';
 import { KPICard } from '@/components/KPICard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';

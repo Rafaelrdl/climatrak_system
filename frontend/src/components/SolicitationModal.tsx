@@ -14,7 +14,7 @@ import {
   Clock,
   ArrowRightCircle
 } from 'lucide-react';
-import { StatusBadge } from '@/components/StatusBadge';
+import { StatusBadge } from '@/shared/ui';
 import type { Solicitation } from '@/types';
 
 interface SolicitationModalProps {

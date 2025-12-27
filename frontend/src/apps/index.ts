@@ -12,5 +12,10 @@
  *    Funcionalidades: Dashboard tempo real, Sensores, Alertas, etc.
  */
 
+// Routes
 export { CmmsRoutes } from './cmms/routes';
 export { MonitorRoutes } from './monitor/routes';
+
+// Módulos completos
+export * as cmms from './cmms';
+export * as monitor from './monitor';

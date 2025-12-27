@@ -1,22 +1,26 @@
 import { Routes, Route } from 'react-router-dom';
-import { Dashboard } from '@/pages/Dashboard';
-import { EquipmentPage } from '@/pages/EquipmentPage';
-import { AssetDetailPage } from '@/pages/AssetDetailPage';
-import { WorkOrdersPage } from '@/pages/WorkOrdersPage';
-import { WorkOrderCalendarPage } from '@/pages/WorkOrderCalendarPage';
-import { WorkOrderSchedulingPage } from '@/pages/WorkOrderSchedulingPage';
-import { RequestsPage } from '@/pages/RequestsPage';
-import { PlansPage } from '@/pages/PlansPage';
-import { MetricsPage } from '@/pages/MetricsPage';
-import { InventoryPage } from '@/pages/InventoryPage';
-import { ProceduresPage } from '@/pages/ProceduresPage';
-import { ReportsPage } from '@/pages/ReportsPage';
-import { ProfilePage } from '@/pages/ProfilePage';
-import { TeamPage } from '@/pages/TeamPage';
-import { HelpCenterPage } from '@/pages/HelpCenterPage';
-import { HelpContentViewPage } from '@/pages/HelpContentViewPage';
-import { PlansTestingPage } from '@/pages/PlansTestingPage';
-import { SettingsPage } from '@/pages/SettingsPage';
+
+// Páginas do módulo CMMS
+import {
+  CMMSDashboard,
+  EquipmentPage,
+  AssetDetailPage,
+  WorkOrdersPage,
+  WorkOrderCalendarPage,
+  WorkOrderSchedulingPage,
+  RequestsPage,
+  PlansPage,
+  MetricsPage,
+  InventoryPage,
+  ProceduresPage,
+  ReportsPage,
+  HelpCenterPage,
+  HelpContentViewPage,
+  PlansTestingPage,
+} from './pages';
+
+// Páginas compartilhadas
+import { ProfilePage, TeamPage, SettingsPage } from '@/shared/pages';
 
 /**
  * Rotas do módulo CMMS (TrakNor)
@@ -28,7 +32,7 @@ import { SettingsPage } from '@/pages/SettingsPage';
 export function CmmsRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Dashboard />} />
+      <Route path="/" element={<CMMSDashboard />} />
       <Route path="ativos" element={<EquipmentPage />} />
       <Route path="ativos/:id" element={<AssetDetailPage />} />
       <Route path="work-orders" element={<WorkOrdersPage />} />
