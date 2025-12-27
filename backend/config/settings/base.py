@@ -93,6 +93,7 @@ TENANT_APPS = [
     'apps.locations',  # Hierarquia de Localizações (Company, Sector, Subsection)
     'apps.inventory',  # Gestão de Estoque (Categorias, Itens, Movimentações)
     'apps.cmms',  # CMMS - Ordens de Serviço, Solicitações, Planos de Manutenção
+    'apps.finance',  # Finance - Orçamento Vivo (Centros de Custo, RateCard, Budget)
 ]
 
 
