@@ -1,0 +1,11 @@
+.priority-nav__container{display:flex;align-items:center;gap:8px}
+.priority-nav__list{display:flex;gap:6px;flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap}
+.priority-nav__item{flex:0 0 auto}
+.priority-nav__link{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;white-space:nowrap}
+.priority-nav__more{position:relative;flex:0 0 auto}
+.priority-nav__moreBtn{padding:8px 12px;border-radius:8px}
+.priority-nav__menu{position:absolute;right:0;top:calc(100% + 6px);min-width:180px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.priority-nav__menuItem{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;white-space:nowrap}
+.priority-nav[data-compact="true"] .priority-nav__link .label{display:none}
+.priority-nav[data-compact="true"] .priority-nav__menu .label{display:inline}
+.icon{width:18px;height:18px;display:inline-grid;place-items:center}

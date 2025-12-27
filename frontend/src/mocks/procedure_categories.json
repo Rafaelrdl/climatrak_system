@@ -1,0 +1,42 @@
+[
+  {
+    "id": "elétrico-001",
+    "name": "Elétrico",
+    "color": "#3b82f6"
+  },
+  {
+    "id": "higienização-002", 
+    "name": "Higienização",
+    "color": "#10b981"
+  },
+  {
+    "id": "chiller-003",
+    "name": "Chiller", 
+    "color": "#8b5cf6"
+  },
+  {
+    "id": "preventiva-004",
+    "name": "Manutenção Preventiva",
+    "color": "#f59e0b"
+  },
+  {
+    "id": "corretiva-005",
+    "name": "Manutenção Corretiva",
+    "color": "#ef4444"
+  },
+  {
+    "id": "calibracao-006",
+    "name": "Calibração",
+    "color": "#06b6d4"
+  },
+  {
+    "id": "inspecao-007",
+    "name": "Inspeção",
+    "color": "#84cc16"
+  },
+  {
+    "id": "limpeza-008",
+    "name": "Limpeza",
+    "color": "#a855f7"
+  }
+]

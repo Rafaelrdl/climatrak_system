@@ -1,0 +1,50 @@
+[
+  {
+    "id": "user-admin-001",
+    "name": "Administrador",
+    "email": "admin@traknor.com",
+    "role": "admin",
+    "status": "active",
+    "phone": "+55 11 98765-4321",
+    "created_at": "2023-01-15T09:00:00.000Z",
+    "last_login_at": "2024-01-20T14:30:00.000Z",
+    "preferences": {
+      "theme": "system",
+      "language": "pt-BR",
+      "date_format": "DD/MM/YYYY",
+      "time_format": "24h",
+      "notifications": {
+        "email": true,
+        "push": true
+      }
+    },
+    "security": {
+      "two_factor_enabled": true,
+      "recovery_codes": ["ABC123", "DEF456", "GHI789", "JKL012", "MNO345", "PQR678"]
+    }
+  },
+  {
+    "id": "user-tech-002",
+    "name": "Técnico HVAC",
+    "email": "tecnico@traknor.com",
+    "role": "technician",
+    "status": "active",
+    "phone": "+55 11 97654-3210",
+    "created_at": "2023-02-10T10:15:00.000Z",
+    "last_login_at": "2024-01-20T16:45:00.000Z",
+    "preferences": {
+      "theme": "light",
+      "language": "pt-BR",
+      "date_format": "DD/MM/YYYY",
+      "time_format": "24h",
+      "notifications": {
+        "email": true,
+        "push": false
+      }
+    },
+    "security": {
+      "two_factor_enabled": false,
+      "recovery_codes": []
+    }
+  }
+]

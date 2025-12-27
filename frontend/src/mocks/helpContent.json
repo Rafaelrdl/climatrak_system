@@ -1,0 +1,187 @@
+[
+  {
+    "id": "content-1",
+    "title": "Introdução ao TrakNor CMMS",
+    "description": "Visão geral completa das funcionalidades principais do sistema",
+    "category_id": "cat-1",
+    "type": "video",
+    "difficulty": "beginner",
+    "duration_minutes": 8,
+    "tags": ["introdução", "visão geral", "básico"],
+    "featured": true,
+    "published": true,
+    "views": 1250,
+    "likes": 89,
+    "created_at": "2024-01-15T10:00:00Z",
+    "updated_at": "2024-01-15T10:00:00Z",
+    "video_url": "https://player.vimeo.com/video/sample-intro",
+    "video_thumbnail": "/src/assets/images/help/intro-thumbnail.jpg"
+  },
+  {
+    "id": "content-2",
+    "title": "Como Cadastrar Seu Primeiro Equipamento",
+    "description": "Passo a passo para registrar equipamentos no sistema",
+    "category_id": "cat-2",
+    "type": "video",
+    "difficulty": "beginner", 
+    "duration_minutes": 12,
+    "tags": ["equipamento", "cadastro", "ativo"],
+    "featured": true,
+    "published": true,
+    "views": 980,
+    "likes": 67,
+    "created_at": "2024-01-16T14:30:00Z",
+    "updated_at": "2024-01-16T14:30:00Z",
+    "video_url": "https://player.vimeo.com/video/sample-equipment",
+    "video_thumbnail": "/src/assets/images/help/equipment-thumbnail.jpg"
+  },
+  {
+    "id": "content-3",
+    "title": "Criando e Executando Ordens de Serviço",
+    "description": "Tutorial completo sobre o fluxo de ordens de manutenção",
+    "category_id": "cat-3",
+    "type": "video",
+    "difficulty": "intermediate",
+    "duration_minutes": 15,
+    "tags": ["ordem de serviço", "manutenção", "execução"],
+    "featured": true,
+    "published": true,
+    "views": 756,
+    "likes": 52,
+    "created_at": "2024-01-17T09:15:00Z",
+    "updated_at": "2024-01-17T09:15:00Z",
+    "video_url": "https://player.vimeo.com/video/sample-workorder",
+    "video_thumbnail": "/src/assets/images/help/workorder-thumbnail.jpg"
+  },
+  {
+    "id": "content-4",
+    "title": "Configurando Planos de Manutenção Preventiva",
+    "description": "Como configurar e agendar manutenções preventivas automáticas",
+    "category_id": "cat-4",
+    "type": "video",
+    "difficulty": "advanced",
+    "duration_minutes": 18,
+    "tags": ["preventiva", "plano", "agendamento"],
+    "featured": false,
+    "published": true,
+    "views": 423,
+    "likes": 31,
+    "created_at": "2024-01-18T16:45:00Z",
+    "updated_at": "2024-01-18T16:45:00Z",
+    "video_url": "https://player.vimeo.com/video/sample-maintenance",
+    "video_thumbnail": "/src/assets/images/help/maintenance-thumbnail.jpg"
+  },
+  {
+    "id": "content-5",
+    "title": "Gestão de Estoque de Peças",
+    "description": "Controle de entrada, saída e níveis mínimos de estoque",
+    "category_id": "cat-5",
+    "type": "video",
+    "difficulty": "intermediate",
+    "duration_minutes": 14,
+    "tags": ["estoque", "peças", "inventário"],
+    "featured": false,
+    "published": true,
+    "views": 612,
+    "likes": 38,
+    "created_at": "2024-01-19T11:20:00Z",
+    "updated_at": "2024-01-19T11:20:00Z",
+    "video_url": "https://player.vimeo.com/video/sample-inventory",
+    "video_thumbnail": "/src/assets/images/help/inventory-thumbnail.jpg"
+  },
+  {
+    "id": "content-6",
+    "title": "Guia de Configuração Inicial",
+    "description": "Guia passo a passo para configurar o sistema pela primeira vez",
+    "category_id": "cat-1",
+    "type": "guide",
+    "difficulty": "beginner",
+    "read_time_minutes": 10,
+    "tags": ["configuração", "setup", "inicial"],
+    "featured": true,
+    "published": true,
+    "views": 890,
+    "likes": 71,
+    "created_at": "2024-01-20T08:00:00Z",
+    "updated_at": "2024-01-20T08:00:00Z",
+    "guide_steps": [
+      {
+        "id": "step-1",
+        "title": "Acesso Inicial",
+        "description": "Faça login com suas credenciais fornecidas pelo administrador",
+        "order": 1
+      },
+      {
+        "id": "step-2", 
+        "title": "Configurar Perfil",
+        "description": "Complete suas informações pessoais e preferências do sistema",
+        "order": 2
+      },
+      {
+        "id": "step-3",
+        "title": "Definir Localização",
+        "description": "Configure as empresas, setores e sub-setores da sua organização",
+        "order": 3
+      },
+      {
+        "id": "step-4",
+        "title": "Cadastrar Primeiro Equipamento",
+        "description": "Registre seu primeiro ativo no sistema para começar a usar",
+        "order": 4
+      }
+    ]
+  },
+  {
+    "id": "content-7",
+    "title": "Perguntas Frequentes - Ordens de Serviço",
+    "description": "Respostas para as dúvidas mais comuns sobre ordens de manutenção",
+    "category_id": "cat-3",
+    "type": "faq",
+    "difficulty": "beginner",
+    "read_time_minutes": 5,
+    "tags": ["faq", "dúvidas", "ordem de serviço"],
+    "featured": false,
+    "published": true,
+    "views": 345,
+    "likes": 23,
+    "created_at": "2024-01-21T13:30:00Z",
+    "updated_at": "2024-01-21T13:30:00Z",
+    "faq_items": [
+      {
+        "id": "faq-1",
+        "question": "Como cancelar uma ordem de serviço?",
+        "answer": "Para cancelar uma ordem de serviço, acesse a lista de OS, clique em 'Editar' na ordem desejada e altere o status para 'Cancelada'. Lembre-se de adicionar uma observação explicando o motivo.",
+        "helpful_count": 15
+      },
+      {
+        "id": "faq-2",
+        "question": "Posso alterar o técnico responsável por uma OS?",
+        "answer": "Sim, você pode alterar o técnico responsável a qualquer momento antes da conclusão da OS. Acesse a edição da ordem e selecione o novo técnico no campo 'Responsável'.",
+        "helpful_count": 12
+      },
+      {
+        "id": "faq-3",
+        "question": "Como anexar fotos a uma ordem de serviço?",
+        "answer": "Durante a execução da OS, clique no botão 'Anexar Foto' no checklist. Você pode adicionar múltiplas fotos para documentar o trabalho realizado.",
+        "helpful_count": 8
+      }
+    ]
+  },
+  {
+    "id": "content-8",
+    "title": "Relatórios Essenciais para Gestores",
+    "description": "Artigo detalhado sobre os principais relatórios e métricas de manutenção",
+    "category_id": "cat-6",
+    "type": "article",
+    "difficulty": "intermediate",
+    "read_time_minutes": 12,
+    "tags": ["relatórios", "métricas", "gestão"],
+    "featured": false,
+    "published": true,
+    "views": 567,
+    "likes": 42,
+    "created_at": "2024-01-22T15:00:00Z",
+    "updated_at": "2024-01-22T15:00:00Z",
+    "article_content": "# Relatórios Essenciais para Gestores\n\n## Introdução\n\nOs relatórios são fundamentais para uma gestão eficaz da manutenção. Este artigo apresenta os principais indicadores que todo gestor deve acompanhar.\n\n## MTTR (Mean Time To Repair)\n\nO MTTR mede o tempo médio para reparo de equipamentos. É calculado pela soma do tempo de reparo dividido pelo número de reparos.\n\n### Como interpretar:\n- MTTR baixo: equipe eficiente, peças disponíveis\n- MTTR alto: possíveis gargalos no processo\n\n## Disponibilidade de Equipamentos\n\nIndicador que mostra o percentual de tempo que os equipamentos estão operacionais.\n\n### Fórmula:\nDisponibilidade = (Tempo Total - Tempo de Parada) / Tempo Total × 100\n\n## Backlog de Manutenção\n\nRepresenta o acúmulo de ordens de serviço pendentes.\n\n### Monitoramento:\n- Acompanhar tendência mensal\n- Identificar picos sazonais\n- Planejar recursos adequados\n\n## Conclusão\n\nO acompanhamento regular destes indicadores permite uma gestão proativa da manutenção, reduzindo custos e aumentando a confiabilidade dos equipamentos."
+  }
+]

@@ -1,0 +1,54 @@
+[
+  {
+    "id": "comm-001",
+    "annotation_id": "ann-002",
+    "procedure_id": "proc-001",
+    "version_number": 1,
+    "parent_id": null,
+    "content": "Baseado na nossa experiência, recomendo verificação mensal para equipamentos críticos.",
+    "author": "Pedro Técnico",
+    "status": "open",
+    "created_at": "2024-12-28T15:00:00Z",
+    "updated_at": "2024-12-28T15:00:00Z",
+    "mentions": ["maria.santos"]
+  },
+  {
+    "id": "comm-002",
+    "annotation_id": "ann-002", 
+    "procedure_id": "proc-001",
+    "version_number": 1,
+    "parent_id": "comm-001",
+    "content": "Concordo com o @pedro.tecnico. Para equipamentos secundários, trimestral é suficiente.",
+    "author": "Maria Santos",
+    "status": "open",
+    "created_at": "2024-12-28T15:30:00Z",
+    "updated_at": "2024-12-28T15:30:00Z",
+    "mentions": ["pedro.tecnico"]
+  },
+  {
+    "id": "comm-003",
+    "annotation_id": "ann-003",
+    "procedure_id": "proc-002",
+    "version_number": 1,
+    "parent_id": null,
+    "content": "Excelente sugestão! Vou incluir essa verificação na próxima revisão do documento.",
+    "author": "Supervisor HVAC",
+    "status": "open",
+    "created_at": "2024-12-28T17:00:00Z",
+    "updated_at": "2024-12-28T17:00:00Z",
+    "mentions": []
+  },
+  {
+    "id": "comm-004",
+    "annotation_id": "ann-001",
+    "procedure_id": "proc-001", 
+    "version_number": 1,
+    "parent_id": null,
+    "content": "Lembrete importante! Já aconteceram alguns problemas por não seguir essa verificação.",
+    "author": "Técnico Senior",
+    "status": "open",
+    "created_at": "2024-12-28T11:15:00Z",
+    "updated_at": "2024-12-28T11:15:00Z",
+    "mentions": []
+  }
+]

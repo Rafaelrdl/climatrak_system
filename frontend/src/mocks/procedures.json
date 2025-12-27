@@ -1,0 +1,87 @@
+[
+  {
+    "id": "proc-001",
+    "title": "Limpeza de Filtros HVAC",
+    "description": "Procedimento padrão para limpeza e substituição de filtros em sistemas de ar condicionado",
+    "category_id": "limpeza-008", 
+    "status": "Ativo",
+    "tags": ["filtros", "hvac", "limpeza", "preventiva"],
+    "version": 2,
+    "file": {
+      "id": "file-proc-001",
+      "name": "limpeza_filtros_hvac.pdf",
+      "type": "pdf",
+      "size": 2048000
+    },
+    "created_at": "2024-01-10T10:00:00Z",
+    "updated_at": "2024-01-15T14:30:00Z"
+  },
+  {
+    "id": "proc-002", 
+    "title": "Inspeção de Compressores",
+    "description": "Checklist completo para inspeção de compressores e identificação de problemas",
+    "category_id": "inspecao-007",
+    "status": "Ativo", 
+    "tags": ["compressores", "inspeção", "checklist"],
+    "version": 1,
+    "file": {
+      "id": "file-proc-002",
+      "name": "inspecao_compressores.md", 
+      "type": "md",
+      "size": 15360
+    },
+    "created_at": "2024-01-08T09:15:00Z",
+    "updated_at": "2024-01-10T16:45:00Z"
+  },
+  {
+    "id": "proc-003",
+    "title": "Calibração de Termostatos",
+    "description": "Procedimento para calibração e ajuste de termostatos digitais e analógicos", 
+    "category_id": "calibracao-006",
+    "status": "Ativo",
+    "tags": ["termostatos", "calibração", "ajuste"],
+    "version": 1,
+    "file": {
+      "id": "file-proc-003",
+      "name": "calibracao_termostatos.pdf",
+      "type": "pdf", 
+      "size": 1536000
+    },
+    "created_at": "2024-01-05T11:20:00Z",
+    "updated_at": "2024-01-05T11:20:00Z"
+  },
+  {
+    "id": "proc-004",
+    "title": "Manutenção Corretiva - Vazamentos",
+    "description": "Procedimentos para identificação e reparo de vazamentos em sistemas HVAC",
+    "category_id": "corretiva-005", 
+    "status": "Inativo",
+    "tags": ["vazamentos", "reparo", "corretiva"],
+    "version": 1,
+    "file": {
+      "id": "file-proc-004", 
+      "name": "manutencao_vazamentos.md",
+      "type": "md",
+      "size": 23040
+    },
+    "created_at": "2024-01-03T08:30:00Z",
+    "updated_at": "2024-01-08T13:10:00Z"
+  },
+  {
+    "id": "proc-005",
+    "title": "Higienização de Dutos",
+    "description": "Protocolo completo para higienização e desinfecção de sistemas de dutos",
+    "category_id": "higienização-002",
+    "status": "Ativo", 
+    "tags": ["dutos", "higienização", "desinfecção"],
+    "version": 3,
+    "file": {
+      "id": "file-proc-005",
+      "name": "higienizacao_dutos.pdf",
+      "type": "pdf",
+      "size": 3072000
+    },
+    "created_at": "2023-12-20T14:00:00Z",
+    "updated_at": "2024-01-12T10:15:00Z"
+  }
+]

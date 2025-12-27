@@ -1,0 +1,65 @@
+[
+  {
+    "id": "cat-1",
+    "name": "Primeiros Passos",
+    "type": "getting-started",
+    "description": "Aprenda o básico do TrakNor CMMS",
+    "icon": "IconRocket",
+    "color": "#10b981",
+    "order": 1
+  },
+  {
+    "id": "cat-2", 
+    "name": "Gestão de Ativos",
+    "type": "assets",
+    "description": "Como gerenciar equipamentos e instalações",
+    "icon": "IconTool",
+    "color": "#3b82f6",
+    "order": 2
+  },
+  {
+    "id": "cat-3",
+    "name": "Ordens de Serviço",
+    "type": "work-orders",
+    "description": "Criação e execução de ordens de manutenção",
+    "icon": "IconClipboardCheck",
+    "color": "#8b5cf6",
+    "order": 3
+  },
+  {
+    "id": "cat-4",
+    "name": "Manutenção Preventiva",
+    "type": "maintenance", 
+    "description": "Planejamento e execução de manutenção preventiva",
+    "icon": "IconCalendarEvent",
+    "color": "#f59e0b",
+    "order": 4
+  },
+  {
+    "id": "cat-5",
+    "name": "Controle de Estoque",
+    "type": "inventory",
+    "description": "Gestão de peças e materiais",
+    "icon": "IconPackage",
+    "color": "#ef4444",
+    "order": 5
+  },
+  {
+    "id": "cat-6",
+    "name": "Relatórios e Métricas",
+    "type": "reports",
+    "description": "Análise de dados e geração de relatórios",
+    "icon": "IconChartBar",
+    "color": "#06b6d4",
+    "order": 6
+  },
+  {
+    "id": "cat-7",
+    "name": "Solução de Problemas",
+    "type": "troubleshooting",
+    "description": "Resolução de problemas comuns",
+    "icon": "IconAlertTriangle",
+    "color": "#f97316",
+    "order": 7
+  }
+]
