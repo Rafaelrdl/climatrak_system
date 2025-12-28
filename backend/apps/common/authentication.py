@@ -11,9 +11,9 @@ Security Benefits:
 - Fallback to Authorization header for API clients (optional)
 
 Multi-Tenant Support:
-- Users are stored in the PUBLIC schema only
-- This authentication class uses schema_context('public') to find users
-- Works correctly with X-Tenant header (tenant context switches after auth)
+- Users are stored in tenant schemas
+- Tokens include tenant_schema to resolve the correct schema
+- Legacy tokens without tenant_schema are allowed only on public schema
 
 Usage:
     Add to settings.py REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES']:
@@ -23,7 +23,8 @@ Usage:
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, AuthenticationFailed
 from django.conf import settings
-from django_tenants.utils import schema_context
+from django.db import connection
+from django_tenants.utils import schema_context, get_public_schema_name
 
 
 class JWTCookieAuthentication(JWTAuthentication):
@@ -45,29 +46,37 @@ class JWTCookieAuthentication(JWTAuthentication):
     - Should be disabled in production for maximum security
     
     Multi-Tenant:
-    - Users are always fetched from PUBLIC schema
-    - TenantHeaderMiddleware switches schema AFTER authentication
-    - This ensures user lookup works regardless of current tenant context
+    - Users are fetched from the tenant schema in the token claim
+    - Request schema must match tenant_schema for tenant-scoped requests
+    - Legacy tokens without tenant_schema are restricted to public schema
     """
     
     def get_user(self, validated_token):
         """
-        Override to always fetch user from PUBLIC schema.
+        Resolve user from the correct schema.
         
-        Users are stored only in the public schema, but X-Tenant header
-        may have already switched the connection to a tenant schema.
-        
-        This ensures authentication works correctly in multi-tenant setup.
+        If tenant_schema is present in the token, use it. Legacy tokens
+        without tenant_schema are only valid on the public schema.
         """
         from django.contrib.auth import get_user_model
-        
         User = get_user_model()
+        public_schema = get_public_schema_name()
+        
+        user_id = validated_token.get('user_id')
+        token_schema = getattr(self, '_token_schema', None) or validated_token.get('tenant_schema')
+        request_schema = getattr(self, '_request_schema', None) or getattr(connection, 'schema_name', public_schema)
+        
+        if token_schema:
+            if request_schema != public_schema and request_schema != token_schema:
+                raise AuthenticationFailed('Token tenant mismatch', code='tenant_mismatch')
+            schema_to_use = token_schema
+        else:
+            if request_schema != public_schema:
+                raise AuthenticationFailed('Token missing tenant schema', code='tenant_missing')
+            schema_to_use = public_schema
         
         try:
-            user_id = validated_token.get('user_id')
-            
-            # Always look up user in public schema
-            with schema_context('public'):
+            with schema_context(schema_to_use):
                 user = User.objects.get(pk=user_id)
             
             if not user.is_active:
@@ -99,6 +108,8 @@ class JWTCookieAuthentication(JWTAuthentication):
         if raw_token:
             # Validate token using simplejwt's built-in validation
             validated_token = self.get_validated_token(raw_token)
+            self._request_schema = getattr(connection, 'schema_name', get_public_schema_name())
+            self._token_schema = validated_token.get('tenant_schema')
             user = self.get_user(validated_token)
             
             if settings.DEBUG:
@@ -117,6 +128,8 @@ class JWTCookieAuthentication(JWTAuthentication):
             return None
         
         validated_token = self.get_validated_token(raw_token)
+        self._request_schema = getattr(connection, 'schema_name', get_public_schema_name())
+        self._token_schema = validated_token.get('tenant_schema')
         user = self.get_user(validated_token)
         
         if settings.DEBUG:

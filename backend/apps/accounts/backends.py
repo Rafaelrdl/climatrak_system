@@ -30,6 +30,11 @@ class EmailBackend(ModelBackend):
         if username is None or password is None:
             logger.info('🔐 EmailBackend - Missing username or password')
             return None
+
+        username = username.strip()
+        if not username:
+            logger.info('EmailBackend - Empty username after strip')
+            return None
         
         # CRITICAL: Explicitly use schema_context to ensure we query the tenant schema
         # This is necessary because apps.accounts is in SHARED_APPS (for migration reasons)
@@ -46,13 +51,13 @@ class EmailBackend(ModelBackend):
             try:
                 # Tenta buscar por email
                 logger.info(f'🔐 EmailBackend - Querying for email={username}')
-                user = UserModel.objects.get(email=username)
+                user = UserModel.objects.get(email__iexact=username)
                 logger.info(f'🔐 EmailBackend - User found: {user.email}')
             except UserModel.DoesNotExist:
                 logger.info(f'🔐 EmailBackend - User not found by email: {username}')
                 # Tenta buscar por username como fallback
                 try:
-                    user = UserModel.objects.get(username=username)
+                    user = UserModel.objects.get(username__iexact=username)
                     logger.info(f'🔐 EmailBackend - User found by username: {user.username}')
                 except UserModel.DoesNotExist:
                     logger.info(f'🔐 EmailBackend - User not found by username either')

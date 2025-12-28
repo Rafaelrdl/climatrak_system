@@ -96,13 +96,18 @@ export function LoginPage() {
       const currentPort = window.location.port ? `:${window.location.port}` : '';
       
       // Construir URL do tenant
-      let baseDomain = currentHost;
-      const hostParts = currentHost.split('.');
-      if (hostParts.length > 1 && hostParts[0] !== 'www') {
-        baseDomain = hostParts.slice(1).join('.');
+      let tenantHost = primary.domain;
+      if (!tenantHost) {
+        let baseDomain = currentHost;
+        const hostParts = currentHost.split('.');
+        if (hostParts.length > 1 && hostParts[0] !== 'www') {
+          baseDomain = hostParts.slice(1).join('.');
+        }
+        tenantHost = `${tenantSlug}.${baseDomain}`;
       }
       
-      const tenantUrl = `${protocol}//${tenantSlug}.${baseDomain}${currentPort}/login?email=${encodeURIComponent(formData.email)}`;
+      const portSuffix = tenantHost.includes(':') ? '' : currentPort;
+      const tenantUrl = `${protocol}//${tenantHost}${portSuffix}/login?email=${encodeURIComponent(formData.email)}`;
       
       console.log('🔍 Tenant discovered:', primary.name);
       console.log('🔄 Redirecting to:', tenantUrl);

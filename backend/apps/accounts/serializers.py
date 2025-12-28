@@ -97,18 +97,34 @@ class UserSerializer(serializers.ModelSerializer):
     
     def get_role(self, obj):
         """Get user role from TenantMembership."""
-        from apps.accounts.models import TenantMembership
         from django_tenants.utils import get_public_schema_name, schema_context
+        from apps.public_identity.models import TenantMembership as PublicTenantMembership, compute_email_hash
         
         try:
             tenant = self._get_tenant()
             if not tenant:
                 return 'viewer'
             
-            # TenantMembership is in public schema
-            with schema_context(get_public_schema_name()):
+            public_schema = get_public_schema_name()
+            
+            # Prefer tenant schema membership when available
+            if connection.schema_name != public_schema:
+                from apps.accounts.models import TenantMembership
+                
                 membership = TenantMembership.objects.filter(
                     user=obj,
+                    tenant=tenant,
+                    status='active'
+                ).first()
+                
+                if membership:
+                    return membership.role
+            
+            # Fallback to public_identity membership (email hash)
+            with schema_context(public_schema):
+                email_hash = compute_email_hash(obj.email)
+                membership = PublicTenantMembership.objects.filter(
+                    email_hash=email_hash,
                     tenant=tenant,
                     status='active'
                 ).first()
@@ -406,7 +422,7 @@ class TenantSelectSerializer(serializers.Serializer):
     
     def validate(self, attrs):
         """Validate user has access to the selected tenant."""
-        from apps.accounts.models import TenantMembership
+        from apps.public_identity.models import TenantMembership as PublicTenantMembership, compute_email_hash
         from django_tenants.utils import get_tenant_model, schema_context
         
         user = self.context['request'].user
@@ -417,8 +433,9 @@ class TenantSelectSerializer(serializers.Serializer):
         with schema_context('public'):
             tenant = Tenant.objects.get(schema_name__iexact=schema_name)
             
-            membership = TenantMembership.objects.filter(
-                user=user,
+            email_hash = compute_email_hash(user.email)
+            membership = PublicTenantMembership.objects.filter(
+                email_hash=email_hash,
                 tenant=tenant,
                 status='active'
             ).first()

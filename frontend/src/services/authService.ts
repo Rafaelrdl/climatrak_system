@@ -147,18 +147,20 @@ export interface TenantDiscoveryResult {
     schema_name: string;
     slug: string;
     name: string;
+    domain?: string;
   }>;
   primary_tenant?: {
     schema_name: string;
     slug: string;
     name: string;
+    domain?: string;
   };
   has_multiple_tenants?: boolean;
   message?: string;
 }
 
 export async function discoverTenant(email: string): Promise<TenantDiscoveryResult> {
-  const { data } = await api.post<TenantDiscoveryResult>('/auth/discover-tenant/', { email });
+  const { data } = await api.post<TenantDiscoveryResult>('/v2/auth/discover-tenant/', { email });
   return data;
 }
 

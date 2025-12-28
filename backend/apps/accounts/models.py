@@ -305,7 +305,7 @@ class Invite(models.Model):
         """Check if invite has expired."""
         return self.expires_at <= timezone.now()
     
-    def accept(self, user):
+    def accept(self, user, invite_schema=None):
         """
         Accept the invite and create membership.
         
@@ -333,28 +333,79 @@ class Invite(models.Model):
             raise ValidationError("This invite is no longer valid.")
         
         # Check if user already has membership
-        existing = TenantMembership.objects.filter(
-            user=user,
-            tenant=self.tenant
-        ).first()
+        from django_tenants.utils import schema_context
+        with schema_context(self.tenant.schema_name):
+            existing = TenantMembership.objects.filter(
+                user=user,
+                tenant=self.tenant
+            ).first()
         
         if existing:
             raise ValidationError("You are already a member of this organization.")
         
         # Create membership
-        membership = TenantMembership.objects.create(
-            user=user,
-            tenant=self.tenant,
-            role=self.role,
-            status='active',
-            invited_by=self.invited_by
-        )
+        invited_by = None
+        inviter_email = None
+        if self.invited_by_id:
+            from django.contrib.auth import get_user_model
+            from django_tenants.utils import get_public_schema_name, schema_context
+            
+            UserModel = get_user_model()
+            public_schema = get_public_schema_name()
+            
+            resolved_invite_schema = invite_schema
+            if resolved_invite_schema is None:
+                # Prefer public if invite exists there; fallback to tenant schema.
+                resolved_invite_schema = public_schema
+                with schema_context(public_schema):
+                    invite_in_public = self.__class__.objects.filter(pk=self.pk).exists()
+                if not invite_in_public:
+                    with schema_context(self.tenant.schema_name):
+                        invite_in_tenant = self.__class__.objects.filter(pk=self.pk).exists()
+                    if invite_in_tenant:
+                        resolved_invite_schema = self.tenant.schema_name
+            
+            if resolved_invite_schema == public_schema:
+                with schema_context(public_schema):
+                    inviter = UserModel.objects.filter(pk=self.invited_by_id).only('email').first()
+                    inviter_email = inviter.email if inviter else None
+            else:
+                with schema_context(self.tenant.schema_name):
+                    inviter = UserModel.objects.filter(pk=self.invited_by_id).only('email').first()
+                    if inviter:
+                        inviter_email = inviter.email
+                        invited_by = inviter
+            
+            if inviter_email and invited_by is None:
+                with schema_context(self.tenant.schema_name):
+                    invited_by = UserModel.objects.filter(email__iexact=inviter_email).first()
+        
+        from django_tenants.utils import schema_context
+        with schema_context(self.tenant.schema_name):
+            membership = TenantMembership.objects.create(
+                user=user,
+                tenant=self.tenant,
+                role=self.role,
+                status='active',
+                invited_by=invited_by
+            )
         
         # Mark invite as accepted
-        self.status = 'accepted'
-        self.accepted_by = user
-        self.accepted_at = timezone.now()
-        self.save()
+        from django_tenants.utils import get_public_schema_name, schema_context
+        from django.contrib.auth import get_user_model
+        
+        public_schema = get_public_schema_name()
+        UserModel = get_user_model()
+        
+        accepted_by = None
+        with schema_context(public_schema):
+            if user and user.email:
+                accepted_by = UserModel.objects.filter(email__iexact=user.email).first()
+            
+            self.status = 'accepted'
+            self.accepted_by = accepted_by
+            self.accepted_at = timezone.now()
+            self.save()
         
         return membership
     

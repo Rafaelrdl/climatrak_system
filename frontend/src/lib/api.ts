@@ -86,11 +86,18 @@ api.interceptors.request.use(
     // Tokens are sent automatically via HttpOnly cookies (withCredentials: true)
     // NO need to add Authorization header manually
     
-    // 🏢 MULTI-TENANT: Add X-Tenant header for tenant routing
-    // This is used by the Vite proxy (dev) and nginx (prod) to route to correct tenant
+    // 🏢 MULTI-TENANT: Add X-Tenant header only when not on a tenant subdomain
+    // Subdomain routing is preferred when available.
     const tenantSchema = localStorage.getItem('auth:tenant_schema');
-    if (tenantSchema) {
-      config.headers['X-Tenant'] = tenantSchema;
+    if (tenantSchema && typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      const hostParts = hostname.split('.');
+      const hasSubdomain =
+        hostParts.length > 1 && hostParts[0] !== 'www' && hostParts[0] !== 'localhost';
+      
+      if (!hasSubdomain) {
+        config.headers['X-Tenant'] = tenantSchema;
+      }
     }
     
     return config;

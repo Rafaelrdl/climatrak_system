@@ -1,8 +1,7 @@
 """
 Custom permissions for role-based access control.
 
-NOTE: TenantMembership is stored in the PUBLIC schema, so all permission
-checks must use schema_context('public') to query the correct schema.
+NOTE: Membership checks use public_identity (email hash) in the public schema.
 
 IMPORTANT: We must get the tenant object from public schema before checking
 membership, because connection.tenant may be a FakeTenant object when inside
@@ -35,6 +34,24 @@ def get_current_tenant():
             return None
 
 
+def get_public_membership(user, tenant):
+    """
+    Get membership from public_identity using email hash.
+    """
+    if not user or not tenant:
+        return None
+    
+    from apps.public_identity.models import TenantMembership as PublicTenantMembership, compute_email_hash
+    
+    with schema_context('public'):
+        email_hash = compute_email_hash(user.email)
+        return PublicTenantMembership.objects.filter(
+            email_hash=email_hash,
+            tenant=tenant,
+            status='active'
+        ).first()
+
+
 class IsTenantMember(permissions.BasePermission):
     """
     Permission to check if user is a member of the current tenant.
@@ -59,18 +76,10 @@ class IsTenantMember(permissions.BasePermission):
             logger.warning(f"IsTenantMember: No tenant found for schema {connection.schema_name}")
             return False
         
-        # Import here to avoid circular imports
-        from .models import TenantMembership
-        
-        # TenantMembership is in public schema, so query there
-        with schema_context('public'):
-            result = TenantMembership.objects.filter(
-                user=request.user,
-                tenant=tenant,
-                status='active'
-            ).exists()
-            logger.info(f"IsTenantMember: membership check result={result}")
-            return result
+        membership = get_public_membership(request.user, tenant)
+        result = membership is not None
+        logger.info(f"IsTenantMember: membership check result={result}")
+        return result
 
 
 class CanManageTeam(permissions.BasePermission):
@@ -89,17 +98,7 @@ class CanManageTeam(permissions.BasePermission):
         if not tenant:
             return False
         
-        # Import here to avoid circular imports
-        from .models import TenantMembership
-        
-        # TenantMembership is in public schema
-        with schema_context('public'):
-            membership = TenantMembership.objects.filter(
-                user=request.user,
-                tenant=tenant,
-                status='active'
-            ).first()
-        
+        membership = get_public_membership(request.user, tenant)
         return membership and membership.can_manage_team
 
 
@@ -123,17 +122,7 @@ class CanWrite(permissions.BasePermission):
         if not tenant:
             return False
         
-        # Import here to avoid circular imports
-        from .models import TenantMembership
-        
-        # TenantMembership is in public schema
-        with schema_context('public'):
-            membership = TenantMembership.objects.filter(
-                user=request.user,
-                tenant=tenant,
-                status='active'
-            ).first()
-        
+        membership = get_public_membership(request.user, tenant)
         return membership and membership.can_write
 
 
@@ -153,19 +142,8 @@ class IsOwner(permissions.BasePermission):
         if not tenant:
             return False
         
-        # Import here to avoid circular imports
-        from .models import TenantMembership
-        
-        # TenantMembership is in public schema
-        with schema_context('public'):
-            membership = TenantMembership.objects.filter(
-                user=request.user,
-                tenant=tenant,
-                status='active',
-                role='owner'
-            ).first()
-        
-        return membership and membership.can_delete_tenant
+        membership = get_public_membership(request.user, tenant)
+        return membership and membership.role == 'owner' and membership.can_delete_tenant
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
@@ -184,34 +162,19 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
             if not tenant:
                 return False
             
-            # TenantMembership is in public schema
-            with schema_context('public'):
-                return request.user.memberships.filter(
-                    tenant=tenant,
-                    status='active'
-                ).exists()
+            membership = get_public_membership(request.user, tenant)
+            return membership is not None
         
         # Write operations require owner
         if not request.user or not request.user.is_authenticated:
             return False
         
-        # Import here to avoid circular imports
-        from .models import TenantMembership
-        
         tenant = get_current_tenant()
         if not tenant:
             return False
         
-        # TenantMembership is in public schema
-        with schema_context('public'):
-            membership = TenantMembership.objects.filter(
-                user=request.user,
-                tenant=tenant,
-                status='active',
-                role='owner'
-            ).first()
-        
-        return membership and membership.can_delete_tenant
+        membership = get_public_membership(request.user, tenant)
+        return membership and membership.role == 'owner' and membership.can_delete_tenant
 
 
 class RoleBasedPermission(permissions.BasePermission):
@@ -239,9 +202,6 @@ class RoleBasedPermission(permissions.BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
         
-        # Import here to avoid circular imports
-        from .models import TenantMembership
-        
         # Get required roles from view
         required_roles = getattr(view, 'required_roles', None)
         if not required_roles:
@@ -256,13 +216,8 @@ class RoleBasedPermission(permissions.BasePermission):
         if not tenant:
             return False
         
-        # TenantMembership is in public schema
-        with schema_context('public'):
-            membership = TenantMembership.objects.filter(
-                user=request.user,
-                tenant=tenant,
-                status='active',
-                role__in=required_roles
-            ).first()
+        membership = get_public_membership(request.user, tenant)
+        if not membership:
+            return False
         
-        return membership is not None
+        return membership.role in required_roles

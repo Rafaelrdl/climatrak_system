@@ -54,7 +54,7 @@ class TenantLoginView(APIView):
         
         logger = logging.getLogger(__name__)
         
-        email = request.data.get('email')
+        email = request.data.get('email', '').strip().lower()
         password = request.data.get('password')
         
         logger.info(f'🔐 Login attempt - Email: {email}, Tenant: {connection.tenant.schema_name}')
@@ -93,6 +93,8 @@ class TenantLoginView(APIView):
         
         # Get tenant info
         tenant = connection.tenant
+        refresh['tenant_schema'] = tenant.schema_name
+        refresh['user_email'] = user.email
         tenant_info = {
             'schema_name': tenant.schema_name,
             'name': tenant.name,

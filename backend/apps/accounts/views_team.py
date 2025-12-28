@@ -203,7 +203,7 @@ class InviteViewSet(viewsets.ModelViewSet):
         
         try:
             # Accept invite and create membership
-            membership = invite.accept(request.user)
+            membership = invite.accept(request.user, invite_schema=connection.schema_name)
             
             # Return membership details
             membership_serializer = TenantMembershipSerializer(membership)
@@ -388,12 +388,13 @@ class PublicInviteAcceptView(APIView):
         from django_tenants.utils import schema_context
         
         email_hash = None
+        origin_schema = connection.schema_name
         try:
-            from apps.public_identity.utils import compute_email_hash
+            from apps.public_identity.models import compute_email_hash
             email_hash = compute_email_hash(invite.email)
             
             # Check if user exists in ANY tenant
-            user_index = TenantUserIndex.objects.filter(email_hash=email_hash, is_active=True).first()
+            user_index = TenantUserIndex.objects.filter(identifier_hash=email_hash, is_active=True).first()
             
             if user_index:
                 # User exists - add them to this tenant
@@ -426,7 +427,7 @@ class PublicInviteAcceptView(APIView):
                             membership_role = existing_membership.role
                         else:
                             # Create membership for existing user
-                            membership = invite.accept(user_in_tenant)
+                            membership = invite.accept(user_in_tenant, invite_schema=origin_schema)
                             membership_role = membership.role
                     else:
                         # User exists in another tenant but not this one
@@ -443,7 +444,7 @@ class PublicInviteAcceptView(APIView):
                         user_in_tenant.save()
                         
                         # Create membership
-                        membership = invite.accept(user_in_tenant)
+                        membership = invite.accept(user_in_tenant, invite_schema=origin_schema)
                         membership_role = membership.role
                     
                     user_id = user_in_tenant.id
@@ -510,7 +511,7 @@ class PublicInviteAcceptView(APIView):
                 )
                 
                 # Accept invite and create membership (also in tenant schema)
-                membership = invite.accept(user)
+                membership = invite.accept(user, invite_schema=origin_schema)
                 
                 # Get user data before leaving schema context
                 user_id = user.id

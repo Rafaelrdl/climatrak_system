@@ -54,6 +54,8 @@ class TenantHeaderMiddleware:
         '/api/auth/register/',
         '/api/auth/token/refresh/',
         '/api/auth/password-reset/',
+        '/api/auth/discover-tenant/',
+        '/api/v2/auth/',
         '/api/health/',
         '/api/accounts/health/',
         '/admin/',
@@ -169,13 +171,14 @@ class TenantHeaderMiddleware:
         """
         Check if user has active membership in tenant.
         
-        Uses public schema to check memberships (stored in public schema).
+        Uses public schema to check memberships (email hash only).
         """
-        from apps.accounts.models import TenantMembership
+        from apps.public_identity.models import TenantMembership as PublicTenantMembership, compute_email_hash
         
         with schema_context('public'):
-            return TenantMembership.objects.filter(
-                user=user,
+            email_hash = compute_email_hash(user.email)
+            return PublicTenantMembership.objects.filter(
+                email_hash=email_hash,
                 tenant=tenant,
                 status='active'
             ).exists()

@@ -45,6 +45,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/api/v2/auth': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
       // 🔐 Tenant API requests - route based on X-Tenant header OR subdomain
       // Must set Host header to tenant subdomain for django-tenants
       '/api': {

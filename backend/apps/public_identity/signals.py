@@ -44,7 +44,13 @@ def get_current_tenant():
         return None
 
 
-def sync_user_to_public_index(tenant, user, created: bool = False, default_role: str = None):
+def sync_user_to_public_index(
+    tenant,
+    user,
+    created: bool = False,
+    default_role: str = None,
+    membership_status: str = None
+):
     """
     Sync a User from tenant schema to public TenantUserIndex and TenantMembership.
     
@@ -59,6 +65,7 @@ def sync_user_to_public_index(tenant, user, created: bool = False, default_role:
         user: The User instance that was saved
         created: Whether this is a new user
         default_role: Role to assign if creating new membership (fallback)
+        membership_status: Status to persist from tenant membership (optional)
     """
     if not tenant:
         logger.debug("No tenant found, skipping sync")
@@ -67,9 +74,10 @@ def sync_user_to_public_index(tenant, user, created: bool = False, default_role:
     email = user.email.lower().strip()
     email_hash = compute_email_hash(email)
     
-    # Try to get role from tenant's TenantMembership (apps.accounts)
+    # Try to get role and status from tenant's TenantMembership (apps.accounts)
     # This is the source of truth for the user's role
     role_from_tenant = None
+    status_from_tenant = None
     try:
         # Import here to avoid circular imports
         from apps.accounts.models import TenantMembership as TenantTenantMembership
@@ -77,17 +85,21 @@ def sync_user_to_public_index(tenant, user, created: bool = False, default_role:
         tenant_membership = TenantTenantMembership.objects.filter(
             user=user,
             tenant=tenant,
-            status='active'
         ).first()
         
         if tenant_membership:
             role_from_tenant = tenant_membership.role
+            status_from_tenant = tenant_membership.status
             logger.debug(f"Found role {role_from_tenant} from tenant membership for {email}")
     except Exception as e:
         logger.debug(f"Could not get role from tenant membership: {e}")
     
     # Determine which role to use (priority: tenant membership > default_role)
     role_to_use = role_from_tenant or default_role
+    status_to_use = membership_status or status_from_tenant
+    if status_to_use not in ['active', 'inactive', 'suspended']:
+        status_to_use = 'active' if user.is_active else 'inactive'
+    is_active = bool(user.is_active and status_to_use == 'active')
     
     # We need to switch to public schema to update public tables
     try:
@@ -97,7 +109,7 @@ def sync_user_to_public_index(tenant, user, created: bool = False, default_role:
             TenantUserIndex.create_or_update_index(
                 tenant=tenant,
                 email=email,
-                is_active=user.is_active
+                is_active=is_active
             )
             
             # Update or create TenantMembership in public schema (APENAS para role)
@@ -106,7 +118,7 @@ def sync_user_to_public_index(tenant, user, created: bool = False, default_role:
                 email_hash=email_hash,
                 tenant=tenant,
                 defaults={
-                    'status': 'active' if user.is_active else 'inactive',
+                    'status': status_to_use,
                 }
             )
             
@@ -225,7 +237,13 @@ def tenant_membership_post_save_handler(sender, instance, created, **kwargs):
     user = instance.user
     
     # Sync to public (this will now pick up the role from tenant membership)
-    sync_user_to_public_index(tenant, user, created=False, default_role=instance.role)
+    sync_user_to_public_index(
+        tenant,
+        user,
+        created=False,
+        default_role=instance.role,
+        membership_status=instance.status
+    )
 
 
 # ============================================================================

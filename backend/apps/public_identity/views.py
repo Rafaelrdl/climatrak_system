@@ -20,7 +20,10 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django_tenants.utils import schema_context
 
+from apps.tenants.models import Domain
+from .models import TenantUserIndex, TenantMembership, compute_email_hash
 from .services import TenantAuthService
 from .serializers import (
     LoginSerializer,
@@ -73,6 +76,86 @@ def clear_auth_cookies(response: Response):
     """Clear authentication cookies."""
     response.delete_cookie('access_token', path=COOKIE_PATH)
     response.delete_cookie('refresh_token', path=COOKIE_PATH)
+
+
+class TenantDiscoveryView(APIView):
+    """
+    Tenant discovery endpoint using public index (email hash only).
+    
+    POST /api/v2/auth/discover-tenant/
+    {
+        "email": "user@example.com"
+    }
+    """
+    
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        email = request.data.get('email', '').strip().lower()
+        
+        if not email:
+            return Response(
+                {'error': 'Email is required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        with schema_context('public'):
+            email_hash = compute_email_hash(email)
+            memberships = list(
+                TenantMembership.objects.filter(email_hash=email_hash)
+                .select_related('tenant')
+                .order_by('-joined_at')
+            )
+            active_memberships = [m for m in memberships if m.status == 'active']
+            
+            if active_memberships:
+                entries = active_memberships
+            elif memberships:
+                return Response({
+                    'found': False,
+                    'email': email,
+                    'message': 'Nenhuma conta encontrada com este email.'
+                })
+            else:
+                index_entries = list(
+                    TenantUserIndex.find_tenants_for_email(email)
+                    .select_related('tenant')
+                    .order_by('-updated_at', '-created_at')
+                )
+                if not index_entries:
+                    return Response({
+                        'found': False,
+                        'email': email,
+                        'message': 'Nenhuma conta encontrada com este email.'
+                    })
+                entries = index_entries
+            
+            tenants = [entry.tenant for entry in entries]
+            domains = Domain.objects.filter(tenant__in=tenants).order_by('-is_primary', 'domain')
+            domain_map = {}
+            for domain in domains:
+                if domain.tenant_id not in domain_map:
+                    domain_map[domain.tenant_id] = domain.domain
+            
+            tenants_data = []
+            for entry in entries:
+                tenant = entry.tenant
+                tenants_data.append({
+                    'schema_name': tenant.schema_name,
+                    'slug': tenant.slug,
+                    'name': tenant.name,
+                    'domain': domain_map.get(tenant.id),
+                })
+            
+            primary_tenant = tenants_data[0]
+            
+            return Response({
+                'found': True,
+                'email': email,
+                'tenants': tenants_data,
+                'primary_tenant': primary_tenant,
+                'has_multiple_tenants': len(tenants_data) > 1,
+            })
 
 
 class CentralizedLoginView(APIView):

@@ -8,7 +8,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django_tenants.utils import schema_context
 
-from apps.accounts.models import TenantMembership, User
+from apps.public_identity.models import TenantUserIndex, TenantMembership, compute_email_hash
+from apps.tenants.models import Domain
 
 
 class TenantDiscoveryView(APIView):
@@ -56,40 +57,55 @@ class TenantDiscoveryView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Buscar usuário no public schema
+        # Lookup tenant index entries in public schema (email hash only)
         with schema_context('public'):
-            try:
-                user = User.objects.get(email__iexact=email)
-            except User.DoesNotExist:
+            email_hash = compute_email_hash(email)
+            memberships = list(
+                TenantMembership.objects.filter(email_hash=email_hash)
+                .select_related('tenant')
+                .order_by('-joined_at')
+            )
+            active_memberships = [m for m in memberships if m.status == 'active']
+            
+            if active_memberships:
+                entries = active_memberships
+            elif memberships:
                 return Response({
                     'found': False,
                     'email': email,
                     'message': 'Nenhuma conta encontrada com este email.'
                 })
+            else:
+                index_entries = list(
+                    TenantUserIndex.find_tenants_for_email(email)
+                    .select_related('tenant')
+                    .order_by('-updated_at', '-created_at')
+                )
+                if not index_entries:
+                    return Response({
+                        'found': False,
+                        'email': email,
+                        'message': 'Nenhuma conta encontrada com este email.'
+                    })
+                entries = index_entries
             
-            # Buscar todos os tenants do usuário
-            memberships = TenantMembership.objects.filter(
-                user=user,
-                status='active'
-            ).select_related('tenant').order_by('joined_at')
+            tenants = [entry.tenant for entry in entries]
+            domains = Domain.objects.filter(tenant__in=tenants).order_by('-is_primary', 'domain')
+            domain_map = {}
+            for domain in domains:
+                if domain.tenant_id not in domain_map:
+                    domain_map[domain.tenant_id] = domain.domain
             
-            if not memberships.exists():
-                return Response({
-                    'found': False,
-                    'email': email,
-                    'message': 'Usuário encontrado mas sem acesso a nenhum tenant.'
-                })
-            
-            # Montar lista de tenants
             tenants_data = []
-            for membership in memberships:
+            for entry in entries:
+                tenant = entry.tenant
                 tenants_data.append({
-                    'schema_name': membership.tenant.schema_name,
-                    'slug': membership.tenant.slug,
-                    'name': membership.tenant.name,
+                    'schema_name': tenant.schema_name,
+                    'slug': tenant.slug,
+                    'name': tenant.name,
+                    'domain': domain_map.get(tenant.id),
                 })
             
-            # Tenant primário é o primeiro (joined_at mais antigo)
             primary_tenant = tenants_data[0]
             
             return Response({

@@ -572,12 +572,13 @@ class UserTenantsView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        from apps.accounts.models import TenantMembership
+        from apps.public_identity.models import TenantMembership as PublicTenantMembership, compute_email_hash
         from django_tenants.utils import schema_context
         
         with schema_context('public'):
-            memberships = TenantMembership.objects.filter(
-                user=request.user,
+            email_hash = compute_email_hash(request.user.email)
+            memberships = PublicTenantMembership.objects.filter(
+                email_hash=email_hash,
                 status='active'
             ).select_related('tenant').order_by('tenant__name')
             
@@ -680,7 +681,7 @@ class WhoAmIView(APIView):
     
     def get(self, request):
         from django.db import connection
-        from apps.accounts.models import TenantMembership
+        from apps.public_identity.models import TenantMembership as PublicTenantMembership, compute_email_hash
         from django_tenants.utils import schema_context
         
         # Get current tenant info
@@ -699,8 +700,9 @@ class WhoAmIView(APIView):
             
             # Get user's role in this tenant
             with schema_context('public'):
-                membership = TenantMembership.objects.filter(
-                    user=request.user,
+                email_hash = compute_email_hash(request.user.email)
+                membership = PublicTenantMembership.objects.filter(
+                    email_hash=email_hash,
                     tenant=tenant,
                     status='active'
                 ).first()
