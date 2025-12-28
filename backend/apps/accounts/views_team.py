@@ -383,55 +383,94 @@ class PublicInviteAcceptView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Check if user already exists
-        existing_user = User.objects.filter(email__iexact=invite.email).first()
+        # Check if user already exists (search in all tenant schemas via TenantUserIndex)
+        from apps.public_identity.models import TenantUserIndex
+        from django_tenants.utils import schema_context
         
-        if existing_user:
-            # User already exists - just create the TenantMembership
-            # Check if already a member of this tenant
-            existing_membership = TenantMembership.objects.filter(
-                user=existing_user,
-                tenant=invite.tenant,
-            ).first()
+        email_hash = None
+        try:
+            from apps.public_identity.utils import compute_email_hash
+            email_hash = compute_email_hash(invite.email)
             
-            if existing_membership:
-                if existing_membership.status == 'active':
-                    return Response(
-                        {"detail": "You are already a member of this organization."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                else:
-                    # Reactivate membership
-                    existing_membership.status = 'active'
-                    existing_membership.role = invite.role
-                    existing_membership.save()
-                    membership = existing_membership
-            else:
-                # Create new membership for existing user
-                try:
-                    membership = invite.accept(existing_user)
-                except Exception as e:
-                    return Response(
-                        {"detail": str(e)},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+            # Check if user exists in ANY tenant
+            user_index = TenantUserIndex.objects.filter(email_hash=email_hash, is_active=True).first()
             
-            logger.info(f"✅ Existing user {existing_user.email} joined {invite.tenant.name} as {invite.role}")
-            
-            return Response({
-                "message": "You have been added to the organization.",
-                "existing_user": True,
-                "user": {
-                    "id": existing_user.id,
-                    "email": existing_user.email,
-                    "full_name": existing_user.full_name,
-                },
-                "membership": {
-                    "tenant_name": invite.tenant.name,
-                    "tenant_slug": invite.tenant.schema_name,
-                    "role": membership.role,
-                }
-            }, status=status.HTTP_200_OK)
+            if user_index:
+                # User exists - add them to this tenant
+                # Get the user from their existing tenant to validate password could work
+                with schema_context(user_index.tenant.schema_name):
+                    existing_user = User.objects.get(id=user_index.user_id)
+                    
+                # Now check/create in the INVITED tenant schema
+                with schema_context(invite.tenant.schema_name):
+                    # Check if user exists in THIS tenant
+                    user_in_tenant = User.objects.filter(email__iexact=invite.email).first()
+                    
+                    if user_in_tenant:
+                        # User already in this tenant - check membership
+                        existing_membership = TenantMembership.objects.filter(
+                            user=user_in_tenant,
+                            tenant=invite.tenant,
+                        ).first()
+                        
+                        if existing_membership and existing_membership.status == 'active':
+                            return Response(
+                                {"detail": "You are already a member of this organization."},
+                                status=status.HTTP_400_BAD_REQUEST
+                            )
+                        elif existing_membership:
+                            # Reactivate membership with new role
+                            existing_membership.status = 'active'
+                            existing_membership.role = invite.role
+                            existing_membership.save()
+                            membership_role = existing_membership.role
+                        else:
+                            # Create membership for existing user
+                            membership = invite.accept(user_in_tenant)
+                            membership_role = membership.role
+                    else:
+                        # User exists in another tenant but not this one
+                        # Create user record in this tenant (same credentials)
+                        user_in_tenant = User.objects.create_user(
+                            username=existing_user.username,
+                            email=existing_user.email,
+                            password=existing_user.password,  # Copy hashed password
+                            first_name=existing_user.first_name,
+                            last_name=existing_user.last_name,
+                        )
+                        # Need to copy the password hash directly
+                        user_in_tenant.password = existing_user.password
+                        user_in_tenant.save()
+                        
+                        # Create membership
+                        membership = invite.accept(user_in_tenant)
+                        membership_role = membership.role
+                    
+                    user_id = user_in_tenant.id
+                    user_email = user_in_tenant.email
+                    user_full_name = user_in_tenant.full_name
+                
+                logger.info(f"✅ Existing user {user_email} joined {invite.tenant.name} as {membership_role}")
+                
+                return Response({
+                    "message": "You have been added to the organization.",
+                    "existing_user": True,
+                    "user": {
+                        "id": user_id,
+                        "email": user_email,
+                        "full_name": user_full_name,
+                    },
+                    "membership": {
+                        "tenant_name": invite.tenant.name,
+                        "tenant_slug": invite.tenant.schema_name,
+                        "role": membership_role,
+                    }
+                }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.exception(f"Error handling existing user for invite: {e}")
+            # Continue to new user creation if we can't find existing user
+            pass
+
         
         # User doesn't exist - create new user
         if not full_name:
@@ -452,42 +491,51 @@ class PublicInviteAcceptView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Create user
+        # Create user IN THE TENANT SCHEMA (not public!)
+        from django_tenants.utils import schema_context
+        
         name_parts = full_name.split(' ', 1)
         first_name = name_parts[0]
         last_name = name_parts[1] if len(name_parts) > 1 else ''
         
-        user = User.objects.create_user(
-            username=invite.email,
-            email=invite.email,
-            password=password,
-            first_name=first_name,
-            last_name=last_name,
-        )
-        
-        # Accept invite and create membership
         try:
-            membership = invite.accept(user)
+            # Switch to tenant schema to create user
+            with schema_context(invite.tenant.schema_name):
+                user = User.objects.create_user(
+                    username=invite.email,
+                    email=invite.email,
+                    password=password,
+                    first_name=first_name,
+                    last_name=last_name,
+                )
+                
+                # Accept invite and create membership (also in tenant schema)
+                membership = invite.accept(user)
+                
+                # Get user data before leaving schema context
+                user_id = user.id
+                user_email = user.email
+                user_full_name = user.full_name
+                membership_role = membership.role
         except Exception as e:
-            # If membership creation fails, delete the user
-            user.delete()
+            logger.exception(f"Error creating user for invite {invite.token}: {e}")
             return Response(
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        logger.info(f"✅ User {user.email} created and joined {invite.tenant.name} as {invite.role}")
+        logger.info(f"✅ User {user_email} created and joined {invite.tenant.name} as {membership_role}")
         
         return Response({
             "message": "Account created successfully.",
             "user": {
-                "id": user.id,
-                "email": user.email,
-                "full_name": user.full_name,
+                "id": user_id,
+                "email": user_email,
+                "full_name": user_full_name,
             },
             "membership": {
                 "tenant_name": invite.tenant.name,
                 "tenant_slug": invite.tenant.schema_name,
-                "role": membership.role,
+                "role": membership_role,
             }
         }, status=status.HTTP_201_CREATED)

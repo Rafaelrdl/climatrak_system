@@ -1,5 +1,11 @@
 """
 Admin configuration for public_identity app.
+
+NOTA: Os models no schema público armazenam APENAS:
+- TenantUserIndex: email_hash + tenant + is_active
+- TenantMembership: email_hash + tenant + role + status
+
+Dados do usuário (nome, etc.) ficam APENAS no schema do tenant.
 """
 
 from django.contrib import admin
@@ -9,13 +15,12 @@ from .models import TenantUserIndex, TenantMembership, TenantInvite
 
 @admin.register(TenantMembership)
 class TenantMembershipAdmin(admin.ModelAdmin):
-    """Admin for TenantMembership."""
+    """Admin for TenantMembership (public schema)."""
     
     list_display = [
         'id',
         'tenant',
-        'display_name',
-        'email_hint',
+        'email_hash_short',
         'role_badge',
         'status_badge',
         'joined_at',
@@ -28,14 +33,11 @@ class TenantMembershipAdmin(admin.ModelAdmin):
     ]
     
     search_fields = [
-        'email_hint',
-        'display_name',
         'email_hash',
     ]
     
     readonly_fields = [
         'email_hash',
-        'tenant_user_id',
         'joined_at',
         'updated_at',
     ]
@@ -44,7 +46,7 @@ class TenantMembershipAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Tenant & User', {
-            'fields': ('tenant', 'email_hash', 'email_hint', 'display_name', 'tenant_user_id')
+            'fields': ('tenant', 'email_hash')
         }),
         ('Role & Status', {
             'fields': ('role', 'status')
@@ -54,6 +56,11 @@ class TenantMembershipAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+    
+    def email_hash_short(self, obj):
+        """Show truncated email hash for display."""
+        return f"{obj.email_hash[:12]}..."
+    email_hash_short.short_description = 'Email Hash'
     
     def role_badge(self, obj):
         colors = {
@@ -91,16 +98,17 @@ class TenantMembershipAdmin(admin.ModelAdmin):
 
 @admin.register(TenantUserIndex)
 class TenantUserIndexAdmin(admin.ModelAdmin):
-    """Admin for TenantUserIndex - read-only for security."""
+    """Admin for TenantUserIndex - read-only for security.
+    
+    Este model armazena APENAS email_hash + tenant para descoberta de tenants no login.
+    """
     
     list_display = [
         'id',
         'tenant',
-        'email_hint',
-        'tenant_user_id',
+        'identifier_hash_short',
         'is_active',
         'created_at',
-        'updated_at',
     ]
     
     list_filter = [
@@ -110,14 +118,11 @@ class TenantUserIndexAdmin(admin.ModelAdmin):
     ]
     
     search_fields = [
-        'email_hint',
         'identifier_hash',
     ]
     
     readonly_fields = [
         'identifier_hash',
-        'email_hint',
-        'tenant_user_id',
         'created_at',
         'updated_at',
     ]
@@ -135,6 +140,11 @@ class TenantUserIndexAdmin(admin.ModelAdmin):
         if obj:
             return self.readonly_fields + ['tenant']
         return self.readonly_fields
+    
+    def identifier_hash_short(self, obj):
+        """Show truncated identifier hash for display."""
+        return f"{obj.identifier_hash[:12]}..."
+    identifier_hash_short.short_description = 'Identifier Hash'
 
 
 @admin.register(TenantInvite)

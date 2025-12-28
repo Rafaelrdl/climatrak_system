@@ -16,4 +16,6 @@ class PublicIdentityConfig(AppConfig):
     
     def ready(self):
         # Import signals when app is ready
-        from . import signals  # noqa: F401
+        from . import signals
+        # Connect the signals to User model
+        signals.connect_signals()

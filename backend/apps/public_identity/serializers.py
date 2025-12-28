@@ -102,15 +102,14 @@ class MeResponseSerializer(serializers.Serializer):
 
 class TenantMembershipSerializer(serializers.Serializer):
     """
-    Serializer for TenantMembership model.
+    Serializer for TenantMembership model (public schema).
     
-    Used in admin views to manage memberships.
+    NOTA: Este modelo agora armazena APENAS email_hash + tenant + role.
+    Dados do usuário (nome, etc.) vêm do schema do tenant.
     """
     id = serializers.IntegerField(read_only=True)
     tenant_id = serializers.IntegerField(read_only=True)
     tenant_name = serializers.CharField(source='tenant.name', read_only=True)
-    email_hint = serializers.CharField(read_only=True)
-    display_name = serializers.CharField(read_only=True)
     role = serializers.ChoiceField(
         choices=[
             ('owner', 'Proprietário'),
@@ -130,7 +129,6 @@ class TenantMembershipSerializer(serializers.Serializer):
         read_only=True
     )
     joined_at = serializers.DateTimeField(read_only=True)
-    last_login_at = serializers.DateTimeField(read_only=True, allow_null=True)
 
 
 class TenantInviteSerializer(serializers.Serializer):

@@ -11,13 +11,26 @@ Architecture (100% correct multi-tenant):
 
 Key Design Decisions:
 1. NO User in public schema - each tenant has isolated users with passwords
-2. TenantMembership uses user_id (int) + email_hash, NOT FK to User
+2. TenantMembership uses ONLY email_hash (NOT user_id)
 3. TenantUserIndex enables login discovery without revealing tenant list
 4. All password validation happens inside tenant schema context
+
+IMPORTANTE - Dados no Schema Público:
+- TenantUserIndex: APENAS email_hash + tenant + is_active
+- TenantMembership: APENAS email_hash + tenant + role + status
+
+NUNCA armazene no schema público:
+- Nome do usuário (display_name)
+- ID do usuário no tenant (tenant_user_id)
+- Email completo ou hint
+- Avatar, telefone ou outros dados pessoais
+
+Esses dados ficam APENAS no schema do tenant e são buscados durante autenticação.
 
 Security:
 - Email is stored as HMAC-SHA256 hash (deterministic, not reversible)
 - No passwords in public schema
+- No user-identifying data beyond email hash
 - Prevents email enumeration
 - Tenant list only revealed after successful authentication
 """
@@ -52,10 +65,14 @@ class TenantMembership(models.Model):
     """
     Represents a user's membership in a tenant organization.
     
-    IMPORTANT: This model lives in PUBLIC schema but does NOT have FK to User
-    because User lives in tenant schemas. Instead, we use:
-    - email_hash: HMAC hash for lookups
-    - tenant_user_id: Integer ID reference to User in tenant schema
+    IMPORTANT: This model lives in PUBLIC schema and armazena APENAS:
+    - email_hash: HMAC hash para lookups (não o email real)
+    - tenant: FK para o tenant
+    - role: papel/permissão do usuário
+    - status: active/inactive/suspended
+    
+    NUNCA armazene dados do usuário (nome, id, etc.) aqui.
+    Esses dados ficam no schema do tenant.
     
     Roles:
     - owner: Dono/responsável que assinou o contrato, acesso total incluindo billing
@@ -89,40 +106,19 @@ class TenantMembership(models.Model):
         verbose_name='Tenant'
     )
     
-    # User reference (NOT FK - User is in tenant schema)
-    # We use email_hash for lookups and tenant_user_id for reference
+    # User reference via email hash (NOT FK - User is in tenant schema)
     email_hash = models.CharField(
         'Email Hash',
         max_length=64,
         db_index=True,
         help_text='HMAC-SHA256 hash of user email for lookups'
     )
-    tenant_user_id = models.PositiveIntegerField(
-        'Tenant User ID',
-        help_text='User ID in the tenant schema (not a FK due to cross-schema)'
-    )
     
-    # Email hint for debugging/admin (just the domain)
-    email_hint = models.CharField(
-        'Email Hint',
-        max_length=100,
-        blank=True,
-        help_text='Domain part of email for debugging (e.g., @company.com)'
-    )
-    
-    # Cached display name (updated via signals)
-    display_name = models.CharField(
-        'Display Name',
-        max_length=255,
-        blank=True,
-        help_text='Cached user display name'
-    )
-    
-    # Membership details
+    # Membership details - APENAS role e status no schema público
     role = models.CharField('Role', max_length=20, choices=ROLE_CHOICES, default='viewer')
     status = models.CharField('Status', max_length=20, choices=STATUS_CHOICES, default='active')
     
-    # Metadata
+    # Metadata mínimo
     invited_by_email_hash = models.CharField(
         'Invited By (Email Hash)',
         max_length=64,
@@ -132,6 +128,27 @@ class TenantMembership(models.Model):
     )
     joined_at = models.DateTimeField('Joined At', auto_now_add=True)
     updated_at = models.DateTimeField('Updated At', auto_now=True)
+    
+    # Campos mantidos por compatibilidade mas que serão removidos
+    # TODO: Remover esses campos em uma migration futura após garantir que não são usados
+    tenant_user_id = models.PositiveIntegerField(
+        'Tenant User ID (deprecated)',
+        null=True,
+        blank=True,
+        help_text='DEPRECATED - User ID in the tenant schema'
+    )
+    email_hint = models.CharField(
+        'Email Hint (deprecated)',
+        max_length=100,
+        blank=True,
+        help_text='DEPRECATED - Domain part of email'
+    )
+    display_name = models.CharField(
+        'Display Name (deprecated)',
+        max_length=255,
+        blank=True,
+        help_text='DEPRECATED - Cached user display name'
+    )
     
     class Meta:
         db_table = 'public_tenant_memberships'
@@ -143,11 +160,10 @@ class TenantMembership(models.Model):
         indexes = [
             models.Index(fields=['tenant', 'role', 'status']),
             models.Index(fields=['email_hash', 'status']),
-            models.Index(fields=['tenant_user_id', 'tenant']),
         ]
     
     def __str__(self):
-        return f"{self.display_name or self.email_hint} @ {self.tenant.name} ({self.role})"
+        return f"Membership {self.email_hash[:8]}... @ {self.tenant.name} ({self.role})"
     
     def clean(self):
         """Validate that a tenant has at least one owner."""
@@ -241,33 +257,28 @@ class TenantMembership(models.Model):
     def create_membership(
         cls,
         tenant,
-        user_id: int,
         email: str,
         role: str = 'viewer',
-        display_name: str = '',
         invited_by_email: str = None
     ):
         """
         Create a new membership for a user in a tenant.
         
+        IMPORTANTE: Armazenamos APENAS email_hash + tenant + role + status.
+        Dados do usuário (nome, id, etc.) ficam no schema do tenant.
+        
         Args:
             tenant: Tenant instance
-            user_id: User ID in the tenant schema
             email: User's email address
             role: Role to assign
-            display_name: User's display name
             invited_by_email: Email of user who invited (optional)
         """
         email_hash = compute_email_hash(email)
-        email_hint = get_email_domain(email)
         invited_by_hash = compute_email_hash(invited_by_email) if invited_by_email else None
         
         return cls.objects.create(
             tenant=tenant,
             email_hash=email_hash,
-            tenant_user_id=user_id,
-            email_hint=email_hint,
-            display_name=display_name,
             role=role,
             invited_by_email_hash=invited_by_hash,
         )
@@ -277,19 +288,17 @@ class TenantMembership(models.Model):
         cls,
         tenant,
         email: str,
-        user_id: int = None,
-        display_name: str = None,
         role: str = None,
         status: str = None
     ):
         """
         Update an existing membership.
         
+        IMPORTANTE: Apenas role e status podem ser atualizados.
+        
         Args:
             tenant: Tenant instance
             email: User's email address
-            user_id: New user ID (if changed)
-            display_name: New display name
             role: New role
             status: New status
         """
@@ -298,10 +307,6 @@ class TenantMembership(models.Model):
         try:
             membership = cls.objects.get(email_hash=email_hash, tenant=tenant)
             
-            if user_id is not None:
-                membership.tenant_user_id = user_id
-            if display_name is not None:
-                membership.display_name = display_name
             if role is not None:
                 membership.role = role
             if status is not None:
@@ -345,26 +350,12 @@ class TenantUserIndex(models.Model):
     
     # HMAC hash of normalized email (lowercase, trimmed)
     # Format: HMAC-SHA256(SECRET_KEY, normalized_email)
+    # Este é o ÚNICO dado do usuário armazenado - apenas o hash do email
     identifier_hash = models.CharField(
         'Identifier Hash',
         max_length=64,
         db_index=True,
         help_text='HMAC-SHA256 hash of the user email'
-    )
-    
-    # Optional hint for debugging (just the domain part)
-    email_hint = models.CharField(
-        'Email Hint',
-        max_length=100,
-        blank=True,
-        null=True,
-        help_text='Domain part of email for debugging (e.g., @company.com)'
-    )
-    
-    # User ID in the tenant schema (for reference, not FK since it's cross-schema)
-    tenant_user_id = models.PositiveIntegerField(
-        'Tenant User ID',
-        help_text='User ID in the tenant schema (not a FK due to cross-schema)'
     )
     
     # Status
@@ -378,6 +369,22 @@ class TenantUserIndex(models.Model):
     created_at = models.DateTimeField('Created At', auto_now_add=True)
     updated_at = models.DateTimeField('Updated At', auto_now=True)
     
+    # Campos mantidos por compatibilidade mas que serão removidos
+    # TODO: Remover esses campos em uma migration futura após garantir que não são usados
+    email_hint = models.CharField(
+        'Email Hint (deprecated)',
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='DEPRECATED - Domain part of email'
+    )
+    tenant_user_id = models.PositiveIntegerField(
+        'Tenant User ID (deprecated)',
+        null=True,
+        blank=True,
+        help_text='DEPRECATED - User ID in tenant schema'
+    )
+    
     class Meta:
         db_table = 'public_tenant_user_index'
         verbose_name = 'Tenant User Index'
@@ -390,7 +397,7 @@ class TenantUserIndex(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.email_hint or 'user'}@{self.tenant.schema_name}"
+        return f"Index {self.identifier_hash[:8]}... @ {self.tenant.schema_name}"
     
     @classmethod
     def compute_hash(cls, email: str) -> str:
@@ -444,15 +451,18 @@ class TenantUserIndex(models.Model):
         ).select_related('tenant')
     
     @classmethod
-    def create_or_update_index(cls, tenant, user_id: int, email: str, is_active: bool = True):
+    def create_or_update_index(cls, tenant, email: str, is_active: bool = True):
         """
         Create or update index entry for a user.
         
         Called by signals when a user is created/updated in a tenant.
         
+        IMPORTANTE: Armazenamos APENAS o hash do email + tenant + is_active.
+        Não armazenamos dados do usuário (nome, id, etc.) pois esses dados
+        pertencem ao schema do tenant.
+        
         Args:
             tenant: Tenant instance
-            user_id: User ID in the tenant schema
             email: User's email address
             is_active: Whether the user is active
             
@@ -460,14 +470,11 @@ class TenantUserIndex(models.Model):
             TenantUserIndex instance (created or updated)
         """
         identifier_hash = cls.compute_hash(email)
-        email_hint = cls.get_email_hint(email)
         
         obj, created = cls.objects.update_or_create(
             identifier_hash=identifier_hash,
             tenant=tenant,
             defaults={
-                'tenant_user_id': user_id,
-                'email_hint': email_hint,
                 'is_active': is_active,
             }
         )

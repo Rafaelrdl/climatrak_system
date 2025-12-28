@@ -295,27 +295,28 @@ class TenantAuthService:
         Sync a user from tenant schema to public indexes.
         
         Called by signals when User is created/updated in a tenant.
-        Creates/updates both TenantUserIndex and TenantMembership.
+        
+        IMPORTANTE: No schema público armazenamos APENAS:
+        - TenantUserIndex: email_hash + tenant (para descoberta no login)
+        - TenantMembership: email_hash + tenant + role (para permissões)
+        
+        Dados do usuário (nome, avatar, etc.) ficam APENAS no schema do tenant.
         """
         email = user.email.lower().strip()
         
-        # Update TenantUserIndex
+        # Update TenantUserIndex (apenas email_hash + tenant)
         TenantUserIndex.create_or_update_index(
             tenant=tenant,
-            user_id=user.id,
             email=email,
             is_active=user.is_active
         )
         
-        # Update or create TenantMembership
+        # Update or create TenantMembership (apenas email_hash + tenant + role + status)
         email_hash = compute_email_hash(email)
         membership, created = TenantMembership.objects.update_or_create(
             email_hash=email_hash,
             tenant=tenant,
             defaults={
-                'tenant_user_id': user.id,
-                'email_hint': TenantUserIndex.get_email_hint(email),
-                'display_name': getattr(user, 'full_name', '') or user.email,
                 'status': 'active' if user.is_active else 'inactive',
             }
         )
