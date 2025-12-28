@@ -18,6 +18,23 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      // 🔐 Public endpoints that should go to public schema (localhost:8000)
+      // These don't require tenant context
+      '/api/invites': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/api/auth/centralized-login': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/api/auth/password-reset': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
       // 🔐 Proxy API requests to backend (enables cookie sharing)
       // Frontend (localhost:5173) → Backend (umc.localhost:8000)
       // This way cookies work because both are on same origin from browser's perspective

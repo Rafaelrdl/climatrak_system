@@ -26,6 +26,10 @@ from apps.accounts.views import (
     CookieTokenRefreshView,
     LogoutView,
 )
+from apps.accounts.views_team import (
+    PublicInviteValidateView,
+    PublicInviteAcceptView,
+)
 
 urlpatterns = [
     # Centralized Django Admin (only in public schema)
@@ -70,6 +74,14 @@ urlpatterns = [
     path('api/auth/password-reset/request/', PasswordResetRequestView.as_view(), name='password_reset_request'),
     path('api/auth/password-reset/validate/', PasswordResetValidateView.as_view(), name='password_reset_validate'),
     path('api/auth/password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    
+    # ==========================================================================
+    # 📧 Public Invite Endpoints (for accepting team invitations)
+    # ==========================================================================
+    # These endpoints are public (no auth required) to allow new users to
+    # validate and accept invitations to join a tenant.
+    path('api/invites/validate/', PublicInviteValidateView.as_view(), name='invite_validate'),
+    path('api/invites/accept/', PublicInviteAcceptView.as_view(), name='invite_accept'),
 ]
 
 # Serve media files in development
