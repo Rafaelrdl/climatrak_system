@@ -8,6 +8,7 @@ import {
   resetAllTours,
   getTourProgress
 } from './tourConfigs';
+import { isOnboardingCompleted, removeOnboardingValue } from '@/lib/onboardingStorage';
 
 // ==================== TYPES ====================
 
@@ -52,7 +53,7 @@ export function TourProvider({ children, autoStartWelcomeTour = false }: TourPro
     setHasCompletedWelcomeTour(completed);
 
     // Check if we should start tour (from QuickSetupPage redirect)
-    const shouldStartTour = localStorage.getItem('onboarding:shouldStartTour') === 'true';
+    const shouldStartTour = isOnboardingCompleted('shouldStartTour');
     
     // Determine if we should auto-start
     const shouldAuto = autoStartWelcomeTour || shouldStartTour;
@@ -67,7 +68,7 @@ export function TourProvider({ children, autoStartWelcomeTour = false }: TourPro
 
       if (!isOnboardingPath) {
         // Clear the flag so it doesn't trigger again
-        localStorage.removeItem('onboarding:shouldStartTour');
+        removeOnboardingValue('shouldStartTour');
         
         // Delay to allow page to load
         const timer = setTimeout(() => {

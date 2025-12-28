@@ -2,6 +2,11 @@ import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCurrentUser } from '@/data/usersStore';
 import { useCurrentRole } from '@/data/authStore';
+import { 
+  getOnboardingState as getStoredOnboardingState, 
+  markOnboardingCompleted as markCompleted,
+  resetOnboarding as resetStoredOnboarding
+} from '@/lib/onboardingStorage';
 
 interface OnboardingState {
   inviteAccepted: boolean;
@@ -17,11 +22,12 @@ export function useOnboardingFlow() {
   const [currentRole] = useCurrentRole();
 
   const getOnboardingState = (): OnboardingState => {
+    const stored = getStoredOnboardingState();
     return {
-      inviteAccepted: !!localStorage.getItem('onboarding:inviteAccepted'),
-      setupCompleted: !!localStorage.getItem('onboarding:setupCompleted'),
-      tourCompleted: !!localStorage.getItem('onboarding:tourCompleted'),
-      firstTimeGuideCompleted: !!localStorage.getItem('onboarding:firstTimeGuideCompleted'),
+      inviteAccepted: stored.inviteAccepted,
+      setupCompleted: stored.setupCompleted,
+      tourCompleted: stored.tourCompleted,
+      firstTimeGuideCompleted: stored.firstTimeGuideCompleted,
     };
   };
 
@@ -76,19 +82,11 @@ export function useOnboardingFlow() {
   }, [currentUser, location.pathname, navigate]);
 
   const markStepCompleted = (step: keyof OnboardingState) => {
-    const stepKey = `onboarding:${step}`;
-    localStorage.setItem(stepKey, 'true');
+    markCompleted(step);
   };
 
   const resetOnboarding = () => {
-    const keys = [
-      'onboarding:inviteAccepted',
-      'onboarding:setupCompleted', 
-      'onboarding:tourCompleted',
-      'onboarding:firstTimeGuideCompleted'
-    ];
-    
-    keys.forEach(key => localStorage.removeItem(key));
+    resetStoredOnboarding();
   };
 
   const getProgress = (): { completed: number; total: number; percentage: number } => {

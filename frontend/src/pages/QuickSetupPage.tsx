@@ -18,6 +18,7 @@ import {
   Upload
 } from 'lucide-react';
 import { useCurrentUser, useUpdateCurrentUser } from '@/data/usersStore';
+import { markOnboardingCompleted } from '@/lib/onboardingStorage';
 import { toast } from 'sonner';
 import type { User } from '@/models/user';
 
@@ -133,12 +134,12 @@ export function QuickSetupPage() {
 
       updateUser(updatedUser);
       
-      // Mark setup as completed
-      localStorage.setItem('onboarding:setupCompleted', 'true');
+      // Mark setup as completed (tenant+user specific)
+      markOnboardingCompleted('setupCompleted');
       
       toast.success('Configuração concluída com sucesso!');
       // Mark that interactive tour should start on dashboard
-      localStorage.setItem('onboarding:shouldStartTour', 'true');
+      markOnboardingCompleted('shouldStartTour');
       navigate('/');
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
@@ -149,9 +150,9 @@ export function QuickSetupPage() {
   };
 
   const handleSkipSetup = () => {
-    localStorage.setItem('onboarding:setupCompleted', 'true');
+    markOnboardingCompleted('setupCompleted');
     // Mark that interactive tour should start on dashboard
-    localStorage.setItem('onboarding:shouldStartTour', 'true');
+    markOnboardingCompleted('shouldStartTour');
     navigate('/');
   };
 

@@ -11,6 +11,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { useCurrentRole } from '@/data/authStore';
+import { isOnboardingCompleted, removeOnboardingValue } from '@/lib/onboardingStorage';
 
 interface PageHint {
   path: string;
@@ -93,7 +94,7 @@ export function TourHint() {
       setCurrentHint(hint);
       
       // Show hint after a delay, but only if tour was completed
-      const tourCompleted = localStorage.getItem('onboarding:tourCompleted');
+      const tourCompleted = isOnboardingCompleted('tourCompleted');
       if (tourCompleted) {
         const timer = setTimeout(() => {
           setIsVisible(true);
@@ -121,7 +122,7 @@ export function TourHint() {
   };
 
   const handleRetakeTour = () => {
-    localStorage.removeItem('onboarding:tourCompleted');
+    removeOnboardingValue('tourCompleted');
     navigate('/welcome-tour');
   };
 

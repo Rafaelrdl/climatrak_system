@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Lightbulb, ChevronRight } from 'lucide-react';
 import { useCurrentRole } from '@/data/authStore';
+import { isOnboardingCompleted, markOnboardingCompleted } from '@/lib/onboardingStorage';
 import type { UserRole } from '@/models/user';
 
 interface TourSpotlight {
@@ -307,9 +308,9 @@ export function useFirstTimeGuide() {
 
   useEffect(() => {
     // Check if user has completed first-time guide
-    const hasCompletedGuide = localStorage.getItem('onboarding:firstTimeGuideCompleted');
-    const hasCompletedSetup = localStorage.getItem('onboarding:setupCompleted');
-    const hasCompletedTour = localStorage.getItem('onboarding:tourCompleted');
+    const hasCompletedGuide = isOnboardingCompleted('firstTimeGuideCompleted');
+    const hasCompletedSetup = isOnboardingCompleted('setupCompleted');
+    const hasCompletedTour = isOnboardingCompleted('tourCompleted');
     
     // Show guide if setup and tour are completed but first-time guide is not
     if (hasCompletedSetup && hasCompletedTour && !hasCompletedGuide) {
@@ -318,12 +319,12 @@ export function useFirstTimeGuide() {
   }, []);
 
   const handleComplete = () => {
-    localStorage.setItem('onboarding:firstTimeGuideCompleted', 'true');
+    markOnboardingCompleted('firstTimeGuideCompleted');
     setShouldShow(false);
   };
 
   const handleSkip = () => {
-    localStorage.setItem('onboarding:firstTimeGuideCompleted', 'true');
+    markOnboardingCompleted('firstTimeGuideCompleted');
     setShouldShow(false);
   };
 

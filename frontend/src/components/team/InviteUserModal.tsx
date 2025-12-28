@@ -26,32 +26,40 @@ interface InviteUserModalProps {
 }
 
 // Opções de papel com ícones e cores seguindo o Design System
+// Nota: owner não é incluído pois é atribuído apenas ao criador do tenant
 const roleOptions = [
   { 
     value: 'admin' as UserRole, 
     label: 'Administrador', 
-    description: 'Acesso completo ao sistema',
+    description: 'Acesso completo ao sistema e configurações',
     icon: Shield,
     iconColor: 'text-red-500'
   },
   { 
-    value: 'technician' as UserRole, 
-    label: 'Técnico', 
-    description: 'Pode executar e gerenciar ordens de serviço',
-    icon: Wrench,
+    value: 'operator' as UserRole, 
+    label: 'Operador', 
+    description: 'Gerencia planos, ordens e estoques',
+    icon: User,
     iconColor: 'text-blue-500'
   },
   { 
-    value: 'operator' as UserRole, 
-    label: 'Operador', 
-    description: 'Pode operar o sistema e criar solicitações',
-    icon: User,
+    value: 'technician' as UserRole, 
+    label: 'Técnico', 
+    description: 'Executa ordens de serviço atribuídas',
+    icon: Wrench,
     iconColor: 'text-green-500'
+  },
+  { 
+    value: 'requester' as UserRole, 
+    label: 'Solicitante', 
+    description: 'Abre solicitações que viram ordens de serviço',
+    icon: UserPlus,
+    iconColor: 'text-cyan-500'
   },
   { 
     value: 'viewer' as UserRole, 
     label: 'Visualizador', 
-    description: 'Acesso somente leitura',
+    description: 'Acesso somente leitura para dashboards',
     icon: Eye,
     iconColor: 'text-gray-500'
   },

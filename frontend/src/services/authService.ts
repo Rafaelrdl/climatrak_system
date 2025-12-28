@@ -75,15 +75,20 @@ export async function login(email: string, password: string): Promise<LoginResul
     password,
   });
 
-  const user = mapApiUserToUser(data.user);
+  // Select default tenant or first available (needed to get correct role)
+  const defaultTenant = data.tenants.find(t => t.is_default) || data.tenants[0] || null;
+
+  // Map user data - use role from selected tenant (not from user object)
+  // The backend returns the correct role per tenant in data.tenants[].role
+  const user = mapApiUserToUser({
+    ...data.user,
+    role: defaultTenant?.role ?? data.user.role, // Prioritize tenant-specific role
+  });
 
   // Persist user/role locally (used by AuthProvider)
   localStorage.setItem('auth:user', JSON.stringify(user));
   localStorage.setItem('auth:role', user.role);
   window.dispatchEvent(new Event('authChange'));
-
-  // Select default tenant or first available
-  const defaultTenant = data.tenants.find(t => t.is_default) || data.tenants[0] || null;
 
   if (defaultTenant) {
     const tenantSlug = defaultTenant.slug || defaultTenant.schema_name.toLowerCase();

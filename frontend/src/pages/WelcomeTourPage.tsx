@@ -23,6 +23,7 @@ import {
   Pause
 } from 'lucide-react';
 import { useCurrentRole } from '@/data/authStore';
+import { markOnboardingCompleted } from '@/lib/onboardingStorage';
 import type { UserRole } from '@/models/user';
 
 interface TourStep {
@@ -259,8 +260,8 @@ export function WelcomeTourPage() {
   };
 
   const handleFinishTour = () => {
-    // Mark tour as completed in localStorage
-    localStorage.setItem('onboarding:tourCompleted', 'true');
+    // Mark tour as completed in localStorage (tenant+user specific)
+    markOnboardingCompleted('tourCompleted');
     
     // Show completion toast
     toast.success('🎉 Tour finalizado!', {
@@ -275,7 +276,7 @@ export function WelcomeTourPage() {
   };
 
   const handleSkipTour = () => {
-    localStorage.setItem('onboarding:tourCompleted', 'true');
+    markOnboardingCompleted('tourCompleted');
     navigate('/');
   };
 

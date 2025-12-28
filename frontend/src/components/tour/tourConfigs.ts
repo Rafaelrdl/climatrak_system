@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { TourConfig, TourStep } from './InteractiveTour';
 import type { UserRole } from '@/models/user';
+import { markOnboardingCompleted } from '@/lib/onboardingStorage';
 
 // ==================== ROLE CONSTANTS ====================
 /**
@@ -124,16 +125,15 @@ export const welcomeTourConfig: TourConfig = {
   persistProgress: true,
   storageKey: 'welcome',
   onComplete: () => {
-    // Mark all onboarding tour steps as completed
-    localStorage.setItem('onboarding:tourCompleted', 'true');
-    localStorage.setItem('onboarding:firstTimeGuideCompleted', 'true');
-    localStorage.setItem('onboarding:interactiveTourCompleted', 'true');
+    // Mark all onboarding tour steps as completed (tenant+user specific)
+    markOnboardingCompleted('tourCompleted');
+    markOnboardingCompleted('firstTimeGuideCompleted');
   },
   onSkip: () => {
-    // Mark as skipped/completed so it doesn't show again
-    localStorage.setItem('onboarding:tourCompleted', 'true');
-    localStorage.setItem('onboarding:firstTimeGuideCompleted', 'true');
-    localStorage.setItem('onboarding:interactiveTourSkipped', 'true');
+    // Mark as skipped/completed so it doesn't show again (tenant+user specific)
+    markOnboardingCompleted('tourCompleted');
+    markOnboardingCompleted('firstTimeGuideCompleted');
+    markOnboardingCompleted('welcomeGuideShown');
   }
 };
 

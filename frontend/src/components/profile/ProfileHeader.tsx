@@ -1,4 +1,4 @@
-import { User, Mail, Phone, Shield, Calendar, BadgeCheck, Camera } from 'lucide-react';
+import { User, Mail, Phone, Shield, Calendar, BadgeCheck, Camera, Crown, UserCog, Wrench, Eye, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,10 +11,12 @@ interface ProfileHeaderProps {
 }
 
 const roleConfig: Record<UserRole, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; icon: typeof Shield }> = {
+  owner: { label: 'Proprietário', variant: 'destructive', icon: Crown },
   admin: { label: 'Administrador', variant: 'destructive', icon: Shield },
-  technician: { label: 'Técnico', variant: 'default', icon: BadgeCheck },
-  operator: { label: 'Operador', variant: 'secondary', icon: BadgeCheck },
-  viewer: { label: 'Visualizador', variant: 'outline', icon: BadgeCheck },
+  operator: { label: 'Operador', variant: 'default', icon: UserCog },
+  technician: { label: 'Técnico', variant: 'default', icon: Wrench },
+  requester: { label: 'Solicitante', variant: 'secondary', icon: UserPlus },
+  viewer: { label: 'Visualizador', variant: 'outline', icon: Eye },
 };
 
 export function ProfileHeader({ user, onAvatarClick }: ProfileHeaderProps) {

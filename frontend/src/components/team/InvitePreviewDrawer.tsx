@@ -17,10 +17,13 @@ interface InvitePreviewDrawerProps {
   onClose: () => void;
 }
 
-const roleLabels = {
+const roleLabels: Record<string, string> = {
+  owner: 'Proprietário',
   admin: 'Administrador',
+  operator: 'Operador',
   technician: 'Técnico',
   requester: 'Solicitante',
+  viewer: 'Visualizador',
 };
 
 export function InvitePreviewDrawer({ invite, onClose }: InvitePreviewDrawerProps) {

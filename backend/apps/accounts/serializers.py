@@ -60,26 +60,67 @@ class UserSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
     
+    def _get_tenant(self):
+        """Get tenant from context or connection."""
+        from apps.tenants.models import Tenant
+        from django_tenants.utils import get_public_schema_name, schema_context
+        
+        # 1. Try from serializer context (explicitly passed)
+        if hasattr(self, 'context'):
+            # Direct tenant in context
+            if 'tenant' in self.context and self.context['tenant']:
+                return self.context['tenant']
+            
+            # From request object
+            request = self.context.get('request')
+            if request and hasattr(request, 'tenant'):
+                tenant = request.tenant
+                # Verify it's a real tenant, not FakeTenant
+                if isinstance(tenant, Tenant):
+                    return tenant
+        
+        # 2. Try from connection.tenant
+        tenant = connection.tenant
+        if hasattr(tenant, 'schema_name') and hasattr(tenant, 'id'):
+            # It's a real tenant - return it directly (already a Tenant instance)
+            if isinstance(tenant, Tenant):
+                return tenant
+            
+            # Need to fetch from DB - use public schema since Tenant is shared
+            try:
+                with schema_context(get_public_schema_name()):
+                    return Tenant.objects.get(schema_name=tenant.schema_name)
+            except Tenant.DoesNotExist:
+                pass
+        
+        return None
+    
     def get_role(self, obj):
         """Get user role from TenantMembership."""
         from apps.accounts.models import TenantMembership
+        from django_tenants.utils import get_public_schema_name, schema_context
         
         try:
-            tenant = connection.tenant
-            membership = TenantMembership.objects.filter(
-                user=obj,
-                tenant=tenant,
-                status='active'
-            ).first()
-            return membership.role if membership else 'viewer'
+            tenant = self._get_tenant()
+            if not tenant:
+                return 'viewer'
+            
+            # TenantMembership is in public schema
+            with schema_context(get_public_schema_name()):
+                membership = TenantMembership.objects.filter(
+                    user=obj,
+                    tenant=tenant,
+                    status='active'
+                ).first()
+                return membership.role if membership else 'viewer'
         except Exception:
             return 'viewer'
     
     def get_site(self, obj):
         """Get tenant name as site."""
         try:
-            tenant = connection.tenant
-            return tenant.name if hasattr(tenant, 'name') else 'TrakSense'
+            tenant = self._get_tenant()
+            return tenant.name if tenant else 'TrakSense'
         except Exception:
             return 'TrakSense'
 

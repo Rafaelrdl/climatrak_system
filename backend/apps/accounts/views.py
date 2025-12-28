@@ -234,7 +234,7 @@ class MeView(APIView):
     
     def get(self, request):
         """Get current user profile."""
-        serializer = UserSerializer(request.user)
+        serializer = UserSerializer(request.user, context={'request': request})
         return Response(serializer.data)
     
     def patch(self, request):
@@ -261,7 +261,7 @@ class MeView(APIView):
         request.user.refresh_from_db()
         
         # Serializa usuário atualizado
-        user_data = UserSerializer(request.user).data
+        user_data = UserSerializer(request.user, context={'request': request}).data
         
         logger.info(f"✅ PATCH /api/users/me/ - User data serializado: {user_data}")
         logger.info(f"🕐 PATCH /api/users/me/ - time_format no response: {user_data.get('time_format', 'MISSING')}")

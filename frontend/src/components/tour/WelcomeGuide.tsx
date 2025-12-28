@@ -17,6 +17,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { useCurrentRole } from '@/data/authStore';
+import { isOnboardingCompleted, markOnboardingCompleted, removeOnboardingValue } from '@/lib/onboardingStorage';
 import type { UserRole } from '@/models/user';
 
 interface QuickAction {
@@ -93,11 +94,14 @@ export function WelcomeGuide() {
 
   useEffect(() => {
     // Show welcome guide if tour was recently completed
-    const tourCompleted = localStorage.getItem('onboarding:tourCompleted');
-    const guideShown = localStorage.getItem('onboarding:welcomeGuideShown');
+    const tourCompleted = isOnboardingCompleted('tourCompleted');
+    const guideShown = isOnboardingCompleted('welcomeGuideShown');
+    
+    console.log('[WelcomeGuide] Check visibility:', { tourCompleted, guideShown, shouldShow: tourCompleted && !guideShown });
     
     if (tourCompleted && !guideShown) {
       const timer = setTimeout(() => {
+        console.log('[WelcomeGuide] Setting visible to true');
         setIsVisible(true);
       }, 1000); // Show after 1 second on dashboard
 
@@ -106,8 +110,9 @@ export function WelcomeGuide() {
   }, []);
 
   const handleClose = () => {
+    console.log('[WelcomeGuide] handleClose called');
+    markOnboardingCompleted('welcomeGuideShown');
     setIsVisible(false);
-    localStorage.setItem('onboarding:welcomeGuideShown', 'true');
   };
 
   const handleActionClick = (route: string) => {
@@ -116,7 +121,7 @@ export function WelcomeGuide() {
   };
 
   const handleRetakeTour = () => {
-    localStorage.removeItem('onboarding:tourCompleted');
+    removeOnboardingValue('tourCompleted');
     navigate('/welcome-tour');
   };
 

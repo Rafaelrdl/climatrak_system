@@ -124,10 +124,11 @@ export function OnboardingPage() {
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
-      case 'admin': return 'Administrador';
       case 'owner': return 'Proprietário';
-      case 'technician': return 'Técnico';
+      case 'admin': return 'Administrador';
       case 'operator': return 'Operador';
+      case 'technician': return 'Técnico';
+      case 'requester': return 'Solicitante';
       case 'viewer': return 'Visualizador';
       default: return role;
     }
@@ -135,12 +136,13 @@ export function OnboardingPage() {
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'admin': 
       case 'owner': 
+      case 'admin': 
         return Shield;
+      case 'operator':
       case 'technician': 
-      case 'operator': 
         return Zap;
+      case 'requester':
       case 'viewer': 
         return Eye;
       default: 
