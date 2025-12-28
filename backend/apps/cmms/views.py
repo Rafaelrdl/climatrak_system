@@ -14,7 +14,8 @@ from django.utils import timezone
 from .models import (
     ChecklistCategory, ChecklistTemplate, WorkOrder, WorkOrderPhoto, 
     WorkOrderItem, Request, RequestItem, MaintenancePlan,
-    ProcedureCategory, Procedure, ProcedureVersion
+    ProcedureCategory, Procedure, ProcedureVersion,
+    TimeEntry, PartUsage, ExternalCost, ExternalCostAttachment
 )
 from .serializers import (
     ChecklistCategorySerializer, ChecklistTemplateSerializer,
@@ -28,7 +29,11 @@ from .serializers import (
     ProcedureCategorySerializer, ProcedureListSerializer,
     ProcedureDetailSerializer, ProcedureCreateSerializer,
     ProcedureUpdateSerializer, ProcedureVersionSerializer,
-    ProcedureApproveSerializer
+    ProcedureApproveSerializer,
+    TimeEntrySerializer, TimeEntryListSerializer,
+    PartUsageSerializer, PartUsageListSerializer,
+    ExternalCostSerializer, ExternalCostListSerializer,
+    ExternalCostAttachmentSerializer
 )
 from apps.inventory.models import InventoryMovement
 
@@ -794,5 +799,433 @@ class ProcedureViewSet(viewsets.ModelViewSet):
             'by_status': by_status,
             'by_type': by_type,
             'by_category': by_category
+        })
+
+
+# ============================================
+# COST COMPONENT VIEWSETS (CMMS-001)
+# ============================================
+
+class TimeEntryViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para TimeEntry - Apontamento de Mão de Obra.
+    
+    Permite registrar horas trabalhadas por técnicos em uma OS.
+    Suporta filtros por OS, técnico, data e função.
+    """
+    
+    queryset = TimeEntry.objects.select_related(
+        'work_order', 'technician', 'created_by'
+    )
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = {
+        'work_order': ['exact'],
+        'work_order__number': ['exact', 'icontains'],
+        'technician': ['exact'],
+        'role': ['exact', 'icontains'],
+        'role_code': ['exact'],
+        'work_date': ['exact', 'gte', 'lte', 'range'],
+    }
+    search_fields = ['role', 'description', 'work_order__number']
+    ordering_fields = ['work_date', 'hours', 'created_at']
+    ordering = ['-work_date', '-created_at']
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return TimeEntryListSerializer
+        return TimeEntrySerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Filtro por período
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        
+        if start_date:
+            queryset = queryset.filter(work_date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(work_date__lte=end_date)
+        
+        return queryset
+
+    @action(detail=False, methods=['get'])
+    def by_work_order(self, request):
+        """Lista apontamentos agrupados por OS."""
+        work_order_id = request.query_params.get('work_order_id')
+        
+        if not work_order_id:
+            return Response(
+                {'error': 'work_order_id é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        entries = self.get_queryset().filter(work_order_id=work_order_id)
+        serializer = TimeEntrySerializer(entries, many=True)
+        
+        # Calcular totais
+        total_hours = sum(e.hours for e in entries)
+        total_cost = sum(e.total_cost or 0 for e in entries)
+        
+        return Response({
+            'entries': serializer.data,
+            'summary': {
+                'count': entries.count(),
+                'total_hours': total_hours,
+                'total_cost': total_cost
+            }
+        })
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Estatísticas de apontamentos de tempo."""
+        queryset = self.get_queryset()
+        
+        from django.db.models import Sum
+        
+        totals = queryset.aggregate(
+            total_hours=Sum('hours'),
+            entries_count=Count('id')
+        )
+        
+        # Por função
+        by_role = queryset.values('role').annotate(
+            hours=Sum('hours'),
+            count=Count('id')
+        ).order_by('-hours')[:10]
+        
+        return Response({
+            'total_hours': totals['total_hours'] or 0,
+            'entries_count': totals['entries_count'] or 0,
+            'by_role': list(by_role)
+        })
+
+
+class PartUsageViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para PartUsage - Uso de Peças/Materiais.
+    
+    Permite registrar peças utilizadas em uma OS.
+    Suporta link com inventário ou registro manual.
+    """
+    
+    queryset = PartUsage.objects.select_related(
+        'work_order', 'inventory_item', 'created_by'
+    )
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = {
+        'work_order': ['exact'],
+        'work_order__number': ['exact', 'icontains'],
+        'inventory_item': ['exact'],
+        'part_number': ['exact', 'icontains'],
+        'inventory_deducted': ['exact'],
+    }
+    search_fields = ['part_name', 'part_number', 'description', 'work_order__number']
+    ordering_fields = ['quantity', 'unit_cost', 'created_at']
+    ordering = ['-created_at']
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return PartUsageListSerializer
+        return PartUsageSerializer
+
+    @action(detail=False, methods=['get'])
+    def by_work_order(self, request):
+        """Lista peças usadas agrupadas por OS."""
+        work_order_id = request.query_params.get('work_order_id')
+        
+        if not work_order_id:
+            return Response(
+                {'error': 'work_order_id é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        usages = self.get_queryset().filter(work_order_id=work_order_id)
+        serializer = PartUsageSerializer(usages, many=True)
+        
+        # Calcular totais
+        total_quantity = sum(u.quantity for u in usages)
+        total_cost = sum(u.total_cost or 0 for u in usages)
+        
+        return Response({
+            'parts': serializer.data,
+            'summary': {
+                'count': usages.count(),
+                'total_quantity': total_quantity,
+                'total_cost': total_cost
+            }
+        })
+
+    @action(detail=True, methods=['post'])
+    def deduct_inventory(self, request, pk=None):
+        """
+        Realiza baixa no inventário para este uso de peça.
+        
+        Apenas para peças linkadas a item de inventário e
+        que ainda não tiveram baixa realizada.
+        """
+        part_usage = self.get_object()
+        
+        if not part_usage.inventory_item:
+            return Response(
+                {'error': 'Esta peça não está linkada ao inventário.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if part_usage.inventory_deducted:
+            return Response(
+                {'error': 'Baixa já foi realizada para esta peça.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Aqui integraria com o serviço de inventário
+        # Por enquanto, apenas marca como baixado
+        # TODO: Integrar com InventoryMovement
+        
+        part_usage.inventory_deducted = True
+        part_usage.save(update_fields=['inventory_deducted', 'updated_at'])
+        
+        return Response({
+            'status': 'success',
+            'message': 'Baixa no inventário registrada com sucesso.'
+        })
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Estatísticas de uso de peças."""
+        queryset = self.get_queryset()
+        
+        from django.db.models import Sum
+        
+        totals = queryset.aggregate(
+            total_quantity=Sum('quantity'),
+            usages_count=Count('id')
+        )
+        
+        # Top peças mais utilizadas
+        top_parts = queryset.values('part_name').annotate(
+            qty=Sum('quantity'),
+            count=Count('id')
+        ).order_by('-qty')[:10]
+        
+        return Response({
+            'total_quantity': totals['total_quantity'] or 0,
+            'usages_count': totals['usages_count'] or 0,
+            'top_parts': list(top_parts)
+        })
+
+
+class ExternalCostViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para ExternalCost - Custos Externos/Terceiros.
+    
+    Permite registrar custos de terceiros em uma OS.
+    Suporta anexos de NF, relatórios e outros documentos.
+    """
+    
+    queryset = ExternalCost.objects.select_related(
+        'work_order', 'created_by'
+    ).prefetch_related('attachment_files')
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = {
+        'work_order': ['exact'],
+        'work_order__number': ['exact', 'icontains'],
+        'cost_type': ['exact', 'in'],
+        'supplier_name': ['exact', 'icontains'],
+        'invoice_date': ['exact', 'gte', 'lte', 'range'],
+    }
+    search_fields = ['supplier_name', 'description', 'invoice_number', 'work_order__number']
+    ordering_fields = ['amount', 'invoice_date', 'created_at']
+    ordering = ['-created_at']
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ExternalCostListSerializer
+        return ExternalCostSerializer
+
+    @action(detail=False, methods=['get'])
+    def by_work_order(self, request):
+        """Lista custos externos agrupados por OS."""
+        work_order_id = request.query_params.get('work_order_id')
+        
+        if not work_order_id:
+            return Response(
+                {'error': 'work_order_id é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        costs = self.get_queryset().filter(work_order_id=work_order_id)
+        serializer = ExternalCostSerializer(costs, many=True)
+        
+        # Calcular totais
+        total_amount = sum(c.amount for c in costs)
+        
+        return Response({
+            'costs': serializer.data,
+            'summary': {
+                'count': costs.count(),
+                'total_amount': total_amount
+            }
+        })
+
+    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
+    def upload_attachment(self, request, pk=None):
+        """Upload de anexo para um custo externo."""
+        external_cost = self.get_object()
+        
+        file = request.FILES.get('file')
+        if not file:
+            return Response(
+                {'error': 'Arquivo é obrigatório.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        file_type = request.data.get('file_type', 'OTHER')
+        file_name = request.data.get('file_name', file.name)
+        description = request.data.get('description', '')
+        
+        attachment = ExternalCostAttachment.objects.create(
+            external_cost=external_cost,
+            file=file,
+            file_type=file_type,
+            file_name=file_name,
+            description=description,
+            uploaded_by=request.user
+        )
+        
+        serializer = ExternalCostAttachmentSerializer(attachment)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'])
+    def attachments(self, request, pk=None):
+        """Lista anexos de um custo externo."""
+        external_cost = self.get_object()
+        attachments = external_cost.attachment_files.all()
+        serializer = ExternalCostAttachmentSerializer(attachments, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Estatísticas de custos externos."""
+        queryset = self.get_queryset()
+        
+        from django.db.models import Sum
+        
+        totals = queryset.aggregate(
+            total_amount=Sum('amount'),
+            costs_count=Count('id')
+        )
+        
+        # Por tipo de custo
+        by_type = queryset.values('cost_type').annotate(
+            total=Sum('amount'),
+            count=Count('id')
+        ).order_by('-total')
+        
+        # Top fornecedores
+        top_suppliers = queryset.values('supplier_name').annotate(
+            total=Sum('amount'),
+            count=Count('id')
+        ).order_by('-total')[:10]
+        
+        return Response({
+            'total_amount': totals['total_amount'] or 0,
+            'costs_count': totals['costs_count'] or 0,
+            'by_type': list(by_type),
+            'top_suppliers': list(top_suppliers)
+        })
+
+
+class ExternalCostAttachmentViewSet(viewsets.ModelViewSet):
+    """ViewSet para ExternalCostAttachment."""
+    
+    queryset = ExternalCostAttachment.objects.select_related(
+        'external_cost', 'uploaded_by'
+    )
+    serializer_class = ExternalCostAttachmentSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = {
+        'external_cost': ['exact'],
+        'file_type': ['exact', 'in'],
+    }
+    ordering = ['-uploaded_at']
+
+
+class WorkOrderCostSummaryViewSet(viewsets.ViewSet):
+    """
+    ViewSet para resumo de custos de uma OS.
+    
+    Endpoint somente-leitura que agrega todos os custos
+    (mão de obra, peças, externos) de uma OS.
+    """
+    
+    permission_classes = [IsAuthenticated]
+
+    def retrieve(self, request, pk=None):
+        """Retorna resumo de custos de uma OS específica."""
+        from django.db.models import Sum
+        
+        try:
+            work_order = WorkOrder.objects.get(pk=pk)
+        except WorkOrder.DoesNotExist:
+            return Response(
+                {'error': 'Ordem de Serviço não encontrada.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Agregações de TimeEntry
+        labor = work_order.time_entries.aggregate(
+            count=Count('id'),
+            total_hours=Sum('hours')
+        )
+        labor_entries = work_order.time_entries.all()
+        labor_cost = sum(
+            (e.hours * e.hourly_rate) if e.hourly_rate else 0 
+            for e in labor_entries
+        )
+        
+        # Agregações de PartUsage
+        parts = work_order.part_usages.aggregate(
+            count=Count('id'),
+            total_quantity=Sum('quantity')
+        )
+        part_usages = work_order.part_usages.all()
+        parts_cost = sum(
+            (p.quantity * p.unit_cost) if p.unit_cost else 0 
+            for p in part_usages
+        )
+        
+        # Agregações de ExternalCost
+        external = work_order.external_costs.aggregate(
+            count=Count('id'),
+            total_amount=Sum('amount')
+        )
+        
+        # Grand total
+        grand_total = labor_cost + parts_cost + (external['total_amount'] or 0)
+        
+        return Response({
+            'work_order_id': work_order.id,
+            'work_order_number': work_order.number,
+            'labor': {
+                'entries_count': labor['count'] or 0,
+                'total_hours': labor['total_hours'] or 0,
+                'total_cost': labor_cost
+            },
+            'parts': {
+                'count': parts['count'] or 0,
+                'total_quantity': parts['total_quantity'] or 0,
+                'total_cost': parts_cost
+            },
+            'external': {
+                'count': external['count'] or 0,
+                'total_cost': external['total_amount'] or 0
+            },
+            'grand_total': grand_total
         })
 

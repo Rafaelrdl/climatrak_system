@@ -7,7 +7,8 @@ from django.utils.html import format_html
 
 from .models import (
     ChecklistTemplate, WorkOrder, WorkOrderPhoto,
-    WorkOrderItem, Request, RequestItem, MaintenancePlan
+    WorkOrderItem, Request, RequestItem, MaintenancePlan,
+    TimeEntry, PartUsage, ExternalCost, ExternalCostAttachment
 )
 
 
@@ -161,3 +162,252 @@ class MaintenancePlanAdmin(admin.ModelAdmin):
     def asset_count(self, obj):
         return obj.assets.count()
     asset_count.short_description = 'Ativos'
+
+
+# ============================================
+# COST COMPONENTS ADMIN (CMMS-001)
+# ============================================
+
+class TimeEntryInline(admin.TabularInline):
+    """Inline de TimeEntry para WorkOrder."""
+    model = TimeEntry
+    extra = 0
+    readonly_fields = ['total_cost', 'created_at', 'created_by']
+    fields = [
+        'technician', 'role', 'role_code', 'hours', 
+        'work_date', 'hourly_rate', 'total_cost', 'description'
+    ]
+    
+    def total_cost(self, obj):
+        if obj.hourly_rate:
+            return f"R$ {obj.hours * obj.hourly_rate:.2f}"
+        return '-'
+    total_cost.short_description = 'Custo Total'
+
+
+class PartUsageInline(admin.TabularInline):
+    """Inline de PartUsage para WorkOrder."""
+    model = PartUsage
+    extra = 0
+    readonly_fields = ['total_cost', 'created_at', 'inventory_deducted']
+    fields = [
+        'inventory_item', 'part_name', 'part_number',
+        'quantity', 'unit', 'unit_cost', 'total_cost',
+        'inventory_deducted'
+    ]
+    raw_id_fields = ['inventory_item']
+    
+    def total_cost(self, obj):
+        if obj.unit_cost:
+            return f"R$ {obj.quantity * obj.unit_cost:.2f}"
+        return '-'
+    total_cost.short_description = 'Custo Total'
+
+
+class ExternalCostAttachmentInline(admin.TabularInline):
+    """Inline de anexos para ExternalCost."""
+    model = ExternalCostAttachment
+    extra = 0
+    readonly_fields = ['uploaded_at', 'uploaded_by']
+    fields = ['file', 'file_type', 'file_name', 'description', 'uploaded_at', 'uploaded_by']
+
+
+class ExternalCostInline(admin.TabularInline):
+    """Inline de ExternalCost para WorkOrder."""
+    model = ExternalCost
+    extra = 0
+    readonly_fields = ['created_at', 'created_by']
+    fields = [
+        'cost_type', 'supplier_name', 'description',
+        'amount', 'invoice_number', 'invoice_date'
+    ]
+
+
+@admin.register(TimeEntry)
+class TimeEntryAdmin(admin.ModelAdmin):
+    """Admin para TimeEntry."""
+    
+    list_display = [
+        'work_order_number', 'technician', 'role', 
+        'hours', 'work_date', 'hourly_rate', 'total_cost_display'
+    ]
+    list_filter = ['work_date', 'role']
+    search_fields = ['work_order__number', 'technician__first_name', 'role', 'description']
+    readonly_fields = ['created_at', 'updated_at', 'created_by']
+    raw_id_fields = ['work_order', 'technician']
+    date_hierarchy = 'work_date'
+    
+    fieldsets = (
+        ('Ordem de Serviço', {
+            'fields': ('work_order',)
+        }),
+        ('Trabalho', {
+            'fields': ('technician', 'role', 'role_code', 'hours', 'work_date')
+        }),
+        ('Custo', {
+            'fields': ('hourly_rate',)
+        }),
+        ('Descrição', {
+            'fields': ('description',)
+        }),
+        ('Metadados', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def work_order_number(self, obj):
+        return obj.work_order.number
+    work_order_number.short_description = 'OS'
+    work_order_number.admin_order_field = 'work_order__number'
+    
+    def total_cost_display(self, obj):
+        cost = obj.total_cost
+        if cost:
+            return f"R$ {cost:.2f}"
+        return '-'
+    total_cost_display.short_description = 'Custo Total'
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(PartUsage)
+class PartUsageAdmin(admin.ModelAdmin):
+    """Admin para PartUsage."""
+    
+    list_display = [
+        'work_order_number', 'item_display', 'quantity', 
+        'unit', 'unit_cost', 'total_cost_display', 'inventory_deducted'
+    ]
+    list_filter = ['inventory_deducted', 'created_at']
+    search_fields = ['work_order__number', 'part_name', 'part_number']
+    readonly_fields = ['created_at', 'updated_at', 'created_by', 'inventory_movement_id']
+    raw_id_fields = ['work_order', 'inventory_item']
+    
+    fieldsets = (
+        ('Ordem de Serviço', {
+            'fields': ('work_order',)
+        }),
+        ('Item', {
+            'fields': ('inventory_item', 'part_name', 'part_number')
+        }),
+        ('Quantidade e Custo', {
+            'fields': ('quantity', 'unit', 'unit_cost')
+        }),
+        ('Inventário', {
+            'fields': ('inventory_deducted', 'inventory_movement_id'),
+            'classes': ('collapse',)
+        }),
+        ('Observações', {
+            'fields': ('description',)
+        }),
+        ('Metadados', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def work_order_number(self, obj):
+        return obj.work_order.number
+    work_order_number.short_description = 'OS'
+    
+    def item_display(self, obj):
+        if obj.inventory_item:
+            return f"{obj.inventory_item.code} - {obj.inventory_item.name}"
+        return obj.part_name or obj.part_number
+    item_display.short_description = 'Item'
+    
+    def total_cost_display(self, obj):
+        cost = obj.total_cost
+        if cost:
+            return f"R$ {cost:.2f}"
+        return '-'
+    total_cost_display.short_description = 'Custo Total'
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(ExternalCost)
+class ExternalCostAdmin(admin.ModelAdmin):
+    """Admin para ExternalCost."""
+    
+    list_display = [
+        'work_order_number', 'cost_type', 'supplier_name', 
+        'amount_display', 'invoice_number', 'invoice_date', 'attachment_count'
+    ]
+    list_filter = ['cost_type', 'invoice_date', 'created_at']
+    search_fields = ['work_order__number', 'supplier_name', 'description', 'invoice_number']
+    readonly_fields = ['created_at', 'updated_at', 'created_by']
+    raw_id_fields = ['work_order']
+    date_hierarchy = 'invoice_date'
+    inlines = [ExternalCostAttachmentInline]
+    
+    fieldsets = (
+        ('Ordem de Serviço', {
+            'fields': ('work_order',)
+        }),
+        ('Fornecedor', {
+            'fields': ('supplier_name', 'supplier_document')
+        }),
+        ('Custo', {
+            'fields': ('cost_type', 'description', 'amount', 'currency')
+        }),
+        ('Documento Fiscal', {
+            'fields': ('invoice_number', 'invoice_date')
+        }),
+        ('Anexos (JSON)', {
+            'fields': ('attachments',),
+            'classes': ('collapse',)
+        }),
+        ('Metadados', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def work_order_number(self, obj):
+        return obj.work_order.number
+    work_order_number.short_description = 'OS'
+    
+    def amount_display(self, obj):
+        return f"R$ {obj.amount:.2f}"
+    amount_display.short_description = 'Valor'
+    
+    def attachment_count(self, obj):
+        count = obj.attachment_files.count()
+        return count if count > 0 else '-'
+    attachment_count.short_description = 'Anexos'
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(ExternalCostAttachment)
+class ExternalCostAttachmentAdmin(admin.ModelAdmin):
+    """Admin para ExternalCostAttachment."""
+    
+    list_display = [
+        'file_name', 'external_cost_display', 'file_type', 
+        'uploaded_by', 'uploaded_at'
+    ]
+    list_filter = ['file_type', 'uploaded_at']
+    search_fields = ['file_name', 'description', 'external_cost__supplier_name']
+    readonly_fields = ['uploaded_at', 'uploaded_by']
+    raw_id_fields = ['external_cost']
+    
+    def external_cost_display(self, obj):
+        return f"{obj.external_cost.work_order.number} - {obj.external_cost.supplier_name}"
+    external_cost_display.short_description = 'Custo Externo'
+    
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.uploaded_by = request.user
+        super().save_model(request, obj, form, change)

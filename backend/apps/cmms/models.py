@@ -1005,3 +1005,464 @@ class ProcedureVersion(models.Model):
 
     def __str__(self):
         return f"{self.procedure.title} - v{self.version_number}"
+
+
+# ============================================
+# Cost Components for Work Orders (CMMS-001)
+# ============================================
+
+class TimeEntry(models.Model):
+    """
+    Registro de tempo/mão de obra em uma Ordem de Serviço.
+    
+    Cada entrada representa horas trabalhadas por um técnico ou função.
+    Ao fechar a OS, gera CostTransaction(labor) no Finance.
+    
+    Referências:
+    - docs/product/02-personas-e-historias.md (US-T1)
+    - docs/finance/02-regras-negocio.md
+    """
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    # Relacionamento com OS
+    work_order = models.ForeignKey(
+        WorkOrder,
+        on_delete=models.CASCADE,
+        related_name='time_entries',
+        verbose_name='Ordem de Serviço'
+    )
+    
+    # Técnico (opcional - pode ser função genérica)
+    technician = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='time_entries',
+        verbose_name='Técnico',
+        help_text='Técnico que executou o trabalho'
+    )
+    
+    # Função/Role (para cálculo de custo via RateCard)
+    role = models.CharField(
+        max_length=100,
+        verbose_name='Função',
+        help_text='Função/cargo para cálculo de custo (ex: Técnico HVAC)'
+    )
+    role_code = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name='Código da Função',
+        help_text='Código da função no RateCard'
+    )
+    
+    # Tempo trabalhado
+    hours = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        validators=[MinValueValidator(0.01)],
+        verbose_name='Horas',
+        help_text='Quantidade de horas trabalhadas'
+    )
+    
+    # Data do trabalho
+    work_date = models.DateField(
+        verbose_name='Data do Trabalho',
+        help_text='Data em que o trabalho foi realizado'
+    )
+    
+    # Custo (pode ser preenchido manualmente ou via RateCard)
+    hourly_rate = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        verbose_name='Custo por Hora',
+        help_text='Custo por hora (preenchido do RateCard ou manual)'
+    )
+    
+    # Descrição da atividade
+    description = models.TextField(
+        blank=True,
+        verbose_name='Descrição',
+        help_text='Descrição da atividade realizada'
+    )
+    
+    # Metadados
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_time_entries',
+        verbose_name='Criado por'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
+
+    class Meta:
+        verbose_name = 'Apontamento de Tempo'
+        verbose_name_plural = 'Apontamentos de Tempo'
+        ordering = ['-work_date', '-created_at']
+        indexes = [
+            models.Index(fields=['work_order'], name='cmms_te_wo_idx'),
+            models.Index(fields=['technician'], name='cmms_te_tech_idx'),
+            models.Index(fields=['work_date'], name='cmms_te_date_idx'),
+            models.Index(fields=['role_code'], name='cmms_te_role_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.work_order.number} - {self.role}: {self.hours}h"
+    
+    @property
+    def total_cost(self):
+        """Calcula o custo total (horas * hourly_rate)."""
+        if self.hourly_rate:
+            return self.hours * self.hourly_rate
+        return None
+
+
+class PartUsage(models.Model):
+    """
+    Registro de peça/material utilizado em uma Ordem de Serviço.
+    
+    Pode ser linkado a um item de inventário (com baixa automática)
+    ou registrado manualmente com custo unitário.
+    
+    Ao fechar a OS, gera CostTransaction(parts) no Finance.
+    
+    Referências:
+    - docs/product/02-personas-e-historias.md (US-T2)
+    - docs/finance/02-regras-negocio.md
+    """
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    # Relacionamento com OS
+    work_order = models.ForeignKey(
+        WorkOrder,
+        on_delete=models.CASCADE,
+        related_name='part_usages',
+        verbose_name='Ordem de Serviço'
+    )
+    
+    # Item de inventário (opcional)
+    inventory_item = models.ForeignKey(
+        'inventory.InventoryItem',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='work_order_usages',
+        verbose_name='Item de Inventário',
+        help_text='Item do estoque (se aplicável)'
+    )
+    
+    # Identificação manual (quando não há item de inventário)
+    part_number = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='Código da Peça',
+        help_text='Código/Part Number (manual)'
+    )
+    part_name = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='Nome da Peça',
+        help_text='Nome/descrição da peça (manual)'
+    )
+    
+    # Quantidade e custo
+    quantity = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(0.01)],
+        verbose_name='Quantidade'
+    )
+    unit = models.CharField(
+        max_length=20,
+        default='UN',
+        verbose_name='Unidade',
+        help_text='Unidade de medida (UN, PC, KG, etc.)'
+    )
+    unit_cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        verbose_name='Custo Unitário',
+        help_text='Custo por unidade (do inventário ou manual)'
+    )
+    
+    # Descrição/observações
+    description = models.TextField(
+        blank=True,
+        verbose_name='Observações'
+    )
+    
+    # Controle de baixa no inventário
+    inventory_deducted = models.BooleanField(
+        default=False,
+        verbose_name='Baixa Realizada',
+        help_text='Se a baixa no inventário já foi realizada'
+    )
+    inventory_movement_id = models.UUIDField(
+        null=True,
+        blank=True,
+        verbose_name='ID da Movimentação',
+        help_text='Referência à movimentação de inventário'
+    )
+    
+    # Metadados
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_part_usages',
+        verbose_name='Criado por'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
+
+    class Meta:
+        verbose_name = 'Uso de Peça'
+        verbose_name_plural = 'Uso de Peças'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['work_order'], name='cmms_pu_wo_idx'),
+            models.Index(fields=['inventory_item'], name='cmms_pu_inv_idx'),
+            models.Index(fields=['part_number'], name='cmms_pu_pn_idx'),
+        ]
+
+    def __str__(self):
+        name = self.part_name or (self.inventory_item.name if self.inventory_item else 'Peça')
+        return f"{self.work_order.number} - {name} x {self.quantity}"
+    
+    @property
+    def total_cost(self):
+        """Calcula o custo total (quantidade * unit_cost)."""
+        if self.unit_cost:
+            return self.quantity * self.unit_cost
+        return None
+    
+    def clean(self):
+        """Valida que há identificação da peça (inventário ou manual)."""
+        from django.core.exceptions import ValidationError
+        
+        if not self.inventory_item and not self.part_name:
+            raise ValidationError(
+                'É necessário informar um item de inventário ou o nome da peça.'
+            )
+    
+    def save(self, *args, **kwargs):
+        # Se linkado a inventário e sem custo, pegar do inventário
+        if self.inventory_item and not self.unit_cost:
+            if hasattr(self.inventory_item, 'average_cost') and self.inventory_item.average_cost:
+                self.unit_cost = self.inventory_item.average_cost
+        
+        # Se linkado a inventário, preencher nome automaticamente
+        if self.inventory_item and not self.part_name:
+            self.part_name = self.inventory_item.name
+        if self.inventory_item and not self.part_number:
+            self.part_number = self.inventory_item.code
+        
+        super().save(*args, **kwargs)
+
+
+class ExternalCost(models.Model):
+    """
+    Custo externo/terceirizado em uma Ordem de Serviço.
+    
+    Representa serviços de terceiros, locação de equipamentos,
+    ou outros custos externos não cobertos por labor/parts.
+    
+    Suporta anexos (NF, relatórios, fotos).
+    
+    Referências:
+    - docs/product/02-personas-e-historias.md (US-T3)
+    - docs/finance/02-regras-negocio.md
+    """
+    
+    class CostType(models.TextChoices):
+        SERVICE = 'SERVICE', 'Serviço Terceirizado'
+        RENTAL = 'RENTAL', 'Locação de Equipamento'
+        MATERIAL = 'MATERIAL', 'Material Externo'
+        TRANSPORT = 'TRANSPORT', 'Transporte'
+        CONSULTANT = 'CONSULTANT', 'Consultoria'
+        OTHER = 'OTHER', 'Outros'
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    # Relacionamento com OS
+    work_order = models.ForeignKey(
+        WorkOrder,
+        on_delete=models.CASCADE,
+        related_name='external_costs',
+        verbose_name='Ordem de Serviço'
+    )
+    
+    # Tipo de custo
+    cost_type = models.CharField(
+        max_length=20,
+        choices=CostType.choices,
+        default=CostType.SERVICE,
+        verbose_name='Tipo de Custo'
+    )
+    
+    # Fornecedor
+    supplier_name = models.CharField(
+        max_length=255,
+        verbose_name='Fornecedor',
+        help_text='Nome do fornecedor/prestador'
+    )
+    supplier_document = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name='CNPJ/CPF',
+        help_text='Documento do fornecedor'
+    )
+    
+    # Descrição
+    description = models.TextField(
+        verbose_name='Descrição',
+        help_text='Descrição do serviço/custo'
+    )
+    
+    # Valor
+    amount = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        validators=[MinValueValidator(0.01)],
+        verbose_name='Valor',
+        help_text='Valor total do custo'
+    )
+    currency = models.CharField(
+        max_length=3,
+        default='BRL',
+        verbose_name='Moeda'
+    )
+    
+    # Documento fiscal
+    invoice_number = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='Número da NF',
+        help_text='Número da nota fiscal'
+    )
+    invoice_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Data da NF'
+    )
+    
+    # Anexos (JSON com lista de arquivos)
+    attachments = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='Anexos',
+        help_text='Lista de anexos [{name, url, type, uploaded_at}]'
+    )
+    
+    # Metadados
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_external_costs',
+        verbose_name='Criado por'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
+
+    class Meta:
+        verbose_name = 'Custo Externo'
+        verbose_name_plural = 'Custos Externos'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['work_order'], name='cmms_ec_wo_idx'),
+            models.Index(fields=['cost_type'], name='cmms_ec_type_idx'),
+            models.Index(fields=['supplier_name'], name='cmms_ec_supplier_idx'),
+            models.Index(fields=['invoice_date'], name='cmms_ec_invdate_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.work_order.number} - {self.supplier_name}: R$ {self.amount}"
+
+
+class ExternalCostAttachment(models.Model):
+    """
+    Arquivo anexo a um custo externo.
+    
+    Suporta NF, relatórios, fotos e outros documentos.
+    """
+    
+    class FileType(models.TextChoices):
+        INVOICE = 'INVOICE', 'Nota Fiscal'
+        RECEIPT = 'RECEIPT', 'Recibo'
+        REPORT = 'REPORT', 'Relatório'
+        PHOTO = 'PHOTO', 'Foto'
+        CONTRACT = 'CONTRACT', 'Contrato'
+        OTHER = 'OTHER', 'Outro'
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    external_cost = models.ForeignKey(
+        ExternalCost,
+        on_delete=models.CASCADE,
+        related_name='attachment_files',
+        verbose_name='Custo Externo'
+    )
+    
+    file = models.FileField(
+        upload_to='cmms/external_costs/%Y/%m/',
+        verbose_name='Arquivo'
+    )
+    file_type = models.CharField(
+        max_length=20,
+        choices=FileType.choices,
+        default=FileType.OTHER,
+        verbose_name='Tipo de Arquivo'
+    )
+    file_name = models.CharField(
+        max_length=255,
+        verbose_name='Nome do Arquivo'
+    )
+    description = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='Descrição'
+    )
+    
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name='Enviado por'
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='Enviado em')
+
+    class Meta:
+        verbose_name = 'Anexo de Custo Externo'
+        verbose_name_plural = 'Anexos de Custos Externos'
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"{self.file_name} ({self.get_file_type_display()})"

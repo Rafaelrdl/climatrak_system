@@ -95,6 +95,7 @@ TENANT_APPS = [
     'apps.inventory',  # Gestão de Estoque (Categorias, Itens, Movimentações)
     'apps.cmms',  # CMMS - Ordens de Serviço, Solicitações, Planos de Manutenção
     'apps.finance',  # Finance - Orçamento Vivo (Centros de Custo, RateCard, Budget)
+    'apps.core_events',  # Domain Events Outbox (processamento assíncrono de eventos)
 ]
 
 
@@ -369,6 +370,23 @@ CELERY_BEAT_SCHEDULE = {
     'cleanup-old-alerts': {
         'task': 'alerts.cleanup_old_alerts',
         'schedule': 86400.0,  # 24 horas em segundos
+        'options': {
+            'expires': 3600,  # Expira em 1 hora se não executar
+        },
+    },
+    # Despachar eventos pendentes da Outbox a cada 30 segundos
+    'dispatch-outbox-events': {
+        'task': 'apps.core_events.tasks.dispatch_pending_events',
+        'schedule': 30.0,  # 30 segundos
+        'options': {
+            'expires': 25,  # Expira em 25 segundos se não executar
+        },
+    },
+    # Limpar eventos processados antigos uma vez por dia
+    'cleanup-old-outbox-events': {
+        'task': 'apps.core_events.tasks.cleanup_old_events',
+        'schedule': 86400.0,  # 24 horas em segundos
+        'kwargs': {'days': 30, 'status': 'processed'},
         'options': {
             'expires': 3600,  # Expira em 1 hora se não executar
         },

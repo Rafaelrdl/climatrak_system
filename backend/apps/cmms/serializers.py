@@ -7,7 +7,8 @@ from django.contrib.auth import get_user_model
 from .models import (
     ChecklistCategory, ChecklistTemplate, WorkOrder, WorkOrderPhoto, 
     WorkOrderItem, Request, RequestItem, MaintenancePlan,
-    ProcedureCategory, Procedure, ProcedureVersion
+    ProcedureCategory, Procedure, ProcedureVersion,
+    TimeEntry, PartUsage, ExternalCost, ExternalCostAttachment
 )
 
 User = get_user_model()
@@ -554,4 +555,364 @@ class ProcedureApproveSerializer(serializers.Serializer):
     
     approved = serializers.BooleanField()
     rejection_reason = serializers.CharField(required=False, allow_blank=True)
+
+
+# ============================================
+# COST COMPONENT SERIALIZERS (CMMS-001)
+# ============================================
+
+class TimeEntrySerializer(serializers.ModelSerializer):
+    """Serializer para TimeEntry - Apontamento de Mão de Obra."""
+    
+    technician_name = serializers.CharField(
+        source='technician.get_full_name', 
+        read_only=True, 
+        allow_null=True
+    )
+    work_order_number = serializers.CharField(
+        source='work_order.number', 
+        read_only=True
+    )
+    total_cost = serializers.DecimalField(
+        max_digits=14, 
+        decimal_places=2, 
+        read_only=True
+    )
+    created_by_name = serializers.CharField(
+        source='created_by.get_full_name', 
+        read_only=True, 
+        allow_null=True
+    )
+    
+    class Meta:
+        model = TimeEntry
+        fields = [
+            'id', 'work_order', 'work_order_number',
+            'technician', 'technician_name',
+            'role', 'role_code', 'hours', 'work_date',
+            'hourly_rate', 'total_cost', 'description',
+            'created_by', 'created_by_name',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'work_order_number', 'technician_name',
+            'total_cost', 'created_by', 'created_by_name',
+            'created_at', 'updated_at'
+        ]
+    
+    def validate_hours(self, value):
+        """Valida que horas é positivo."""
+        if value <= 0:
+            raise serializers.ValidationError('Horas deve ser maior que zero.')
+        return value
+    
+    def validate(self, data):
+        """Validações cruzadas."""
+        work_order = data.get('work_order') or self.instance.work_order
+        
+        # Não permitir apontar horas em OS cancelada
+        if work_order.status == 'CANCELLED':
+            raise serializers.ValidationError({
+                'work_order': 'Não é possível apontar horas em OS cancelada.'
+            })
+        
+        return data
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class TimeEntryListSerializer(serializers.ModelSerializer):
+    """Serializer resumido para listagem de TimeEntry."""
+    
+    technician_name = serializers.CharField(
+        source='technician.get_full_name', 
+        read_only=True, 
+        allow_null=True
+    )
+    work_order_number = serializers.CharField(
+        source='work_order.number', 
+        read_only=True
+    )
+    total_cost = serializers.DecimalField(
+        max_digits=14, 
+        decimal_places=2, 
+        read_only=True
+    )
+    
+    class Meta:
+        model = TimeEntry
+        fields = [
+            'id', 'work_order', 'work_order_number',
+            'technician_name', 'role', 'hours', 'work_date',
+            'hourly_rate', 'total_cost', 'created_at'
+        ]
+
+
+class PartUsageSerializer(serializers.ModelSerializer):
+    """Serializer para PartUsage - Uso de Peças/Materiais."""
+    
+    work_order_number = serializers.CharField(
+        source='work_order.number', 
+        read_only=True
+    )
+    inventory_item_name = serializers.CharField(
+        source='inventory_item.name', 
+        read_only=True, 
+        allow_null=True
+    )
+    inventory_item_code = serializers.CharField(
+        source='inventory_item.code', 
+        read_only=True, 
+        allow_null=True
+    )
+    total_cost = serializers.DecimalField(
+        max_digits=14, 
+        decimal_places=2, 
+        read_only=True
+    )
+    created_by_name = serializers.CharField(
+        source='created_by.get_full_name', 
+        read_only=True, 
+        allow_null=True
+    )
+    
+    class Meta:
+        model = PartUsage
+        fields = [
+            'id', 'work_order', 'work_order_number',
+            'inventory_item', 'inventory_item_name', 'inventory_item_code',
+            'part_number', 'part_name', 'quantity', 'unit',
+            'unit_cost', 'total_cost', 'description',
+            'inventory_deducted', 'inventory_movement_id',
+            'created_by', 'created_by_name',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'work_order_number', 'inventory_item_name',
+            'inventory_item_code', 'total_cost',
+            'inventory_deducted', 'inventory_movement_id',
+            'created_by', 'created_by_name',
+            'created_at', 'updated_at'
+        ]
+    
+    def validate_quantity(self, value):
+        """Valida que quantidade é positiva."""
+        if value <= 0:
+            raise serializers.ValidationError('Quantidade deve ser maior que zero.')
+        return value
+    
+    def validate(self, data):
+        """Validações cruzadas."""
+        work_order = data.get('work_order') or (self.instance.work_order if self.instance else None)
+        inventory_item = data.get('inventory_item')
+        part_name = data.get('part_name')
+        
+        # Não permitir em OS cancelada
+        if work_order and work_order.status == 'CANCELLED':
+            raise serializers.ValidationError({
+                'work_order': 'Não é possível registrar peças em OS cancelada.'
+            })
+        
+        # Precisa de inventory_item ou part_name
+        if not inventory_item and not part_name:
+            # Se é update e instance já tem um deles, ok
+            if self.instance:
+                if not self.instance.inventory_item and not self.instance.part_name:
+                    raise serializers.ValidationError(
+                        'É necessário informar um item de inventário ou o nome da peça.'
+                    )
+            else:
+                raise serializers.ValidationError(
+                    'É necessário informar um item de inventário ou o nome da peça.'
+                )
+        
+        return data
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class PartUsageListSerializer(serializers.ModelSerializer):
+    """Serializer resumido para listagem de PartUsage."""
+    
+    work_order_number = serializers.CharField(
+        source='work_order.number', 
+        read_only=True
+    )
+    item_display = serializers.SerializerMethodField()
+    total_cost = serializers.DecimalField(
+        max_digits=14, 
+        decimal_places=2, 
+        read_only=True
+    )
+    
+    class Meta:
+        model = PartUsage
+        fields = [
+            'id', 'work_order', 'work_order_number',
+            'item_display', 'quantity', 'unit',
+            'unit_cost', 'total_cost', 'inventory_deducted',
+            'created_at'
+        ]
+    
+    def get_item_display(self, obj):
+        """Retorna nome da peça (inventário ou manual)."""
+        if obj.inventory_item:
+            return f"{obj.inventory_item.code} - {obj.inventory_item.name}"
+        return obj.part_name or obj.part_number or "Sem identificação"
+
+
+class ExternalCostSerializer(serializers.ModelSerializer):
+    """Serializer para ExternalCost - Custos Externos/Terceiros."""
+    
+    work_order_number = serializers.CharField(
+        source='work_order.number', 
+        read_only=True
+    )
+    cost_type_display = serializers.CharField(
+        source='get_cost_type_display', 
+        read_only=True
+    )
+    created_by_name = serializers.CharField(
+        source='created_by.get_full_name', 
+        read_only=True, 
+        allow_null=True
+    )
+    attachment_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ExternalCost
+        fields = [
+            'id', 'work_order', 'work_order_number',
+            'cost_type', 'cost_type_display',
+            'supplier_name', 'supplier_document',
+            'description', 'amount', 'currency',
+            'invoice_number', 'invoice_date',
+            'attachments', 'attachment_count',
+            'created_by', 'created_by_name',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'work_order_number', 'cost_type_display',
+            'attachment_count', 'created_by', 'created_by_name',
+            'created_at', 'updated_at'
+        ]
+    
+    def get_attachment_count(self, obj):
+        """Retorna número de anexos."""
+        return obj.attachment_files.count()
+    
+    def validate_amount(self, value):
+        """Valida que valor é positivo."""
+        if value <= 0:
+            raise serializers.ValidationError('Valor deve ser maior que zero.')
+        return value
+    
+    def validate(self, data):
+        """Validações cruzadas."""
+        work_order = data.get('work_order') or (self.instance.work_order if self.instance else None)
+        
+        # Não permitir em OS cancelada
+        if work_order and work_order.status == 'CANCELLED':
+            raise serializers.ValidationError({
+                'work_order': 'Não é possível registrar custos em OS cancelada.'
+            })
+        
+        return data
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class ExternalCostListSerializer(serializers.ModelSerializer):
+    """Serializer resumido para listagem de ExternalCost."""
+    
+    work_order_number = serializers.CharField(
+        source='work_order.number', 
+        read_only=True
+    )
+    cost_type_display = serializers.CharField(
+        source='get_cost_type_display', 
+        read_only=True
+    )
+    attachment_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ExternalCost
+        fields = [
+            'id', 'work_order', 'work_order_number',
+            'cost_type', 'cost_type_display',
+            'supplier_name', 'amount', 'invoice_number',
+            'invoice_date', 'attachment_count', 'created_at'
+        ]
+    
+    def get_attachment_count(self, obj):
+        return obj.attachment_files.count()
+
+
+class ExternalCostAttachmentSerializer(serializers.ModelSerializer):
+    """Serializer para ExternalCostAttachment."""
+    
+    file_type_display = serializers.CharField(
+        source='get_file_type_display', 
+        read_only=True
+    )
+    uploaded_by_name = serializers.CharField(
+        source='uploaded_by.get_full_name', 
+        read_only=True, 
+        allow_null=True
+    )
+    
+    class Meta:
+        model = ExternalCostAttachment
+        fields = [
+            'id', 'external_cost', 'file', 'file_type', 'file_type_display',
+            'file_name', 'description',
+            'uploaded_by', 'uploaded_by_name', 'uploaded_at'
+        ]
+        read_only_fields = [
+            'id', 'file_type_display', 'uploaded_by', 
+            'uploaded_by_name', 'uploaded_at'
+        ]
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['uploaded_by'] = request.user
+        
+        # Extrair nome do arquivo se não informado
+        if not validated_data.get('file_name') and validated_data.get('file'):
+            validated_data['file_name'] = validated_data['file'].name
+        
+        return super().create(validated_data)
+
+
+class WorkOrderCostSummarySerializer(serializers.Serializer):
+    """Serializer para resumo de custos de uma OS."""
+    
+    work_order_id = serializers.IntegerField()
+    work_order_number = serializers.CharField()
+    
+    labor_entries_count = serializers.IntegerField()
+    labor_total_hours = serializers.DecimalField(max_digits=10, decimal_places=2)
+    labor_total_cost = serializers.DecimalField(max_digits=14, decimal_places=2, allow_null=True)
+    
+    parts_count = serializers.IntegerField()
+    parts_total_quantity = serializers.DecimalField(max_digits=12, decimal_places=2)
+    parts_total_cost = serializers.DecimalField(max_digits=14, decimal_places=2, allow_null=True)
+    
+    external_costs_count = serializers.IntegerField()
+    external_total_cost = serializers.DecimalField(max_digits=14, decimal_places=2)
+    
+    grand_total = serializers.DecimalField(max_digits=14, decimal_places=2, allow_null=True)
 
