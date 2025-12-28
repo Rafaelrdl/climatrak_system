@@ -5,7 +5,10 @@ Filtros para os ViewSets do módulo Finance.
 """
 
 import django_filters
-from .models import CostCenter, RateCard, BudgetPlan, BudgetEnvelope, BudgetMonth
+from .models import (
+    CostCenter, RateCard, BudgetPlan, BudgetEnvelope, BudgetMonth,
+    CostTransaction, LedgerAdjustment
+)
 
 
 class CostCenterFilter(django_filters.FilterSet):
@@ -125,3 +128,111 @@ class BudgetMonthFilter(django_filters.FilterSet):
         start = date(value, 1, 1)
         end = date(value, 12, 31)
         return queryset.filter(month__gte=start, month__lte=end)
+
+
+# =============================================================================
+# Ledger Filters (CostTransaction, LedgerAdjustment)
+# =============================================================================
+
+class CostTransactionFilter(django_filters.FilterSet):
+    """
+    Filtros para Transações de Custo (Ledger).
+    
+    Filtros principais:
+    - Por período (start_date, end_date)
+    - Por tipo e categoria
+    - Por centro de custo, ativo, OS
+    - Por status de lock
+    """
+    
+    # Filtros de texto
+    description = django_filters.CharFilter(lookup_expr='icontains')
+    idempotency_key = django_filters.CharFilter(lookup_expr='icontains')
+    
+    # Filtros de classificação
+    transaction_type = django_filters.ChoiceFilter(choices=CostTransaction.TransactionType.choices)
+    category = django_filters.ChoiceFilter(choices=CostTransaction.Category.choices)
+    
+    # Filtros de relacionamento
+    cost_center = django_filters.UUIDFilter(field_name='cost_center_id')
+    asset = django_filters.UUIDFilter(field_name='asset_id')
+    work_order = django_filters.UUIDFilter(field_name='work_order_id')
+    vendor_id = django_filters.UUIDFilter()
+    
+    # Filtros de período (occurred_at)
+    start_date = django_filters.DateFilter(field_name='occurred_at', lookup_expr='date__gte')
+    end_date = django_filters.DateFilter(field_name='occurred_at', lookup_expr='date__lte')
+    occurred_at_gte = django_filters.DateTimeFilter(field_name='occurred_at', lookup_expr='gte')
+    occurred_at_lte = django_filters.DateTimeFilter(field_name='occurred_at', lookup_expr='lte')
+    year = django_filters.NumberFilter(method='filter_year')
+    month = django_filters.NumberFilter(method='filter_month')
+    
+    # Filtros de valor
+    min_amount = django_filters.NumberFilter(field_name='amount', lookup_expr='gte')
+    max_amount = django_filters.NumberFilter(field_name='amount', lookup_expr='lte')
+    
+    # Filtros de status
+    is_locked = django_filters.BooleanFilter()
+    
+    # Filtros de criação
+    created_at_gte = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='gte')
+    created_at_lte = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='lte')
+    created_by = django_filters.UUIDFilter(field_name='created_by_id')
+    
+    class Meta:
+        model = CostTransaction
+        fields = [
+            'description', 'idempotency_key',
+            'transaction_type', 'category',
+            'cost_center', 'asset', 'work_order', 'vendor_id',
+            'start_date', 'end_date', 'occurred_at_gte', 'occurred_at_lte',
+            'year', 'month',
+            'min_amount', 'max_amount',
+            'is_locked',
+            'created_at_gte', 'created_at_lte', 'created_by'
+        ]
+    
+    def filter_year(self, queryset, name, value):
+        """Filtra por ano da ocorrência."""
+        return queryset.filter(occurred_at__year=value)
+    
+    def filter_month(self, queryset, name, value):
+        """Filtra por mês da ocorrência."""
+        return queryset.filter(occurred_at__month=value)
+
+
+class LedgerAdjustmentFilter(django_filters.FilterSet):
+    """
+    Filtros para Ajustes de Ledger.
+    """
+    
+    # Filtros de texto
+    reason = django_filters.CharFilter(lookup_expr='icontains')
+    
+    # Filtros de classificação
+    adjustment_type = django_filters.ChoiceFilter(choices=LedgerAdjustment.AdjustmentType.choices)
+    
+    # Filtros de relacionamento
+    original_transaction = django_filters.UUIDFilter(field_name='original_transaction_id')
+    
+    # Filtros de valor
+    min_amount = django_filters.NumberFilter(field_name='adjustment_amount', lookup_expr='gte')
+    max_amount = django_filters.NumberFilter(field_name='adjustment_amount', lookup_expr='lte')
+    
+    # Filtros de aprovação
+    is_approved = django_filters.BooleanFilter()
+    
+    # Filtros de período
+    created_at_gte = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='gte')
+    created_at_lte = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='lte')
+    created_by = django_filters.UUIDFilter(field_name='created_by_id')
+    
+    class Meta:
+        model = LedgerAdjustment
+        fields = [
+            'reason', 'adjustment_type',
+            'original_transaction',
+            'min_amount', 'max_amount',
+            'is_approved',
+            'created_at_gte', 'created_at_lte', 'created_by'
+        ]

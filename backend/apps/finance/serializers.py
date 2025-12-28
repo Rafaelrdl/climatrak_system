@@ -5,10 +5,16 @@ Serializers para:
 - CostCenter (com hierarquia)
 - RateCard (com vigência)
 - BudgetPlan, BudgetEnvelope, BudgetMonth
+- CostTransaction (Ledger)
+- LedgerAdjustment
 """
 
 from rest_framework import serializers
-from .models import CostCenter, RateCard, BudgetPlan, BudgetEnvelope, BudgetMonth
+from django.utils import timezone
+from .models import (
+    CostCenter, RateCard, BudgetPlan, BudgetEnvelope, BudgetMonth,
+    CostTransaction, LedgerAdjustment
+)
 
 
 class CostCenterSerializer(serializers.ModelSerializer):
@@ -239,3 +245,335 @@ class BudgetPlanDetailSerializer(BudgetPlanSerializer):
     
     class Meta(BudgetPlanSerializer.Meta):
         fields = BudgetPlanSerializer.Meta.fields + ['envelopes']
+
+
+# =============================================================================
+# Ledger Serializers (CostTransaction, LedgerAdjustment)
+# =============================================================================
+
+class CostTransactionSerializer(serializers.ModelSerializer):
+    """
+    Serializer para Transação de Custo (Ledger).
+    
+    Campos computados:
+    - transaction_type_display: label do tipo
+    - category_display: label da categoria
+    - cost_center_name: nome do centro de custo
+    - is_editable: se pode ser editado (não locked)
+    """
+    transaction_type_display = serializers.CharField(
+        source='get_transaction_type_display', 
+        read_only=True
+    )
+    category_display = serializers.CharField(
+        source='get_category_display', 
+        read_only=True
+    )
+    cost_center_name = serializers.CharField(
+        source='cost_center.name', 
+        read_only=True
+    )
+    cost_center_code = serializers.CharField(
+        source='cost_center.code', 
+        read_only=True
+    )
+    asset_tag = serializers.CharField(
+        source='asset.tag', 
+        read_only=True, 
+        allow_null=True
+    )
+    work_order_code = serializers.CharField(
+        source='work_order.code', 
+        read_only=True, 
+        allow_null=True
+    )
+    created_by_name = serializers.CharField(
+        source='created_by.get_full_name', 
+        read_only=True, 
+        allow_null=True
+    )
+    locked_by_name = serializers.CharField(
+        source='locked_by.get_full_name', 
+        read_only=True, 
+        allow_null=True
+    )
+    is_editable = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = CostTransaction
+        fields = [
+            'id', 'idempotency_key',
+            'transaction_type', 'transaction_type_display',
+            'category', 'category_display',
+            'amount', 'currency',
+            'occurred_at', 'description', 'meta',
+            'cost_center', 'cost_center_name', 'cost_center_code',
+            'asset', 'asset_tag',
+            'work_order', 'work_order_code',
+            'vendor_id',
+            'is_locked', 'locked_at', 'locked_by', 'locked_by_name',
+            'is_editable',
+            'created_at', 'updated_at', 'created_by', 'created_by_name'
+        ]
+        read_only_fields = [
+            'id', 'idempotency_key',
+            'is_locked', 'locked_at', 'locked_by',
+            'created_at', 'updated_at', 'created_by'
+        ]
+    
+    def get_is_editable(self, obj):
+        """Verifica se a transação pode ser editada."""
+        return not obj.is_locked
+    
+    def validate(self, data):
+        """Validação de transação."""
+        instance = self.instance
+        
+        # Não permitir edição de transação bloqueada
+        if instance and instance.is_locked:
+            raise serializers.ValidationError(
+                'Transação bloqueada não pode ser alterada. Use ajuste manual.'
+            )
+        
+        return data
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class CostTransactionCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer para criação de Transação de Custo.
+    Usado para criação manual de transações.
+    """
+    class Meta:
+        model = CostTransaction
+        fields = [
+            'transaction_type', 'category',
+            'amount', 'currency',
+            'occurred_at', 'description', 'meta',
+            'cost_center', 'asset', 'work_order', 'vendor_id',
+            'idempotency_key'
+        ]
+    
+    def validate_idempotency_key(self, value):
+        """Validar unicidade da idempotency_key."""
+        if value:
+            if CostTransaction.objects.filter(idempotency_key=value).exists():
+                raise serializers.ValidationError(
+                    'Já existe uma transação com esta chave de idempotência.'
+                )
+        return value
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class CostTransactionSummarySerializer(serializers.Serializer):
+    """
+    Serializer para resumo de transações.
+    Usado em endpoints de summary/agregação.
+    """
+    category = serializers.CharField()
+    category_display = serializers.CharField()
+    transaction_type = serializers.CharField()
+    total_amount = serializers.DecimalField(max_digits=15, decimal_places=2)
+    transaction_count = serializers.IntegerField()
+
+
+class LedgerAdjustmentSerializer(serializers.ModelSerializer):
+    """
+    Serializer para Ajuste de Ledger.
+    
+    Campos computados:
+    - adjustment_type_display: label do tipo
+    - original_transaction_info: info resumida da transação original
+    """
+    adjustment_type_display = serializers.CharField(
+        source='get_adjustment_type_display', 
+        read_only=True
+    )
+    created_by_name = serializers.CharField(
+        source='created_by.get_full_name', 
+        read_only=True
+    )
+    approved_by_name = serializers.CharField(
+        source='approved_by.get_full_name', 
+        read_only=True, 
+        allow_null=True
+    )
+    original_transaction_info = serializers.SerializerMethodField()
+    adjustment_transaction_info = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = LedgerAdjustment
+        fields = [
+            'id',
+            'original_transaction', 'original_transaction_info',
+            'adjustment_transaction', 'adjustment_transaction_info',
+            'adjustment_type', 'adjustment_type_display',
+            'reason',
+            'original_amount', 'adjustment_amount',
+            'is_approved', 'approved_at', 'approved_by', 'approved_by_name',
+            'created_at', 'created_by', 'created_by_name'
+        ]
+        read_only_fields = [
+            'id', 'adjustment_transaction',
+            'approved_at', 'approved_by',
+            'created_at', 'created_by'
+        ]
+    
+    def get_original_transaction_info(self, obj):
+        """Info resumida da transação original."""
+        if not obj.original_transaction:
+            return None
+        tx = obj.original_transaction
+        return {
+            'id': str(tx.id),
+            'amount': str(tx.amount),
+            'transaction_type': tx.transaction_type,
+            'occurred_at': tx.occurred_at.isoformat() if tx.occurred_at else None
+        }
+    
+    def get_adjustment_transaction_info(self, obj):
+        """Info resumida da transação de ajuste."""
+        tx = obj.adjustment_transaction
+        return {
+            'id': str(tx.id),
+            'amount': str(tx.amount),
+            'transaction_type': tx.transaction_type,
+            'occurred_at': tx.occurred_at.isoformat() if tx.occurred_at else None
+        }
+
+
+class LedgerAdjustmentCreateSerializer(serializers.Serializer):
+    """
+    Serializer para criação de Ajuste de Ledger.
+    
+    Cria automaticamente a CostTransaction de ajuste.
+    """
+    original_transaction = serializers.PrimaryKeyRelatedField(
+        queryset=CostTransaction.objects.all(),
+        required=False,
+        allow_null=True,
+        help_text='Transação original a ser ajustada (opcional para ajuste avulso)'
+    )
+    adjustment_type = serializers.ChoiceField(
+        choices=LedgerAdjustment.AdjustmentType.choices
+    )
+    reason = serializers.CharField(
+        min_length=10,
+        help_text='Justificativa para o ajuste (mínimo 10 caracteres)'
+    )
+    adjustment_amount = serializers.DecimalField(
+        max_digits=15, 
+        decimal_places=2,
+        help_text='Valor do ajuste (positivo ou negativo)'
+    )
+    cost_center = serializers.PrimaryKeyRelatedField(
+        queryset=CostCenter.objects.all(),
+        required=False,
+        allow_null=True,
+        help_text='Centro de custo (obrigatório se não houver transação original)'
+    )
+    category = serializers.ChoiceField(
+        choices=CostTransaction.Category.choices,
+        required=False,
+        help_text='Categoria (obrigatório se não houver transação original)'
+    )
+    occurred_at = serializers.DateTimeField(
+        required=False,
+        help_text='Data da ocorrência (default: agora)'
+    )
+    description = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text='Descrição adicional'
+    )
+    
+    def validate(self, data):
+        """Validação de ajuste."""
+        original = data.get('original_transaction')
+        cost_center = data.get('cost_center')
+        category = data.get('category')
+        
+        # Se não tem transação original, precisa de cost_center e category
+        if not original:
+            if not cost_center:
+                raise serializers.ValidationError({
+                    'cost_center': 'Centro de custo é obrigatório para ajuste avulso.'
+                })
+            if not category:
+                raise serializers.ValidationError({
+                    'category': 'Categoria é obrigatória para ajuste avulso.'
+                })
+        
+        return data
+    
+    def create(self, validated_data):
+        """Cria o ajuste e a transação de ajuste."""
+        request = self.context.get('request')
+        user = request.user if request else None
+        
+        original = validated_data.get('original_transaction')
+        adjustment_type = validated_data['adjustment_type']
+        reason = validated_data['reason']
+        adjustment_amount = validated_data['adjustment_amount']
+        
+        # Determinar cost_center e category
+        if original:
+            cost_center = original.cost_center
+            category = original.category
+            original_amount = original.amount
+        else:
+            cost_center = validated_data['cost_center']
+            category = validated_data['category']
+            original_amount = None
+        
+        # Data de ocorrência
+        occurred_at = validated_data.get('occurred_at') or timezone.now()
+        
+        # Descrição
+        description = validated_data.get('description', '')
+        if not description:
+            description = f"Ajuste: {reason[:100]}"
+        
+        # Criar transação de ajuste
+        adjustment_tx = CostTransaction.objects.create(
+            transaction_type=CostTransaction.TransactionType.ADJUSTMENT,
+            category=category,
+            amount=adjustment_amount,
+            occurred_at=occurred_at,
+            description=description,
+            cost_center=cost_center,
+            asset=original.asset if original else None,
+            work_order=original.work_order if original else None,
+            meta={
+                'adjustment_type': adjustment_type,
+                'reason': reason,
+                'original_transaction_id': str(original.id) if original else None
+            },
+            created_by=user
+        )
+        
+        # Criar registro de ajuste
+        adjustment = LedgerAdjustment.objects.create(
+            original_transaction=original,
+            adjustment_transaction=adjustment_tx,
+            adjustment_type=adjustment_type,
+            reason=reason,
+            original_amount=original_amount,
+            adjustment_amount=adjustment_amount,
+            created_by=user,
+            is_approved=True,  # Auto-aprovado no MVP
+            approved_at=timezone.now() if user else None,
+            approved_by=user
+        )
+        
+        return adjustment

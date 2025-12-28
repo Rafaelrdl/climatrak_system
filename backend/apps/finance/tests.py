@@ -3,6 +3,7 @@ Finance Tests
 
 Testes unitários para:
 - Models (CostCenter, RateCard, BudgetPlan, BudgetEnvelope, BudgetMonth)
+- Models Ledger (CostTransaction, LedgerAdjustment)
 - Serializers
 - ViewSets/Endpoints
 """
@@ -12,6 +13,7 @@ from decimal import Decimal
 from datetime import date, timedelta
 from django.test import TestCase
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from rest_framework.test import APITestCase
 from rest_framework import status
 
@@ -21,12 +23,17 @@ from apps.finance.models import (
     BudgetPlan,
     BudgetEnvelope,
     BudgetMonth,
+    CostTransaction,
+    LedgerAdjustment,
 )
 from apps.finance.serializers import (
     CostCenterSerializer,
     RateCardSerializer,
     BudgetPlanSerializer,
     BudgetEnvelopeSerializer,
+    CostTransactionSerializer,
+    CostTransactionCreateSerializer,
+    LedgerAdjustmentSerializer,
 )
 
 
@@ -449,3 +456,423 @@ class FinanceAPITests(TestCase):
             end_date=date.today()
         )
         self.assertIsNotNone(bp)
+
+
+# =============================================================================
+# Ledger Tests (CostTransaction, LedgerAdjustment)
+# =============================================================================
+
+class CostTransactionModelTests(TestCase):
+    """Testes para model CostTransaction."""
+    
+    def setUp(self):
+        self.cost_center = CostCenter.objects.create(code='CC-001', name='Test CC')
+    
+    def test_create_transaction(self):
+        """Deve criar transação de custo básica."""
+        tx = CostTransaction.objects.create(
+            transaction_type=CostTransaction.TransactionType.LABOR,
+            category=CostTransaction.Category.PREVENTIVE,
+            amount=Decimal('500.00'),
+            occurred_at=timezone.now(),
+            cost_center=self.cost_center,
+            description='Manutenção preventiva HVAC'
+        )
+        self.assertEqual(tx.transaction_type, 'labor')
+        self.assertEqual(tx.category, 'preventive')
+        self.assertEqual(tx.amount, Decimal('500.00'))
+        self.assertFalse(tx.is_locked)
+        self.assertIsNone(tx.idempotency_key)
+    
+    def test_create_transaction_with_idempotency_key(self):
+        """Deve criar transação com chave de idempotência."""
+        work_order_id = 'b1c2d3e4-f5a6-7890-abcd-ef1234567890'
+        key = CostTransaction.generate_idempotency_key(work_order_id, 'labor')
+        
+        tx = CostTransaction.objects.create(
+            transaction_type=CostTransaction.TransactionType.LABOR,
+            category=CostTransaction.Category.CORRECTIVE,
+            amount=Decimal('750.00'),
+            occurred_at=timezone.now(),
+            cost_center=self.cost_center,
+            idempotency_key=key
+        )
+        self.assertEqual(tx.idempotency_key, f'wo:{work_order_id}:labor')
+    
+    def test_idempotency_key_unique(self):
+        """Chave de idempotência deve ser única."""
+        key = 'wo:test-uuid:labor'
+        
+        CostTransaction.objects.create(
+            transaction_type=CostTransaction.TransactionType.LABOR,
+            category=CostTransaction.Category.PREVENTIVE,
+            amount=Decimal('100.00'),
+            occurred_at=timezone.now(),
+            cost_center=self.cost_center,
+            idempotency_key=key
+        )
+        
+        with self.assertRaises(Exception):  # IntegrityError
+            CostTransaction.objects.create(
+                transaction_type=CostTransaction.TransactionType.LABOR,
+                category=CostTransaction.Category.PREVENTIVE,
+                amount=Decimal('200.00'),
+                occurred_at=timezone.now(),
+                cost_center=self.cost_center,
+                idempotency_key=key
+            )
+    
+    def test_get_or_create_idempotent(self):
+        """Deve retornar existente ou criar novo de forma idempotente."""
+        key = 'wo:test-uuid:parts'
+        defaults = {
+            'transaction_type': CostTransaction.TransactionType.PARTS,
+            'category': CostTransaction.Category.PARTS,
+            'amount': Decimal('300.00'),
+            'occurred_at': timezone.now(),
+            'cost_center': self.cost_center,
+        }
+        
+        # Primeira chamada: cria
+        tx1, created1 = CostTransaction.get_or_create_idempotent(key, defaults)
+        self.assertTrue(created1)
+        self.assertEqual(tx1.idempotency_key, key)
+        self.assertEqual(tx1.amount, Decimal('300.00'))
+        
+        # Segunda chamada: retorna existente
+        tx2, created2 = CostTransaction.get_or_create_idempotent(key, defaults)
+        self.assertFalse(created2)
+        self.assertEqual(tx1.id, tx2.id)
+    
+    def test_generate_idempotency_key(self):
+        """Deve gerar chave de idempotência determinística."""
+        wo_id = 'abc123'
+        
+        key_labor = CostTransaction.generate_idempotency_key(wo_id, 'labor')
+        key_parts = CostTransaction.generate_idempotency_key(wo_id, 'parts')
+        key_third = CostTransaction.generate_idempotency_key(wo_id, 'third_party')
+        
+        self.assertEqual(key_labor, 'wo:abc123:labor')
+        self.assertEqual(key_parts, 'wo:abc123:parts')
+        self.assertEqual(key_third, 'wo:abc123:third_party')
+        
+        # Mesma entrada = mesma saída (determinístico)
+        self.assertEqual(
+            CostTransaction.generate_idempotency_key(wo_id, 'labor'),
+            key_labor
+        )
+    
+    def test_lock_transaction(self):
+        """Deve bloquear transação."""
+        tx = CostTransaction.objects.create(
+            transaction_type=CostTransaction.TransactionType.LABOR,
+            category=CostTransaction.Category.PREVENTIVE,
+            amount=Decimal('100.00'),
+            occurred_at=timezone.now(),
+            cost_center=self.cost_center
+        )
+        
+        self.assertFalse(tx.is_locked)
+        
+        class MockUser:
+            pass
+        user = MockUser()
+        
+        tx.lock(user)
+        tx.refresh_from_db()
+        
+        self.assertTrue(tx.is_locked)
+        self.assertIsNotNone(tx.locked_at)
+    
+    def test_locked_transaction_cannot_change_protected_fields(self):
+        """Transação bloqueada não deve permitir alteração de campos protegidos."""
+        tx = CostTransaction.objects.create(
+            transaction_type=CostTransaction.TransactionType.LABOR,
+            category=CostTransaction.Category.PREVENTIVE,
+            amount=Decimal('100.00'),
+            occurred_at=timezone.now(),
+            cost_center=self.cost_center,
+            is_locked=True,
+            locked_at=timezone.now()
+        )
+        
+        # Tentar alterar campo protegido
+        tx.amount = Decimal('200.00')
+        
+        with self.assertRaises(ValidationError):
+            tx.save()
+    
+    def test_transaction_types(self):
+        """Deve suportar todos os tipos de transação."""
+        types = [
+            (CostTransaction.TransactionType.LABOR, 'labor'),
+            (CostTransaction.TransactionType.PARTS, 'parts'),
+            (CostTransaction.TransactionType.THIRD_PARTY, 'third_party'),
+            (CostTransaction.TransactionType.ENERGY, 'energy'),
+            (CostTransaction.TransactionType.ADJUSTMENT, 'adjustment'),
+            (CostTransaction.TransactionType.OTHER, 'other'),
+        ]
+        
+        for enum_val, str_val in types:
+            tx = CostTransaction.objects.create(
+                transaction_type=enum_val,
+                category=CostTransaction.Category.OTHER,
+                amount=Decimal('100.00'),
+                occurred_at=timezone.now(),
+                cost_center=self.cost_center
+            )
+            self.assertEqual(tx.transaction_type, str_val)
+    
+    def test_transaction_categories(self):
+        """Deve suportar todas as categorias."""
+        categories = [
+            CostTransaction.Category.PREVENTIVE,
+            CostTransaction.Category.CORRECTIVE,
+            CostTransaction.Category.PREDICTIVE,
+            CostTransaction.Category.IMPROVEMENT,
+            CostTransaction.Category.CONTRACTS,
+            CostTransaction.Category.PARTS,
+            CostTransaction.Category.ENERGY,
+            CostTransaction.Category.OTHER,
+        ]
+        
+        for category in categories:
+            tx = CostTransaction.objects.create(
+                transaction_type=CostTransaction.TransactionType.OTHER,
+                category=category,
+                amount=Decimal('100.00'),
+                occurred_at=timezone.now(),
+                cost_center=self.cost_center
+            )
+            self.assertIsNotNone(tx.id)
+    
+    def test_meta_field(self):
+        """Deve armazenar metadados como JSON."""
+        tx = CostTransaction.objects.create(
+            transaction_type=CostTransaction.TransactionType.LABOR,
+            category=CostTransaction.Category.PREVENTIVE,
+            amount=Decimal('500.00'),
+            occurred_at=timezone.now(),
+            cost_center=self.cost_center,
+            meta={
+                'hours_breakdown': [
+                    {'role': 'TECH-HVAC', 'hours': 4, 'rate': 85},
+                    {'role': 'TECH-ELEC', 'hours': 2, 'rate': 80}
+                ],
+                'work_order_code': 'OS-001'
+            }
+        )
+        tx.refresh_from_db()
+        
+        self.assertIn('hours_breakdown', tx.meta)
+        self.assertEqual(len(tx.meta['hours_breakdown']), 2)
+
+
+class LedgerAdjustmentModelTests(TestCase):
+    """Testes para model LedgerAdjustment."""
+    
+    def setUp(self):
+        self.cost_center = CostCenter.objects.create(code='CC-001', name='Test CC')
+        self.original_tx = CostTransaction.objects.create(
+            transaction_type=CostTransaction.TransactionType.LABOR,
+            category=CostTransaction.Category.PREVENTIVE,
+            amount=Decimal('1000.00'),
+            occurred_at=timezone.now(),
+            cost_center=self.cost_center,
+            is_locked=True,
+            locked_at=timezone.now()
+        )
+    
+    def test_create_adjustment(self):
+        """Deve criar ajuste de ledger."""
+        # Criar transação de ajuste
+        adjustment_tx = CostTransaction.objects.create(
+            transaction_type=CostTransaction.TransactionType.ADJUSTMENT,
+            category=CostTransaction.Category.PREVENTIVE,
+            amount=Decimal('-200.00'),  # Redução
+            occurred_at=timezone.now(),
+            cost_center=self.cost_center
+        )
+        
+        # Mock user
+        class MockUser:
+            pass
+        user = MockUser()
+        
+        # Criar registro de ajuste
+        adjustment = LedgerAdjustment.objects.create(
+            original_transaction=self.original_tx,
+            adjustment_transaction=adjustment_tx,
+            adjustment_type=LedgerAdjustment.AdjustmentType.CORRECTION,
+            reason='Correção de valor lançado incorretamente devido a erro de digitação.',
+            original_amount=self.original_tx.amount,
+            adjustment_amount=Decimal('-200.00'),
+            created_by=user
+        )
+        
+        self.assertEqual(adjustment.adjustment_type, 'correction')
+        self.assertEqual(adjustment.original_amount, Decimal('1000.00'))
+        self.assertEqual(adjustment.adjustment_amount, Decimal('-200.00'))
+        self.assertTrue(adjustment.is_approved)
+    
+    def test_adjustment_requires_reason(self):
+        """Ajuste deve ter motivo com pelo menos 10 caracteres."""
+        adjustment_tx = CostTransaction.objects.create(
+            transaction_type=CostTransaction.TransactionType.ADJUSTMENT,
+            category=CostTransaction.Category.PREVENTIVE,
+            amount=Decimal('-100.00'),
+            occurred_at=timezone.now(),
+            cost_center=self.cost_center
+        )
+        
+        class MockUser:
+            pass
+        
+        with self.assertRaises(ValidationError):
+            LedgerAdjustment.objects.create(
+                original_transaction=self.original_tx,
+                adjustment_transaction=adjustment_tx,
+                adjustment_type=LedgerAdjustment.AdjustmentType.CORRECTION,
+                reason='Curto',  # Menos de 10 caracteres
+                adjustment_amount=Decimal('-100.00'),
+                created_by=MockUser()
+            )
+    
+    def test_adjustment_types(self):
+        """Deve suportar todos os tipos de ajuste."""
+        types = [
+            LedgerAdjustment.AdjustmentType.CORRECTION,
+            LedgerAdjustment.AdjustmentType.RECLASSIFICATION,
+            LedgerAdjustment.AdjustmentType.REVERSAL,
+            LedgerAdjustment.AdjustmentType.OTHER,
+        ]
+        
+        for adj_type in types:
+            adjustment_tx = CostTransaction.objects.create(
+                transaction_type=CostTransaction.TransactionType.ADJUSTMENT,
+                category=CostTransaction.Category.PREVENTIVE,
+                amount=Decimal('-50.00'),
+                occurred_at=timezone.now(),
+                cost_center=self.cost_center
+            )
+            
+            class MockUser:
+                pass
+            
+            adjustment = LedgerAdjustment.objects.create(
+                original_transaction=self.original_tx,
+                adjustment_transaction=adjustment_tx,
+                adjustment_type=adj_type,
+                reason='Motivo do ajuste com pelo menos 10 caracteres.',
+                adjustment_amount=Decimal('-50.00'),
+                created_by=MockUser()
+            )
+            self.assertIsNotNone(adjustment.id)
+    
+    def test_adjustment_without_original(self):
+        """Deve permitir ajuste avulso (sem transação original)."""
+        adjustment_tx = CostTransaction.objects.create(
+            transaction_type=CostTransaction.TransactionType.ADJUSTMENT,
+            category=CostTransaction.Category.OTHER,
+            amount=Decimal('500.00'),
+            occurred_at=timezone.now(),
+            cost_center=self.cost_center
+        )
+        
+        class MockUser:
+            pass
+        
+        adjustment = LedgerAdjustment.objects.create(
+            original_transaction=None,  # Sem original
+            adjustment_transaction=adjustment_tx,
+            adjustment_type=LedgerAdjustment.AdjustmentType.OTHER,
+            reason='Ajuste avulso para correção de saldo inicial.',
+            adjustment_amount=Decimal('500.00'),
+            created_by=MockUser()
+        )
+        
+        self.assertIsNone(adjustment.original_transaction)
+        self.assertIsNotNone(adjustment.adjustment_transaction)
+
+
+class CostTransactionSerializerTests(TestCase):
+    """Testes para CostTransactionSerializer."""
+    
+    def setUp(self):
+        self.cost_center = CostCenter.objects.create(code='CC-001', name='Test CC')
+    
+    def test_serialize_transaction(self):
+        """Deve serializar transação de custo."""
+        tx = CostTransaction.objects.create(
+            transaction_type=CostTransaction.TransactionType.LABOR,
+            category=CostTransaction.Category.PREVENTIVE,
+            amount=Decimal('500.00'),
+            occurred_at=timezone.now(),
+            cost_center=self.cost_center,
+            description='Test transaction'
+        )
+        
+        serializer = CostTransactionSerializer(tx)
+        data = serializer.data
+        
+        self.assertEqual(data['transaction_type'], 'labor')
+        self.assertEqual(data['transaction_type_display'], 'Mão de Obra')
+        self.assertEqual(data['category'], 'preventive')
+        self.assertEqual(data['category_display'], 'Manutenção Preventiva')
+        self.assertEqual(data['amount'], '500.00')
+        self.assertEqual(data['cost_center_code'], 'CC-001')
+        self.assertTrue(data['is_editable'])
+    
+    def test_is_editable_false_when_locked(self):
+        """is_editable deve ser False para transação bloqueada."""
+        tx = CostTransaction.objects.create(
+            transaction_type=CostTransaction.TransactionType.LABOR,
+            category=CostTransaction.Category.PREVENTIVE,
+            amount=Decimal('500.00'),
+            occurred_at=timezone.now(),
+            cost_center=self.cost_center,
+            is_locked=True,
+            locked_at=timezone.now()
+        )
+        
+        serializer = CostTransactionSerializer(tx)
+        self.assertFalse(serializer.data['is_editable'])
+    
+    def test_create_serializer_validation(self):
+        """Deve validar dados de criação."""
+        data = {
+            'transaction_type': 'labor',
+            'category': 'preventive',
+            'amount': '750.00',
+            'occurred_at': timezone.now().isoformat(),
+            'cost_center': str(self.cost_center.id)
+        }
+        
+        serializer = CostTransactionCreateSerializer(data=data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+    
+    def test_idempotency_key_validation(self):
+        """Deve validar unicidade da idempotency_key."""
+        # Criar transação existente
+        CostTransaction.objects.create(
+            transaction_type=CostTransaction.TransactionType.LABOR,
+            category=CostTransaction.Category.PREVENTIVE,
+            amount=Decimal('500.00'),
+            occurred_at=timezone.now(),
+            cost_center=self.cost_center,
+            idempotency_key='existing-key'
+        )
+        
+        # Tentar criar com mesma key
+        data = {
+            'transaction_type': 'labor',
+            'category': 'preventive',
+            'amount': '750.00',
+            'occurred_at': timezone.now().isoformat(),
+            'cost_center': str(self.cost_center.id),
+            'idempotency_key': 'existing-key'
+        }
+        
+        serializer = CostTransactionCreateSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('idempotency_key', serializer.errors)

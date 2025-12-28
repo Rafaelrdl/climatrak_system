@@ -617,3 +617,405 @@ class BudgetMonth(models.Model):
         self.locked_at = None
         self.locked_by = None
         self.save(update_fields=['is_locked', 'locked_at', 'locked_by', 'updated_at'])
+
+
+class CostTransaction(models.Model):
+    """
+    Ledger de Custos (fonte da verdade).
+    
+    Cada transação representa um custo realizado, com:
+    - idempotency_key para evitar duplicação (obrigatório para automáticos)
+    - is_locked para auditoria (impede edição após lock do período)
+    - Vínculos opcionais com asset, work_order, vendor
+    
+    Tipos de transação (transaction_type):
+    - labor: custo de mão de obra
+    - parts: custo de peças/materiais
+    - third_party: serviços de terceiros
+    - energy: custo de energia
+    - adjustment: ajuste manual
+    - other: outros custos
+    
+    Referências:
+    - docs/finance/02-regras-negocio.md
+    """
+    
+    class TransactionType(models.TextChoices):
+        LABOR = 'labor', 'Mão de Obra'
+        PARTS = 'parts', 'Peças/Materiais'
+        THIRD_PARTY = 'third_party', 'Terceiros'
+        ENERGY = 'energy', 'Energia'
+        ADJUSTMENT = 'adjustment', 'Ajuste'
+        OTHER = 'other', 'Outros'
+    
+    class Category(models.TextChoices):
+        PREVENTIVE = 'preventive', 'Manutenção Preventiva'
+        CORRECTIVE = 'corrective', 'Manutenção Corretiva'
+        PREDICTIVE = 'predictive', 'Manutenção Preditiva'
+        IMPROVEMENT = 'improvement', 'Melhorias'
+        CONTRACTS = 'contracts', 'Contratos'
+        PARTS = 'parts', 'Peças e Materiais'
+        ENERGY = 'energy', 'Energia'
+        OTHER = 'other', 'Outros'
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    # Idempotência (obrigatório para transações automáticas)
+    # Formato: wo:{work_order_id}:labor, wo:{work_order_id}:parts, etc.
+    idempotency_key = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        verbose_name='Chave de Idempotência',
+        help_text='Chave única para evitar duplicação (ex: wo:uuid:labor)'
+    )
+    
+    # Classificação
+    transaction_type = models.CharField(
+        max_length=20,
+        choices=TransactionType.choices,
+        verbose_name='Tipo de Transação'
+    )
+    category = models.CharField(
+        max_length=20,
+        choices=Category.choices,
+        default=Category.OTHER,
+        verbose_name='Categoria'
+    )
+    
+    # Valores
+    amount = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        verbose_name='Valor',
+        help_text='Valor da transação (positivo = custo, negativo = crédito)'
+    )
+    currency = models.CharField(
+        max_length=3,
+        default='BRL',
+        verbose_name='Moeda'
+    )
+    
+    # Data da ocorrência (não confundir com created_at)
+    occurred_at = models.DateTimeField(
+        verbose_name='Data da Ocorrência',
+        help_text='Data em que o custo ocorreu'
+    )
+    
+    # Descrição
+    description = models.TextField(
+        blank=True,
+        verbose_name='Descrição',
+        help_text='Descrição detalhada da transação'
+    )
+    
+    # Metadados (JSON flexível para detalhes)
+    meta = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name='Metadados',
+        help_text='Dados adicionais (ex: breakdown de horas, itens)'
+    )
+    
+    # Relacionamentos obrigatórios
+    cost_center = models.ForeignKey(
+        CostCenter,
+        on_delete=models.PROTECT,
+        related_name='transactions',
+        verbose_name='Centro de Custo'
+    )
+    
+    # Relacionamentos opcionais (vínculos com origem)
+    asset = models.ForeignKey(
+        'assets.Asset',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cost_transactions',
+        verbose_name='Ativo'
+    )
+    work_order = models.ForeignKey(
+        'cmms.WorkOrder',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cost_transactions',
+        verbose_name='Ordem de Serviço'
+    )
+    vendor_id = models.UUIDField(
+        null=True,
+        blank=True,
+        verbose_name='Fornecedor ID',
+        help_text='ID do fornecedor (para terceiros/contratos)'
+    )
+    
+    # Lock de período
+    is_locked = models.BooleanField(
+        default=False,
+        verbose_name='Bloqueado',
+        help_text='Transação bloqueada para edição (período fechado)'
+    )
+    locked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Bloqueado em'
+    )
+    locked_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='locked_transactions',
+        verbose_name='Bloqueado por'
+    )
+    
+    # Auditoria
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_cost_transactions',
+        verbose_name='Criado por'
+    )
+    
+    class Meta:
+        verbose_name = 'Transação de Custo'
+        verbose_name_plural = 'Transações de Custo'
+        ordering = ['-occurred_at', '-created_at']
+        constraints = [
+            # Idempotência: unique por idempotency_key (quando preenchido)
+            # Django-tenants garante isolamento por schema
+            models.UniqueConstraint(
+                fields=['idempotency_key'],
+                condition=models.Q(idempotency_key__isnull=False),
+                name='finance_costtx_unique_idempotency'
+            )
+        ]
+        indexes = [
+            models.Index(fields=['idempotency_key'], name='finance_ctx_idemp_idx'),
+            models.Index(fields=['transaction_type'], name='finance_ctx_type_idx'),
+            models.Index(fields=['category'], name='finance_ctx_cat_idx'),
+            models.Index(fields=['occurred_at'], name='finance_ctx_occurred_idx'),
+            models.Index(fields=['cost_center'], name='finance_ctx_cc_idx'),
+            models.Index(fields=['work_order'], name='finance_ctx_wo_idx'),
+            models.Index(fields=['asset'], name='finance_ctx_asset_idx'),
+            models.Index(fields=['is_locked'], name='finance_ctx_locked_idx'),
+            # Índice composto para queries de summary
+            models.Index(
+                fields=['cost_center', 'category', 'occurred_at'],
+                name='finance_ctx_summary_idx'
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.get_transaction_type_display()} - R$ {self.amount} ({self.occurred_at.date()})"
+    
+    def clean(self):
+        """Validações do modelo."""
+        # Transações automáticas devem ter idempotency_key
+        if self.transaction_type != self.TransactionType.ADJUSTMENT:
+            if self.work_order and not self.idempotency_key:
+                raise ValidationError({
+                    'idempotency_key': 'Transações vinculadas a OS devem ter chave de idempotência.'
+                })
+        
+        # Não permitir edição de transação bloqueada
+        if self.pk and self.is_locked:
+            try:
+                original = CostTransaction.objects.get(pk=self.pk)
+                if original.is_locked:
+                    # Verificar se está tentando alterar campos protegidos
+                    protected_fields = ['amount', 'transaction_type', 'category', 'occurred_at', 
+                                       'cost_center', 'asset', 'work_order', 'idempotency_key']
+                    for field in protected_fields:
+                        if getattr(original, field) != getattr(self, field):
+                            raise ValidationError(
+                                'Transação bloqueada não pode ser alterada. Use ajuste manual.'
+                            )
+            except CostTransaction.DoesNotExist:
+                pass
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+    
+    def lock(self, user):
+        """Bloqueia a transação para edição."""
+        from django.utils import timezone
+        self.is_locked = True
+        self.locked_at = timezone.now()
+        self.locked_by = user
+        self.save(update_fields=['is_locked', 'locked_at', 'locked_by', 'updated_at'])
+    
+    @classmethod
+    def get_or_create_idempotent(cls, idempotency_key: str, defaults: dict):
+        """
+        Obtém ou cria transação de forma idempotente.
+        
+        Args:
+            idempotency_key: Chave única (ex: wo:uuid:labor)
+            defaults: Campos para criar se não existir
+            
+        Returns:
+            tuple: (transaction, created)
+        """
+        try:
+            return cls.objects.get(idempotency_key=idempotency_key), False
+        except cls.DoesNotExist:
+            defaults['idempotency_key'] = idempotency_key
+            transaction = cls(**defaults)
+            transaction.save()
+            return transaction, True
+    
+    @classmethod
+    def generate_idempotency_key(cls, work_order_id: str, transaction_type: str) -> str:
+        """
+        Gera chave de idempotência determinística.
+        
+        Formato: wo:{work_order_id}:{transaction_type}
+        
+        Args:
+            work_order_id: UUID da OS
+            transaction_type: labor, parts, third_party
+            
+        Returns:
+            Chave de idempotência
+        """
+        return f"wo:{work_order_id}:{transaction_type}"
+
+
+class LedgerAdjustment(models.Model):
+    """
+    Ajuste de Ledger.
+    
+    Usado para fazer ajustes em transações de períodos bloqueados.
+    Mantém auditoria completa com motivo e referência à transação original.
+    
+    Regras:
+    - Só pode ser criado por usuários com permissão
+    - Deve ter motivo obrigatório
+    - Cria nova CostTransaction do tipo ADJUSTMENT
+    
+    Referências:
+    - docs/finance/02-regras-negocio.md (seção 7)
+    """
+    
+    class AdjustmentType(models.TextChoices):
+        CORRECTION = 'correction', 'Correção de Valor'
+        RECLASSIFICATION = 'reclassification', 'Reclassificação'
+        REVERSAL = 'reversal', 'Estorno'
+        OTHER = 'other', 'Outro'
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    # Referência à transação original (opcional - pode ser ajuste avulso)
+    original_transaction = models.ForeignKey(
+        CostTransaction,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='adjustments',
+        verbose_name='Transação Original'
+    )
+    
+    # Nova transação criada pelo ajuste
+    adjustment_transaction = models.OneToOneField(
+        CostTransaction,
+        on_delete=models.PROTECT,
+        related_name='adjustment_record',
+        verbose_name='Transação de Ajuste'
+    )
+    
+    # Tipo de ajuste
+    adjustment_type = models.CharField(
+        max_length=20,
+        choices=AdjustmentType.choices,
+        verbose_name='Tipo de Ajuste'
+    )
+    
+    # Motivo obrigatório
+    reason = models.TextField(
+        verbose_name='Motivo',
+        help_text='Justificativa para o ajuste (obrigatório)'
+    )
+    
+    # Valores (para auditoria)
+    original_amount = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='Valor Original',
+        help_text='Valor da transação antes do ajuste'
+    )
+    adjustment_amount = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        verbose_name='Valor do Ajuste',
+        help_text='Valor do ajuste (positivo ou negativo)'
+    )
+    
+    # Auditoria
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.PROTECT,
+        related_name='created_adjustments',
+        verbose_name='Criado por'
+    )
+    
+    # Aprovação (opcional para workflow futuro)
+    is_approved = models.BooleanField(
+        default=True,
+        verbose_name='Aprovado',
+        help_text='Se requer aprovação, iniciar como False'
+    )
+    approved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Aprovado em'
+    )
+    approved_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_adjustments',
+        verbose_name='Aprovado por'
+    )
+    
+    class Meta:
+        verbose_name = 'Ajuste de Ledger'
+        verbose_name_plural = 'Ajustes de Ledger'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['original_transaction'], name='finance_adj_orig_tx_idx'),
+            models.Index(fields=['adjustment_type'], name='finance_adj_type_idx'),
+            models.Index(fields=['created_at'], name='finance_adj_created_idx'),
+            models.Index(fields=['is_approved'], name='finance_adj_approved_idx'),
+        ]
+
+    def __str__(self):
+        return f"Ajuste {self.get_adjustment_type_display()} - R$ {self.adjustment_amount}"
+    
+    def clean(self):
+        """Validações do modelo."""
+        if not self.reason or len(self.reason.strip()) < 10:
+            raise ValidationError({
+                'reason': 'Motivo é obrigatório e deve ter pelo menos 10 caracteres.'
+            })
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)

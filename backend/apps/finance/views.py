@@ -5,6 +5,8 @@ ViewSets para:
 - CostCenter (CRUD + hierarquia)
 - RateCard (CRUD + vigência)
 - BudgetPlan, BudgetEnvelope, BudgetMonth (CRUD + operações)
+- CostTransaction (Ledger)
+- LedgerAdjustment
 """
 
 from rest_framework import viewsets, status, filters
@@ -12,10 +14,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Count
 from django.utils import timezone
+from decimal import Decimal
 
-from .models import CostCenter, RateCard, BudgetPlan, BudgetEnvelope, BudgetMonth
+from .models import (
+    CostCenter, RateCard, BudgetPlan, BudgetEnvelope, BudgetMonth,
+    CostTransaction, LedgerAdjustment
+)
 from .serializers import (
     CostCenterSerializer,
     CostCenterTreeSerializer,
@@ -25,6 +31,11 @@ from .serializers import (
     BudgetEnvelopeSerializer,
     BudgetEnvelopeWriteSerializer,
     BudgetMonthSerializer,
+    CostTransactionSerializer,
+    CostTransactionCreateSerializer,
+    CostTransactionSummarySerializer,
+    LedgerAdjustmentSerializer,
+    LedgerAdjustmentCreateSerializer,
 )
 from .filters import (
     CostCenterFilter,
@@ -32,6 +43,8 @@ from .filters import (
     BudgetPlanFilter,
     BudgetEnvelopeFilter,
     BudgetMonthFilter,
+    CostTransactionFilter,
+    LedgerAdjustmentFilter,
 )
 
 
@@ -286,3 +299,282 @@ class BudgetMonthViewSet(viewsets.ModelViewSet):
         month.unlock(request.user)
         serializer = self.get_serializer(month)
         return Response(serializer.data)
+
+
+# =============================================================================
+# Ledger ViewSets (CostTransaction, LedgerAdjustment)
+# =============================================================================
+
+class CostTransactionViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para Transações de Custo (Ledger).
+    
+    Endpoints:
+    - GET /api/finance/transactions/ - Listar transações
+    - POST /api/finance/transactions/ - Criar transação manual
+    - GET /api/finance/transactions/{id}/ - Detalhes
+    - PUT/PATCH /api/finance/transactions/{id}/ - Atualizar (se não bloqueado)
+    - DELETE /api/finance/transactions/{id}/ - Excluir (se não bloqueado)
+    - POST /api/finance/transactions/{id}/lock/ - Bloquear transação
+    - GET /api/finance/transactions/summary/ - Resumo por categoria/tipo
+    - GET /api/finance/transactions/by-month/ - Totais por mês
+    - GET /api/finance/transactions/by-cost-center/ - Totais por centro de custo
+    """
+    queryset = CostTransaction.objects.select_related(
+        'cost_center', 'asset', 'work_order', 'created_by', 'locked_by'
+    )
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = CostTransactionFilter
+    search_fields = ['description', 'idempotency_key']
+    ordering_fields = ['occurred_at', 'amount', 'created_at', 'transaction_type', 'category']
+    ordering = ['-occurred_at', '-created_at']
+    
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return CostTransactionCreateSerializer
+        return CostTransactionSerializer
+    
+    def perform_destroy(self, instance):
+        """Impedir exclusão de transação bloqueada."""
+        if instance.is_locked:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Transação bloqueada não pode ser excluída.')
+        instance.delete()
+    
+    @action(detail=True, methods=['post'])
+    def lock(self, request, pk=None):
+        """Bloqueia a transação para edição."""
+        transaction = self.get_object()
+        if transaction.is_locked:
+            return Response(
+                {'error': 'Transação já está bloqueada'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        transaction.lock(request.user)
+        serializer = self.get_serializer(transaction)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """
+        Retorna resumo agregado das transações.
+        
+        Query params:
+        - start_date: Data inicial (YYYY-MM-DD)
+        - end_date: Data final (YYYY-MM-DD)
+        - cost_center: UUID do centro de custo
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        # Agregação por categoria e tipo
+        by_category = queryset.values('category').annotate(
+            total_amount=Sum('amount'),
+            transaction_count=Count('id')
+        ).order_by('category')
+        
+        by_type = queryset.values('transaction_type').annotate(
+            total_amount=Sum('amount'),
+            transaction_count=Count('id')
+        ).order_by('transaction_type')
+        
+        # Total geral
+        totals = queryset.aggregate(
+            total_amount=Sum('amount'),
+            transaction_count=Count('id')
+        )
+        
+        return Response({
+            'totals': {
+                'total_amount': totals['total_amount'] or Decimal('0.00'),
+                'transaction_count': totals['transaction_count'] or 0
+            },
+            'by_category': [
+                {
+                    'category': item['category'],
+                    'category_display': dict(CostTransaction.Category.choices).get(item['category'], item['category']),
+                    'total_amount': item['total_amount'] or Decimal('0.00'),
+                    'transaction_count': item['transaction_count']
+                }
+                for item in by_category
+            ],
+            'by_type': [
+                {
+                    'transaction_type': item['transaction_type'],
+                    'type_display': dict(CostTransaction.TransactionType.choices).get(item['transaction_type'], item['transaction_type']),
+                    'total_amount': item['total_amount'] or Decimal('0.00'),
+                    'transaction_count': item['transaction_count']
+                }
+                for item in by_type
+            ]
+        })
+    
+    @action(detail=False, methods=['get'])
+    def by_month(self, request):
+        """
+        Retorna totais agregados por mês.
+        
+        Query params:
+        - year: Ano (opcional, default: ano atual)
+        - cost_center: UUID do centro de custo
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        year = request.query_params.get('year')
+        if year:
+            queryset = queryset.filter(occurred_at__year=int(year))
+        
+        # Agrupar por mês
+        from django.db.models.functions import TruncMonth
+        
+        by_month = queryset.annotate(
+            month=TruncMonth('occurred_at')
+        ).values('month').annotate(
+            total_amount=Sum('amount'),
+            transaction_count=Count('id')
+        ).order_by('month')
+        
+        return Response({
+            'by_month': [
+                {
+                    'month': item['month'].strftime('%Y-%m') if item['month'] else None,
+                    'month_name': item['month'].strftime('%B/%Y') if item['month'] else None,
+                    'total_amount': item['total_amount'] or Decimal('0.00'),
+                    'transaction_count': item['transaction_count']
+                }
+                for item in by_month
+            ]
+        })
+    
+    @action(detail=False, methods=['get'])
+    def by_cost_center(self, request):
+        """
+        Retorna totais agregados por centro de custo.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        by_cc = queryset.values(
+            'cost_center__id', 'cost_center__code', 'cost_center__name'
+        ).annotate(
+            total_amount=Sum('amount'),
+            transaction_count=Count('id')
+        ).order_by('cost_center__code')
+        
+        return Response({
+            'by_cost_center': [
+                {
+                    'cost_center_id': str(item['cost_center__id']),
+                    'cost_center_code': item['cost_center__code'],
+                    'cost_center_name': item['cost_center__name'],
+                    'total_amount': item['total_amount'] or Decimal('0.00'),
+                    'transaction_count': item['transaction_count']
+                }
+                for item in by_cc
+            ]
+        })
+    
+    @action(detail=False, methods=['post'])
+    def bulk_lock(self, request):
+        """
+        Bloqueia múltiplas transações de um período.
+        
+        Body:
+        - start_date: Data inicial (YYYY-MM-DD)
+        - end_date: Data final (YYYY-MM-DD)
+        - cost_center: UUID do centro de custo (opcional)
+        """
+        start_date = request.data.get('start_date')
+        end_date = request.data.get('end_date')
+        cost_center = request.data.get('cost_center')
+        
+        if not start_date or not end_date:
+            return Response(
+                {'error': 'start_date e end_date são obrigatórios'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        queryset = self.get_queryset().filter(
+            occurred_at__date__gte=start_date,
+            occurred_at__date__lte=end_date,
+            is_locked=False
+        )
+        
+        if cost_center:
+            queryset = queryset.filter(cost_center_id=cost_center)
+        
+        count = queryset.count()
+        now = timezone.now()
+        
+        queryset.update(
+            is_locked=True,
+            locked_at=now,
+            locked_by=request.user
+        )
+        
+        return Response({
+            'message': f'{count} transações bloqueadas',
+            'locked_count': count
+        })
+
+
+class LedgerAdjustmentViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para Ajustes de Ledger.
+    
+    Endpoints:
+    - GET /api/finance/adjustments/ - Listar ajustes
+    - POST /api/finance/adjustments/ - Criar ajuste
+    - GET /api/finance/adjustments/{id}/ - Detalhes
+    
+    Nota: Ajustes não podem ser editados ou excluídos (auditoria).
+    """
+    queryset = LedgerAdjustment.objects.select_related(
+        'original_transaction', 'adjustment_transaction', 
+        'created_by', 'approved_by'
+    )
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = LedgerAdjustmentFilter
+    search_fields = ['reason']
+    ordering_fields = ['created_at', 'adjustment_amount', 'adjustment_type']
+    ordering = ['-created_at']
+    http_method_names = ['get', 'post', 'head', 'options']  # Sem PUT/PATCH/DELETE
+    
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return LedgerAdjustmentCreateSerializer
+        return LedgerAdjustmentSerializer
+    
+    def create(self, request, *args, **kwargs):
+        """Cria um ajuste de ledger."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        adjustment = serializer.save()
+        
+        # Retornar com serializer de leitura
+        read_serializer = LedgerAdjustmentSerializer(adjustment, context={'request': request})
+        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """Retorna resumo dos ajustes."""
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        by_type = queryset.values('adjustment_type').annotate(
+            total_amount=Sum('adjustment_amount'),
+            adjustment_count=Count('id')
+        ).order_by('adjustment_type')
+        
+        return Response({
+            'by_type': [
+                {
+                    'adjustment_type': item['adjustment_type'],
+                    'type_display': dict(LedgerAdjustment.AdjustmentType.choices).get(
+                        item['adjustment_type'], item['adjustment_type']
+                    ),
+                    'total_amount': item['total_amount'] or Decimal('0.00'),
+                    'adjustment_count': item['adjustment_count']
+                }
+                for item in by_type
+            ]
+        })
