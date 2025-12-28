@@ -162,6 +162,12 @@ PUBLIC_SCHEMA_NAME = os.getenv('PUBLIC_SCHEMA_NAME', 'public')
 PUBLIC_SCHEMA_URLCONF = 'config.urls_public'  # Used when schema == 'public'
 ROOT_URLCONF = 'config.urls'  # Default URLConf for tenants
 
+# Authentication backends
+AUTHENTICATION_BACKENDS = [
+    'apps.accounts.backends.EmailBackend',  # Custom backend for email authentication
+    'django.contrib.auth.backends.ModelBackend',  # Fallback to default
+]
+
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [

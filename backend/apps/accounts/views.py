@@ -483,10 +483,11 @@ class CentralizedLoginView(APIView):
         
         user = serializer.validated_data['user']
         
-        # Update last login timestamp and IP
-        user.last_login = timezone.now()
-        user.last_login_ip = self._get_client_ip(request)
-        user.save(update_fields=['last_login_ip', 'last_login'])
+        # Update last login timestamp and IP (must be in public schema context)
+        with schema_context('public'):
+            user.last_login = timezone.now()
+            user.last_login_ip = self._get_client_ip(request)
+            user.save(update_fields=['last_login_ip', 'last_login'])
         
         # Generate tokens
         refresh = RefreshToken.for_user(user)

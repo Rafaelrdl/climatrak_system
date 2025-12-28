@@ -30,6 +30,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/api/auth/discover-tenant': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
       '/api/auth/password-reset': {
         target: 'http://localhost:8000',
         changeOrigin: true,
@@ -40,7 +45,7 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
-      // 🔐 Tenant API requests - route based on X-Tenant header
+      // 🔐 Tenant API requests - route based on X-Tenant header OR subdomain
       // Must set Host header to tenant subdomain for django-tenants
       '/api': {
         target: 'http://localhost:8000',
@@ -50,14 +55,25 @@ export default defineConfig({
           proxy.on('proxyReq', (proxyReq, req) => {
             const xTenant = req.headers['x-tenant'];
             
+            // Detectar tenant do hostname (e.g., umc.localhost:5173 -> umc)
+            const hostname = req.headers.host || '';
+            const subdomain = hostname.split('.')[0];
+            const isSubdomain = hostname.includes('.') && subdomain !== 'www' && subdomain !== 'localhost';
+            
             if (xTenant && typeof xTenant === 'string') {
-              // Set Host header to tenant subdomain for django-tenants routing
+              // Use X-Tenant header
               const tenantHost = `${xTenant.toLowerCase()}.localhost:8000`;
               proxyReq.setHeader('Host', tenantHost);
               console.log(`[Vite Proxy] X-Tenant: ${xTenant} -> Host: ${tenantHost}`);
+            } else if (isSubdomain) {
+              // Use subdomain from URL
+              const tenantHost = `${subdomain.toLowerCase()}.localhost:8000`;
+              proxyReq.setHeader('Host', tenantHost);
+              console.log(`[Vite Proxy] Subdomain: ${subdomain} -> Host: ${tenantHost}`);
             } else {
+              // Public schema (localhost sem subdomain)
               proxyReq.setHeader('Host', 'localhost:8000');
-              console.log(`[Vite Proxy] No X-Tenant -> Host: localhost:8000 (public)`);
+              console.log(`[Vite Proxy] No tenant -> Host: localhost:8000 (public)`);
             }
           });
         },

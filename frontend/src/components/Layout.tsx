@@ -45,7 +45,22 @@ export function Layout({ children }: LayoutProps) {
 
   const handleLogout = () => {
     logoutService().finally(() => {
-      navigate('/login');
+      // Redirect to a neutral login page (base domain without tenant subdomain)
+      // This ensures the next user logging in won't be stuck on the wrong tenant
+      const hostname = window.location.hostname;
+      const hostParts = hostname.split('.');
+      
+      // Check if we're on a subdomain (e.g., comg.localhost or umc.example.com)
+      if (hostParts.length > 1 && hostParts[0] !== 'www' && hostParts[0] !== 'localhost') {
+        // Remove tenant subdomain and redirect to base domain
+        const baseDomain = hostParts.slice(1).join('.');
+        const port = window.location.port ? `:${window.location.port}` : '';
+        const protocol = window.location.protocol;
+        window.location.href = `${protocol}//${baseDomain}${port}/login`;
+      } else {
+        // Already on base domain or localhost, just navigate
+        navigate('/login');
+      }
     });
   };
 

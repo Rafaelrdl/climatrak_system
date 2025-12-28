@@ -11,15 +11,18 @@ export function isUserAuthenticated(): boolean {
 export function useAuth() {
   // Initialize with sync check to avoid flash of unauthenticated state
   const [isAuthenticated, setIsAuthenticated] = useState(() => isUserAuthenticated());
-  const [isLoading, setIsLoading] = useState(() => {
-    // If we already have auth in localStorage, no need to show loading
-    return !isUserAuthenticated();
-  });
+  const [isLoading, setIsLoading] = useState(false); // Não mostrar loading se já tem auth
 
   useEffect(() => {
     const checkAuth = () => {
       const user = localStorage.getItem('auth:user');
-      setIsAuthenticated(!!user);
+      const tenantSchema = localStorage.getItem('auth:tenant_schema');
+      const hasAuth = !!user && !!tenantSchema;
+      
+      if (hasAuth !== isAuthenticated) {
+        console.log('🔄 Auth state changed:', { hasAuth, user: user ? 'present' : 'missing', tenant: tenantSchema });
+        setIsAuthenticated(hasAuth);
+      }
       setIsLoading(false);
     };
 
@@ -27,7 +30,7 @@ export function useAuth() {
 
     // Listen for storage changes (logout in another tab)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'auth:user') {
+      if (e.key === 'auth:user' || e.key === 'auth:tenant_schema') {
         checkAuth();
       }
     };
@@ -44,7 +47,7 @@ export function useAuth() {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('authChange', handleAuthChange);
     };
-  }, []);
+  }, [isAuthenticated]);
 
   return { isAuthenticated, isLoading };
 }

@@ -75,8 +75,15 @@ export async function login(email: string, password: string): Promise<LoginResul
     password,
   });
 
+  console.log('🔐 Login response:', {
+    tenants: data.tenants,
+    user: data.user.email,
+  });
+
   // Select default tenant or first available (needed to get correct role)
   const defaultTenant = data.tenants.find(t => t.is_default) || data.tenants[0] || null;
+
+  console.log('🏢 Selected tenant:', defaultTenant);
 
   // Map user data - use role from selected tenant (not from user object)
   // The backend returns the correct role per tenant in data.tenants[].role
@@ -107,6 +114,7 @@ export async function login(email: string, password: string): Promise<LoginResul
 
     // Store selected tenant schema for X-Tenant header
     localStorage.setItem('auth:tenant_schema', defaultTenant.schema_name);
+    console.log('💾 Saved tenant_schema:', defaultTenant.schema_name);
   }
 
   return { 
@@ -129,6 +137,61 @@ export async function logout() {
     localStorage.removeItem('auth:role');
     window.dispatchEvent(new Event('authChange'));
   }
+}
+
+// Tenant Discovery (Step 1 of login)
+export interface TenantDiscoveryResult {
+  found: boolean;
+  email: string;
+  tenants?: Array<{
+    schema_name: string;
+    slug: string;
+    name: string;
+  }>;
+  primary_tenant?: {
+    schema_name: string;
+    slug: string;
+    name: string;
+  };
+  has_multiple_tenants?: boolean;
+  message?: string;
+}
+
+export async function discoverTenant(email: string): Promise<TenantDiscoveryResult> {
+  const { data } = await api.post<TenantDiscoveryResult>('/auth/discover-tenant/', { email });
+  return data;
+}
+
+// Tenant-specific login (usado no fluxo de 2 passos)
+export async function tenantLogin(email: string, password: string): Promise<{
+  user: User;
+  tenant: {
+    schema_name: string;
+    name: string;
+    slug: string;
+  };
+}> {
+  const { data } = await api.post('/auth/login/', {
+    email,
+    password,
+  });
+
+  console.log('🔐 Tenant login response:', data);
+
+  // Map user data
+  const user = mapApiUserToUser(data.user);
+
+  // Persist user locally
+  localStorage.setItem('auth:user', JSON.stringify(user));
+  localStorage.setItem('auth:role', user.role);
+  localStorage.setItem('auth:tenant_schema', data.tenant.schema_name);
+  
+  window.dispatchEvent(new Event('authChange'));
+
+  return {
+    user,
+    tenant: data.tenant
+  };
 }
 
 // Password Reset Functions

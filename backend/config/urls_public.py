@@ -26,6 +26,7 @@ from apps.accounts.views import (
     CookieTokenRefreshView,
     LogoutView,
 )
+from apps.accounts.views_tenant_discovery import TenantDiscoveryView
 from apps.accounts.views_team import (
     PublicInviteValidateView,
     PublicInviteAcceptView,
@@ -62,6 +63,9 @@ urlpatterns = [
     
     # Main login endpoint - returns user info + list of accessible tenants
     path('api/auth/centralized-login/', CentralizedLoginView.as_view(), name='centralized_login'),
+    
+    # Tenant discovery - identifica tenant pelo email (sem senha)
+    path('api/auth/discover-tenant/', TenantDiscoveryView.as_view(), name='discover_tenant'),
     
     # List user's tenants (requires auth)
     path('api/auth/tenants/', UserTenantsView.as_view(), name='user_tenants'),

@@ -347,6 +347,9 @@ class PublicInviteAcceptView(APIView):
     """
     Public endpoint to accept an invite and create user account.
     POST /api/invites/accept/
+    
+    For NEW users: requires token, name, password
+    For EXISTING users: only requires token (will add them to the tenant)
     """
     permission_classes = [AllowAny]
     
@@ -355,28 +358,10 @@ class PublicInviteAcceptView(APIView):
         full_name = request.data.get('name', '').strip()
         password = request.data.get('password')
         
-        # Validate required fields
+        # Validate token (always required)
         if not token:
             return Response(
                 {"detail": "Token is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        if not full_name:
-            return Response(
-                {"detail": "Name is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        if not password:
-            return Response(
-                {"detail": "Password is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        if len(password) < 8:
-            return Response(
-                {"detail": "Password must be at least 8 characters."},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -400,9 +385,70 @@ class PublicInviteAcceptView(APIView):
         
         # Check if user already exists
         existing_user = User.objects.filter(email__iexact=invite.email).first()
+        
         if existing_user:
+            # User already exists - just create the TenantMembership
+            # Check if already a member of this tenant
+            existing_membership = TenantMembership.objects.filter(
+                user=existing_user,
+                tenant=invite.tenant,
+            ).first()
+            
+            if existing_membership:
+                if existing_membership.status == 'active':
+                    return Response(
+                        {"detail": "You are already a member of this organization."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                else:
+                    # Reactivate membership
+                    existing_membership.status = 'active'
+                    existing_membership.role = invite.role
+                    existing_membership.save()
+                    membership = existing_membership
+            else:
+                # Create new membership for existing user
+                try:
+                    membership = invite.accept(existing_user)
+                except Exception as e:
+                    return Response(
+                        {"detail": str(e)},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            logger.info(f"✅ Existing user {existing_user.email} joined {invite.tenant.name} as {invite.role}")
+            
+            return Response({
+                "message": "You have been added to the organization.",
+                "existing_user": True,
+                "user": {
+                    "id": existing_user.id,
+                    "email": existing_user.email,
+                    "full_name": existing_user.full_name,
+                },
+                "membership": {
+                    "tenant_name": invite.tenant.name,
+                    "tenant_slug": invite.tenant.schema_name,
+                    "role": membership.role,
+                }
+            }, status=status.HTTP_200_OK)
+        
+        # User doesn't exist - create new user
+        if not full_name:
             return Response(
-                {"detail": "An account with this email already exists. Please login."},
+                {"detail": "Name is required for new accounts."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not password:
+            return Response(
+                {"detail": "Password is required for new accounts."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if len(password) < 8:
+            return Response(
+                {"detail": "Password must be at least 8 characters."},
                 status=status.HTTP_400_BAD_REQUEST
             )
         

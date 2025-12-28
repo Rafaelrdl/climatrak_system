@@ -1,41 +1,54 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { AlertCircle, Eye, EyeOff, Mail, Shield, BarChart3, Wrench, ThermometerSnowflake, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { AlertCircle, Eye, EyeOff, Mail, Lock, Shield, BarChart3, Wrench, ThermometerSnowflake, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { login as loginService } from '@/services/authService';
+import { login as loginService, discoverTenant, tenantLogin } from '@/services/authService';
 import ClimatrakLogoUrl from '@/assets/images/logo_climatrak.svg';
+
+type LoginStep = 'email' | 'password';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const emailParam = searchParams.get('email');
+  
+  const [step, setStep] = useState<LoginStep>(() => emailParam ? 'password' : 'email');
   const [formData, setFormData] = useState({
-    email: '',
+    email: emailParam || '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{email?: string; password?: string}>({});
 
-  const validateForm = () => {
-    const newErrors: {email?: string; password?: string} = {};
-    
+  const validateEmail = () => {
     if (!formData.email) {
-      newErrors.email = 'E-mail é obrigatório';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'E-mail inválido';
+      setErrors({ email: 'E-mail é obrigatório' });
+      return false;
     }
-    
+    if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      setErrors({ email: 'E-mail inválido' });
+      return false;
+    }
+    setErrors({});
+    return true;
+  };
+
+  const validatePassword = () => {
     if (!formData.password) {
-      newErrors.password = 'Senha é obrigatória';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Senha deve ter pelo menos 6 caracteres';
+      setErrors({ password: 'Senha é obrigatória' });
+      return false;
     }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (formData.password.length < 6) {
+      setErrors({ password: 'Senha deve ter pelo menos 6 caracteres' });
+      return false;
+    }
+    setErrors({});
+    return true;
   };
 
   const getErrorMessage = (error: unknown) => {
@@ -43,33 +56,83 @@ export function LoginPage() {
       const data: any = error.response.data;
       if (typeof data.detail === 'string') return data.detail;
       if (typeof data.error === 'string') return data.error;
+      if (typeof data.message === 'string') return data.message;
       
-      const emailError = Array.isArray(data.username_or_email) ? data.username_or_email[0] : null;
+      const emailError = Array.isArray(data.email) ? data.email[0] : null;
       const passwordError = Array.isArray(data.password) ? data.password[0] : null;
       
       if (typeof emailError === 'string') return emailError;
       if (typeof passwordError === 'string') return passwordError;
     }
     
-    return 'Erro ao fazer login. Verifique suas credenciais.';
+    return 'Erro ao processar solicitação.';
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Step 1: Email submission - descobrir tenant
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!validateEmail()) {
       return;
     }
 
     setIsLoading(true);
     
     try {
-      await loginService(formData.email, formData.password);
+      const result = await discoverTenant(formData.email);
+      
+      if (!result.found) {
+        toast.error(result.message || 'Nenhuma conta encontrada com este email.');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Tenant encontrado - redirecionar para o tenant
+      const primary = result.primary_tenant!;
+      const tenantSlug = primary.slug || primary.schema_name.toLowerCase();
+      
+      const protocol = window.location.protocol;
+      const currentHost = window.location.hostname;
+      const currentPort = window.location.port ? `:${window.location.port}` : '';
+      
+      // Construir URL do tenant
+      let baseDomain = currentHost;
+      const hostParts = currentHost.split('.');
+      if (hostParts.length > 1 && hostParts[0] !== 'www') {
+        baseDomain = hostParts.slice(1).join('.');
+      }
+      
+      const tenantUrl = `${protocol}//${tenantSlug}.${baseDomain}${currentPort}/login?email=${encodeURIComponent(formData.email)}`;
+      
+      console.log('🔍 Tenant discovered:', primary.name);
+      console.log('🔄 Redirecting to:', tenantUrl);
+      
+      // Redirecionar para o tenant com o email na query string
+      window.location.href = tenantUrl;
+      
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+      setIsLoading(false);
+    }
+  };
+
+  // Step 2: Password submission - fazer login
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validatePassword()) {
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const result = await tenantLogin(formData.email, formData.password);
+      
       toast.success('Login realizado com sucesso!');
       
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 300);
+      // Navegar para home
+      window.location.href = '/';
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -77,11 +140,15 @@ export function LoginPage() {
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field as keyof typeof errors]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
-    }
+  const handleBackToEmail = () => {
+    setStep('email');
+    setFormData({ email: '', password: '' });
+    setErrors({});
+    
+    // Remover email da URL
+    const url = new URL(window.location.href);
+    url.searchParams.delete('email');
+    window.history.replaceState({}, '', url.pathname);
   };
 
   const features = [
@@ -112,99 +179,153 @@ export function LoginPage() {
                 Bem-vindo de volta
               </h1>
               <p className="text-sm text-muted-foreground">
-                Entre com suas credenciais para acessar a plataforma
+                {step === 'email' 
+                  ? 'Digite seu e-mail para continuar' 
+                  : 'Digite sua senha para acessar'}
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Email Field */}
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-foreground">
-                  E-mail
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="nome@empresa.com"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className={`h-11 pl-10 bg-muted/30 border-muted-foreground/20 focus:border-primary focus:ring-primary ${errors.email ? 'border-destructive' : ''}`}
-                    aria-invalid={!!errors.email}
-                    aria-describedby={errors.email ? 'email-error' : undefined}
-                  />
-                </div>
-                {errors.email && (
-                  <div id="email-error" role="alert" className="flex items-center gap-1 text-sm text-destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.email}
-                  </div>
-                )}
-              </div>
-
-              {/* Password Field */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-sm font-medium text-foreground">
-                    Senha
+            {step === 'email' ? (
+              // STEP 1: Email Only
+              <form onSubmit={handleEmailSubmit} className="space-y-5">
+                {/* Email Field */}
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium text-foreground">
+                    E-mail
                   </Label>
-                  <Link
-                    to="/forgot-password"
-                    state={{ email: formData.email }}
-                    className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"
-                  >
-                    Esqueceu a senha?
-                  </Link>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="nome@empresa.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className={`h-11 pl-10 bg-muted/30 border-muted-foreground/20 focus:border-primary focus:ring-primary ${errors.email ? 'border-destructive' : ''}`}
+                      aria-invalid={!!errors.email}
+                      aria-describedby={errors.email ? 'email-error' : undefined}
+                      autoFocus
+                    />
+                  </div>
+                  {errors.email && (
+                    <div id="email-error" role="alert" className="flex items-center gap-1 text-sm text-destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      {errors.email}
+                    </div>
+                  )}
                 </div>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    className={`h-11 pr-10 bg-muted/30 border-muted-foreground/20 focus:border-primary focus:ring-primary ${errors.password ? 'border-destructive' : ''}`}
-                    aria-invalid={!!errors.password}
-                    aria-describedby={errors.password ? 'password-error' : undefined}
-                  />
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Verificando...
+                    </div>
+                  ) : 'Continuar'}
+                </Button>
+              </form>
+            ) : (
+              // STEP 2: Password (email pre-filled)
+              <form onSubmit={handlePasswordSubmit} className="space-y-5">
+                {/* Email Field (disabled/readonly) */}
+                <div className="space-y-2">
+                  <Label htmlFor="email-display" className="text-sm font-medium text-foreground">
+                    E-mail
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="email-display"
+                      type="email"
+                      value={formData.email}
+                      disabled
+                      className="h-11 pl-10 bg-muted/50 border-muted-foreground/20 cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
+                {/* Password Field */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-sm font-medium text-foreground">
+                      Senha
+                    </Label>
+                    <Link
+                      to="/forgot-password"
+                      state={{ email: formData.email }}
+                      className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"
+                    >
+                      Esqueceu a senha?
+                    </Link>
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className={`h-11 pl-10 pr-10 bg-muted/30 border-muted-foreground/20 focus:border-primary focus:ring-primary ${errors.password ? 'border-destructive' : ''}`}
+                      aria-invalid={!!errors.password}
+                      aria-describedby={errors.password ? 'password-error' : undefined}
+                      autoFocus
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-11 px-3 py-0 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
+                  {errors.password && (
+                    <div id="password-error" role="alert" className="flex items-center gap-1 text-sm text-destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      {errors.password}
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-11 px-3 py-0 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    variant="outline"
+                    onClick={handleBackToEmail}
+                    disabled={isLoading}
+                    className="h-11 px-4"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
+                    <ArrowLeft className="h-4 w-4 mr-1" />
+                    Voltar
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Entrando...
+                      </div>
+                    ) : 'Entrar'}
                   </Button>
                 </div>
-                {errors.password && (
-                  <div id="password-error" role="alert" className="flex items-center gap-1 text-sm text-destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.password}
-                  </div>
-                )}
-              </div>
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Entrando...
-                  </div>
-                ) : 'Entrar'}
-              </Button>
-            </form>
+              </form>
+            )}
           </div>
         </div>
 

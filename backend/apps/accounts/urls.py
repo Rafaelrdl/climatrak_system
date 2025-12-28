@@ -17,6 +17,7 @@ from apps.accounts.views_password_reset import (
     PasswordResetValidateView,
     PasswordResetConfirmView
 )
+from apps.accounts.views_tenant_login import TenantLoginView
 
 app_name = 'accounts'
 
@@ -30,6 +31,7 @@ urlpatterns = [
     path('health/', views.health_check, name='health'),
     
     # Authentication
+    path('auth/login/', TenantLoginView.as_view(), name='tenant_login'),  # Login no schema do tenant
     path('auth/register/', views.RegisterView.as_view(), name='register'),
     path('auth/logout/', views.LogoutView.as_view(), name='logout'),
     # 🔐 SECURITY: Use cookie-based token refresh (not standard TokenRefreshView)
