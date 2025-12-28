@@ -22,7 +22,6 @@ from apps.accounts.models import User
 from apps.accounts.serializers import (
     ChangePasswordSerializer,
     CustomTokenObtainPairSerializer,
-    LoginSerializer,
     RegisterSerializer,
     UserSerializer,
     UserUpdateSerializer,
@@ -119,89 +118,8 @@ class RegisterView(generics.CreateAPIView):
         return Response(response_data, status=status.HTTP_201_CREATED)
 
 
-class LoginView(APIView):
-    """
-    User login endpoint.
-    
-    POST /api/auth/login
-    {
-        "username_or_email": "john@example.com",
-        "password": "SecurePass123!"
-    }
-    """
-    permission_classes = [AllowAny]
-    
-    def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        user = serializer.validated_data['user']
-        
-        # Update last login timestamp and IP
-        user.last_login = timezone.now()
-        user.last_login_ip = self.get_client_ip(request)
-        user.save(update_fields=['last_login_ip', 'last_login'])
-        
-        # Generate tokens
-        refresh = RefreshToken.for_user(user)
-        
-        # Get tenant information from current connection
-        from django.db import connection
-        tenant_slug = getattr(connection, 'schema_name', 'public')
-        tenant_domain = request.get_host()
-        
-        # Construct API base URL for multi-tenant frontend
-        protocol = 'https' if request.is_secure() else 'http'
-        api_base_url = f"{protocol}://{tenant_domain}/api"
-        
-        # 🔒 SECURITY FIX (Nov 2025): Do NOT return tokens in JSON response
-        # Tokens are already set as HttpOnly cookies - returning them in JSON
-        # defeats the purpose of HttpOnly (XSS protection)
-        # Audit finding: "Retorna os tokens access/refresh no JSON e também define 
-        # cookies HttpOnly. Isso duplica o transporte e enfraquece a segurança."
-        response_data = {
-            'user': UserSerializer(user).data,
-            'message': 'Login realizado com sucesso!',
-            # Multi-tenant information for frontend
-            'tenant': {
-                'slug': tenant_slug,
-                'domain': tenant_domain,
-                'api_base_url': api_base_url,
-            }
-            # ❌ REMOVED: 'access' and 'refresh' tokens (use cookies only)
-        }
-        
-        # Create response with HttpOnly cookies (ONLY authentication method)
-        response = Response(response_data, status=status.HTTP_200_OK)
-        
-        # Set HttpOnly cookies (cookie-based auth strategy)
-        response.set_cookie(
-            key='access_token',
-            value=str(refresh.access_token),
-            httponly=True,
-            secure=not settings.DEBUG,
-            samesite='Lax',
-            max_age=3600,  # 1 hour
-        )
-        response.set_cookie(
-            key='refresh_token',
-            value=str(refresh),
-            httponly=True,
-            secure=not settings.DEBUG,
-            samesite='Lax',
-            max_age=604800,  # 7 days
-        )
-        
-        return response
-    
-    def get_client_ip(self, request):
-        """Get client IP from request."""
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-        return ip
+# NOTE: LoginView (legacy domain-based) was removed in Dec 2025.
+# Use CentralizedLoginView for single-domain SPA architecture with X-Tenant header.
 
 
 class LogoutView(APIView):

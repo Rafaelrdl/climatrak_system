@@ -167,53 +167,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-class LoginSerializer(serializers.Serializer):
-    """
-    Serializer for user login.
-    Accepts either username or email with password.
-    """
-    username_or_email = serializers.CharField(required=True)
-    password = serializers.CharField(
-        required=True,
-        write_only=True,
-        style={'input_type': 'password'}
-    )
-    
-    def validate(self, attrs):
-        """Authenticate user with username/email and password."""
-        username_or_email = attrs.get('username_or_email')
-        password = attrs.get('password')
-        
-        # Try to find user by email or username
-        user = None
-        if '@' in username_or_email:
-            # It's an email
-            try:
-                user_obj = User.objects.get(email=username_or_email.lower())
-                username = user_obj.username
-            except User.DoesNotExist:
-                raise serializers.ValidationError({
-                    "username_or_email": "Credenciais inválidas."
-                })
-        else:
-            # It's a username
-            username = username_or_email.lower()
-        
-        # Authenticate
-        user = authenticate(username=username, password=password)
-        
-        if not user:
-            raise serializers.ValidationError({
-                "username_or_email": "Credenciais inválidas."
-            })
-        
-        if not user.is_active:
-            raise serializers.ValidationError({
-                "username_or_email": "Esta conta está desativada."
-            })
-        
-        attrs['user'] = user
-        return attrs
+# NOTE: LoginSerializer (legacy domain-based) was removed in Dec 2025.
+# Use CentralizedLoginSerializer for single-domain SPA architecture.
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):

@@ -78,6 +78,7 @@ export const reconfigureApiForTenant = (tenantSlugOrUrl: string): void => {
  * - Backend sends JWT tokens in HttpOnly cookies
  * - Browser automatically includes cookies in all requests via withCredentials: true
  * - NO Authorization header needed (cookies are sent automatically)
+ * - X-Tenant header is added for multi-tenant routing
  */
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -85,9 +86,16 @@ api.interceptors.request.use(
     // Tokens are sent automatically via HttpOnly cookies (withCredentials: true)
     // NO need to add Authorization header manually
     
+    // 🏢 MULTI-TENANT: Add X-Tenant header for tenant routing
+    // This is used by the Vite proxy (dev) and nginx (prod) to route to correct tenant
+    const tenantSchema = localStorage.getItem('auth:tenant_schema');
+    if (tenantSchema) {
+      config.headers['X-Tenant'] = tenantSchema;
+    }
+    
     // Debug log in development
     if (import.meta.env.DEV) {
-
+      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url} | X-Tenant: ${tenantSchema || 'none'}`);
     }
     
     return config;

@@ -1,7 +1,7 @@
 import { api, reconfigureApiForTenant } from '@/lib';
 import { saveTenantConfig } from '@/lib/tenant';
 import { tenantStorage, updateTenantSlugCache } from '@/lib/tenantStorage';
-import type { ApiUser, AuthResponse } from '@/types/api';
+import type { ApiUser, CentralizedLoginResponse } from '@/types/api';
 import type { User, UserRole } from '@/models/user';
 import { defaultPreferences, defaultSecurity } from '@/models/user';
 
@@ -45,8 +45,26 @@ const mapApiUserToUser = (apiUser: ApiUser): User => {
   };
 };
 
-export async function login(email: string, password: string) {
-  const { data } = await api.post<AuthResponse>('/auth/login/', {
+export interface LoginResult {
+  user: User;
+  tenants: Array<{
+    schema_name: string;
+    name: string;
+    slug: string;
+    role: string;
+    is_default: boolean;
+  }>;
+  selectedTenant: {
+    schema_name: string;
+    name: string;
+    slug: string;
+    role: string;
+  } | null;
+}
+
+export async function login(email: string, password: string): Promise<LoginResult> {
+  // Use centralized login endpoint (public schema)
+  const { data } = await api.post<CentralizedLoginResponse>('/auth/centralized-login/', {
     username_or_email: email,
     password,
   });
@@ -58,25 +76,33 @@ export async function login(email: string, password: string) {
   localStorage.setItem('auth:role', user.role);
   window.dispatchEvent(new Event('authChange'));
 
-  // Persist tenant configuration for future sessions
-  if (data.tenant) {
-    const tenantSlug = data.tenant.slug || data.tenant.id || 'default';
-    const tenantName = data.tenant.name || tenantSlug.toUpperCase();
-    const apiBaseUrl = data.tenant.api_base_url || `http://${tenantSlug}.localhost:8000/api`;
+  // Select default tenant or first available
+  const defaultTenant = data.tenants.find(t => t.is_default) || data.tenants[0] || null;
+
+  if (defaultTenant) {
+    const tenantSlug = defaultTenant.slug || defaultTenant.schema_name.toLowerCase();
+    const tenantName = defaultTenant.name || defaultTenant.schema_name;
+    // API base URL for tenant - frontend will use X-Tenant header instead of subdomain
+    const apiBaseUrl = `/api`; // Keep relative, proxy handles routing
 
     updateTenantSlugCache(tenantSlug);
 
     saveTenantConfig({
-      tenantId: data.tenant.id || tenantSlug,
+      tenantId: defaultTenant.schema_name,
       tenantSlug,
       tenantName,
       apiBaseUrl,
     });
 
-    reconfigureApiForTenant(apiBaseUrl);
+    // Store selected tenant schema for X-Tenant header
+    localStorage.setItem('auth:tenant_schema', defaultTenant.schema_name);
   }
 
-  return { user, tenant: data.tenant ?? null };
+  return { 
+    user, 
+    tenants: data.tenants,
+    selectedTenant: defaultTenant 
+  };
 }
 
 export async function logout() {
@@ -87,6 +113,9 @@ export async function logout() {
   } finally {
     tenantStorage.clear();
     updateTenantSlugCache(null);
+    localStorage.removeItem('auth:tenant_schema');
+    localStorage.removeItem('auth:user');
+    localStorage.removeItem('auth:role');
     window.dispatchEvent(new Event('authChange'));
   }
 }

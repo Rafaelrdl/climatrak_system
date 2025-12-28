@@ -198,20 +198,20 @@ export interface ApiUser {
 }
 
 /**
- * Auth Response
+ * Centralized Login Response (for single-domain SPA architecture)
  */
-export interface AuthResponse {
+export interface CentralizedLoginResponse {
   user: ApiUser;
-  tenant: {
-    id: string;
-    slug: string;
+  tenants: Array<{
+    schema_name: string;
     name: string;
-    api_base_url?: string;
-    domain?: string;
-  };
-  message?: string;
-  access_token?: string; // Only if not using HttpOnly cookies
-  refresh_token?: string; // Only if not using HttpOnly cookies
+    slug: string;
+    role: string;
+    is_default: boolean;
+  }>;
+  message: string;
+  auth_method: string;
+  instructions: string;
 }
 
 /**

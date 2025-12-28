@@ -18,8 +18,8 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // 🔐 Public endpoints that should go to public schema (localhost:8000)
-      // These don't require tenant context
+      // 🔐 Public endpoints - go directly to public schema (localhost:8000)
+      // Order matters! Most specific first.
       '/api/invites': {
         target: 'http://localhost:8000',
         changeOrigin: true,
@@ -35,24 +35,29 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
-      // 🔐 Proxy API requests to backend (enables cookie sharing)
-      // Frontend (localhost:5173) → Backend (umc.localhost:8000)
-      // This way cookies work because both are on same origin from browser's perspective
-      '/api': {
-        target: 'http://umc.localhost:8000',
-        changeOrigin: true, // Change host header to match target
+      '/api/auth/logout': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
         secure: false,
-        // Use router to dynamically set target based on request host
+      },
+      // 🔐 Tenant API requests - route based on X-Tenant header
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
         router: (req) => {
-          const host = req.headers.host || 'localhost:5173';
-          const subdomain = host.split('.')[0];
+          const xTenant = req.headers['x-tenant'];
           
-          // Se for um subdomínio específico (não localhost), usar subdomínio no backend
-          if (subdomain && subdomain !== 'localhost' && !subdomain.includes(':')) {
-            return `http://${subdomain}.localhost:8000`;
+          // Route to tenant based on X-Tenant header
+          if (xTenant && typeof xTenant === 'string') {
+            const target = `http://${xTenant.toLowerCase()}.localhost:8000`;
+            console.log(`[Vite Proxy] X-Tenant: ${xTenant} -> ${target}`);
+            return target;
           }
-          // Caso contrário, usar tenant padrão (umc)
-          return 'http://umc.localhost:8000';
+          
+          // Fallback: public schema (no tenant context)
+          console.log(`[Vite Proxy] No X-Tenant header -> localhost:8000 (public)`);
+          return 'http://localhost:8000';
         },
       }
     }
