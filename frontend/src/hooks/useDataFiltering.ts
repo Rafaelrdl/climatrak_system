@@ -48,8 +48,11 @@ export function useDataFiltering() {
       options: FilterOptions = {}
     ): T[] {
       return data.filter(item => {
-        // Admin can see all work orders
-        if (role === 'admin') return true;
+        // Owner, Admin, and Operator can see all work orders
+        if (role === 'owner' || role === 'admin' || role === 'operator') return true;
+
+        // Viewer can see all work orders (read-only)
+        if (role === 'viewer') return true;
 
         // Technician can see work orders assigned to them or in their sectors
         if (role === 'technician') {
@@ -71,7 +74,7 @@ export function useDataFiltering() {
           if (itemPriorityLevel > maxPriorityLevel) return false;
         }
 
-        return role === 'admin' || role === 'technician';
+        return false;
       });
     }
 
@@ -83,8 +86,11 @@ export function useDataFiltering() {
       options: FilterOptions = {}
     ): T[] {
       return data.filter(item => {
-        // Admin can see all assets
-        if (role === 'admin') return true;
+        // Owner, Admin, and Operator can see all assets
+        if (role === 'owner' || role === 'admin' || role === 'operator') return true;
+
+        // Viewer can see all assets (read-only)
+        if (role === 'viewer') return true;
 
         // Technician can see assets in their sectors
         if (role === 'technician') {
@@ -113,8 +119,11 @@ export function useDataFiltering() {
       options: FilterOptions = {}
     ): T[] {
       return data.filter(item => {
-        // Admin can see all inventory
-        if (role === 'admin') return true;
+        // Owner, Admin, and Operator can see all inventory
+        if (role === 'owner' || role === 'admin' || role === 'operator') return true;
+
+        // Viewer can see all inventory (read-only)
+        if (role === 'viewer') return true;
 
         // Technician can see inventory items for maintenance
         if (role === 'technician') {
@@ -146,8 +155,11 @@ export function useDataFiltering() {
       options: FilterOptions = {}
     ): T[] {
       return data.filter(item => {
-        // Admin can see all plans
-        if (role === 'admin') return true;
+        // Owner, Admin, and Operator can see all plans
+        if (role === 'owner' || role === 'admin' || role === 'operator') return true;
+
+        // Viewer can see all plans (read-only)
+        if (role === 'viewer') return true;
 
         // Technician can see plans for their sectors
         if (role === 'technician') {
@@ -174,8 +186,11 @@ export function useDataFiltering() {
       options: FilterOptions = {}
     ): T[] {
       return data.filter(item => {
-        // Admin can see all procedures
-        if (role === 'admin') return true;
+        // Owner, Admin, and Operator can see all procedures
+        if (role === 'owner' || role === 'admin' || role === 'operator') return true;
+
+        // Viewer can see all procedures (read-only)
+        if (role === 'viewer') return true;
 
         // Technician can see active procedures in their area
         if (role === 'technician') {
@@ -205,11 +220,14 @@ export function useDataFiltering() {
       options: FilterOptions = {}
     ): T[] {
       return data.filter(item => {
-        // Admin can see all metrics
-        if (role === 'admin') return true;
+        // Owner, Admin, and Operator can see all metrics
+        if (role === 'owner' || role === 'admin' || role === 'operator') return true;
 
-        // Hide sensitive metrics from non-admin users
-        if (item.sensitive && role !== 'admin') return false;
+        // Hide sensitive metrics from non-admin/owner users
+        if (item.sensitive && role !== 'owner' && role !== 'admin') return false;
+
+        // Viewer can see all non-sensitive metrics (read-only)
+        if (role === 'viewer') return !item.sensitive;
 
         // Technician can see metrics for their sectors/department
         if (role === 'technician') {
@@ -234,8 +252,28 @@ export function useDataFiltering() {
     function filterDashboardData(dashboardData: any) {
       const filtered = { ...dashboardData };
 
-      // Admin sees everything
-      if (role === 'admin') return filtered;
+      // Owner and Admin sees everything
+      if (role === 'owner' || role === 'admin') return filtered;
+
+      // Operator sees most data (operational focus)
+      if (role === 'operator') {
+        // Hide very sensitive financial data
+        if (filtered.kpis) {
+          delete filtered.kpis.profitMargin;
+        }
+        return filtered;
+      }
+
+      // Viewer sees general metrics (read-only)
+      if (role === 'viewer') {
+        // Hide financial data
+        if (filtered.kpis) {
+          delete filtered.kpis.totalCost;
+          delete filtered.kpis.costPerWorkOrder;
+          delete filtered.kpis.profitMargin;
+        }
+        return filtered;
+      }
 
       // Technician sees filtered data
       if (role === 'technician') {

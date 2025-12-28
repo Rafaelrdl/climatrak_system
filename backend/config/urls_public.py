@@ -45,7 +45,15 @@ urlpatterns = [
     path('ingest', include('apps.ingest.urls')),
     
     # ==========================================================================
-    # 🔐 Centralized Authentication (X-Tenant Header Architecture)
+    # 🔐 NEW Centralized Authentication (public_identity app)
+    # ==========================================================================
+    # New architecture: User lives ONLY in tenant schemas
+    # Authentication happens INSIDE tenant schemas
+    # TenantUserIndex provides discovery, TenantMembership provides roles
+    path('api/v2/auth/', include('apps.public_identity.urls')),
+    
+    # ==========================================================================
+    # 🔐 LEGACY Centralized Authentication (X-Tenant Header Architecture)
     # ==========================================================================
     # These endpoints allow a single-domain SPA (e.g., localhost:5173) to:
     # 1. Login and get list of available tenants

@@ -53,7 +53,7 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
 # Application definition
 SHARED_APPS = [
     'django_tenants',  # Must be first
-    'apps.accounts',  # Must be before auth for custom user model
+    'apps.accounts',  # Must be before auth for custom user model (TEMPORARY: will be moved to TENANT_APPS only after migration)
     'django.contrib.contenttypes',
     'django.contrib.auth',
     'django.contrib.sessions',
@@ -72,6 +72,7 @@ SHARED_APPS = [
     # Local shared apps
     'apps.tenants',
     'apps.ops',  # Ops panel (staff-only, public schema)
+    'apps.public_identity',  # Public identity management (TenantUserIndex, TenantMembership)
 ]
 
 TENANT_APPS = [

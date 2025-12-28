@@ -48,17 +48,21 @@ export function useDashboardFiltering() {
    */
   function filterKPIs(kpis: DashboardKPI[]): DashboardKPI[] {
     return kpis.filter(kpi => {
-      // Admin can see all KPIs
-      if (role === 'admin') return true;
+      // Owner and Admin can see all KPIs
+      if (role === 'owner' || role === 'admin') return true;
 
       // Check if KPI is marked as sensitive
-      if (kpi.sensitive && role !== 'admin') return false;
+      if (kpi.sensitive && role !== 'owner' && role !== 'admin') return false;
 
       // Check explicit role restrictions
       if (kpi.allowedRoles && !kpi.allowedRoles.includes(role)) return false;
 
       // Default filtering based on role
       switch (role) {
+        case 'operator':
+          // Operators can see operational and some cost metrics
+          return !kpi.key.includes('budget');
+        
         case 'technician':
           // Technicians can see operational metrics but not financial
           return !kpi.key.includes('cost') && !kpi.key.includes('budget');
@@ -73,6 +77,10 @@ export function useDashboardFiltering() {
             'maintenanceScheduled'
           ].some(allowed => kpi.key.includes(allowed));
         
+        case 'viewer':
+          // Viewers can see read-only metrics
+          return !kpi.key.includes('cost') && !kpi.key.includes('budget');
+        
         default:
           return true;
       }
@@ -84,11 +92,16 @@ export function useDashboardFiltering() {
    */
   function filterChartData(data: ChartDataPoint[]): ChartDataPoint[] {
     return data.filter(point => {
-      // Admin can see all data points
-      if (role === 'admin') return true;
+      // Owner and Admin can see all data points
+      if (role === 'owner' || role === 'admin') return true;
 
       // Hide sensitive data points
-      if (point.sensitive && role !== 'admin') return false;
+      if (point.sensitive && role !== 'owner' && role !== 'admin') return false;
+
+      // Operator can see most data (like admin, but may have sector restrictions)
+      if (role === 'operator') {
+        return true;
+      }
 
       // Technician can see data for their sectors/department
       if (role === 'technician') {
@@ -122,13 +135,13 @@ export function useDashboardFiltering() {
   function filterMaintenanceMetrics(metrics: DashboardData['maintenanceMetrics']) {
     const filtered = { ...metrics };
 
-    // Remove cost metrics for non-admin users
-    if (role !== 'admin') {
+    // Only owner and admin see cost metrics
+    if (role !== 'owner' && role !== 'admin') {
       delete filtered.costMetrics;
     }
 
-    // Requesters get very limited metrics
-    if (role === 'requester') {
+    // Requesters and viewers get very limited metrics
+    if (role === 'requester' || role === 'viewer') {
       return {
         uptime: filtered.uptime,
       };
@@ -142,12 +155,18 @@ export function useDashboardFiltering() {
    */
   function getDashboardDescription(): string {
     switch (role) {
+      case 'owner':
+        return 'Visão executiva completa com todos os dados, métricas e indicadores financeiros';
       case 'admin':
         return 'Visão completa do sistema de manutenção com todos os dados e métricas';
+      case 'operator':
+        return 'Dashboard operacional com gestão de ordens, planos e estoques';
       case 'technician':
         return 'Dashboard técnico com foco em ordens de serviço e manutenção operacional';
       case 'requester':
         return 'Painel de solicitações e status dos seus pedidos de manutenção';
+      case 'viewer':
+        return 'Visão geral do sistema com acesso somente leitura';
       default:
         return 'Dashboard do sistema de gestão de manutenção';
     }
@@ -160,6 +179,20 @@ export function useDashboardFiltering() {
     const baseWidgets = ['kpis'];
     
     switch (role) {
+      case 'owner':
+        return [
+          ...baseWidgets,
+          'workOrdersChart',
+          'assetStatusChart', 
+          'technicianPerformanceChart',
+          'maintenanceMetrics',
+          'upcomingMaintenance',
+          'recentActivity',
+          'costAnalysis',
+          'trendAnalysis',
+          'financialOverview'
+        ];
+      
       case 'admin':
         return [
           ...baseWidgets,
@@ -171,6 +204,17 @@ export function useDashboardFiltering() {
           'recentActivity',
           'costAnalysis',
           'trendAnalysis'
+        ];
+      
+      case 'operator':
+        return [
+          ...baseWidgets,
+          'workOrdersChart',
+          'assetStatusChart',
+          'technicianPerformanceChart',
+          'maintenanceMetrics',
+          'upcomingMaintenance',
+          'recentActivity'
         ];
       
       case 'technician':
@@ -189,6 +233,14 @@ export function useDashboardFiltering() {
           'myRequests',
           'requestStatus',
           'assetStatusChart'
+        ];
+      
+      case 'viewer':
+        return [
+          ...baseWidgets,
+          'workOrdersChart',
+          'assetStatusChart',
+          'maintenanceMetrics'
         ];
       
       default:
@@ -230,13 +282,16 @@ export function useDashboardFiltering() {
     // Filter upcoming maintenance
     if (dashboardData.upcomingMaintenance && availableWidgets.includes('upcomingMaintenance')) {
       filtered.upcomingMaintenance = dashboardData.upcomingMaintenance.filter(item => {
-        if (role === 'admin') return true;
+        if (role === 'owner' || role === 'admin' || role === 'operator') return true;
         if (role === 'technician') {
           return item.assignedTo === userContext.id || 
                  (item.sectorId && userContext.sectorIds.includes(item.sectorId));
         }
         if (role === 'requester') {
           return item.createdBy === userContext.id;
+        }
+        if (role === 'viewer') {
+          return true; // Read-only access to all
         }
         return false;
       });
@@ -245,7 +300,7 @@ export function useDashboardFiltering() {
     // Filter recent activity
     if (dashboardData.recentActivity && availableWidgets.includes('recentActivity')) {
       filtered.recentActivity = dashboardData.recentActivity.filter(item => {
-        if (role === 'admin') return true;
+        if (role === 'owner' || role === 'admin' || role === 'operator') return true;
         if (role === 'technician') {
           return item.assignedTo === userContext.id || 
                  item.createdBy === userContext.id ||
@@ -253,6 +308,9 @@ export function useDashboardFiltering() {
         }
         if (role === 'requester') {
           return item.createdBy === userContext.id;
+        }
+        if (role === 'viewer') {
+          return true; // Read-only access to all
         }
         return false;
       });
@@ -265,13 +323,35 @@ export function useDashboardFiltering() {
    * Gets dashboard configuration based on role
    */
   function getDashboardConfig() {
+    const getTitleByRole = () => {
+      switch (role) {
+        case 'owner': return 'Visão Geral';
+        case 'admin': return 'Administrativo';
+        case 'operator': return 'Operacional';
+        case 'technician': return 'Técnico';
+        case 'requester': return 'Solicitações';
+        case 'viewer': return 'Visão Geral';
+        default: return 'Visão Geral';
+      }
+    };
+
+    const getRefreshInterval = () => {
+      switch (role) {
+        case 'owner':
+        case 'admin': return 30000;
+        case 'operator':
+        case 'technician': return 60000;
+        default: return 120000;
+      }
+    };
+
     return {
-      title: `Dashboard ${role === 'admin' ? 'Administrativo' : role === 'technician' ? 'Técnico' : 'de Solicitações'}`,
+      title: `Dashboard ${getTitleByRole()}`,
       description: getDashboardDescription(),
       availableWidgets: getAvailableWidgets(),
-      refreshInterval: role === 'admin' ? 30000 : role === 'technician' ? 60000 : 120000, // More frequent updates for admins
-      showAdvancedFilters: role === 'admin' || role === 'technician',
-      showExportOptions: role === 'admin' || (role === 'technician' && can('manage', 'report')),
+      refreshInterval: getRefreshInterval(),
+      showAdvancedFilters: role === 'owner' || role === 'admin' || role === 'operator' || role === 'technician',
+      showExportOptions: role === 'owner' || role === 'admin' || (role === 'operator' && can('manage', 'report')),
       defaultDateRange: role === 'requester' ? '7d' : '30d',
     };
   }
