@@ -10,6 +10,11 @@ Security Benefits:
 - Maintains compatibility with simplejwt token validation
 - Fallback to Authorization header for API clients (optional)
 
+Multi-Tenant Support:
+- Users are stored in the PUBLIC schema only
+- This authentication class uses schema_context('public') to find users
+- Works correctly with X-Tenant header (tenant context switches after auth)
+
 Usage:
     Add to settings.py REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES']:
     'apps.common.authentication.JWTCookieAuthentication'
@@ -18,6 +23,7 @@ Usage:
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, AuthenticationFailed
 from django.conf import settings
+from django_tenants.utils import schema_context
 
 
 class JWTCookieAuthentication(JWTAuthentication):
@@ -37,7 +43,40 @@ class JWTCookieAuthentication(JWTAuthentication):
     - If cookie not present, falls back to Authorization header
     - Allows testing with tools like Postman/curl
     - Should be disabled in production for maximum security
+    
+    Multi-Tenant:
+    - Users are always fetched from PUBLIC schema
+    - TenantHeaderMiddleware switches schema AFTER authentication
+    - This ensures user lookup works regardless of current tenant context
     """
+    
+    def get_user(self, validated_token):
+        """
+        Override to always fetch user from PUBLIC schema.
+        
+        Users are stored only in the public schema, but X-Tenant header
+        may have already switched the connection to a tenant schema.
+        
+        This ensures authentication works correctly in multi-tenant setup.
+        """
+        from django.contrib.auth import get_user_model
+        
+        User = get_user_model()
+        
+        try:
+            user_id = validated_token.get('user_id')
+            
+            # Always look up user in public schema
+            with schema_context('public'):
+                user = User.objects.get(pk=user_id)
+            
+            if not user.is_active:
+                raise AuthenticationFailed('User is inactive', code='user_inactive')
+            
+            return user
+            
+        except User.DoesNotExist:
+            raise AuthenticationFailed('User not found', code='user_not_found')
     
     def authenticate(self, request):
         """

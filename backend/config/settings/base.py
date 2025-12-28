@@ -103,6 +103,7 @@ INSTALLED_APPS = list(SHARED_APPS) + [
 
 MIDDLEWARE = [
     'django_tenants.middleware.main.TenantMainMiddleware',  # Must be first
+    'apps.tenants.middleware.TenantHeaderMiddleware',  # X-Tenant header support (after TenantMainMiddleware)
     'apps.common.middleware.BlockTenantAdminMiddleware',  # Block admin in tenant schemas
     'apps.common.middleware.BlockTenantOpsMiddleware',  # Block ops panel in tenant schemas
     'django.middleware.security.SecurityMiddleware',

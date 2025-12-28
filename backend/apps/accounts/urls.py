@@ -29,12 +29,19 @@ urlpatterns = [
     # Health check
     path('health/', views.health_check, name='health'),
     
-    # Authentication
+    # Authentication (Legacy - domain-based)
     path('auth/register/', views.RegisterView.as_view(), name='register'),
     path('auth/login/', views.LoginView.as_view(), name='login'),
     path('auth/logout/', views.LogoutView.as_view(), name='logout'),
     # 🔐 SECURITY: Use cookie-based token refresh (not standard TokenRefreshView)
     path('auth/token/refresh/', views.CookieTokenRefreshView.as_view(), name='token_refresh'),
+    
+    # 🆕 Centralized Authentication (X-Tenant Header Architecture)
+    # Use these endpoints for single-domain SPA with X-Tenant header
+    path('auth/centralized-login/', views.CentralizedLoginView.as_view(), name='centralized_login'),
+    path('auth/tenants/', views.UserTenantsView.as_view(), name='user_tenants'),
+    path('auth/tenants/select/', views.TenantSelectView.as_view(), name='tenant_select'),
+    path('auth/whoami/', views.WhoAmIView.as_view(), name='whoami'),
     
     # Password Reset
     path('auth/password-reset/request/', PasswordResetRequestView.as_view(), name='password_reset_request'),
