@@ -509,14 +509,21 @@ class TenantAdmin(TenantAdminMixin, admin.ModelAdmin):
                             expires_at=timezone.now() + timedelta(days=7)
                         )
                         
-                        # TODO: Enviar email de convite
-                        # send_invite_email(invite)
+                        # Enviar email de convite
+                        email_sent = self._send_invite_email(invite, request)
                         
-                        messages.success(
-                            request, 
-                            f"✅ Convite enviado para {email}! "
-                            f"Token: {invite.token[:8]}... (expira em 7 dias)"
-                        )
+                        if email_sent:
+                            messages.success(
+                                request, 
+                                f"✅ Convite enviado para {email}! "
+                                f"Token: {invite.token[:8]}... (expira em 7 dias)"
+                            )
+                        else:
+                            messages.warning(
+                                request,
+                                f"⚠️ Convite criado para {email}, mas houve erro no envio do email. "
+                                f"Token: {invite.token[:8]}... (expira em 7 dias)"
+                            )
                         return redirect('admin:tenant_users', tenant_id=tenant_id)
         else:
             form = InviteForm()
@@ -660,17 +667,114 @@ class TenantAdmin(TenantAdminMixin, admin.ModelAdmin):
             invite.status = 'pending'
             invite.save()
             
-            # TODO: Reenviar email
-            # send_invite_email(invite)
+            # Reenviar email de convite
+            email_sent = self._send_invite_email(invite, request)
             
-            messages.success(
-                request, 
-                f"📧 Convite reenviado para {invite.email}! "
-                f"Novo token: {invite.token[:8]}..."
-            )
+            if email_sent:
+                messages.success(
+                    request, 
+                    f"📧 Convite reenviado para {invite.email}! "
+                    f"Novo token: {invite.token[:8]}..."
+                )
+            else:
+                messages.warning(
+                    request,
+                    f"⚠️ Convite renovado, mas houve erro no envio do email para {invite.email}."
+                )
         
         return redirect('admin:tenant_users', tenant_id=tenant_id)
+    
+    def _send_invite_email(self, invite, request):
+        """
+        Envia email de convite para o usuário.
+        
+        Retorna True se o email foi enviado com sucesso, False caso contrário.
+        """
+        from django.core.mail import send_mail
+        from django.template.loader import render_to_string
+        from django.conf import settings
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Build acceptance URL
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+            accept_url = f"{frontend_url}/accept-invite?token={invite.token}"
+            
+            # Email context
+            context = {
+                'invite': invite,
+                'accept_url': accept_url,
+                'tenant_name': invite.tenant.name,
+                'invited_by_name': invite.invited_by.full_name if invite.invited_by else 'Equipe',
+                'role': invite.get_role_display() if hasattr(invite, 'get_role_display') else invite.role,
+                'message': invite.message,
+            }
+            
+            # Render email template
+            subject = f"Você foi convidado para {invite.tenant.name} - Climatrak"
+            
+            try:
+                html_message = render_to_string('emails/team_invite.html', context)
+                plain_message = render_to_string('emails/team_invite.txt', context)
+            except Exception as template_error:
+                logger.warning(f"Template não encontrado, usando fallback: {template_error}")
+                # Fallback simples se o template não existir
+                plain_message = f"""
+Olá!
 
+Você foi convidado por {context['invited_by_name']} para se juntar à equipe "{invite.tenant.name}" no Climatrak.
+
+Papel: {context['role']}
+{f"Mensagem: {invite.message}" if invite.message else ""}
+
+Clique no link abaixo para aceitar o convite:
+{accept_url}
+
+Este convite expira em 7 dias.
+
+Atenciosamente,
+Equipe Climatrak
+                """.strip()
+                html_message = f"""
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <h2>Você foi convidado para {invite.tenant.name}</h2>
+    <p>Olá!</p>
+    <p>Você foi convidado por <strong>{context['invited_by_name']}</strong> para se juntar à equipe 
+    "<strong>{invite.tenant.name}</strong>" no Climatrak.</p>
+    <p><strong>Papel:</strong> {context['role']}</p>
+    {f"<p><strong>Mensagem:</strong> {invite.message}</p>" if invite.message else ""}
+    <p style="margin: 20px 0;">
+        <a href="{accept_url}" 
+           style="background-color: #417690; color: white; padding: 12px 24px; 
+                  text-decoration: none; border-radius: 4px; display: inline-block;">
+            Aceitar Convite
+        </a>
+    </p>
+    <p style="color: #666; font-size: 12px;">Este convite expira em 7 dias.</p>
+    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+    <p style="color: #999; font-size: 11px;">Equipe Climatrak</p>
+</body>
+</html>
+                """.strip()
+            
+            # Send email
+            send_mail(
+                subject=subject,
+                message=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[invite.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            logger.info(f"✅ Invite email sent to {invite.email} for tenant {invite.tenant.name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to send invite email to {invite.email}: {e}")
+            return False
 
 @admin.register(Domain)
 class DomainAdmin(admin.ModelAdmin):
