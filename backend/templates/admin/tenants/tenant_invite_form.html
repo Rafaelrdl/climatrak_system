@@ -1,0 +1,118 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:tenants_tenant_changelist' %}">Tenants</a>
+    &rsaquo; <a href="{% url 'admin:tenants_tenant_change' tenant.pk %}">{{ tenant.name }}</a>
+    &rsaquo; <a href="{% url 'admin:tenant_users' tenant.pk %}">Usuários</a>
+    &rsaquo; Convidar
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="module" style="max-width: 600px;">
+        <h2>📧 Convidar Novo Usuário</h2>
+        <p style="color: #666; font-size: 13px; margin-bottom: 20px;">
+            Tenant: <strong>{{ tenant.name }}</strong>
+            <br>
+            <small>O usuário receberá um email com um link para se juntar ao tenant.</small>
+        </p>
+        
+        <form method="post" id="invite-form">
+            {% csrf_token %}
+            
+            <div class="form-row" style="margin-bottom: 15px;">
+                <label for="id_email" style="display: block; font-weight: bold; margin-bottom: 5px;">
+                    {{ form.email.label }}:
+                </label>
+                {{ form.email }}
+                {% if form.email.help_text %}
+                    <p class="help" style="font-size: 11px; color: #666; margin-top: 5px;">{{ form.email.help_text }}</p>
+                {% endif %}
+                {% if form.email.errors %}
+                    <p style="color: #dc3545; font-size: 12px; margin-top: 5px;">{{ form.email.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="form-row" style="margin-bottom: 15px;">
+                <label for="id_role" style="display: block; font-weight: bold; margin-bottom: 5px;">
+                    {{ form.role.label }}:
+                </label>
+                <select name="role" id="id_role" class="vTextField" style="width: 100%; padding: 8px;">
+                    {% for value, label in form.role.field.choices %}
+                    <option value="{{ value }}" {% if form.role.value == value %}selected{% endif %}>
+                        {% if value == 'owner' %}👑 Owner - Acesso total, pode excluir tenant
+                        {% elif value == 'admin' %}⚙️ Admin - Acesso total, exceto exclusão de tenant
+                        {% elif value == 'operator' %}🔧 Operator - Leitura/escrita em assets e telemetria
+                        {% elif value == 'technician' %}🛠️ Technician - Executa ordens de serviço
+                        {% else %}👁️ Viewer - Apenas visualização{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if form.role.help_text %}
+                    <p class="help" style="font-size: 11px; color: #666; margin-top: 5px;">{{ form.role.help_text }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="form-row" style="margin-bottom: 20px;">
+                <label for="id_message" style="display: block; font-weight: bold; margin-bottom: 5px;">
+                    {{ form.message.label }}:
+                </label>
+                {{ form.message }}
+                {% if form.message.help_text %}
+                    <p class="help" style="font-size: 11px; color: #666; margin-top: 5px;">{{ form.message.help_text }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="submit-row" style="padding: 15px 0; border-top: 1px solid #e0e0e0;">
+                <button type="submit" class="default" style="padding: 10px 20px; background-color: #5cb85c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold;">
+                    📧 Enviar Convite
+                </button>
+                <a href="{% url 'admin:tenant_users' tenant.pk %}" 
+                   style="padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px; margin-left: 10px; display: inline-block;">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Info Box -->
+    <div class="module" style="max-width: 600px; margin-top: 20px; background-color: #f0f7ff; border-left: 4px solid #79aec8;">
+        <h3 style="margin-top: 0; color: #417690;">ℹ️ Como funciona o convite?</h3>
+        <ol style="color: #666; line-height: 1.8;">
+            <li>O sistema gera um token único de convite</li>
+            <li>Um email é enviado ao destinatário com o link</li>
+            <li>O convite expira em <strong>7 dias</strong></li>
+            <li>Ao clicar no link, o usuário pode criar conta ou fazer login</li>
+            <li>Após aceitar, o usuário tem acesso ao tenant com o papel definido</li>
+        </ol>
+    </div>
+</div>
+
+<style>
+.vTextField, textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+textarea {
+    resize: vertical;
+}
+
+.form-row {
+    margin-bottom: 15px;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #79aec8;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(121, 174, 200, 0.2);
+}
+</style>
+{% endblock %}

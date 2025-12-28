@@ -1,0 +1,158 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:tenants_tenant_changelist' %}">Tenants</a>
+    &rsaquo; <a href="{% url 'admin:tenants_tenant_change' tenant.pk %}">{{ tenant.name }}</a>
+    &rsaquo; <a href="{% url 'admin:tenant_users' tenant.pk %}">Usuários</a>
+    &rsaquo; Editar {{ membership.user.email }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="module" style="max-width: 600px;">
+        <h2>✏️ Editar Membro</h2>
+        
+        <!-- User Info Card -->
+        <div style="background-color: #f8f9fa; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="width: 50px; height: 50px; background-color: #417690; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: bold;">
+                    {{ membership.user.first_name|default:membership.user.email|slice:"1"|upper }}
+                </div>
+                <div>
+                    <strong style="font-size: 16px;">
+                        {{ membership.user.first_name }} {{ membership.user.last_name }}
+                    </strong>
+                    <br>
+                    <span style="color: #666;">{{ membership.user.email }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-row" style="margin-bottom: 15px;">
+                <label for="id_role" style="display: block; font-weight: bold; margin-bottom: 5px;">
+                    Papel no Tenant:
+                </label>
+                <select name="role" id="id_role" class="vTextField" style="width: 100%; padding: 10px;">
+                    <option value="owner" {% if membership.role == 'owner' %}selected{% endif %}>
+                        👑 Owner - Acesso total, pode excluir tenant
+                    </option>
+                    <option value="admin" {% if membership.role == 'admin' %}selected{% endif %}>
+                        ⚙️ Admin - Acesso total, exceto exclusão de tenant
+                    </option>
+                    <option value="operator" {% if membership.role == 'operator' %}selected{% endif %}>
+                        🔧 Operator - Leitura/escrita em assets e telemetria
+                    </option>
+                    <option value="technician" {% if membership.role == 'technician' %}selected{% endif %}>
+                        🛠️ Technician - Executa ordens de serviço
+                    </option>
+                    <option value="viewer" {% if membership.role == 'viewer' %}selected{% endif %}>
+                        👁️ Viewer - Apenas visualização
+                    </option>
+                </select>
+            </div>
+            
+            <div class="form-row" style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px;">
+                    Status:
+                </label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" name="is_active" {% if membership.is_active %}checked{% endif %} 
+                           style="width: 18px; height: 18px; cursor: pointer;">
+                    <span>Membro ativo</span>
+                </label>
+                <p class="help" style="font-size: 11px; color: #666; margin-top: 5px;">
+                    Desativar um membro remove seu acesso ao tenant sem excluí-lo.
+                </p>
+            </div>
+            
+            <div class="form-row" style="margin-bottom: 20px; background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
+                <strong style="color: #666; font-size: 12px; text-transform: uppercase;">Informações</strong>
+                <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <span style="color: #999; font-size: 12px;">Membro desde:</span>
+                        <br>
+                        <strong>{{ membership.created_at|date:"d/m/Y H:i" }}</strong>
+                    </div>
+                    <div>
+                        <span style="color: #999; font-size: 12px;">Última atualização:</span>
+                        <br>
+                        <strong>{{ membership.updated_at|date:"d/m/Y H:i" }}</strong>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="submit-row" style="padding: 15px 0; border-top: 1px solid #e0e0e0; display: flex; justify-content: space-between;">
+                <div>
+                    <button type="submit" class="default" style="padding: 10px 20px; background-color: #417690; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold;">
+                        💾 Salvar Alterações
+                    </button>
+                    <a href="{% url 'admin:tenant_users' tenant.pk %}" 
+                       style="padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px; margin-left: 10px; display: inline-block;">
+                        Cancelar
+                    </a>
+                </div>
+                
+                <a href="{% url 'admin:tenant_user_remove' tenant.pk membership.pk %}" 
+                   style="padding: 10px 20px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 4px; display: inline-block;"
+                   title="Remover membro do tenant">
+                    🗑️ Remover
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- User Activity Info -->
+    <div class="module" style="max-width: 600px; margin-top: 20px;">
+        <h3 style="margin-top: 0;">📊 Atividade do Usuário</h3>
+        <table style="width: 100%;">
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Último login:</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                    {% if membership.user.last_login %}
+                        {{ membership.user.last_login|date:"d/m/Y H:i" }}
+                    {% else %}
+                        <span style="color: #999;">Nunca fez login</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Conta criada em:</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">{{ membership.user.date_joined|date:"d/m/Y H:i" }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; color: #666;">Email verificado:</td>
+                <td style="padding: 8px;">
+                    {% if membership.user.is_email_verified %}
+                        <span style="color: #28a745;">✓ Sim</span>
+                    {% else %}
+                        <span style="color: #dc3545;">✗ Não</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<style>
+.vTextField, select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+input:focus, select:focus {
+    border-color: #79aec8;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(121, 174, 200, 0.2);
+}
+</style>
+{% endblock %}
