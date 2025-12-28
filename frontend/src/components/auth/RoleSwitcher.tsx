@@ -2,10 +2,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCurrentRole } from '@/data/authStore';
 import type { Role } from '@/acl/abilities';
 
-const roleLabels: Record<Role, string> = {
+/**
+ * Labels traduzidos para os papéis do sistema
+ */
+export const roleLabels: Record<Role, string> = {
+  owner: 'Proprietário',
   admin: 'Administrador',
+  operator: 'Operador',
   technician: 'Técnico',
   requester: 'Solicitante',
+  viewer: 'Visualizador',
+};
+
+/**
+ * Descrições dos papéis do sistema
+ */
+export const roleDescriptions: Record<Role, string> = {
+  owner: 'Dono/responsável que assinou o contrato',
+  admin: 'Gerentes e gestores com acesso administrativo',
+  operator: 'Gerencia planos, ordens de serviço e estoques',
+  technician: 'Executa ordens de serviço',
+  requester: 'Abre solicitações que viram ordens de serviço',
+  viewer: 'Acesso somente leitura para dashboards e monitores',
 };
 
 /**

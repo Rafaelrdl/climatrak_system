@@ -72,15 +72,17 @@
                         <td>{{ membership.user.email }}</td>
                         <td>
                             {% if membership.role == 'owner' %}
-                                <span style="background-color: #d9534f; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">👑 Owner</span>
+                                <span style="background-color: #d9534f; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">👑 Proprietário</span>
                             {% elif membership.role == 'admin' %}
-                                <span style="background-color: #f0ad4e; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">⚙️ Admin</span>
+                                <span style="background-color: #f0ad4e; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">⚙️ Administrador</span>
                             {% elif membership.role == 'operator' %}
-                                <span style="background-color: #5bc0de; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">🔧 Operator</span>
+                                <span style="background-color: #5bc0de; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">🔧 Operador</span>
                             {% elif membership.role == 'technician' %}
-                                <span style="background-color: #5cb85c; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">🛠️ Technician</span>
+                                <span style="background-color: #5cb85c; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">🛠️ Técnico</span>
+                            {% elif membership.role == 'requester' %}
+                                <span style="background-color: #9b59b6; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">📝 Solicitante</span>
                             {% else %}
-                                <span style="background-color: #777; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">👁️ Viewer</span>
+                                <span style="background-color: #777; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">👁️ Visualizador</span>
                             {% endif %}
                         </td>
                         <td>
@@ -141,15 +143,17 @@
                         <td><strong>{{ invite.email }}</strong></td>
                         <td>
                             {% if invite.role == 'owner' %}
-                                <span style="background-color: #d9534f; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">👑 Owner</span>
+                                <span style="background-color: #d9534f; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">👑 Proprietário</span>
                             {% elif invite.role == 'admin' %}
-                                <span style="background-color: #f0ad4e; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">⚙️ Admin</span>
+                                <span style="background-color: #f0ad4e; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">⚙️ Administrador</span>
                             {% elif invite.role == 'operator' %}
-                                <span style="background-color: #5bc0de; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">🔧 Operator</span>
+                                <span style="background-color: #5bc0de; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">🔧 Operador</span>
                             {% elif invite.role == 'technician' %}
-                                <span style="background-color: #5cb85c; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">🛠️ Technician</span>
+                                <span style="background-color: #5cb85c; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">🛠️ Técnico</span>
+                            {% elif invite.role == 'requester' %}
+                                <span style="background-color: #9b59b6; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">📝 Solicitante</span>
                             {% else %}
-                                <span style="background-color: #777; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">👁️ Viewer</span>
+                                <span style="background-color: #777; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">👁️ Visualizador</span>
                             {% endif %}
                         </td>
                         <td>{{ invite.invited_by.email|default:"-" }}</td>

@@ -81,19 +81,21 @@ class TenantMembership(models.Model):
     Represents a user's membership in a tenant organization.
     
     Roles:
-    - owner: Full access, can delete tenant, manage billing
-    - admin: Full access except tenant deletion and billing
-    - operator: Read/write access to assets, sensors, telemetry
-    - technician: Can execute work orders and update equipment status
-    - viewer: Read-only access to all data
+    - owner: Dono/responsável que assinou o contrato, acesso total incluindo billing
+    - admin: Gerentes e gestores, acesso administrativo completo
+    - operator: Operadores que gerenciam o sistema (planos, OS, estoques)
+    - technician: Técnicos executores das ordens de serviço
+    - requester: Solicitantes que abrem solicitações que viram OS
+    - viewer: Acesso somente leitura (dashboards, monitores)
     """
     
     ROLE_CHOICES = [
-        ('owner', 'Owner'),
-        ('admin', 'Administrator'),
-        ('operator', 'Operator'),
-        ('technician', 'Technician'),
-        ('viewer', 'Viewer'),
+        ('owner', 'Proprietário'),
+        ('admin', 'Administrador'),
+        ('operator', 'Operador'),
+        ('technician', 'Técnico'),
+        ('requester', 'Solicitante'),
+        ('viewer', 'Visualizador'),
     ]
     
     STATUS_CHOICES = [
@@ -175,13 +177,28 @@ class TenantMembership(models.Model):
     
     @property
     def can_manage_team(self):
-        """Check if user can manage team members."""
+        """Check if user can manage team members (invite, remove, change roles)."""
         return self.role in ['owner', 'admin'] and self.is_active
     
     @property
     def can_write(self):
-        """Check if user has write permissions."""
+        """Check if user has general write permissions (CRUD on most entities)."""
         return self.role in ['owner', 'admin', 'operator'] and self.is_active
+    
+    @property
+    def can_execute_workorders(self):
+        """Check if user can execute work orders (update status, add notes)."""
+        return self.role in ['owner', 'admin', 'operator', 'technician'] and self.is_active
+    
+    @property
+    def can_create_requests(self):
+        """Check if user can create solicitations/requests."""
+        return self.role in ['owner', 'admin', 'operator', 'technician', 'requester'] and self.is_active
+    
+    @property
+    def can_view_only(self):
+        """Check if user has view-only access."""
+        return self.role == 'viewer' and self.is_active
     
     @property
     def can_delete_tenant(self):

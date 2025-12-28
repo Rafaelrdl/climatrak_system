@@ -108,7 +108,6 @@ export const plansService = {
 
     try {
       const response = await api.get<PaginatedResponse<ApiMaintenancePlan>>('/cmms/plans/', { params });
-      console.log('[plansService.getAll] Response:', response.data);
       return response.data.results.map(mapPlan);
     } catch (error: unknown) {
       if (error && typeof error === 'object' && 'response' in error) {

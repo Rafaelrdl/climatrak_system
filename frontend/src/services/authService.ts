@@ -5,22 +5,28 @@ import type { ApiUser, CentralizedLoginResponse } from '@/types/api';
 import type { User, UserRole } from '@/models/user';
 import { defaultPreferences, defaultSecurity } from '@/models/user';
 
+/**
+ * Mapeia o role da API (uppercase) para o role do app (lowercase)
+ * Mantém correspondência 1:1 com os roles do backend
+ */
 const mapApiRoleToAppRole = (role?: string | null): UserRole => {
   const normalized = role?.toUpperCase() ?? '';
 
-  if (['OWNER', 'ADMIN', 'MANAGER'].includes(normalized)) {
-    return 'admin';
+  switch (normalized) {
+    case 'OWNER':
+      return 'owner';
+    case 'ADMIN':
+      return 'admin';
+    case 'OPERATOR':
+      return 'operator';
+    case 'TECHNICIAN':
+      return 'technician';
+    case 'REQUESTER':
+      return 'requester';
+    case 'VIEWER':
+    default:
+      return 'viewer';
   }
-
-  if (normalized === 'TECHNICIAN') {
-    return 'technician';
-  }
-
-  if (normalized === 'OPERATOR') {
-    return 'operator';
-  }
-
-  return 'viewer';
 };
 
 const mapApiUserToUser = (apiUser: ApiUser): User => {

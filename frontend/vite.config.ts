@@ -41,23 +41,25 @@ export default defineConfig({
         secure: false,
       },
       // 🔐 Tenant API requests - route based on X-Tenant header
+      // Must set Host header to tenant subdomain for django-tenants
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
-        router: (req) => {
-          const xTenant = req.headers['x-tenant'];
-          
-          // Route to tenant based on X-Tenant header
-          if (xTenant && typeof xTenant === 'string') {
-            const target = `http://${xTenant.toLowerCase()}.localhost:8000`;
-            console.log(`[Vite Proxy] X-Tenant: ${xTenant} -> ${target}`);
-            return target;
-          }
-          
-          // Fallback: public schema (no tenant context)
-          console.log(`[Vite Proxy] No X-Tenant header -> localhost:8000 (public)`);
-          return 'http://localhost:8000';
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            const xTenant = req.headers['x-tenant'];
+            
+            if (xTenant && typeof xTenant === 'string') {
+              // Set Host header to tenant subdomain for django-tenants routing
+              const tenantHost = `${xTenant.toLowerCase()}.localhost:8000`;
+              proxyReq.setHeader('Host', tenantHost);
+              console.log(`[Vite Proxy] X-Tenant: ${xTenant} -> Host: ${tenantHost}`);
+            } else {
+              proxyReq.setHeader('Host', 'localhost:8000');
+              console.log(`[Vite Proxy] No X-Tenant -> Host: localhost:8000 (public)`);
+            }
+          });
         },
       }
     }

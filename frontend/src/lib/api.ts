@@ -93,11 +93,6 @@ api.interceptors.request.use(
       config.headers['X-Tenant'] = tenantSchema;
     }
     
-    // Debug log in development
-    if (import.meta.env.DEV) {
-      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url} | X-Tenant: ${tenantSchema || 'none'}`);
-    }
-    
     return config;
   },
   (error: AxiosError) => {

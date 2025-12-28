@@ -33,24 +33,28 @@
             <span style="color: #666;">{{ membership.user.email }}</span>
             <div style="margin-top: 10px;">
                 {% if membership.role == 'owner' %}
-                    <span style="background-color: #ffc107; color: #000; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-                        👑 Owner
+                    <span style="background-color: #d9534f; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                        👑 Proprietário
                     </span>
                 {% elif membership.role == 'admin' %}
-                    <span style="background-color: #6f42c1; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-                        ⚙️ Admin
+                    <span style="background-color: #f0ad4e; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                        ⚙️ Administrador
                     </span>
                 {% elif membership.role == 'operator' %}
-                    <span style="background-color: #17a2b8; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-                        🔧 Operator
+                    <span style="background-color: #5bc0de; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                        🔧 Operador
                     </span>
                 {% elif membership.role == 'technician' %}
-                    <span style="background-color: #fd7e14; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-                        🛠️ Technician
+                    <span style="background-color: #5cb85c; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                        🛠️ Técnico
+                    </span>
+                {% elif membership.role == 'requester' %}
+                    <span style="background-color: #9b59b6; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                        📝 Solicitante
                     </span>
                 {% else %}
-                    <span style="background-color: #6c757d; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-                        👁️ Viewer
+                    <span style="background-color: #777; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                        👁️ Visualizador
                     </span>
                 {% endif %}
             </div>

@@ -44,11 +44,12 @@
                 <select name="role" id="id_role" class="vTextField" style="width: 100%; padding: 8px;">
                     {% for value, label in form.role.field.choices %}
                     <option value="{{ value }}" {% if form.role.value == value %}selected{% endif %}>
-                        {% if value == 'owner' %}👑 Owner - Acesso total, pode excluir tenant
-                        {% elif value == 'admin' %}⚙️ Admin - Acesso total, exceto exclusão de tenant
-                        {% elif value == 'operator' %}🔧 Operator - Leitura/escrita em assets e telemetria
-                        {% elif value == 'technician' %}🛠️ Technician - Executa ordens de serviço
-                        {% else %}👁️ Viewer - Apenas visualização{% endif %}
+                        {% if value == 'owner' %}👑 Proprietário - Dono/responsável, acesso total e billing
+                        {% elif value == 'admin' %}⚙️ Administrador - Gerentes e gestores, acesso administrativo
+                        {% elif value == 'operator' %}🔧 Operador - Gerencia planos, OS e estoques
+                        {% elif value == 'technician' %}🛠️ Técnico - Executa ordens de serviço
+                        {% elif value == 'requester' %}📝 Solicitante - Abre solicitações que viram OS
+                        {% else %}👁️ Visualizador - Apenas visualização (dashboards/monitores){% endif %}
                     </option>
                     {% endfor %}
                 </select>

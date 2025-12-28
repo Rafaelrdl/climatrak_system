@@ -218,10 +218,21 @@ class RoleBasedPermission(permissions.BasePermission):
     """
     Flexible permission class based on required roles.
     
+    Available roles:
+    - owner: Proprietário (acesso total, billing)
+    - admin: Administrador (acesso total exceto billing)
+    - operator: Operador (gerencia planos, OS, estoques)
+    - technician: Técnico (executa OS)
+    - requester: Solicitante (abre solicitações)
+    - viewer: Visualizador (somente leitura)
+    
     Usage in ViewSet:
         permission_classes = [RoleBasedPermission]
         required_roles = ['owner', 'admin']
     """
+    
+    # All valid roles in the system
+    ALL_ROLES = ['owner', 'admin', 'operator', 'technician', 'requester', 'viewer']
     
     def has_permission(self, request, view):
         """Check if user has one of the required roles."""
@@ -235,11 +246,11 @@ class RoleBasedPermission(permissions.BasePermission):
         required_roles = getattr(view, 'required_roles', None)
         if not required_roles:
             # Default: allow all authenticated members
-            required_roles = ['owner', 'admin', 'operator', 'viewer']
+            required_roles = self.ALL_ROLES
         
         # Allow read operations if 'viewer' is in required roles
         if request.method in permissions.SAFE_METHODS and 'viewer' in required_roles:
-            required_roles = ['owner', 'admin', 'operator', 'viewer']
+            required_roles = self.ALL_ROLES
         
         tenant = get_current_tenant()
         if not tenant:

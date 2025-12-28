@@ -1,4 +1,13 @@
-export type UserRole = 'admin' | 'technician' | 'operator' | 'viewer';
+/**
+ * Papéis do sistema:
+ * - owner: Proprietário (assinou contrato, billing)
+ * - admin: Administrador (gerentes, gestores)
+ * - operator: Operador (gerencia planos, OS, estoques)
+ * - technician: Técnico (executa OS)
+ * - requester: Solicitante (abre solicitações)
+ * - viewer: Visualizador (somente leitura)
+ */
+export type UserRole = 'owner' | 'admin' | 'operator' | 'technician' | 'requester' | 'viewer';
 export type UserStatus = 'active' | 'invited' | 'disabled';
 
 export interface User {

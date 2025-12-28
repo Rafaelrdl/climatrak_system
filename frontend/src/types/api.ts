@@ -187,7 +187,7 @@ export interface ApiUser {
   first_name: string;
   last_name: string;
   full_name: string;
-  role: 'OWNER' | 'ADMIN' | 'MANAGER' | 'TECHNICIAN' | 'VIEWER';
+  role: 'OWNER' | 'ADMIN' | 'OPERATOR' | 'TECHNICIAN' | 'REQUESTER' | 'VIEWER';
   avatar_url: string | null;
   avatar?: string | null;
   phone: string | null;

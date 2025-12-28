@@ -10,14 +10,14 @@ export function useCurrentRole(): [Role, (r: Role) => void] {
       // Tentar obter do usuário atual primeiro
       const currentUser = usersStore.getCurrentUser();
       if (currentUser?.role) {
-        return currentUser.role;
+        return currentUser.role as Role;
       }
     } catch {
       // Se falhar, usar localStorage como fallback
     }
     
     const stored = localStorage.getItem(LS_KEY) as Role;
-    return stored || 'requester';
+    return stored || 'viewer'; // Default mais seguro: viewer (somente leitura)
   });
 
   useEffect(() => {
@@ -33,14 +33,14 @@ export function getCurrentRole(): Role {
     // Tentar obter do usuário atual primeiro
     const currentUser = usersStore.getCurrentUser();
     if (currentUser?.role) {
-      return currentUser.role;
+      return currentUser.role as Role;
     }
   } catch {
     // Se falhar, usar localStorage como fallback
   }
   
   const stored = localStorage.getItem(LS_KEY) as Role;
-  return stored || 'requester';
+  return stored || 'viewer'; // Default mais seguro: viewer (somente leitura)
 }
 
 // Função para definir o papel (útil para testes)

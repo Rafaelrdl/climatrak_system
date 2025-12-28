@@ -41,19 +41,22 @@
                 </label>
                 <select name="role" id="id_role" class="vTextField" style="width: 100%; padding: 10px;">
                     <option value="owner" {% if membership.role == 'owner' %}selected{% endif %}>
-                        👑 Owner - Acesso total, pode excluir tenant
+                        👑 Proprietário - Dono/responsável, acesso total e billing
                     </option>
                     <option value="admin" {% if membership.role == 'admin' %}selected{% endif %}>
-                        ⚙️ Admin - Acesso total, exceto exclusão de tenant
+                        ⚙️ Administrador - Gerentes e gestores, acesso administrativo
                     </option>
                     <option value="operator" {% if membership.role == 'operator' %}selected{% endif %}>
-                        🔧 Operator - Leitura/escrita em assets e telemetria
+                        🔧 Operador - Gerencia planos, OS e estoques
                     </option>
                     <option value="technician" {% if membership.role == 'technician' %}selected{% endif %}>
-                        🛠️ Technician - Executa ordens de serviço
+                        🛠️ Técnico - Executa ordens de serviço
+                    </option>
+                    <option value="requester" {% if membership.role == 'requester' %}selected{% endif %}>
+                        📝 Solicitante - Abre solicitações que viram OS
                     </option>
                     <option value="viewer" {% if membership.role == 'viewer' %}selected{% endif %}>
-                        👁️ Viewer - Apenas visualização
+                        👁️ Visualizador - Apenas visualização (dashboards/monitores)
                     </option>
                 </select>
             </div>

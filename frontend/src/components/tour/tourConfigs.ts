@@ -16,6 +16,26 @@ import {
 import type { TourConfig, TourStep } from './InteractiveTour';
 import type { UserRole } from '@/models/user';
 
+// ==================== ROLE CONSTANTS ====================
+/**
+ * Roles do sistema:
+ * - owner: Proprietário (assinou contrato, billing)
+ * - admin: Administrador (gerentes, gestores)
+ * - operator: Operador (gerencia planos, OS, estoques)
+ * - technician: Técnico (executa OS)
+ * - requester: Solicitante (abre solicitações)
+ * - viewer: Visualizador (somente leitura)
+ */
+
+// Todos os roles - para steps que todos podem ver
+const allRoles: UserRole[] = ['owner', 'admin', 'operator', 'technician', 'requester', 'viewer'];
+
+// Roles de gestão - para steps com KPIs e métricas avançadas
+const managementRoles: UserRole[] = ['owner', 'admin', 'operator'];
+
+// Roles operacionais - para steps de execução e manutenção
+const operationalRoles: UserRole[] = ['owner', 'admin', 'operator', 'technician'];
+
 // ==================== MAIN WELCOME TOUR ====================
 
 export const welcomeTourSteps: TourStep[] = [
@@ -24,7 +44,7 @@ export const welcomeTourSteps: TourStep[] = [
     title: '🎉 Bem-vindo ao TrakNor CMMS!',
     content: 'Este tour rápido vai te ajudar a conhecer as principais funcionalidades do sistema. Leva apenas 1 minuto!',
     placement: 'center',
-    roles: ['admin', 'technician', 'requester'],
+    roles: allRoles,
     showSkipOnFirst: true  // Show skip button prominently on first step
   },
   {
@@ -34,7 +54,7 @@ export const welcomeTourSteps: TourStep[] = [
     target: '[data-tour="product-switcher"]',
     placement: 'bottom',
     spotlightPadding: 8,
-    roles: ['admin', 'technician', 'requester']
+    roles: allRoles
   },
   {
     id: 'navigation',
@@ -43,7 +63,7 @@ export const welcomeTourSteps: TourStep[] = [
     target: '[data-tour="navigation"]',
     placement: 'bottom',
     spotlightPadding: 12,
-    roles: ['admin', 'technician', 'requester']
+    roles: allRoles
   },
   {
     id: 'user-menu',
@@ -52,7 +72,7 @@ export const welcomeTourSteps: TourStep[] = [
     target: '[data-tour="user-menu"]',
     placement: 'bottom',
     spotlightPadding: 8,
-    roles: ['admin', 'technician', 'requester']
+    roles: allRoles
   },
   {
     id: 'dashboard-kpis',
@@ -62,7 +82,7 @@ export const welcomeTourSteps: TourStep[] = [
     placement: 'bottom',
     spotlightPadding: 12,
     waitForElement: true,
-    roles: ['admin', 'technician']
+    roles: managementRoles
   },
   {
     id: 'dashboard-charts',
@@ -72,7 +92,7 @@ export const welcomeTourSteps: TourStep[] = [
     placement: 'top',
     spotlightPadding: 12,
     waitForElement: true,
-    roles: ['admin', 'technician']
+    roles: managementRoles
   },
   {
     id: 'next-maintenances',
@@ -82,14 +102,14 @@ export const welcomeTourSteps: TourStep[] = [
     placement: 'top',
     spotlightPadding: 12,
     waitForElement: true,
-    roles: ['admin', 'technician']
+    roles: managementRoles
   },
   {
     id: 'completion',
     title: '✅ Tour Concluído!',
     content: 'Você está pronto para começar! Lembre-se: você pode reiniciar este tour a qualquer momento no menu de ajuda.',
     placement: 'center',
-    roles: ['admin', 'technician', 'requester']
+    roles: allRoles
   }
 ];
 
