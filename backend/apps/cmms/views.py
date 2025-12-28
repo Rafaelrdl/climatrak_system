@@ -162,8 +162,8 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
     
     queryset = WorkOrder.objects.select_related(
         'asset', 'asset__site', 'assigned_to', 'created_by',
-        'checklist_template', 'request', 'maintenance_plan'
-    ).prefetch_related('photos', 'items__inventory_item')
+        'checklist_template', 'request', 'maintenance_plan', 'cost_center'
+    ).prefetch_related('photos', 'items__inventory_item', 'time_entries', 'part_usages', 'external_costs')
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = {
@@ -172,6 +172,7 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
         'priority': ['exact', 'in'],
         'asset': ['exact'],
         'assigned_to': ['exact'],
+        'cost_center': ['exact'],
         'scheduled_date': ['exact', 'gte', 'lte'],
     }
     search_fields = ['number', 'description', 'asset__tag', 'asset__name']
@@ -339,6 +340,109 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                 {'error': 'Item não encontrado'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+    @action(detail=True, methods=['post'], url_path='close')
+    def close_with_event(self, request, pk=None):
+        """
+        Fecha a OS e publica evento work_order.closed na outbox.
+        
+        Este endpoint deve ser usado quando se deseja integrar com o
+        módulo Finance (Cost Engine) para lançamentos automáticos.
+        
+        Body (opcional):
+        {
+            "execution_description": "Descrição da execução",
+            "actual_hours": 4.5,
+            "checklist_responses": {...}
+        }
+        
+        O evento work_order.closed será publicado com payload contendo:
+        - work_order_id, asset_id, cost_center_id, category
+        - labor: lista de apontamentos de tempo
+        - parts: lista de peças utilizadas
+        - third_party: lista de custos externos
+        
+        Referência: docs/events/02-eventos-mvp.md
+        """
+        from .services import WorkOrderService
+        from django_tenants.utils import get_tenant
+        
+        work_order = self.get_object()
+        
+        # Validar status
+        if work_order.status not in [WorkOrder.Status.OPEN, WorkOrder.Status.IN_PROGRESS]:
+            return Response(
+                {'error': 'Apenas OS abertas ou em andamento podem ser fechadas'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Obter tenant_id (django-tenants)
+        try:
+            tenant = get_tenant(request)
+            tenant_id = tenant.id if tenant else None
+        except Exception:
+            tenant_id = None
+        
+        if not tenant_id:
+            return Response(
+                {'error': 'Não foi possível identificar o tenant. Evento não será publicado.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Dados da requisição
+        execution_description = request.data.get('execution_description', '')
+        actual_hours = request.data.get('actual_hours')
+        
+        if actual_hours:
+            actual_hours = float(actual_hours)
+        
+        # Fechar OS e publicar evento
+        try:
+            result = WorkOrderService.close_work_order(
+                work_order=work_order,
+                execution_description=execution_description,
+                actual_hours=actual_hours,
+                tenant_id=tenant_id,
+            )
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Atualizar respostas do checklist se fornecidas
+        checklist_responses = request.data.get('checklist_responses')
+        if checklist_responses:
+            work_order.checklist_responses = checklist_responses
+            work_order.save(update_fields=['checklist_responses'])
+        
+        # Recarregar work_order
+        work_order.refresh_from_db()
+        serializer = self.get_serializer(work_order)
+        
+        return Response({
+            'work_order': serializer.data,
+            'event_published': result.get('event_published', False),
+            'event_id': str(result.get('event_id')) if result.get('event_id') else None,
+        })
+
+    @action(detail=True, methods=['get'], url_path='cost-summary')
+    def cost_summary(self, request, pk=None):
+        """
+        Retorna resumo de custos da OS.
+        
+        Calcula totais de mão de obra, peças e terceiros.
+        """
+        from .services import WorkOrderService
+        
+        work_order = self.get_object()
+        summary = WorkOrderService.get_work_order_cost_summary(work_order)
+        
+        return Response({
+            'work_order_id': work_order.id,
+            'work_order_number': work_order.number,
+            **summary
+        })
 
     @action(detail=False, methods=['get'])
     def stats(self, request):

@@ -216,6 +216,17 @@ class WorkOrder(models.Model):
         help_text='Equipamento relacionado à OS'
     )
     
+    # Centro de Custo (para integração com Finance)
+    cost_center = models.ForeignKey(
+        'finance.CostCenter',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='work_orders',
+        verbose_name='Centro de Custo',
+        help_text='Centro de custo para lançamentos financeiros (obrigatório para custos)'
+    )
+    
     # Classificação
     type = models.CharField(
         max_length=20,
@@ -382,8 +393,40 @@ class WorkOrder(models.Model):
         self.started_at = timezone.now()
         self.save(update_fields=['status', 'started_at', 'updated_at'])
 
-    def complete(self, execution_description: str = '', actual_hours: float = None):
-        """Conclui a OS."""
+    def complete(
+        self, 
+        execution_description: str = '', 
+        actual_hours: float = None,
+        publish_event: bool = False,
+        tenant_id=None,
+    ):
+        """
+        Conclui a OS.
+        
+        Args:
+            execution_description: Descrição da execução
+            actual_hours: Horas reais trabalhadas
+            publish_event: Se deve publicar evento work_order.closed
+            tenant_id: ID do tenant (obrigatório se publish_event=True)
+            
+        Returns:
+            Dict com resultado se publish_event=True, None caso contrário
+            
+        Note:
+            Para publicar evento com payload completo (labor, parts, third_party),
+            use WorkOrderService.close_work_order() diretamente.
+        """
+        if publish_event and tenant_id:
+            # Usar service para fechar com evento
+            from .services import WorkOrderService
+            return WorkOrderService.close_work_order(
+                work_order=self,
+                execution_description=execution_description,
+                actual_hours=actual_hours,
+                tenant_id=tenant_id,
+            )
+        
+        # Fechamento simples (sem evento)
         self.status = self.Status.COMPLETED
         self.completed_at = timezone.now()
         if execution_description:
@@ -394,6 +437,7 @@ class WorkOrder(models.Model):
             'status', 'completed_at', 'execution_description', 
             'actual_hours', 'updated_at'
         ])
+        return None
 
     def cancel(self, reason: str):
         """Cancela a OS."""
