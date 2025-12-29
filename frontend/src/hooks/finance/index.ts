@@ -40,6 +40,8 @@ export {
   // Rate Cards
   useRateCards,
   useCreateRateCard,
+  useUpdateRateCard,
+  useDeleteRateCard,
 } from './useFinanceQueries';
 
 // Work Order Costs

@@ -79,6 +79,8 @@ import {
   useDeleteCostCenter,
   useRateCards,
   useCreateRateCard,
+  useUpdateRateCard,
+  useDeleteRateCard,
 } from '@/hooks/finance';
 import { useAbility } from '@/hooks/useAbility';
 import { cn } from '@/lib/utils';
@@ -222,9 +224,10 @@ function CostCenterDialog({ open, onOpenChange, costCenter, costCenters }: CostC
 interface RateCardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editingRateCard?: RateCard | null;
 }
 
-function RateCardDialog({ open, onOpenChange }: RateCardDialogProps) {
+function RateCardDialog({ open, onOpenChange, editingRateCard }: RateCardDialogProps) {
   const [role, setRole] = useState('');
   const [costPerHour, setCostPerHour] = useState('');
   const [effectiveFrom, setEffectiveFrom] = useState(
@@ -232,21 +235,41 @@ function RateCardDialog({ open, onOpenChange }: RateCardDialogProps) {
   );
 
   const createRateCard = useCreateRateCard();
+  const updateRateCard = useUpdateRateCard();
 
-  const handleSubmit = async () => {
-    try {
-      await createRateCard.mutateAsync({
-        role,
-        cost_per_hour: Number(costPerHour),
-        effective_from: effectiveFrom,
-      });
-      onOpenChange(false);
-      // Reset form
+  useEffect(() => {
+    if (editingRateCard) {
+      setRole(editingRateCard.role);
+      setCostPerHour(editingRateCard.cost_per_hour.toString());
+      setEffectiveFrom(editingRateCard.effective_from);
+    } else {
       setRole('');
       setCostPerHour('');
       setEffectiveFrom(new Date().toISOString().split('T')[0]);
+    }
+  }, [editingRateCard, open]);
+
+  const handleSubmit = async () => {
+    try {
+      if (editingRateCard) {
+        await updateRateCard.mutateAsync({
+          id: editingRateCard.id,
+          input: {
+            role,
+            cost_per_hour: Number(costPerHour),
+            effective_from: effectiveFrom,
+          },
+        });
+      } else {
+        await createRateCard.mutateAsync({
+          role,
+          cost_per_hour: Number(costPerHour),
+          effective_from: effectiveFrom,
+        });
+      }
+      onOpenChange(false);
     } catch (error) {
-      console.error('Erro ao criar rate card:', error);
+      console.error('Erro ao salvar rate card:', error);
     }
   };
 
@@ -254,7 +277,9 @@ function RateCardDialog({ open, onOpenChange }: RateCardDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Nova Taxa de Mão de Obra</DialogTitle>
+          <DialogTitle>
+            {editingRateCard ? 'Editar Taxa de Mão de Obra' : 'Nova Taxa de Mão de Obra'}
+          </DialogTitle>
           <DialogDescription>
             Defina o custo por hora para uma função/cargo.
           </DialogDescription>
@@ -528,13 +553,52 @@ function CostCentersTab() {
 function RateCardsTab() {
   const ability = useAbility();
   const canCreate = ability.can('create', 'finance');
+  const canEdit = ability.can('edit', 'finance');
+  const canDelete = ability.can('delete', 'finance');
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingRateCard, setEditingRateCard] = useState<RateCard | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const { data: rateCards, isLoading, error } = useRateCards();
+  const deleteRateCard = useDeleteRateCard();
 
   const formatDate = (dateStr: string): string => {
     return new Date(dateStr).toLocaleDateString('pt-BR');
+  };
+
+  const handleEdit = (rc: RateCard) => {
+    setEditingRateCard(rc);
+    setDialogOpen(true);
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    if (deleteId) {
+      try {
+        await deleteRateCard.mutateAsync(deleteId);
+        setDeleteId(null);
+        setDeleteError(null);
+      } catch (error: any) {
+        console.error('Erro ao excluir taxa:', error);
+        
+        const errorMessage = error?.response?.data?.detail 
+          || error?.response?.data?.error
+          || 'Não foi possível excluir a taxa.';
+        
+        setDeleteError(errorMessage);
+        return;
+      }
+    }
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      setEditingRateCard(null);
+    }
   };
 
   if (error) {
@@ -573,9 +637,10 @@ function RateCardsTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Função/Cargo</TableHead>
-                <TableHead className="text-right">Custo/Hora</TableHead>
-                <TableHead>Vigência</TableHead>
+                <TableHead className="w-[40%]">Função/Cargo</TableHead>
+                <TableHead className="w-[20%] text-right">Custo/Hora</TableHead>
+                <TableHead className="w-[25%]">Vigência</TableHead>
+                <TableHead className="w-[15%] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -587,6 +652,30 @@ function RateCardsTab() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     A partir de {formatDate(rc.effective_from)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(rc)}
+                          title="Editar"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteId(rc.id)}
+                          title="Excluir"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -614,8 +703,52 @@ function RateCardsTab() {
       {/* Dialog */}
       <RateCardDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={handleDialogClose}
+        editingRateCard={editingRateCard}
       />
+
+      {/* Delete AlertDialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => {
+        if (!open) {
+          setDeleteId(null);
+          setDeleteError(null);
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir taxa de mão de obra?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Certifique-se de que não há registros 
+              vinculados a esta taxa.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          {deleteError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{deleteError}</AlertDescription>
+            </Alert>
+          )}
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button 
+              onClick={handleDelete}
+              variant="destructive"
+              disabled={deleteRateCard.isPending}
+            >
+              {deleteRateCard.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Excluir'
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -654,14 +787,6 @@ function CategoriesTab() {
           </Card>
         ))}
       </div>
-
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          As categorias são pré-definidas pelo sistema e não podem ser alteradas no MVP.
-          Caso precise de categorias adicionais, entre em contato com o suporte.
-        </AlertDescription>
-      </Alert>
     </div>
   );
 }

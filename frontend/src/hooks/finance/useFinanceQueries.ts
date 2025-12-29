@@ -255,3 +255,26 @@ export function useCreateRateCard() {
     },
   });
 }
+
+export function useUpdateRateCard() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: Partial<Pick<RateCard, 'role' | 'cost_per_hour' | 'effective_from'>> }) =>
+      financeService.updateRateCard(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: financeKeys.rateCards.all() });
+    },
+  });
+}
+
+export function useDeleteRateCard() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: string) => financeService.deleteRateCard(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: financeKeys.rateCards.all() });
+    },
+  });
+}

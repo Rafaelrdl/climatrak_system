@@ -186,6 +186,29 @@ class RateCardViewSet(viewsets.ModelViewSet):
             {'error': f'Rate card não encontrado para função: {role}'},
             status=status.HTTP_404_NOT_FOUND
         )
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Sobrescreve destroy para validar antes de deletar.
+        Impede exclusão de rate cards com transações ou commitments vinculados.
+        """
+        from django.db.models.deletion import ProtectedError
+        
+        instance = self.get_object()
+        
+        # Tentar deletar (pode falhar por constraints de FK protegidas)
+        try:
+            self.perform_destroy(instance)
+        except ProtectedError as e:
+            return Response(
+                {
+                    'error': 'Não é possível excluir esta taxa',
+                    'detail': 'Existem transações, commitments ou outros registros vinculados a esta taxa de mão de obra.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class BudgetPlanViewSet(viewsets.ModelViewSet):

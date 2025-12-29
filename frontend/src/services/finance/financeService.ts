@@ -149,6 +149,18 @@ export async function createRateCard(
   return data.data ?? data as unknown as RateCard;
 }
 
+export async function updateRateCard(
+  id: string,
+  input: Partial<Pick<RateCard, 'role' | 'cost_per_hour' | 'effective_from'>>
+): Promise<RateCard> {
+  const { data } = await api.patch<ApiResponse<RateCard>>(`${BASE_URL}/rate-cards/${id}/`, input);
+  return data.data ?? data as unknown as RateCard;
+}
+
+export async function deleteRateCard(id: string): Promise<void> {
+  await api.delete(`${BASE_URL}/rate-cards/${id}/`);
+}
+
 // ==================== Budget Plans ====================
 
 export async function getBudgetPlans(year?: number): Promise<BudgetPlan[]> {
@@ -310,6 +322,8 @@ export const financeService = {
   // Rate Cards
   getRateCards,
   createRateCard,
+  updateRateCard,
+  deleteRateCard,
   
   // Budget Plans
   getBudgetPlans,
