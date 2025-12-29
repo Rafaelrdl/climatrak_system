@@ -891,6 +891,269 @@ class CostTransaction(models.Model):
         return f"wo:{work_order_id}:{transaction_type}"
 
 
+class Commitment(models.Model):
+    """
+    Compromisso de Orçamento.
+    
+    Representa uma reserva de orçamento antes do gasto efetivo.
+    Permite rastrear valores comprometidos vs realizados.
+    
+    Fluxo típico:
+    1. Criação em DRAFT
+    2. Submissão para aprovação (SUBMITTED)
+    3. Aprovação (APPROVED) → emite evento commitment.approved
+    4. Realização (REALIZED) quando o gasto efetivo ocorre
+    
+    Referências:
+    - docs/finance/01-erd.md
+    - docs/finance/02-regras-negocio.md (seção 6)
+    """
+    
+    class Status(models.TextChoices):
+        DRAFT = 'draft', 'Rascunho'
+        SUBMITTED = 'submitted', 'Submetido'
+        APPROVED = 'approved', 'Aprovado'
+        REJECTED = 'rejected', 'Rejeitado'
+        CANCELLED = 'cancelled', 'Cancelado'
+        REALIZED = 'realized', 'Realizado'
+    
+    class Category(models.TextChoices):
+        PREVENTIVE = 'preventive', 'Manutenção Preventiva'
+        CORRECTIVE = 'corrective', 'Manutenção Corretiva'
+        PREDICTIVE = 'predictive', 'Manutenção Preditiva'
+        IMPROVEMENT = 'improvement', 'Melhorias'
+        CONTRACTS = 'contracts', 'Contratos'
+        PARTS = 'parts', 'Peças e Materiais'
+        ENERGY = 'energy', 'Energia'
+        OTHER = 'other', 'Outros'
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    # Relacionamento obrigatório
+    cost_center = models.ForeignKey(
+        CostCenter,
+        on_delete=models.PROTECT,
+        related_name='commitments',
+        verbose_name='Centro de Custo'
+    )
+    
+    # Período (sempre 1º dia do mês)
+    budget_month = models.DateField(
+        verbose_name='Mês do Orçamento',
+        help_text='Primeiro dia do mês (ex: 2024-01-01)'
+    )
+    
+    # Valores
+    amount = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name='Valor',
+        help_text='Valor comprometido'
+    )
+    currency = models.CharField(
+        max_length=3,
+        default='BRL',
+        verbose_name='Moeda'
+    )
+    
+    # Classificação
+    category = models.CharField(
+        max_length=20,
+        choices=Category.choices,
+        default=Category.OTHER,
+        verbose_name='Categoria'
+    )
+    
+    # Status
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.DRAFT,
+        verbose_name='Status'
+    )
+    
+    # Descrição
+    description = models.TextField(
+        verbose_name='Descrição',
+        help_text='Descrição do compromisso'
+    )
+    
+    # Relacionamento opcional com OS
+    work_order = models.ForeignKey(
+        'cmms.WorkOrder',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='commitments',
+        verbose_name='Ordem de Serviço'
+    )
+    
+    # Fornecedor (texto no MVP, futuramente FK para tabela de fornecedores)
+    vendor_name = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name='Nome do Fornecedor',
+        help_text='Nome do fornecedor (se aplicável)'
+    )
+    
+    # Aprovação
+    approved_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_commitments',
+        verbose_name='Aprovado por'
+    )
+    approved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Aprovado em'
+    )
+    rejection_reason = models.TextField(
+        blank=True,
+        verbose_name='Motivo da Rejeição'
+    )
+    
+    # Auditoria
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_commitments',
+        verbose_name='Criado por'
+    )
+    
+    class Meta:
+        verbose_name = 'Compromisso'
+        verbose_name_plural = 'Compromissos'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['cost_center'], name='finance_commit_cc_idx'),
+            models.Index(fields=['budget_month'], name='finance_commit_month_idx'),
+            models.Index(fields=['status'], name='finance_commit_status_idx'),
+            models.Index(fields=['category'], name='finance_commit_cat_idx'),
+            models.Index(fields=['work_order'], name='finance_commit_wo_idx'),
+            # Índice composto para queries de summary
+            models.Index(
+                fields=['cost_center', 'budget_month', 'status'],
+                name='finance_commit_summary_idx'
+            ),
+        ]
+
+    def __str__(self):
+        return f"Compromisso {self.id} - {self.cost_center.code} - R$ {self.amount}"
+    
+    def clean(self):
+        """Garante que budget_month é sempre o primeiro dia do mês."""
+        if self.budget_month and self.budget_month.day != 1:
+            self.budget_month = self.budget_month.replace(day=1)
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+    
+    def submit(self):
+        """Submete o compromisso para aprovação."""
+        if self.status != self.Status.DRAFT:
+            raise ValidationError('Apenas compromissos em rascunho podem ser submetidos.')
+        self.status = self.Status.SUBMITTED
+        self.save(update_fields=['status', 'updated_at'])
+    
+    def approve(self, user):
+        """
+        Aprova o compromisso.
+        
+        Args:
+            user: Usuário que está aprovando
+            
+        Returns:
+            OutboxEvent: Evento commitment.approved publicado
+        """
+        from django.utils import timezone
+        from apps.core_events.services import EventPublisher
+        
+        if self.status != self.Status.SUBMITTED:
+            raise ValidationError('Apenas compromissos submetidos podem ser aprovados.')
+        
+        self.status = self.Status.APPROVED
+        self.approved_by = user
+        self.approved_at = timezone.now()
+        self.save(update_fields=['status', 'approved_by', 'approved_at', 'updated_at'])
+        
+        # Publicar evento commitment.approved
+        # O tenant_id vem da connection atual (django-tenants)
+        from django.db import connection
+        tenant = connection.tenant
+        
+        event = EventPublisher.publish(
+            tenant_id=tenant.id,
+            event_name='commitment.approved',
+            aggregate_type='commitment',
+            aggregate_id=self.id,
+            data={
+                'commitment_id': str(self.id),
+                'amount': float(self.amount),
+                'budget_month': self.budget_month.isoformat(),
+                'cost_center_id': str(self.cost_center_id),
+                'category': self.category,
+            },
+            idempotency_key=f"commitment:{self.id}:approved",
+        )
+        
+        return event
+    
+    def reject(self, user, reason: str):
+        """
+        Rejeita o compromisso.
+        
+        Args:
+            user: Usuário que está rejeitando
+            reason: Motivo da rejeição
+        """
+        if self.status != self.Status.SUBMITTED:
+            raise ValidationError('Apenas compromissos submetidos podem ser rejeitados.')
+        
+        if not reason or len(reason.strip()) < 10:
+            raise ValidationError('Motivo da rejeição é obrigatório (mínimo 10 caracteres).')
+        
+        self.status = self.Status.REJECTED
+        self.rejection_reason = reason
+        self.save(update_fields=['status', 'rejection_reason', 'updated_at'])
+    
+    def cancel(self, user):
+        """
+        Cancela o compromisso.
+        
+        Pode ser cancelado em qualquer status exceto REALIZED.
+        """
+        if self.status == self.Status.REALIZED:
+            raise ValidationError('Compromissos realizados não podem ser cancelados.')
+        
+        self.status = self.Status.CANCELLED
+        self.save(update_fields=['status', 'updated_at'])
+    
+    def realize(self):
+        """
+        Marca o compromisso como realizado.
+        
+        Chamado quando o gasto efetivo foi lançado no ledger.
+        """
+        if self.status != self.Status.APPROVED:
+            raise ValidationError('Apenas compromissos aprovados podem ser realizados.')
+        
+        self.status = self.Status.REALIZED
+        self.save(update_fields=['status', 'updated_at'])
+
+
 class LedgerAdjustment(models.Model):
     """
     Ajuste de Ledger.

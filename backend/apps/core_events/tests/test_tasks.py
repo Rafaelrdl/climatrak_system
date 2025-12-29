@@ -11,6 +11,7 @@ Testa:
 import uuid
 from unittest.mock import patch, MagicMock
 from django.test import TestCase, override_settings
+from django_tenants.test.cases import TenantTestCase
 from django.utils import timezone
 
 from apps.core_events.models import OutboxEvent, OutboxEventStatus
@@ -27,7 +28,10 @@ from apps.core_events.tasks import (
 
 
 class EventHandlerRegistryTest(TestCase):
-    """Testes para o registro de handlers de eventos."""
+    """Testes para o registro de handlers de eventos.
+    
+    Nota: Este teste usa TestCase padrão pois não acessa o banco de dados.
+    """
     
     def setUp(self):
         """Limpar registry antes de cada teste."""
@@ -69,11 +73,12 @@ class EventHandlerRegistryTest(TestCase):
         self.assertIn('event.two', events)
 
 
-class ProcessOutboxEventTaskTest(TestCase):
+class ProcessOutboxEventTaskTest(TenantTestCase):
     """Testes para a task process_outbox_event."""
     
     def setUp(self):
         """Setup comum para os testes."""
+        super().setUp()
         self.tenant_id = uuid.uuid4()
         # Salvar handlers originais
         self._original_handlers = _event_handlers.copy()
@@ -176,11 +181,12 @@ class ProcessOutboxEventTaskTest(TestCase):
         process_outbox_event(fake_id)
 
 
-class DispatchPendingEventsTaskTest(TestCase):
+class DispatchPendingEventsTaskTest(TenantTestCase):
     """Testes para a task dispatch_pending_events."""
     
     def setUp(self):
         """Setup comum para os testes."""
+        super().setUp()
         self.tenant_id = uuid.uuid4()
     
     def _create_event(self, status=OutboxEventStatus.PENDING, **kwargs):
@@ -257,11 +263,12 @@ class DispatchPendingEventsTaskTest(TestCase):
         mock_delay.assert_not_called()
 
 
-class RetryFailedEventsTaskTest(TestCase):
+class RetryFailedEventsTaskTest(TenantTestCase):
     """Testes para a task retry_failed_events."""
     
     def setUp(self):
         """Setup comum para os testes."""
+        super().setUp()
         self.tenant_id = uuid.uuid4()
     
     def _create_failed_event(self):
@@ -300,11 +307,12 @@ class RetryFailedEventsTaskTest(TestCase):
         mock_dispatch.assert_not_called()
 
 
-class CleanupOldEventsTaskTest(TestCase):
+class CleanupOldEventsTaskTest(TenantTestCase):
     """Testes para a task cleanup_old_events."""
     
     def setUp(self):
         """Setup comum para os testes."""
+        super().setUp()
         self.tenant_id = uuid.uuid4()
     
     def test_cleanup_removes_old_processed_events(self):

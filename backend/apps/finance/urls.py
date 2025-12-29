@@ -11,6 +11,7 @@ Endpoints:
 - /api/finance/budget-months/ - Meses do Orçamento
 - /api/finance/transactions/ - Transações de Custo (Ledger)
 - /api/finance/adjustments/ - Ajustes de Ledger
+- /api/finance/commitments/ - Compromissos de Orçamento
 """
 
 from django.urls import path, include
@@ -23,6 +24,7 @@ from .views import (
     BudgetMonthViewSet,
     CostTransactionViewSet,
     LedgerAdjustmentViewSet,
+    CommitmentViewSet,
 )
 
 router = DefaultRouter()
@@ -33,6 +35,7 @@ router.register(r'budget-envelopes', BudgetEnvelopeViewSet, basename='budget-env
 router.register(r'budget-months', BudgetMonthViewSet, basename='budget-month')
 router.register(r'transactions', CostTransactionViewSet, basename='cost-transaction')
 router.register(r'adjustments', LedgerAdjustmentViewSet, basename='ledger-adjustment')
+router.register(r'commitments', CommitmentViewSet, basename='commitment')
 
 urlpatterns = [
     path('', include(router.urls)),

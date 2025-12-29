@@ -92,7 +92,6 @@ Implementar núcleo de centros de custo, rate card e orçamento por envelopes.
 **Dependências:** FIN-002
 
 ---
-
 ## M2 - Commitments
 
 ### [FIN-005] Commitment model + estados básicos
@@ -108,6 +107,7 @@ Implementar núcleo de centros de custo, rate card e orçamento por envelopes.
 **Dependências:** EVT-001, FIN-005
 
 ---
+aq
 
 ## M3 - Savings manual + Reporting
 

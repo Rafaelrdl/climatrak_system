@@ -10,18 +10,19 @@ Testa:
 
 import uuid
 from datetime import timedelta
-from django.test import TestCase
+from django_tenants.test.cases import TenantTestCase
 from django.db import IntegrityError
 from django.utils import timezone
 
 from apps.core_events.models import OutboxEvent, OutboxEventStatus
 
 
-class OutboxEventModelTest(TestCase):
+class OutboxEventModelTest(TenantTestCase):
     """Testes para o modelo OutboxEvent."""
     
     def setUp(self):
         """Setup comum para os testes."""
+        super().setUp()
         self.tenant_id = uuid.uuid4()
         self.aggregate_id = uuid.uuid4()
         
@@ -151,11 +152,12 @@ class OutboxEventModelTest(TestCase):
         self.assertEqual(str(event), expected)
 
 
-class OutboxEventConstraintsTest(TestCase):
+class OutboxEventConstraintsTest(TenantTestCase):
     """Testes para constraints do modelo OutboxEvent."""
     
     def setUp(self):
         """Setup comum para os testes."""
+        super().setUp()
         self.tenant_id = uuid.uuid4()
         self.idempotency_key = 'unique-key-123'
     
@@ -216,11 +218,12 @@ class OutboxEventConstraintsTest(TestCase):
         self.assertEqual(OutboxEvent.objects.filter(idempotency_key=key).count(), 2)
 
 
-class OutboxEventIndexesTest(TestCase):
+class OutboxEventIndexesTest(TenantTestCase):
     """Testes para verificar que queries usam índices corretamente."""
     
     def setUp(self):
         """Setup: criar vários eventos para teste."""
+        super().setUp()
         self.tenant_id = uuid.uuid4()
         
         # Criar eventos em diferentes estados

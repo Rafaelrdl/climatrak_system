@@ -10,14 +10,18 @@ Endpoints testados:
 - BudgetPlan CRUD + activate + close + summary
 - BudgetEnvelope CRUD
 - BudgetMonth CRUD + lock + unlock
+
+NOTA: Estes testes usam TenantTestCase com chamadas diretas às views via
+APIRequestFactory em vez de HTTP client, para funcionar corretamente com
+django-tenants multi-tenant e autenticação JWT.
 """
 
 import uuid
 from decimal import Decimal
 from datetime import date, timedelta
-from django.test import TestCase
+from django_tenants.test.cases import TenantTestCase
 from django.urls import reverse
-from rest_framework.test import APIClient
+from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework import status
 
 from apps.finance.models import (
@@ -27,36 +31,39 @@ from apps.finance.models import (
     BudgetEnvelope,
     BudgetMonth,
 )
+from apps.finance.views import (
+    CostCenterViewSet,
+    RateCardViewSet,
+    BudgetPlanViewSet,
+    BudgetEnvelopeViewSet,
+    BudgetMonthViewSet,
+)
 
 
-class BaseFinanceAPITestCase(TestCase):
+class BaseFinanceAPITestCase(TenantTestCase):
     """
     Base class para testes de API Finance.
     
-    Nota: Em produção com django-tenants, usar TenantTestCase.
-    Para testes unitários simples, usar TestCase padrão.
+    Usa django-tenants TenantTestCase e APIRequestFactory para criar
+    requests autenticados e chamar views diretamente.
     """
     
     def setUp(self):
         """Setup comum para todos os testes."""
-        self.client = APIClient()
+        super().setUp()
+        self.factory = APIRequestFactory()
         
-        # Criar usuário de teste (mock simples)
-        # Em ambiente real, usar o User model do projeto
+        # Criar usuário de teste
         from django.contrib.auth import get_user_model
         User = get_user_model()
         
-        try:
-            self.user = User.objects.create_user(
-                email='test@example.com',
-                password='testpass123',
-                first_name='Test',
-                last_name='User'
-            )
-            self.client.force_authenticate(user=self.user)
-        except Exception:
-            # Se não conseguir criar usuário, pular autenticação para testes unitários
-            pass
+        self.user = User.objects.create_user(
+            username='test_finance',
+            email='test@example.com',
+            password='testpass123',
+            first_name='Test',
+            last_name='User'
+        )
 
 
 class CostCenterAPITests(BaseFinanceAPITestCase):
@@ -64,14 +71,15 @@ class CostCenterAPITests(BaseFinanceAPITestCase):
     
     def test_list_cost_centers(self):
         """GET /api/finance/cost-centers/ deve listar centros de custo."""
-        # Criar dados de teste
         CostCenter.objects.create(code='CC-001', name='Centro 1')
         CostCenter.objects.create(code='CC-002', name='Centro 2')
         
-        response = self.client.get('/api/finance/cost-centers/')
+        request = self.factory.get('/api/finance/cost-centers/')
+        force_authenticate(request, user=self.user)
+        view = CostCenterViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Verificar paginação
         self.assertIn('results', response.data)
         self.assertEqual(len(response.data['results']), 2)
     
@@ -84,7 +92,10 @@ class CostCenterAPITests(BaseFinanceAPITestCase):
             'tags': ['hvac', 'crítico']
         }
         
-        response = self.client.post('/api/finance/cost-centers/', data, format='json')
+        request = self.factory.post('/api/finance/cost-centers/', data, format='json')
+        force_authenticate(request, user=self.user)
+        view = CostCenterViewSet.as_view({'post': 'create'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['code'], 'CC-NEW')
@@ -102,17 +113,23 @@ class CostCenterAPITests(BaseFinanceAPITestCase):
             'parent': str(parent.id)
         }
         
-        response = self.client.post('/api/finance/cost-centers/', data, format='json')
+        request = self.factory.post('/api/finance/cost-centers/', data, format='json')
+        force_authenticate(request, user=self.user)
+        view = CostCenterViewSet.as_view({'post': 'create'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['level'], 1)
-        self.assertEqual(response.data['parent'], str(parent.id))
+        self.assertEqual(str(response.data['parent']), str(parent.id))
     
     def test_retrieve_cost_center(self):
         """GET /api/finance/cost-centers/{id}/ deve retornar detalhes."""
         cc = CostCenter.objects.create(code='CC-001', name='Test')
         
-        response = self.client.get(f'/api/finance/cost-centers/{cc.id}/')
+        request = self.factory.get(f'/api/finance/cost-centers/{cc.id}/')
+        force_authenticate(request, user=self.user)
+        view = CostCenterViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=cc.id)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['code'], 'CC-001')
@@ -121,11 +138,14 @@ class CostCenterAPITests(BaseFinanceAPITestCase):
         """PUT/PATCH deve atualizar centro de custo."""
         cc = CostCenter.objects.create(code='CC-001', name='Original')
         
-        response = self.client.patch(
+        request = self.factory.patch(
             f'/api/finance/cost-centers/{cc.id}/',
             {'name': 'Updated'},
             format='json'
         )
+        force_authenticate(request, user=self.user)
+        view = CostCenterViewSet.as_view({'patch': 'partial_update'})
+        response = view(request, pk=cc.id)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['name'], 'Updated')
@@ -134,7 +154,10 @@ class CostCenterAPITests(BaseFinanceAPITestCase):
         """DELETE deve excluir centro de custo."""
         cc = CostCenter.objects.create(code='CC-001', name='Test')
         
-        response = self.client.delete(f'/api/finance/cost-centers/{cc.id}/')
+        request = self.factory.delete(f'/api/finance/cost-centers/{cc.id}/')
+        force_authenticate(request, user=self.user)
+        view = CostCenterViewSet.as_view({'delete': 'destroy'})
+        response = view(request, pk=cc.id)
         
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(CostCenter.objects.filter(id=cc.id).exists())
@@ -144,10 +167,13 @@ class CostCenterAPITests(BaseFinanceAPITestCase):
         parent = CostCenter.objects.create(code='CC-001', name='Parent')
         CostCenter.objects.create(code='CC-001-01', name='Child', parent=parent)
         
-        response = self.client.get('/api/finance/cost-centers/tree/')
+        request = self.factory.get('/api/finance/cost-centers/tree/')
+        force_authenticate(request, user=self.user)
+        view = CostCenterViewSet.as_view({'get': 'tree'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)  # Apenas raízes
+        self.assertEqual(len(response.data), 1)
         self.assertEqual(len(response.data[0]['children']), 1)
     
     def test_cost_centers_roots(self):
@@ -155,7 +181,10 @@ class CostCenterAPITests(BaseFinanceAPITestCase):
         parent = CostCenter.objects.create(code='CC-001', name='Parent')
         CostCenter.objects.create(code='CC-002', name='Child', parent=parent)
         
-        response = self.client.get('/api/finance/cost-centers/roots/')
+        request = self.factory.get('/api/finance/cost-centers/roots/')
+        force_authenticate(request, user=self.user)
+        view = CostCenterViewSet.as_view({'get': 'roots'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
@@ -166,7 +195,10 @@ class CostCenterAPITests(BaseFinanceAPITestCase):
         CostCenter.objects.create(code='CC-001-01', name='Child 1', parent=parent)
         CostCenter.objects.create(code='CC-001-02', name='Child 2', parent=parent)
         
-        response = self.client.get(f'/api/finance/cost-centers/{parent.id}/children/')
+        request = self.factory.get(f'/api/finance/cost-centers/{parent.id}/children/')
+        force_authenticate(request, user=self.user)
+        view = CostCenterViewSet.as_view({'get': 'children'})
+        response = view(request, pk=parent.id)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)
@@ -176,7 +208,10 @@ class CostCenterAPITests(BaseFinanceAPITestCase):
         CostCenter.objects.create(code='HVAC-001', name='HVAC')
         CostCenter.objects.create(code='ELEC-001', name='Elétrica')
         
-        response = self.client.get('/api/finance/cost-centers/?code=hvac')
+        request = self.factory.get('/api/finance/cost-centers/', {'code': 'hvac'})
+        force_authenticate(request, user=self.user)
+        view = CostCenterViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 1)
@@ -187,7 +222,10 @@ class CostCenterAPITests(BaseFinanceAPITestCase):
         CostCenter.objects.create(code='CC-001', name='Ar Condicionado')
         CostCenter.objects.create(code='CC-002', name='Elétrica')
         
-        response = self.client.get('/api/finance/cost-centers/?search=condicionado')
+        request = self.factory.get('/api/finance/cost-centers/', {'search': 'condicionado'})
+        force_authenticate(request, user=self.user)
+        view = CostCenterViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 1)
@@ -204,7 +242,10 @@ class RateCardAPITests(BaseFinanceAPITestCase):
             effective_from=date(2024, 1, 1)
         )
         
-        response = self.client.get('/api/finance/rate-cards/')
+        request = self.factory.get('/api/finance/rate-cards/')
+        force_authenticate(request, user=self.user)
+        view = RateCardViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('results', response.data)
@@ -218,7 +259,10 @@ class RateCardAPITests(BaseFinanceAPITestCase):
             'effective_from': '2024-01-01'
         }
         
-        response = self.client.post('/api/finance/rate-cards/', data, format='json')
+        request = self.factory.post('/api/finance/rate-cards/', data, format='json')
+        force_authenticate(request, user=self.user)
+        view = RateCardViewSet.as_view({'post': 'create'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['role'], 'Eletricista')
@@ -226,20 +270,21 @@ class RateCardAPITests(BaseFinanceAPITestCase):
     
     def test_rate_cards_current(self):
         """GET /api/finance/rate-cards/current/ deve retornar apenas vigentes."""
-        # Rate card vigente
         RateCard.objects.create(
             role='Técnico',
             cost_per_hour=Decimal('90.00'),
             effective_from=date.today() - timedelta(days=30)
         )
-        # Rate card futuro
         RateCard.objects.create(
             role='Técnico Senior',
             cost_per_hour=Decimal('120.00'),
             effective_from=date.today() + timedelta(days=30)
         )
         
-        response = self.client.get('/api/finance/rate-cards/current/')
+        request = self.factory.get('/api/finance/rate-cards/current/')
+        force_authenticate(request, user=self.user)
+        view = RateCardViewSet.as_view({'get': 'current'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
@@ -253,20 +298,29 @@ class RateCardAPITests(BaseFinanceAPITestCase):
             effective_from=date.today() - timedelta(days=30)
         )
         
-        response = self.client.get('/api/finance/rate-cards/for_role/?role=Técnico HVAC')
+        request = self.factory.get('/api/finance/rate-cards/for_role/', {'role': 'Técnico HVAC'})
+        force_authenticate(request, user=self.user)
+        view = RateCardViewSet.as_view({'get': 'for_role'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['role'], 'Técnico HVAC')
     
     def test_rate_cards_for_role_not_found(self):
         """Deve retornar 404 se rate card não encontrado."""
-        response = self.client.get('/api/finance/rate-cards/for_role/?role=Inexistente')
+        request = self.factory.get('/api/finance/rate-cards/for_role/', {'role': 'Inexistente'})
+        force_authenticate(request, user=self.user)
+        view = RateCardViewSet.as_view({'get': 'for_role'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
     
     def test_rate_cards_for_role_missing_param(self):
         """Deve retornar 400 se parâmetro role não fornecido."""
-        response = self.client.get('/api/finance/rate-cards/for_role/')
+        request = self.factory.get('/api/finance/rate-cards/for_role/')
+        force_authenticate(request, user=self.user)
+        view = RateCardViewSet.as_view({'get': 'for_role'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -284,7 +338,10 @@ class BudgetPlanAPITests(BaseFinanceAPITestCase):
             end_date=date(2024, 12, 31)
         )
         
-        response = self.client.get('/api/finance/budget-plans/')
+        request = self.factory.get('/api/finance/budget-plans/')
+        force_authenticate(request, user=self.user)
+        view = BudgetPlanViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('results', response.data)
@@ -300,7 +357,10 @@ class BudgetPlanAPITests(BaseFinanceAPITestCase):
             'status': 'draft'
         }
         
-        response = self.client.post('/api/finance/budget-plans/', data, format='json')
+        request = self.factory.post('/api/finance/budget-plans/', data, format='json')
+        force_authenticate(request, user=self.user)
+        view = BudgetPlanViewSet.as_view({'post': 'create'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['code'], 'BUDGET-2025')
@@ -324,7 +384,10 @@ class BudgetPlanAPITests(BaseFinanceAPITestCase):
             amount=Decimal('50000.00')
         )
         
-        response = self.client.get(f'/api/finance/budget-plans/{plan.id}/')
+        request = self.factory.get(f'/api/finance/budget-plans/{plan.id}/')
+        force_authenticate(request, user=self.user)
+        view = BudgetPlanViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=plan.id)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('envelopes', response.data)
@@ -341,7 +404,10 @@ class BudgetPlanAPITests(BaseFinanceAPITestCase):
             status=BudgetPlan.Status.DRAFT
         )
         
-        response = self.client.post(f'/api/finance/budget-plans/{plan.id}/activate/')
+        request = self.factory.post(f'/api/finance/budget-plans/{plan.id}/activate/')
+        force_authenticate(request, user=self.user)
+        view = BudgetPlanViewSet.as_view({'post': 'activate'})
+        response = view(request, pk=plan.id)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], 'active')
@@ -357,7 +423,10 @@ class BudgetPlanAPITests(BaseFinanceAPITestCase):
             status=BudgetPlan.Status.ACTIVE
         )
         
-        response = self.client.post(f'/api/finance/budget-plans/{plan.id}/activate/')
+        request = self.factory.post(f'/api/finance/budget-plans/{plan.id}/activate/')
+        force_authenticate(request, user=self.user)
+        view = BudgetPlanViewSet.as_view({'post': 'activate'})
+        response = view(request, pk=plan.id)
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
     
@@ -372,7 +441,10 @@ class BudgetPlanAPITests(BaseFinanceAPITestCase):
             status=BudgetPlan.Status.ACTIVE
         )
         
-        response = self.client.post(f'/api/finance/budget-plans/{plan.id}/close/')
+        request = self.factory.post(f'/api/finance/budget-plans/{plan.id}/close/')
+        force_authenticate(request, user=self.user)
+        view = BudgetPlanViewSet.as_view({'post': 'close'})
+        response = view(request, pk=plan.id)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], 'closed')
@@ -402,7 +474,10 @@ class BudgetPlanAPITests(BaseFinanceAPITestCase):
             amount=Decimal('20000.00')
         )
         
-        response = self.client.get(f'/api/finance/budget-plans/{plan.id}/summary/')
+        request = self.factory.get(f'/api/finance/budget-plans/{plan.id}/summary/')
+        force_authenticate(request, user=self.user)
+        view = BudgetPlanViewSet.as_view({'get': 'summary'})
+        response = view(request, pk=plan.id)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('by_category', response.data)
@@ -425,7 +500,10 @@ class BudgetPlanAPITests(BaseFinanceAPITestCase):
             end_date=date(2025, 12, 31)
         )
         
-        response = self.client.get('/api/finance/budget-plans/?year=2024')
+        request = self.factory.get('/api/finance/budget-plans/', {'year': '2024'})
+        force_authenticate(request, user=self.user)
+        view = BudgetPlanViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 1)
@@ -456,7 +534,10 @@ class BudgetEnvelopeAPITests(BaseFinanceAPITestCase):
             amount=Decimal('50000.00')
         )
         
-        response = self.client.get('/api/finance/budget-envelopes/')
+        request = self.factory.get('/api/finance/budget-envelopes/')
+        force_authenticate(request, user=self.user)
+        view = BudgetEnvelopeViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('results', response.data)
@@ -471,7 +552,10 @@ class BudgetEnvelopeAPITests(BaseFinanceAPITestCase):
             'amount': '100000.00'
         }
         
-        response = self.client.post('/api/finance/budget-envelopes/', data, format='json')
+        request = self.factory.post('/api/finance/budget-envelopes/', data, format='json')
+        force_authenticate(request, user=self.user)
+        view = BudgetEnvelopeViewSet.as_view({'post': 'create'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['name'], 'Manutenção Preventiva')
@@ -490,11 +574,13 @@ class BudgetEnvelopeAPITests(BaseFinanceAPITestCase):
             ]
         }
         
-        response = self.client.post('/api/finance/budget-envelopes/', data, format='json')
+        request = self.factory.post('/api/finance/budget-envelopes/', data, format='json')
+        force_authenticate(request, user=self.user)
+        view = BudgetEnvelopeViewSet.as_view({'post': 'create'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
-        # Verificar que os meses foram criados
         envelope = BudgetEnvelope.objects.get(id=response.data['id'])
         self.assertEqual(envelope.months.count(), 2)
     
@@ -508,7 +594,10 @@ class BudgetEnvelopeAPITests(BaseFinanceAPITestCase):
             amount=Decimal('50000.00')
         )
         
-        response = self.client.get(f'/api/finance/budget-envelopes/?budget_plan={self.plan.id}')
+        request = self.factory.get('/api/finance/budget-envelopes/', {'budget_plan': str(self.plan.id)})
+        force_authenticate(request, user=self.user)
+        view = BudgetEnvelopeViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 1)
@@ -530,7 +619,10 @@ class BudgetEnvelopeAPITests(BaseFinanceAPITestCase):
             amount=Decimal('30000.00')
         )
         
-        response = self.client.get('/api/finance/budget-envelopes/?category=preventive')
+        request = self.factory.get('/api/finance/budget-envelopes/', {'category': 'preventive'})
+        force_authenticate(request, user=self.user)
+        view = BudgetEnvelopeViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 1)
@@ -565,7 +657,10 @@ class BudgetMonthAPITests(BaseFinanceAPITestCase):
             planned_amount=Decimal('10000.00')
         )
         
-        response = self.client.get('/api/finance/budget-months/')
+        request = self.factory.get('/api/finance/budget-months/')
+        force_authenticate(request, user=self.user)
+        view = BudgetMonthViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('results', response.data)
@@ -578,7 +673,10 @@ class BudgetMonthAPITests(BaseFinanceAPITestCase):
             'planned_amount': '10000.00'
         }
         
-        response = self.client.post('/api/finance/budget-months/', data, format='json')
+        request = self.factory.post('/api/finance/budget-months/', data, format='json')
+        force_authenticate(request, user=self.user)
+        view = BudgetMonthViewSet.as_view({'post': 'create'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['planned_amount'], '10000.00')
@@ -591,7 +689,10 @@ class BudgetMonthAPITests(BaseFinanceAPITestCase):
             planned_amount=Decimal('10000.00')
         )
         
-        response = self.client.post(f'/api/finance/budget-months/{month.id}/lock/')
+        request = self.factory.post(f'/api/finance/budget-months/{month.id}/lock/')
+        force_authenticate(request, user=self.user)
+        view = BudgetMonthViewSet.as_view({'post': 'lock'})
+        response = view(request, pk=month.id)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data['is_locked'])
@@ -605,7 +706,10 @@ class BudgetMonthAPITests(BaseFinanceAPITestCase):
             is_locked=True
         )
         
-        response = self.client.post(f'/api/finance/budget-months/{month.id}/unlock/')
+        request = self.factory.post(f'/api/finance/budget-months/{month.id}/unlock/')
+        force_authenticate(request, user=self.user)
+        view = BudgetMonthViewSet.as_view({'post': 'unlock'})
+        response = view(request, pk=month.id)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(response.data['is_locked'])
@@ -618,7 +722,10 @@ class BudgetMonthAPITests(BaseFinanceAPITestCase):
             planned_amount=Decimal('10000.00')
         )
         
-        response = self.client.get(f'/api/finance/budget-months/?envelope={self.envelope.id}')
+        request = self.factory.get('/api/finance/budget-months/', {'envelope': str(self.envelope.id)})
+        force_authenticate(request, user=self.user)
+        view = BudgetMonthViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 1)
@@ -636,7 +743,10 @@ class BudgetMonthAPITests(BaseFinanceAPITestCase):
             planned_amount=Decimal('10000.00')
         )
         
-        response = self.client.get('/api/finance/budget-months/?year=2024')
+        request = self.factory.get('/api/finance/budget-months/', {'year': 2024})
+        force_authenticate(request, user=self.user)
+        view = BudgetMonthViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 2)
@@ -647,11 +757,13 @@ class FinancePaginationTests(BaseFinanceAPITestCase):
     
     def test_cost_centers_pagination(self):
         """Deve paginar resultados de cost centers."""
-        # Criar mais de 50 registros (page size padrão)
         for i in range(55):
             CostCenter.objects.create(code=f'CC-{i:03d}', name=f'Centro {i}')
         
-        response = self.client.get('/api/finance/cost-centers/')
+        request = self.factory.get('/api/finance/cost-centers/')
+        force_authenticate(request, user=self.user)
+        view = CostCenterViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('count', response.data)
@@ -659,17 +771,20 @@ class FinancePaginationTests(BaseFinanceAPITestCase):
         self.assertIn('previous', response.data)
         self.assertIn('results', response.data)
         self.assertEqual(response.data['count'], 55)
-        self.assertEqual(len(response.data['results']), 50)  # Page size
+        self.assertEqual(len(response.data['results']), 50)
     
     def test_pagination_second_page(self):
         """Deve retornar segunda página corretamente."""
         for i in range(55):
             CostCenter.objects.create(code=f'CC-{i:03d}', name=f'Centro {i}')
         
-        response = self.client.get('/api/finance/cost-centers/?page=2')
+        request = self.factory.get('/api/finance/cost-centers/', {'page': '2'})
+        force_authenticate(request, user=self.user)
+        view = CostCenterViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results']), 5)  # Restantes
+        self.assertEqual(len(response.data['results']), 5)
 
 
 class FinanceOrderingTests(BaseFinanceAPITestCase):
@@ -681,7 +796,10 @@ class FinanceOrderingTests(BaseFinanceAPITestCase):
         CostCenter.objects.create(code='AA-001', name='A')
         CostCenter.objects.create(code='MM-001', name='M')
         
-        response = self.client.get('/api/finance/cost-centers/?ordering=code')
+        request = self.factory.get('/api/finance/cost-centers/', {'ordering': 'code'})
+        force_authenticate(request, user=self.user)
+        view = CostCenterViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         codes = [r['code'] for r in response.data['results']]
@@ -692,7 +810,10 @@ class FinanceOrderingTests(BaseFinanceAPITestCase):
         CostCenter.objects.create(code='ZZ-001', name='Z')
         CostCenter.objects.create(code='AA-001', name='A')
         
-        response = self.client.get('/api/finance/cost-centers/?ordering=-code')
+        request = self.factory.get('/api/finance/cost-centers/', {'ordering': '-code'})
+        force_authenticate(request, user=self.user)
+        view = CostCenterViewSet.as_view({'get': 'list'})
+        response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         codes = [r['code'] for r in response.data['results']]

@@ -7,7 +7,7 @@ Filtros para os ViewSets do módulo Finance.
 import django_filters
 from .models import (
     CostCenter, RateCard, BudgetPlan, BudgetEnvelope, BudgetMonth,
-    CostTransaction, LedgerAdjustment
+    CostTransaction, LedgerAdjustment, Commitment
 )
 
 
@@ -125,8 +125,9 @@ class BudgetMonthFilter(django_filters.FilterSet):
     
     def filter_year(self, queryset, name, value):
         from datetime import date
-        start = date(value, 1, 1)
-        end = date(value, 12, 31)
+        year = int(value)  # NumberFilter returns Decimal, convert to int
+        start = date(year, 1, 1)
+        end = date(year, 12, 31)
         return queryset.filter(month__gte=start, month__lte=end)
 
 
@@ -236,3 +237,76 @@ class LedgerAdjustmentFilter(django_filters.FilterSet):
             'is_approved',
             'created_at_gte', 'created_at_lte', 'created_by'
         ]
+
+
+# =============================================================================
+# Commitment Filter
+# =============================================================================
+
+class CommitmentFilter(django_filters.FilterSet):
+    """
+    Filtros para Compromissos.
+    
+    Filtros principais:
+    - Por status
+    - Por período (budget_month)
+    - Por centro de custo
+    - Por categoria
+    - Por OS vinculada
+    """
+    
+    # Filtros de texto
+    description = django_filters.CharFilter(lookup_expr='icontains')
+    vendor_name = django_filters.CharFilter(lookup_expr='icontains')
+    
+    # Filtros de classificação
+    status = django_filters.ChoiceFilter(choices=Commitment.Status.choices)
+    status_in = django_filters.MultipleChoiceFilter(
+        field_name='status',
+        choices=Commitment.Status.choices,
+    )
+    category = django_filters.ChoiceFilter(choices=Commitment.Category.choices)
+    
+    # Filtros de relacionamento
+    cost_center = django_filters.UUIDFilter(field_name='cost_center_id')
+    work_order = django_filters.UUIDFilter(field_name='work_order_id')
+    
+    # Filtros de período (budget_month)
+    budget_month = django_filters.DateFilter()
+    budget_month_gte = django_filters.DateFilter(field_name='budget_month', lookup_expr='gte')
+    budget_month_lte = django_filters.DateFilter(field_name='budget_month', lookup_expr='lte')
+    year = django_filters.NumberFilter(method='filter_year')
+    
+    # Filtros de valor
+    min_amount = django_filters.NumberFilter(field_name='amount', lookup_expr='gte')
+    max_amount = django_filters.NumberFilter(field_name='amount', lookup_expr='lte')
+    
+    # Filtros de aprovação
+    approved_by = django_filters.UUIDFilter(field_name='approved_by_id')
+    approved_at_gte = django_filters.DateTimeFilter(field_name='approved_at', lookup_expr='gte')
+    approved_at_lte = django_filters.DateTimeFilter(field_name='approved_at', lookup_expr='lte')
+    
+    # Filtros de criação
+    created_at_gte = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='gte')
+    created_at_lte = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='lte')
+    created_by = django_filters.UUIDFilter(field_name='created_by_id')
+    
+    class Meta:
+        model = Commitment
+        fields = [
+            'description', 'vendor_name',
+            'status', 'status_in', 'category',
+            'cost_center', 'work_order',
+            'budget_month', 'budget_month_gte', 'budget_month_lte', 'year',
+            'min_amount', 'max_amount',
+            'approved_by', 'approved_at_gte', 'approved_at_lte',
+            'created_at_gte', 'created_at_lte', 'created_by'
+        ]
+    
+    def filter_year(self, queryset, name, value):
+        """Filtra por ano do budget_month."""
+        from datetime import date
+        year = int(value)
+        start = date(year, 1, 1)
+        end = date(year, 12, 31)
+        return queryset.filter(budget_month__gte=start, budget_month__lte=end)

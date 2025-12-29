@@ -20,7 +20,7 @@ from decimal import Decimal
 
 from .models import (
     CostCenter, RateCard, BudgetPlan, BudgetEnvelope, BudgetMonth,
-    CostTransaction, LedgerAdjustment
+    CostTransaction, LedgerAdjustment, Commitment
 )
 from .serializers import (
     CostCenterSerializer,
@@ -36,6 +36,10 @@ from .serializers import (
     CostTransactionSummarySerializer,
     LedgerAdjustmentSerializer,
     LedgerAdjustmentCreateSerializer,
+    CommitmentSerializer,
+    CommitmentCreateSerializer,
+    CommitmentApproveSerializer,
+    CommitmentRejectSerializer,
 )
 from .filters import (
     CostCenterFilter,
@@ -45,6 +49,7 @@ from .filters import (
     BudgetMonthFilter,
     CostTransactionFilter,
     LedgerAdjustmentFilter,
+    CommitmentFilter,
 )
 
 
@@ -576,5 +581,260 @@ class LedgerAdjustmentViewSet(viewsets.ModelViewSet):
                     'adjustment_count': item['adjustment_count']
                 }
                 for item in by_type
+            ]
+        })
+
+
+# =============================================================================
+# Commitment ViewSet
+# =============================================================================
+
+class CommitmentViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para Compromissos de Orçamento.
+    
+    Endpoints:
+    - GET /api/finance/commitments/ - Listar compromissos
+    - POST /api/finance/commitments/ - Criar compromisso
+    - GET /api/finance/commitments/{id}/ - Detalhes
+    - PUT/PATCH /api/finance/commitments/{id}/ - Atualizar (apenas DRAFT)
+    - DELETE /api/finance/commitments/{id}/ - Excluir (apenas DRAFT)
+    - POST /api/finance/commitments/{id}/submit/ - Submeter para aprovação
+    - POST /api/finance/commitments/{id}/approve/ - Aprovar
+    - POST /api/finance/commitments/{id}/reject/ - Rejeitar
+    - POST /api/finance/commitments/{id}/cancel/ - Cancelar
+    - GET /api/finance/commitments/summary/ - Resumo por status/categoria
+    - GET /api/finance/commitments/pending/ - Pendentes de aprovação
+    """
+    queryset = Commitment.objects.select_related(
+        'cost_center', 'work_order', 'approved_by', 'created_by'
+    )
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = CommitmentFilter
+    search_fields = ['description', 'vendor_name']
+    ordering_fields = ['created_at', 'budget_month', 'amount', 'status']
+    ordering = ['-created_at']
+    
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return CommitmentCreateSerializer
+        if self.action == 'approve':
+            return CommitmentApproveSerializer
+        if self.action == 'reject':
+            return CommitmentRejectSerializer
+        return CommitmentSerializer
+    
+    def create(self, request, *args, **kwargs):
+        """Cria commitment e retorna com serializer de leitura."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        commitment = serializer.save()
+        
+        # Retornar com serializer de leitura para incluir todos os campos
+        read_serializer = CommitmentSerializer(commitment, context={'request': request})
+        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+    
+    def perform_update(self, serializer):
+        """Permite atualização apenas de compromissos em DRAFT."""
+        commitment = self.get_object()
+        if commitment.status != Commitment.Status.DRAFT:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Apenas compromissos em rascunho podem ser alterados.')
+        serializer.save()
+    
+    def perform_destroy(self, instance):
+        """Permite exclusão apenas de compromissos em DRAFT."""
+        if instance.status != Commitment.Status.DRAFT:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Apenas compromissos em rascunho podem ser excluídos.')
+        instance.delete()
+    
+    @action(detail=True, methods=['post'])
+    def submit(self, request, pk=None):
+        """Submete o compromisso para aprovação."""
+        commitment = self.get_object()
+        
+        try:
+            commitment.submit()
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = CommitmentSerializer(commitment, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """
+        Aprova o compromisso.
+        
+        Emite evento commitment.approved na outbox.
+        """
+        commitment = self.get_object()
+        
+        try:
+            event = commitment.approve(user=request.user)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = CommitmentSerializer(commitment, context={'request': request})
+        return Response({
+            **serializer.data,
+            'event_id': str(event.id) if event else None
+        })
+    
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Rejeita o compromisso."""
+        commitment = self.get_object()
+        serializer = CommitmentRejectSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            commitment.reject(
+                user=request.user,
+                reason=serializer.validated_data['reason']
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        response_serializer = CommitmentSerializer(commitment, context={'request': request})
+        return Response(response_serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk=None):
+        """Cancela o compromisso."""
+        commitment = self.get_object()
+        
+        try:
+            commitment.cancel(user=request.user)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = CommitmentSerializer(commitment, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def pending(self, request):
+        """Retorna compromissos pendentes de aprovação (SUBMITTED)."""
+        queryset = self.filter_queryset(self.get_queryset()).filter(
+            status=Commitment.Status.SUBMITTED
+        )
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = CommitmentSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = CommitmentSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """
+        Retorna resumo de compromissos.
+        
+        Query params:
+        - budget_month: Mês do orçamento (YYYY-MM-DD)
+        - year: Ano
+        - cost_center: UUID do centro de custo
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        # Agregação por status
+        by_status = queryset.values('status').annotate(
+            total_amount=Sum('amount'),
+            count=Count('id')
+        ).order_by('status')
+        
+        # Agregação por categoria
+        by_category = queryset.values('category').annotate(
+            total_amount=Sum('amount'),
+            count=Count('id')
+        ).order_by('category')
+        
+        # Totais gerais
+        totals = queryset.aggregate(
+            total_amount=Sum('amount'),
+            total_count=Count('id')
+        )
+        
+        # Totais por status específico (para dashboard)
+        approved_total = queryset.filter(
+            status=Commitment.Status.APPROVED
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        
+        pending_total = queryset.filter(
+            status=Commitment.Status.SUBMITTED
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        
+        return Response({
+            'totals': {
+                'total_amount': totals['total_amount'] or Decimal('0.00'),
+                'total_count': totals['total_count'] or 0,
+                'approved_amount': approved_total,
+                'pending_amount': pending_total,
+            },
+            'by_status': [
+                {
+                    'status': item['status'],
+                    'status_display': dict(Commitment.Status.choices).get(
+                        item['status'], item['status']
+                    ),
+                    'total_amount': item['total_amount'] or Decimal('0.00'),
+                    'count': item['count']
+                }
+                for item in by_status
+            ],
+            'by_category': [
+                {
+                    'category': item['category'],
+                    'category_display': dict(Commitment.Category.choices).get(
+                        item['category'], item['category']
+                    ),
+                    'total_amount': item['total_amount'] or Decimal('0.00'),
+                    'count': item['count']
+                }
+                for item in by_category
+            ]
+        })
+    
+    @action(detail=False, methods=['get'])
+    def by_month(self, request):
+        """
+        Retorna totais de compromissos por mês.
+        
+        Query params:
+        - year: Ano (opcional, default: ano atual)
+        - status: Filtrar por status
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        by_month = queryset.values('budget_month').annotate(
+            total_amount=Sum('amount'),
+            count=Count('id')
+        ).order_by('budget_month')
+        
+        return Response({
+            'by_month': [
+                {
+                    'budget_month': item['budget_month'].isoformat() if item['budget_month'] else None,
+                    'month_name': item['budget_month'].strftime('%B/%Y') if item['budget_month'] else None,
+                    'total_amount': item['total_amount'] or Decimal('0.00'),
+                    'count': item['count']
+                }
+                for item in by_month
             ]
         })

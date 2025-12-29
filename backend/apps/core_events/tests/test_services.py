@@ -10,7 +10,7 @@ Testa:
 
 import uuid
 from datetime import datetime
-from django.test import TestCase
+from django_tenants.test.cases import TenantTestCase
 from django.db import IntegrityError
 from django.utils import timezone
 
@@ -18,11 +18,12 @@ from apps.core_events.models import OutboxEvent, OutboxEventStatus
 from apps.core_events.services import EventPublisher, EventRetrier
 
 
-class EventPublisherTest(TestCase):
+class EventPublisherTest(TenantTestCase):
     """Testes para o service EventPublisher."""
     
     def setUp(self):
         """Setup comum para os testes."""
+        super().setUp()
         self.tenant_id = uuid.uuid4()
         self.aggregate_id = uuid.uuid4()
         self.event_name = 'work_order.closed'
@@ -172,11 +173,12 @@ class EventPublisherTest(TestCase):
             )
 
 
-class EventPublisherIdempotentTest(TestCase):
+class EventPublisherIdempotentTest(TenantTestCase):
     """Testes para publicação idempotente."""
     
     def setUp(self):
         """Setup comum para os testes."""
+        super().setUp()
         self.tenant_id = uuid.uuid4()
         self.aggregate_id = uuid.uuid4()
         self.idempotency_key = 'idempotent-test-key'
@@ -249,11 +251,12 @@ class EventPublisherIdempotentTest(TestCase):
         self.assertNotEqual(event_1.id, event_2.id)
 
 
-class EventRetrierTest(TestCase):
+class EventRetrierTest(TenantTestCase):
     """Testes para o service EventRetrier."""
     
     def setUp(self):
         """Setup comum para os testes."""
+        super().setUp()
         self.tenant_id = uuid.uuid4()
     
     def _create_failed_event(self):

@@ -62,3 +62,57 @@ def handle_work_order_closed(event: OutboxEvent) -> None:
     except Exception as e:
         logger.exception(f"Unexpected error processing event {event.id}")
         raise CostEngineError(f"Unexpected error: {e}") from e
+
+
+@register_event_handler('commitment.approved')
+def handle_commitment_approved(event: OutboxEvent) -> None:
+    """
+    Handler para evento commitment.approved.
+    
+    Consome o evento e atualiza o sumário mensal de compromissos.
+    No MVP, este handler apenas registra o processamento.
+    Futuramente pode atualizar caches ou materializar views.
+    
+    Args:
+        event: OutboxEvent com o evento commitment.approved
+        
+    Payload esperado (event_data):
+    {
+        "commitment_id": "uuid",
+        "amount": 4300.00,
+        "budget_month": "2026-01-01",
+        "cost_center_id": "uuid",
+        "category": "parts"
+    }
+    """
+    logger.info(f"Processing commitment.approved event: {event.id}")
+    
+    event_data = event.event_data
+    tenant_id = event.tenant_id
+    
+    commitment_id = event_data.get('commitment_id')
+    amount = event_data.get('amount')
+    budget_month = event_data.get('budget_month')
+    cost_center_id = event_data.get('cost_center_id')
+    category = event_data.get('category')
+    
+    logger.info(
+        f"Commitment approved - "
+        f"commitment_id: {commitment_id}, "
+        f"amount: {amount}, "
+        f"budget_month: {budget_month}, "
+        f"cost_center_id: {cost_center_id}, "
+        f"category: {category}, "
+        f"tenant_id: {tenant_id}"
+    )
+    
+    # MVP: Apenas logging para confirmar processamento
+    # Futuramente:
+    # - Atualizar cache de compromissos por mês
+    # - Recalcular sumário de orçamento
+    # - Notificar sistemas interessados
+    
+    # O handler é idempotente por natureza (apenas logging)
+    # Se necessário processar de verdade, usar idempotency_key do evento
+    
+    logger.info(f"commitment.approved event {event.id} processed successfully")

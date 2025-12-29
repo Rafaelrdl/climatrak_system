@@ -13,7 +13,7 @@ from rest_framework import serializers
 from django.utils import timezone
 from .models import (
     CostCenter, RateCard, BudgetPlan, BudgetEnvelope, BudgetMonth,
-    CostTransaction, LedgerAdjustment
+    CostTransaction, LedgerAdjustment, Commitment
 )
 
 
@@ -577,3 +577,132 @@ class LedgerAdjustmentCreateSerializer(serializers.Serializer):
         )
         
         return adjustment
+
+
+# =============================================================================
+# Commitment Serializers
+# =============================================================================
+
+class CommitmentSerializer(serializers.ModelSerializer):
+    """
+    Serializer para Compromisso de Orçamento.
+    
+    Campos computados:
+    - cost_center_name: Nome do centro de custo
+    - status_display: Display do status
+    - category_display: Display da categoria
+    - approved_by_name: Nome de quem aprovou
+    - work_order_number: Número da OS (se houver)
+    """
+    cost_center_name = serializers.CharField(source='cost_center.name', read_only=True)
+    cost_center_code = serializers.CharField(source='cost_center.code', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    category_display = serializers.CharField(source='get_category_display', read_only=True)
+    approved_by_name = serializers.SerializerMethodField()
+    created_by_name = serializers.SerializerMethodField()
+    work_order_number = serializers.CharField(source='work_order.number', read_only=True, allow_null=True)
+    
+    class Meta:
+        model = Commitment
+        fields = [
+            'id', 'cost_center', 'cost_center_name', 'cost_center_code',
+            'budget_month', 'amount', 'currency',
+            'category', 'category_display',
+            'status', 'status_display',
+            'description', 'vendor_name',
+            'work_order', 'work_order_number',
+            'approved_by', 'approved_by_name', 'approved_at',
+            'rejection_reason',
+            'created_at', 'updated_at', 'created_by', 'created_by_name'
+        ]
+        read_only_fields = [
+            'id', 'status', 'approved_by', 'approved_at', 'rejection_reason',
+            'created_at', 'updated_at', 'created_by'
+        ]
+    
+    def get_approved_by_name(self, obj):
+        if obj.approved_by:
+            return obj.approved_by.get_full_name() or obj.approved_by.email
+        return None
+    
+    def get_created_by_name(self, obj):
+        if obj.created_by:
+            return obj.created_by.get_full_name() or obj.created_by.email
+        return None
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class CommitmentCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer para criação de Compromisso.
+    
+    Permite criar com status DRAFT ou já SUBMITTED.
+    """
+    submit = serializers.BooleanField(
+        default=False,
+        write_only=True,
+        help_text='Se True, já submete para aprovação'
+    )
+    
+    class Meta:
+        model = Commitment
+        fields = [
+            'id', 'cost_center', 'budget_month', 'amount', 'currency',
+            'category', 'description', 'vendor_name', 'work_order',
+            'submit'
+        ]
+        read_only_fields = ['id']
+    
+    def validate_budget_month(self, value):
+        """Garante que é primeiro dia do mês."""
+        if value.day != 1:
+            value = value.replace(day=1)
+        return value
+    
+    def create(self, validated_data):
+        submit = validated_data.pop('submit', False)
+        
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        
+        commitment = Commitment.objects.create(**validated_data)
+        
+        if submit:
+            commitment.submit()
+        
+        return commitment
+
+
+class CommitmentApproveSerializer(serializers.Serializer):
+    """Serializer para ação de aprovar compromisso."""
+    pass  # Não precisa de campos, usa o usuário do request
+
+
+class CommitmentRejectSerializer(serializers.Serializer):
+    """Serializer para ação de rejeitar compromisso."""
+    reason = serializers.CharField(
+        min_length=10,
+        help_text='Motivo da rejeição (mínimo 10 caracteres)'
+    )
+
+
+class CommitmentSummarySerializer(serializers.Serializer):
+    """
+    Serializer para resumo de compromissos.
+    
+    Usado em endpoints de agregação.
+    """
+    budget_month = serializers.DateField()
+    cost_center_id = serializers.UUIDField()
+    cost_center_code = serializers.CharField()
+    cost_center_name = serializers.CharField()
+    category = serializers.CharField()
+    status = serializers.CharField()
+    total_amount = serializers.DecimalField(max_digits=15, decimal_places=2)
+    count = serializers.IntegerField()
