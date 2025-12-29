@@ -127,20 +127,39 @@ interface CreatePlanDialogProps {
 }
 
 function CreatePlanDialog({ open, onOpenChange, onSuccess }: CreatePlanDialogProps) {
+  const [name, setName] = useState('');
   const [year, setYear] = useState(getCurrentYear() + 1);
   const [currency, setCurrency] = useState<Currency>('BRL');
+  const [description, setDescription] = useState('');
   
   const createPlan = useCreateBudgetPlan();
 
   const handleSubmit = async () => {
     try {
+      // Gerar código automaticamente
+      const code = `BUDGET-${year}`;
+      
+      // Gerar datas de início e fim baseadas no ano
+      const start_date = `${year}-01-01`;
+      const end_date = `${year}-12-31`;
+      
       await createPlan.mutateAsync({
+        name: name || `Orçamento ${year}`,
+        code,
         year,
+        start_date,
+        end_date,
         currency,
         status: 'draft',
+        description,
       });
       onSuccess();
       onOpenChange(false);
+      // Reset form
+      setName('');
+      setDescription('');
+      setYear(getCurrentYear() + 1);
+      setCurrency('BRL');
     } catch (error) {
       console.error('Erro ao criar plano:', error);
     }
@@ -157,6 +176,19 @@ function CreatePlanDialog({ open, onOpenChange, onSuccess }: CreatePlanDialogPro
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="plan-name">Nome do Plano</Label>
+            <Input
+              id="plan-name"
+              placeholder="Ex: Orçamento 2025"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Deixe em branco para usar "Orçamento {year}"
+            </p>
+          </div>
+          
           <div className="grid gap-2">
             <Label htmlFor="year">Ano</Label>
             <Select
@@ -191,6 +223,16 @@ function CreatePlanDialog({ open, onOpenChange, onSuccess }: CreatePlanDialogPro
                 <SelectItem value="EUR">EUR (€)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="plan-description">Descrição (opcional)</Label>
+            <Input
+              id="plan-description"
+              placeholder="Ex: Orçamento anual para manutenção predial"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
           </div>
         </div>
         
