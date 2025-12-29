@@ -10,7 +10,7 @@
  * - Categorias (visualização - são fixas no MVP)
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus,
   Edit2,
@@ -103,9 +103,9 @@ interface CostCenterDialogProps {
 }
 
 function CostCenterDialog({ open, onOpenChange, costCenter, costCenters }: CostCenterDialogProps) {
-  const [name, setName] = useState(costCenter?.name ?? '');
-  const [code, setCode] = useState(costCenter?.code ?? '');
-  const [parentId, setParentId] = useState<string>(costCenter?.parent_id ?? '');
+  const [name, setName] = useState('');
+  const [code, setCode] = useState('');
+  const [parentId, setParentId] = useState<string>('__none__');
 
   const createCostCenter = useCreateCostCenter();
   const updateCostCenter = useUpdateCostCenter();
@@ -113,12 +113,14 @@ function CostCenterDialog({ open, onOpenChange, costCenter, costCenters }: CostC
   const isEditing = !!costCenter;
   const isPending = createCostCenter.isPending || updateCostCenter.isPending;
 
-  // Reset form when dialog opens with new data
-  useState(() => {
-    setName(costCenter?.name ?? '');
-    setCode(costCenter?.code ?? '');
-    setParentId(costCenter?.parent_id ?? '__none__');
-  });
+  // Reset form when dialog opens or costCenter changes
+  useEffect(() => {
+    if (open) {
+      setName(costCenter?.name ?? '');
+      setCode(costCenter?.code ?? '');
+      setParentId(costCenter?.parent_id ?? '__none__');
+    }
+  }, [open, costCenter]);
 
   const handleSubmit = async () => {
     try {

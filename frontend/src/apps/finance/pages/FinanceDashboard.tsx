@@ -316,7 +316,7 @@ export function FinanceDashboard() {
   const navigate = useNavigate();
   const ability = useAbility();
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth);
-  const [selectedCostCenter, setSelectedCostCenter] = useState<string>('');
+  const [selectedCostCenter, setSelectedCostCenter] = useState<string>('__all__');
 
   // Permission checks
   const canCreateCommitment = ability.can('create', 'finance_commitment');
@@ -326,7 +326,7 @@ export function FinanceDashboard() {
 
   const { data: summary, isLoading, error } = useFinanceSummary(
     selectedMonth,
-    selectedCostCenter || undefined
+    selectedCostCenter === '__all__' ? undefined : selectedCostCenter
   );
   const { data: costCenters } = useCostCenters();
 
@@ -365,7 +365,7 @@ export function FinanceDashboard() {
                 <SelectValue placeholder="Todos os centros" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os centros</SelectItem>
+                <SelectItem value="__all__">Todos os centros</SelectItem>
                 {costCenters.map((cc) => (
                   <SelectItem key={cc.id} value={cc.id}>
                     {cc.name}
