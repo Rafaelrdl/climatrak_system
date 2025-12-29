@@ -307,6 +307,7 @@ interface EnvelopeEditorProps {
 
 function EnvelopeEditor({ envelope, months, isLocked, onMonthsChange }: EnvelopeEditorProps) {
   const { data: costCenters } = useCostCenters();
+  const [editingField, setEditingField] = useState<string | null>(null);
   
   const costCenterName = useMemo(() => {
     return costCenters?.find(cc => cc.id === envelope.cost_center)?.name ?? 'N/A';
@@ -338,9 +339,55 @@ function EnvelopeEditor({ envelope, months, isLocked, onMonthsChange }: Envelope
     onMonthsChange(newMonths);
   };
 
-  const getMonthValue = (monthIndex: number, field: 'planned_amount' | 'contingency_amount'): number => {
+  // Formata número para padrão brasileiro (1.000,00)
+  const formatMoneyBR = (value: number | string): string => {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return '';
+    return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  // Converte valor brasileiro (aceita . e , como decimais) para número
+  const parseMoneyValue = (value: string): number => {
+    if (!value) return 0;
+    
+    // Remove espaços
+    let cleaned = value.replace(/\s/g, '');
+    
+    // Se tiver vírgula E ponto: formato brasileiro (1.500,50)
+    // Remove pontos (milhares) e troca vírgula por ponto (decimal)
+    if (cleaned.includes(',') && cleaned.includes('.')) {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    }
+    // Se tiver só vírgula: formato brasileiro (1500,50)
+    // Troca vírgula por ponto
+    else if (cleaned.includes(',')) {
+      cleaned = cleaned.replace(',', '.');
+    }
+    // Se tiver só ponto: verifica se é milhar ou decimal
+    else if (cleaned.includes('.')) {
+      const parts = cleaned.split('.');
+      // Se último grupo tem 3 dígitos, é separador de milhar (8.000)
+      if (parts[parts.length - 1].length === 3 && parts.length > 1) {
+        cleaned = cleaned.replace(/\./g, '');
+      }
+      // Caso contrário mantém como decimal (8.50)
+    }
+    
+    return parseFloat(cleaned) || 0;
+  };
+
+  const getMonthValue = (monthIndex: number, field: 'planned_amount' | 'contingency_amount'): string => {
     const month = months.find(m => m.month === monthIndex + 1);
-    return month?.[field] ?? 0;
+    const value = month?.[field] ?? 0;
+    const fieldKey = `${monthIndex}-${field}`;
+    
+    // Se está editando este campo, retorna o valor bruto
+    if (editingField === fieldKey) {
+      return String(value || '');
+    }
+    
+    // Senão, retorna formatado
+    return value ? formatMoneyBR(value) : '';
   };
 
   return (
@@ -388,13 +435,15 @@ function EnvelopeEditor({ envelope, months, isLocked, onMonthsChange }: Envelope
                 {MONTHS.map((_, idx) => (
                   <TableCell key={idx} className="p-1">
                     <Input
-                      type="number"
-                      min={0}
-                      step={100}
+                      type="text"
+                      inputMode="decimal"
                       className="h-8 w-20 text-right text-sm"
-                      value={getMonthValue(idx, 'planned_amount') || ''}
-                      onChange={(e) => handleMonthChange(idx, 'planned_amount', Number(e.target.value) || 0)}
+                      value={getMonthValue(idx, 'planned_amount')}
+                      onFocus={() => setEditingField(`${idx}-planned_amount`)}
+                      onChange={(e) => handleMonthChange(idx, 'planned_amount', parseMoneyValue(e.target.value))}
+                      onBlur={() => setEditingField(null)}
                       disabled={isLocked}
+                      placeholder="0,00"
                     />
                   </TableCell>
                 ))}
@@ -408,13 +457,15 @@ function EnvelopeEditor({ envelope, months, isLocked, onMonthsChange }: Envelope
                 {MONTHS.map((_, idx) => (
                   <TableCell key={idx} className="p-1">
                     <Input
-                      type="number"
-                      min={0}
-                      step={100}
+                      type="text"
+                      inputMode="decimal"
                       className="h-8 w-20 text-right text-sm"
-                      value={getMonthValue(idx, 'contingency_amount') || ''}
-                      onChange={(e) => handleMonthChange(idx, 'contingency_amount', Number(e.target.value) || 0)}
+                      value={getMonthValue(idx, 'contingency_amount')}
+                      onFocus={() => setEditingField(`${idx}-contingency_amount`)}
+                      onChange={(e) => handleMonthChange(idx, 'contingency_amount', parseMoneyValue(e.target.value))}
+                      onBlur={() => setEditingField(null)}
                       disabled={isLocked}
+                      placeholder="0,00"
                     />
                   </TableCell>
                 ))}
