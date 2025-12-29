@@ -96,6 +96,41 @@ class CostCenterViewSet(viewsets.ModelViewSet):
         children = cost_center.children.all()
         serializer = self.get_serializer(children, many=True)
         return Response(serializer.data)
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Sobrescreve destroy para validar antes de deletar.
+        Impede exclusão de centros com filhos ou transações vinculadas.
+        """
+        from django.db.models.deletion import ProtectedError
+        
+        instance = self.get_object()
+        
+        # Verificar se tem filhos
+        children_count = instance.children.count()
+        if children_count > 0:
+            return Response(
+                {
+                    'error': 'Não é possível excluir este centro de custo',
+                    'detail': f'Existem {children_count} centro(s) de custo filho(s) vinculado(s). '
+                              'Remova ou mova os filhos antes de excluir.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Tentar deletar (pode falhar por outras constraints)
+        try:
+            self.perform_destroy(instance)
+        except ProtectedError as e:
+            return Response(
+                {
+                    'error': 'Não é possível excluir este centro de custo',
+                    'detail': 'Existem transações, orçamentos ou outros registros vinculados a este centro.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class RateCardViewSet(viewsets.ModelViewSet):

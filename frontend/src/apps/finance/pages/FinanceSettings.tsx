@@ -323,6 +323,7 @@ function CostCentersTab() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCostCenter, setEditingCostCenter] = useState<CostCenter | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const { data: costCenters, isLoading, error } = useCostCenters();
   const deleteCostCenter = useDeleteCostCenter();
@@ -332,13 +333,25 @@ function CostCentersTab() {
     setDialogOpen(true);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Evita fechar o dialog automaticamente
+    
     if (deleteId) {
       try {
         await deleteCostCenter.mutateAsync(deleteId);
         setDeleteId(null);
-      } catch (error) {
+        setDeleteError(null);
+      } catch (error: any) {
         console.error('Erro ao excluir centro de custo:', error);
+        
+        // Extrair mensagem do backend
+        const errorMessage = error?.response?.data?.detail 
+          || error?.response?.data?.error
+          || 'Não foi possível excluir o centro de custo.';
+        
+        setDeleteError(errorMessage);
+        // Não fecha o dialog para mostrar o erro
+        return;
       }
     }
   };
@@ -465,7 +478,12 @@ function CostCentersTab() {
       />
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => {
+        if (!open) {
+          setDeleteId(null);
+          setDeleteError(null);
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir centro de custo?</AlertDialogTitle>
@@ -474,14 +492,30 @@ function CostCentersTab() {
               vinculadas a este centro de custo.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          
+          {deleteError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{deleteError}</AlertDescription>
+            </Alert>
+          )}
+          
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            <Button 
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
+              variant="destructive"
+              disabled={deleteCostCenter.isPending}
             >
-              Excluir
-            </AlertDialogAction>
+              {deleteCostCenter.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Excluir'
+              )}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
