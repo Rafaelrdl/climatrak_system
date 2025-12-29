@@ -35,7 +35,7 @@ class CostCenterSerializer(serializers.ModelSerializer):
         model = CostCenter
         fields = [
             'id', 'code', 'name', 'description',
-            'parent', 'parent_name', 'level', 'full_path', 'children_count',
+            'parent', 'parent_id', 'parent_name', 'level', 'full_path', 'children_count',
             'tags', 'is_active',
             'created_at', 'updated_at', 'created_by'
         ]

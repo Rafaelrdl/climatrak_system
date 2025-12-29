@@ -317,7 +317,7 @@ function RateCardDialog({ open, onOpenChange }: RateCardDialogProps) {
 function CostCentersTab() {
   const ability = useAbility();
   const canCreate = ability.can('create', 'finance');
-  const canUpdate = ability.can('update', 'finance');
+  const canEdit = ability.can('edit', 'finance');
   const canDelete = ability.can('delete', 'finance');
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -410,30 +410,28 @@ function CostCentersTab() {
                     {getParentName(cc.parent_id)}
                   </TableCell>
                   <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
+                    <div className="flex items-center gap-2 justify-end">
+                      {canEdit && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleEdit(cc)}
+                          title="Editar"
+                        >
+                          <Edit2 className="h-4 w-4" />
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {canUpdate && (
-                          <DropdownMenuItem onClick={() => handleEdit(cc)}>
-                            <Edit2 className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                        )}
-                        {canDelete && (
-                          <DropdownMenuItem 
-                            className="text-red-600"
-                            onClick={() => setDeleteId(cc.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      )}
+                      {canDelete && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => setDeleteId(cc.id)}
+                          title="Excluir"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
