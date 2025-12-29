@@ -910,3 +910,355 @@ class BudgetCategoryBreakdownSerializer(serializers.Serializer):
     committed = serializers.DecimalField(max_digits=15, decimal_places=2)
     actual = serializers.DecimalField(max_digits=15, decimal_places=2)
     savings = serializers.DecimalField(max_digits=15, decimal_places=2)
+
+
+# ============================================================================
+# V2 (M4/M5) - Energy, Baseline, Risk Serializers
+# ============================================================================
+
+from .models import EnergyTariff, EnergyReading, Baseline, RiskSnapshot
+
+
+class EnergyTariffSerializer(serializers.ModelSerializer):
+    """
+    Serializer para Tarifa de Energia.
+    
+    Campos computados:
+    - is_current: se está vigente hoje
+    """
+    is_current = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = EnergyTariff
+        fields = [
+            'id', 'name', 'distributor', 'tariff_class', 'description',
+            'rate_off_peak', 'rate_peak', 'rate_intermediate',
+            'peak_start', 'peak_end',
+            'flag_verde', 'flag_amarela', 'flag_vermelha_1', 'flag_vermelha_2',
+            'effective_from', 'effective_to', 'is_current',
+            'currency', 'is_active',
+            'created_at', 'updated_at', 'created_by'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'created_by']
+    
+    def get_is_current(self, obj):
+        """Verifica se esta tarifa está vigente hoje."""
+        from django.utils import timezone
+        today = timezone.now().date()
+        if obj.effective_from > today:
+            return False
+        if obj.effective_to and obj.effective_to < today:
+            return False
+        return obj.is_active
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class EnergyTariffListSerializer(serializers.ModelSerializer):
+    """Serializer compacto para listagem de tarifas."""
+    is_current = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = EnergyTariff
+        fields = [
+            'id', 'name', 'distributor', 'tariff_class',
+            'rate_off_peak', 'rate_peak',
+            'effective_from', 'effective_to', 'is_current', 'is_active'
+        ]
+    
+    def get_is_current(self, obj):
+        from django.utils import timezone
+        today = timezone.now().date()
+        if obj.effective_from > today:
+            return False
+        if obj.effective_to and obj.effective_to < today:
+            return False
+        return obj.is_active
+
+
+class EnergyReadingSerializer(serializers.ModelSerializer):
+    """
+    Serializer para Leitura de Energia.
+    
+    Campos computados:
+    - asset_name: nome do ativo
+    - cost_center_name: nome do centro de custo
+    - tariff_name: nome da tarifa
+    """
+    asset_name = serializers.CharField(source='asset.__str__', read_only=True)
+    cost_center_name = serializers.CharField(source='cost_center.name', read_only=True)
+    tariff_name = serializers.CharField(source='tariff.name', read_only=True, allow_null=True)
+    
+    class Meta:
+        model = EnergyReading
+        fields = [
+            'id', 'asset', 'asset_name', 'cost_center', 'cost_center_name',
+            'tariff', 'tariff_name',
+            'reading_date', 'kwh_total', 'kwh_peak', 'kwh_off_peak',
+            'source', 'bandeira',
+            'calculated_cost', 'cost_transaction',
+            'notes', 'meta',
+            'created_at', 'updated_at', 'created_by'
+        ]
+        read_only_fields = [
+            'id', 'calculated_cost', 'cost_transaction',
+            'created_at', 'updated_at', 'created_by'
+        ]
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class EnergyReadingCreateSerializer(serializers.ModelSerializer):
+    """Serializer para criação de leitura com processamento automático."""
+    process_cost = serializers.BooleanField(
+        default=True,
+        write_only=True,
+        help_text='Se True, calcula custo e cria transação no ledger automaticamente'
+    )
+    
+    class Meta:
+        model = EnergyReading
+        fields = [
+            'asset', 'cost_center', 'tariff',
+            'reading_date', 'kwh_total', 'kwh_peak', 'kwh_off_peak',
+            'source', 'bandeira', 'notes', 'meta',
+            'process_cost',
+        ]
+    
+    def create(self, validated_data):
+        process_cost = validated_data.pop('process_cost', True)
+        
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        
+        reading = super().create(validated_data)
+        
+        # Processar custo se solicitado
+        if process_cost and reading.tariff:
+            from .energy_engine import EnergyCostEngine
+            from django.db import connection
+            tenant = connection.tenant
+            EnergyCostEngine.process_reading(
+                reading,
+                tenant_id=str(tenant.id) if tenant else None,
+                user=request.user if request else None,
+            )
+        
+        return reading
+
+
+class BaselineSerializer(serializers.ModelSerializer):
+    """
+    Serializer para Baseline de Savings.
+    
+    Campos computados:
+    - asset_name: nome do ativo
+    - cost_center_name: nome do centro de custo
+    - progress_percent: progresso da coleta de dados
+    """
+    asset_name = serializers.CharField(source='asset.__str__', read_only=True)
+    cost_center_name = serializers.CharField(source='cost_center.name', read_only=True)
+    work_order_number = serializers.CharField(source='work_order.number', read_only=True, allow_null=True)
+    savings_event_amount = serializers.DecimalField(
+        source='savings_event.savings_amount',
+        max_digits=15, decimal_places=2,
+        read_only=True, allow_null=True
+    )
+    progress_percent = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Baseline
+        fields = [
+            'id', 'asset', 'asset_name', 'cost_center', 'cost_center_name',
+            'work_order', 'work_order_number',
+            'name', 'baseline_type', 'description', 'status',
+            'before_start', 'before_end', 'before_avg_value', 'before_total_value',
+            'before_days', 'before_data_points',
+            'intervention_date',
+            'after_start', 'after_end', 'after_avg_value', 'after_total_value',
+            'after_days', 'after_data_points',
+            'savings_value', 'savings_percent', 'savings_annual_estimate',
+            'savings_event', 'savings_event_amount',
+            'unit', 'meta', 'progress_percent',
+            'created_at', 'updated_at', 'created_by'
+        ]
+        read_only_fields = [
+            'id', 'before_end', 'before_avg_value', 'before_total_value',
+            'before_days', 'before_data_points',
+            'after_end', 'after_avg_value', 'after_total_value',
+            'after_days', 'after_data_points',
+            'savings_value', 'savings_percent', 'savings_annual_estimate',
+            'savings_event', 'progress_percent',
+            'created_at', 'updated_at', 'created_by'
+        ]
+    
+    def get_progress_percent(self, obj):
+        """Calcula progresso baseado no status e dias coletados."""
+        min_days = 7  # Mínimo recomendado
+        
+        if obj.status == Baseline.Status.COLLECTING_BEFORE:
+            return min(50, (obj.before_days / min_days) * 50) if min_days > 0 else 0
+        elif obj.status == Baseline.Status.INTERVENTION:
+            return 50
+        elif obj.status == Baseline.Status.COLLECTING_AFTER:
+            after_progress = min(50, (obj.after_days / min_days) * 50) if min_days > 0 else 0
+            return 50 + after_progress
+        elif obj.status == Baseline.Status.CALCULATED:
+            return 100
+        return 0
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class BaselineCreateSerializer(serializers.ModelSerializer):
+    """Serializer para criação de baseline."""
+    
+    class Meta:
+        model = Baseline
+        fields = [
+            'asset', 'cost_center', 'work_order',
+            'name', 'baseline_type', 'description',
+            'before_start', 'unit', 'meta',
+        ]
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        
+        # Status inicial
+        validated_data['status'] = Baseline.Status.COLLECTING_BEFORE
+        
+        return super().create(validated_data)
+
+
+class BaselineTransitionSerializer(serializers.Serializer):
+    """Serializer para transições de status do baseline."""
+    action = serializers.ChoiceField(
+        choices=['start_intervention', 'start_after', 'calculate', 'cancel'],
+        help_text='Ação a executar no baseline'
+    )
+    intervention_date = serializers.DateField(
+        required=False,
+        help_text='Data da intervenção (para start_intervention)'
+    )
+    after_start_date = serializers.DateField(
+        required=False,
+        help_text='Data de início do período depois (para start_after)'
+    )
+
+
+class RiskSnapshotSerializer(serializers.ModelSerializer):
+    """
+    Serializer para Snapshot de Risco.
+    
+    Campos computados:
+    - asset_name: nome do ativo
+    - cost_center_name: nome do centro de custo
+    - risk_level_display: nível de risco formatado
+    """
+    asset_name = serializers.CharField(source='asset.__str__', read_only=True)
+    cost_center_name = serializers.CharField(source='cost_center.name', read_only=True)
+    risk_level_display = serializers.CharField(source='get_risk_level_display', read_only=True)
+    
+    class Meta:
+        model = RiskSnapshot
+        fields = [
+            'id', 'asset', 'asset_name', 'cost_center', 'cost_center_name',
+            'snapshot_date',
+            'failure_probability', 'mtbf_days',
+            'estimated_repair_cost', 'estimated_downtime_hours', 'downtime_cost_per_hour',
+            'downtime_cost', 'total_impact_cost',
+            'risk_score', 'risk_level', 'risk_level_display',
+            'data_source', 'notes', 'meta',
+            'created_at', 'updated_at', 'created_by'
+        ]
+        read_only_fields = [
+            'id', 'downtime_cost', 'total_impact_cost', 'risk_score', 'risk_level',
+            'created_at', 'updated_at', 'created_by'
+        ]
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class RiskSnapshotCreateSerializer(serializers.ModelSerializer):
+    """Serializer para criação de snapshot de risco."""
+    
+    class Meta:
+        model = RiskSnapshot
+        fields = [
+            'asset', 'cost_center', 'snapshot_date',
+            'failure_probability', 'mtbf_days',
+            'estimated_repair_cost', 'estimated_downtime_hours', 'downtime_cost_per_hour',
+            'data_source', 'notes', 'meta',
+        ]
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class BARSummarySerializer(serializers.Serializer):
+    """
+    Serializer para resumo de Budget-at-Risk.
+    """
+    snapshot_date = serializers.CharField(allow_null=True)
+    total_bar = serializers.DecimalField(max_digits=15, decimal_places=2)
+    assets_at_risk = serializers.IntegerField()
+    critical_assets = serializers.IntegerField()
+    high_risk_assets = serializers.IntegerField()
+    by_cost_center = serializers.ListField(
+        child=serializers.DictField(),
+        help_text='BAR agrupado por centro de custo'
+    )
+    top_risks = serializers.ListField(
+        child=serializers.DictField(),
+        help_text='Top riscos ordenados por score'
+    )
+    trend = serializers.DictField(allow_null=True, help_text='Tendência histórica')
+
+
+class BARCostCenterSerializer(serializers.Serializer):
+    """
+    Serializer para BAR de um centro de custo.
+    """
+    cost_center_id = serializers.CharField()
+    cost_center_name = serializers.CharField()
+    snapshot_date = serializers.CharField(allow_null=True)
+    bar_total = serializers.DecimalField(max_digits=15, decimal_places=2)
+    assets_count = serializers.IntegerField()
+    avg_risk_score = serializers.DecimalField(max_digits=15, decimal_places=2)
+    max_risk_score = serializers.DecimalField(max_digits=15, decimal_places=2)
+    breakdown_by_level = serializers.DictField()
+    top_risks = serializers.ListField(child=serializers.DictField())
+
+
+class BARForecastSerializer(serializers.Serializer):
+    """
+    Serializer para projeção de BAR.
+    """
+    current_bar = serializers.DecimalField(max_digits=15, decimal_places=2)
+    forecast = serializers.ListField(
+        child=serializers.DictField(),
+        help_text='Projeção mensal de BAR'
+    )
+    assumptions = serializers.CharField()

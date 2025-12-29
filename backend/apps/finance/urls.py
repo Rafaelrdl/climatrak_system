@@ -14,6 +14,13 @@ Endpoints:
 - /api/finance/commitments/ - Compromissos de Orçamento
 - /api/finance/savings-events/ - Eventos de Economia
 - /api/finance/budget-summary/ - Summary Mensal de Orçamento
+
+V2 Endpoints:
+- /api/finance/energy-tariffs/ - Tarifas de Energia
+- /api/finance/energy-readings/ - Leituras de Energia
+- /api/finance/baselines/ - Baselines para Savings Automático
+- /api/finance/risk-snapshots/ - Snapshots de Risco
+- /api/finance/bar/ - Budget-at-Risk
 """
 
 from django.urls import path, include
@@ -29,6 +36,12 @@ from .views import (
     CommitmentViewSet,
     SavingsEventViewSet,
     BudgetSummaryViewSet,
+    # V2
+    EnergyTariffViewSet,
+    EnergyReadingViewSet,
+    BaselineViewSet,
+    RiskSnapshotViewSet,
+    BARViewSet,
 )
 
 router = DefaultRouter()
@@ -42,6 +55,13 @@ router.register(r'adjustments', LedgerAdjustmentViewSet, basename='ledger-adjust
 router.register(r'commitments', CommitmentViewSet, basename='commitment')
 router.register(r'savings-events', SavingsEventViewSet, basename='savings-event')
 router.register(r'budget-summary', BudgetSummaryViewSet, basename='budget-summary')
+
+# V2 (M4/M5)
+router.register(r'energy-tariffs', EnergyTariffViewSet, basename='energy-tariff')
+router.register(r'energy-readings', EnergyReadingViewSet, basename='energy-reading')
+router.register(r'baselines', BaselineViewSet, basename='baseline')
+router.register(r'risk-snapshots', RiskSnapshotViewSet, basename='risk-snapshot')
+router.register(r'bar', BARViewSet, basename='bar')
 
 urlpatterns = [
     path('', include(router.urls)),

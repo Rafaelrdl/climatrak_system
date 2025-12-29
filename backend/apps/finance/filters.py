@@ -403,3 +403,191 @@ class SavingsEventFilter(django_filters.FilterSet):
             return queryset.filter(
                 Q(evidence__isnull=True) | Q(evidence={})
             )
+
+
+# ============================================================================
+# V2 (M4/M5) - Energy, Baseline, Risk Filters
+# ============================================================================
+
+from .models import EnergyTariff, EnergyReading, Baseline, RiskSnapshot
+
+
+class EnergyTariffFilter(django_filters.FilterSet):
+    """Filtros para Tarifa de Energia."""
+    
+    name = django_filters.CharFilter(lookup_expr='icontains')
+    distributor = django_filters.CharFilter(lookup_expr='icontains')
+    tariff_class = django_filters.CharFilter(lookup_expr='icontains')
+    is_active = django_filters.BooleanFilter()
+    is_current = django_filters.BooleanFilter(method='filter_is_current')
+    effective_date = django_filters.DateFilter(method='filter_effective_date')
+    
+    # Filtros de valor
+    min_rate_off_peak = django_filters.NumberFilter(field_name='rate_off_peak', lookup_expr='gte')
+    max_rate_off_peak = django_filters.NumberFilter(field_name='rate_off_peak', lookup_expr='lte')
+    min_rate_peak = django_filters.NumberFilter(field_name='rate_peak', lookup_expr='gte')
+    max_rate_peak = django_filters.NumberFilter(field_name='rate_peak', lookup_expr='lte')
+    
+    class Meta:
+        model = EnergyTariff
+        fields = [
+            'name', 'distributor', 'tariff_class',
+            'is_active', 'is_current', 'effective_date',
+            'min_rate_off_peak', 'max_rate_off_peak',
+            'min_rate_peak', 'max_rate_peak',
+        ]
+    
+    def filter_is_current(self, queryset, name, value):
+        from django.utils import timezone
+        from django.db.models import Q
+        
+        today = timezone.now().date()
+        if value:
+            return queryset.filter(
+                is_active=True,
+                effective_from__lte=today
+            ).filter(
+                Q(effective_to__isnull=True) | Q(effective_to__gte=today)
+            )
+        return queryset
+    
+    def filter_effective_date(self, queryset, name, value):
+        """Filtra tarifas vigentes em uma data específica."""
+        from django.db.models import Q
+        return queryset.filter(
+            effective_from__lte=value
+        ).filter(
+            Q(effective_to__isnull=True) | Q(effective_to__gte=value)
+        )
+
+
+class EnergyReadingFilter(django_filters.FilterSet):
+    """Filtros para Leitura de Energia."""
+    
+    asset = django_filters.NumberFilter()
+    cost_center = django_filters.UUIDFilter()
+    tariff = django_filters.UUIDFilter()
+    source = django_filters.ChoiceFilter(choices=EnergyReading.Source.choices)
+    bandeira = django_filters.ChoiceFilter(choices=EnergyTariff.BandeiraTarifaria.choices)
+    
+    # Filtros de data
+    reading_date = django_filters.DateFilter()
+    start_date = django_filters.DateFilter(field_name='reading_date', lookup_expr='gte')
+    end_date = django_filters.DateFilter(field_name='reading_date', lookup_expr='lte')
+    year = django_filters.NumberFilter(method='filter_year')
+    month = django_filters.NumberFilter(method='filter_month')
+    
+    # Filtros de consumo
+    min_kwh = django_filters.NumberFilter(field_name='kwh_total', lookup_expr='gte')
+    max_kwh = django_filters.NumberFilter(field_name='kwh_total', lookup_expr='lte')
+    min_cost = django_filters.NumberFilter(field_name='calculated_cost', lookup_expr='gte')
+    max_cost = django_filters.NumberFilter(field_name='calculated_cost', lookup_expr='lte')
+    
+    # Filtro para leituras processadas
+    is_processed = django_filters.BooleanFilter(method='filter_is_processed')
+    
+    class Meta:
+        model = EnergyReading
+        fields = [
+            'asset', 'cost_center', 'tariff', 'source', 'bandeira',
+            'reading_date', 'start_date', 'end_date', 'year', 'month',
+            'min_kwh', 'max_kwh', 'min_cost', 'max_cost',
+            'is_processed',
+        ]
+    
+    def filter_year(self, queryset, name, value):
+        return queryset.filter(reading_date__year=int(value))
+    
+    def filter_month(self, queryset, name, value):
+        return queryset.filter(reading_date__month=int(value))
+    
+    def filter_is_processed(self, queryset, name, value):
+        if value:
+            return queryset.filter(cost_transaction__isnull=False)
+        return queryset.filter(cost_transaction__isnull=True)
+
+
+class BaselineFilter(django_filters.FilterSet):
+    """Filtros para Baseline de Savings."""
+    
+    name = django_filters.CharFilter(lookup_expr='icontains')
+    asset = django_filters.NumberFilter()
+    cost_center = django_filters.UUIDFilter()
+    work_order = django_filters.NumberFilter()
+    baseline_type = django_filters.ChoiceFilter(choices=Baseline.BaselineType.choices)
+    status = django_filters.ChoiceFilter(choices=Baseline.Status.choices)
+    status_in = django_filters.BaseInFilter(field_name='status')
+    
+    # Filtros de período
+    before_start_gte = django_filters.DateFilter(field_name='before_start', lookup_expr='gte')
+    before_start_lte = django_filters.DateFilter(field_name='before_start', lookup_expr='lte')
+    intervention_date_gte = django_filters.DateFilter(field_name='intervention_date', lookup_expr='gte')
+    intervention_date_lte = django_filters.DateFilter(field_name='intervention_date', lookup_expr='lte')
+    
+    # Filtros de economia
+    has_savings = django_filters.BooleanFilter(method='filter_has_savings')
+    min_savings_percent = django_filters.NumberFilter(field_name='savings_percent', lookup_expr='gte')
+    max_savings_percent = django_filters.NumberFilter(field_name='savings_percent', lookup_expr='lte')
+    
+    # Filtros de criação
+    created_at_gte = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='gte')
+    created_at_lte = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='lte')
+    created_by = django_filters.UUIDFilter(field_name='created_by_id')
+    
+    class Meta:
+        model = Baseline
+        fields = [
+            'name', 'asset', 'cost_center', 'work_order',
+            'baseline_type', 'status', 'status_in',
+            'before_start_gte', 'before_start_lte',
+            'intervention_date_gte', 'intervention_date_lte',
+            'has_savings', 'min_savings_percent', 'max_savings_percent',
+            'created_at_gte', 'created_at_lte', 'created_by',
+        ]
+    
+    def filter_has_savings(self, queryset, name, value):
+        if value:
+            return queryset.filter(savings_event__isnull=False)
+        return queryset.filter(savings_event__isnull=True)
+
+
+class RiskSnapshotFilter(django_filters.FilterSet):
+    """Filtros para Snapshot de Risco."""
+    
+    asset = django_filters.NumberFilter()
+    cost_center = django_filters.UUIDFilter()
+    risk_level = django_filters.ChoiceFilter(choices=RiskSnapshot.RiskLevel.choices)
+    risk_level_in = django_filters.BaseInFilter(field_name='risk_level')
+    
+    # Filtros de data
+    snapshot_date = django_filters.DateFilter()
+    start_date = django_filters.DateFilter(field_name='snapshot_date', lookup_expr='gte')
+    end_date = django_filters.DateFilter(field_name='snapshot_date', lookup_expr='lte')
+    
+    # Filtros de probabilidade
+    min_probability = django_filters.NumberFilter(field_name='failure_probability', lookup_expr='gte')
+    max_probability = django_filters.NumberFilter(field_name='failure_probability', lookup_expr='lte')
+    
+    # Filtros de score
+    min_risk_score = django_filters.NumberFilter(field_name='risk_score', lookup_expr='gte')
+    max_risk_score = django_filters.NumberFilter(field_name='risk_score', lookup_expr='lte')
+    
+    # Filtros de custo
+    min_repair_cost = django_filters.NumberFilter(field_name='estimated_repair_cost', lookup_expr='gte')
+    max_repair_cost = django_filters.NumberFilter(field_name='estimated_repair_cost', lookup_expr='lte')
+    
+    # Filtros de criação
+    created_at_gte = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='gte')
+    created_at_lte = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='lte')
+    data_source = django_filters.CharFilter(lookup_expr='icontains')
+    
+    class Meta:
+        model = RiskSnapshot
+        fields = [
+            'asset', 'cost_center', 'risk_level', 'risk_level_in',
+            'snapshot_date', 'start_date', 'end_date',
+            'min_probability', 'max_probability',
+            'min_risk_score', 'max_risk_score',
+            'min_repair_cost', 'max_repair_cost',
+            'created_at_gte', 'created_at_lte', 'data_source',
+        ]

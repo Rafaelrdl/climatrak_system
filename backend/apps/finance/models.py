@@ -7,6 +7,10 @@ Modelos principais:
 - BudgetPlan: Plano orçamentário anual
 - BudgetEnvelope: Envelope de orçamento por categoria/centro
 - BudgetMonth: Limites mensais do envelope
+- EnergyTariff: Tarifas de energia (V2)
+- EnergyReading: Leituras de energia (V2)
+- Baseline: Baselines para savings automático (V2)
+- RiskSnapshot: Snapshots de risco (V2)
 
 Referências:
 - docs/finance/01-erd.md
@@ -16,7 +20,7 @@ Referências:
 import uuid
 from decimal import Decimal
 from django.db import models
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 
 
@@ -1479,3 +1483,951 @@ class SavingsEvent(models.Model):
             },
             idempotency_key=f"savings:{self.id}:created",
         )
+
+
+# ============================================================================
+# V2 (M4/M5) - ENERGY, AUTO SAVINGS, RISK/BAR
+# ============================================================================
+
+
+class EnergyTariff(models.Model):
+    """
+    Tarifa de Energia Elétrica.
+    
+    Define tarifas por distribuidora com suporte a:
+    - Horário de ponta e fora ponta
+    - Sistema de bandeiras tarifárias (verde, amarela, vermelha)
+    - Vigência para histórico de tarifas
+    
+    Exemplo:
+    - CEMIG Residencial B1: R$ 0.85/kWh fora ponta, R$ 1.45/kWh ponta
+    
+    Referências:
+    - [ENG-001] Energia (tarifa + custo diário)
+    """
+    
+    class BandeiraTarifaria(models.TextChoices):
+        VERDE = 'verde', 'Verde (sem acréscimo)'
+        AMARELA = 'amarela', 'Amarela'
+        VERMELHA_1 = 'vermelha_1', 'Vermelha Patamar 1'
+        VERMELHA_2 = 'vermelha_2', 'Vermelha Patamar 2'
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    # Identificação
+    name = models.CharField(
+        max_length=200,
+        verbose_name='Nome da Tarifa',
+        help_text='Nome descritivo (ex: CEMIG B3 Comercial)'
+    )
+    distributor = models.CharField(
+        max_length=100,
+        verbose_name='Distribuidora',
+        help_text='Nome da distribuidora (ex: CEMIG, CPFL, Light)'
+    )
+    tariff_class = models.CharField(
+        max_length=50,
+        verbose_name='Classe Tarifária',
+        help_text='Classe da tarifa (ex: B1, B3, A4)',
+        blank=True
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name='Descrição'
+    )
+    
+    # Tarifas base (R$/kWh)
+    rate_off_peak = models.DecimalField(
+        max_digits=10,
+        decimal_places=6,
+        validators=[MinValueValidator(Decimal('0.000000'))],
+        verbose_name='Tarifa Fora Ponta (R$/kWh)',
+        help_text='Valor por kWh no horário fora de ponta'
+    )
+    rate_peak = models.DecimalField(
+        max_digits=10,
+        decimal_places=6,
+        validators=[MinValueValidator(Decimal('0.000000'))],
+        verbose_name='Tarifa Ponta (R$/kWh)',
+        help_text='Valor por kWh no horário de ponta'
+    )
+    rate_intermediate = models.DecimalField(
+        max_digits=10,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.000000'))],
+        verbose_name='Tarifa Intermediária (R$/kWh)',
+        help_text='Valor por kWh no horário intermediário (se aplicável)'
+    )
+    
+    # Horário de ponta (formato HH:MM)
+    peak_start = models.TimeField(
+        verbose_name='Início Horário Ponta',
+        help_text='Hora de início do horário de ponta (ex: 18:00)'
+    )
+    peak_end = models.TimeField(
+        verbose_name='Fim Horário Ponta',
+        help_text='Hora de fim do horário de ponta (ex: 21:00)'
+    )
+    
+    # Bandeiras tarifárias (acréscimo por kWh)
+    flag_verde = models.DecimalField(
+        max_digits=10,
+        decimal_places=6,
+        default=Decimal('0.000000'),
+        verbose_name='Acréscimo Verde (R$/kWh)',
+        help_text='Acréscimo bandeira verde (normalmente 0)'
+    )
+    flag_amarela = models.DecimalField(
+        max_digits=10,
+        decimal_places=6,
+        default=Decimal('0.000000'),
+        verbose_name='Acréscimo Amarela (R$/kWh)',
+        help_text='Acréscimo bandeira amarela'
+    )
+    flag_vermelha_1 = models.DecimalField(
+        max_digits=10,
+        decimal_places=6,
+        default=Decimal('0.000000'),
+        verbose_name='Acréscimo Vermelha P1 (R$/kWh)',
+        help_text='Acréscimo bandeira vermelha patamar 1'
+    )
+    flag_vermelha_2 = models.DecimalField(
+        max_digits=10,
+        decimal_places=6,
+        default=Decimal('0.000000'),
+        verbose_name='Acréscimo Vermelha P2 (R$/kWh)',
+        help_text='Acréscimo bandeira vermelha patamar 2'
+    )
+    
+    # Vigência
+    effective_from = models.DateField(
+        verbose_name='Vigência Início',
+        help_text='Data de início da vigência desta tarifa'
+    )
+    effective_to = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Vigência Fim',
+        help_text='Data de fim da vigência (vazio = vigente)'
+    )
+    
+    # Moeda
+    currency = models.CharField(
+        max_length=3,
+        default='BRL',
+        verbose_name='Moeda'
+    )
+    
+    # Status
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='Ativa'
+    )
+    
+    # Auditoria
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_energy_tariffs',
+        verbose_name='Criado por'
+    )
+    
+    class Meta:
+        verbose_name = 'Tarifa de Energia'
+        verbose_name_plural = 'Tarifas de Energia'
+        ordering = ['-effective_from', 'distributor']
+        indexes = [
+            models.Index(fields=['distributor'], name='finance_etariff_distrib_idx'),
+            models.Index(fields=['tariff_class'], name='finance_etariff_class_idx'),
+            models.Index(fields=['effective_from', 'effective_to'], name='finance_etariff_vig_idx'),
+            models.Index(fields=['is_active'], name='finance_etariff_active_idx'),
+        ]
+
+    def __str__(self):
+        vigencia = f"desde {self.effective_from}"
+        if self.effective_to:
+            vigencia = f"{self.effective_from} a {self.effective_to}"
+        return f"{self.name} ({self.distributor}) - {vigencia}"
+    
+    def clean(self):
+        """Validação de vigência e horários."""
+        if self.effective_to and self.effective_from:
+            if self.effective_to < self.effective_from:
+                raise ValidationError({
+                    'effective_to': 'Data de fim deve ser posterior à data de início.'
+                })
+        
+        if self.peak_start and self.peak_end:
+            if self.peak_start == self.peak_end:
+                raise ValidationError({
+                    'peak_end': 'Horário de fim deve ser diferente do início.'
+                })
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def get_tariff_for_date(cls, distributor: str, date) -> 'EnergyTariff | None':
+        """
+        Retorna a tarifa vigente para uma distribuidora em uma data específica.
+        
+        Args:
+            distributor: Nome da distribuidora
+            date: Data para verificar vigência
+            
+        Returns:
+            EnergyTariff vigente ou None se não encontrado
+        """
+        return cls.objects.filter(
+            distributor=distributor,
+            is_active=True,
+            effective_from__lte=date
+        ).filter(
+            models.Q(effective_to__isnull=True) | models.Q(effective_to__gte=date)
+        ).order_by('-effective_from').first()
+    
+    def get_rate_for_time(self, time, bandeira: str = 'verde') -> Decimal:
+        """
+        Calcula a tarifa efetiva para um horário e bandeira específicos.
+        
+        Args:
+            time: Horário para verificar (datetime.time)
+            bandeira: Bandeira tarifária ('verde', 'amarela', 'vermelha_1', 'vermelha_2')
+            
+        Returns:
+            Tarifa efetiva em R$/kWh
+        """
+        # Determina se é horário de ponta
+        is_peak = False
+        if self.peak_start <= self.peak_end:
+            # Horário normal (ex: 18:00 - 21:00)
+            is_peak = self.peak_start <= time <= self.peak_end
+        else:
+            # Horário cruzando meia-noite (ex: 22:00 - 06:00)
+            is_peak = time >= self.peak_start or time <= self.peak_end
+        
+        # Tarifa base
+        base_rate = self.rate_peak if is_peak else self.rate_off_peak
+        
+        # Acréscimo de bandeira
+        flag_surcharge = {
+            'verde': self.flag_verde,
+            'amarela': self.flag_amarela,
+            'vermelha_1': self.flag_vermelha_1,
+            'vermelha_2': self.flag_vermelha_2,
+        }.get(bandeira, self.flag_verde)
+        
+        return base_rate + flag_surcharge
+
+
+class EnergyReading(models.Model):
+    """
+    Leitura de Energia (kWh).
+    
+    Registra consumo de energia por ativo, com:
+    - Origem: medidor real ou estimativa
+    - Vínculo com tarifa para cálculo de custo
+    - Suporte a períodos ponta/fora ponta
+    
+    Exemplo:
+    - Chiller #1: 450 kWh em 2024-01-15, medido
+    
+    Referências:
+    - [ENG-001] Energia (tarifa + custo diário)
+    """
+    
+    class Source(models.TextChoices):
+        METER = 'meter', 'Medidor'
+        ESTIMATE = 'estimate', 'Estimativa'
+        TELEMETRY = 'telemetry', 'Telemetria IoT'
+        MANUAL = 'manual', 'Entrada Manual'
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    # Relacionamentos
+    asset = models.ForeignKey(
+        'assets.Asset',
+        on_delete=models.CASCADE,
+        related_name='energy_readings',
+        verbose_name='Ativo'
+    )
+    cost_center = models.ForeignKey(
+        CostCenter,
+        on_delete=models.PROTECT,
+        related_name='energy_readings',
+        verbose_name='Centro de Custo'
+    )
+    tariff = models.ForeignKey(
+        EnergyTariff,
+        on_delete=models.PROTECT,
+        related_name='readings',
+        verbose_name='Tarifa Aplicada',
+        null=True,
+        blank=True,
+        help_text='Tarifa usada para cálculo (auto-preenchido se vazio)'
+    )
+    
+    # Dados de consumo
+    reading_date = models.DateField(
+        verbose_name='Data da Leitura',
+        help_text='Data do consumo registrado'
+    )
+    kwh_total = models.DecimalField(
+        max_digits=12,
+        decimal_places=3,
+        validators=[MinValueValidator(Decimal('0.000'))],
+        verbose_name='Consumo Total (kWh)',
+        help_text='Consumo total em quilowatt-hora'
+    )
+    kwh_peak = models.DecimalField(
+        max_digits=12,
+        decimal_places=3,
+        default=Decimal('0.000'),
+        validators=[MinValueValidator(Decimal('0.000'))],
+        verbose_name='Consumo Ponta (kWh)',
+        help_text='Consumo no horário de ponta'
+    )
+    kwh_off_peak = models.DecimalField(
+        max_digits=12,
+        decimal_places=3,
+        default=Decimal('0.000'),
+        validators=[MinValueValidator(Decimal('0.000'))],
+        verbose_name='Consumo Fora Ponta (kWh)',
+        help_text='Consumo no horário fora de ponta'
+    )
+    
+    # Origem da leitura
+    source = models.CharField(
+        max_length=20,
+        choices=Source.choices,
+        default=Source.MANUAL,
+        verbose_name='Origem'
+    )
+    
+    # Bandeira vigente no período
+    bandeira = models.CharField(
+        max_length=20,
+        choices=EnergyTariff.BandeiraTarifaria.choices,
+        default=EnergyTariff.BandeiraTarifaria.VERDE,
+        verbose_name='Bandeira Tarifária'
+    )
+    
+    # Custo calculado (preenchido pelo EnergyCostEngine)
+    calculated_cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='Custo Calculado (R$)',
+        help_text='Custo calculado automaticamente'
+    )
+    cost_transaction = models.ForeignKey(
+        CostTransaction,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='energy_readings',
+        verbose_name='Transação de Custo',
+        help_text='Transação no ledger (gerada automaticamente)'
+    )
+    
+    # Metadados
+    notes = models.TextField(
+        blank=True,
+        verbose_name='Observações'
+    )
+    meta = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name='Metadados',
+        help_text='Dados adicionais (ex: leitura anterior, fator de demanda)'
+    )
+    
+    # Auditoria
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_energy_readings',
+        verbose_name='Criado por'
+    )
+    
+    class Meta:
+        verbose_name = 'Leitura de Energia'
+        verbose_name_plural = 'Leituras de Energia'
+        ordering = ['-reading_date', 'asset']
+        constraints = [
+            # Uma leitura por ativo por dia
+            models.UniqueConstraint(
+                fields=['asset', 'reading_date'],
+                name='finance_ereading_unique_asset_date'
+            )
+        ]
+        indexes = [
+            models.Index(fields=['asset', 'reading_date'], name='finance_ereading_asset_idx'),
+            models.Index(fields=['reading_date'], name='finance_ereading_date_idx'),
+            models.Index(fields=['cost_center'], name='finance_ereading_cc_idx'),
+            models.Index(fields=['source'], name='finance_ereading_source_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.asset} - {self.kwh_total} kWh ({self.reading_date})"
+    
+    def clean(self):
+        """Validação de consumo ponta + fora ponta."""
+        total_parts = (self.kwh_peak or Decimal('0')) + (self.kwh_off_peak or Decimal('0'))
+        if total_parts > Decimal('0') and total_parts != self.kwh_total:
+            # Permite diferença se parciais foram informados
+            if self.kwh_peak > self.kwh_total or self.kwh_off_peak > self.kwh_total:
+                raise ValidationError({
+                    'kwh_peak': 'Consumo ponta não pode exceder o total.',
+                    'kwh_off_peak': 'Consumo fora ponta não pode exceder o total.'
+                })
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
+class Baseline(models.Model):
+    """
+    Baseline para Cálculo de Savings Automático.
+    
+    Representa uma linha de base antes/depois de uma intervenção para
+    calcular economia automaticamente. Típico para:
+    - Retrofit de equipamento
+    - Otimização de operação
+    - Troca de tecnologia
+    
+    Fluxo:
+    1. Registra baseline ANTES da intervenção (before_*)
+    2. Após período de estabilização, registra DEPOIS (after_*)
+    3. AutoSavingsEngine calcula economia e cria SavingsEvent
+    
+    Exemplo:
+    - Retrofit Chiller: 450 kWh/dia antes → 380 kWh/dia depois = 70 kWh/dia economia
+    
+    Referências:
+    - [SAV-001] Savings automático via baseline
+    """
+    
+    class BaselineType(models.TextChoices):
+        ENERGY = 'energy', 'Consumo de Energia'
+        RUNTIME = 'runtime', 'Tempo de Operação'
+        MAINTENANCE = 'maintenance', 'Frequência de Manutenção'
+        PERFORMANCE = 'performance', 'Desempenho'
+        CUSTOM = 'custom', 'Personalizado'
+    
+    class Status(models.TextChoices):
+        COLLECTING_BEFORE = 'collecting_before', 'Coletando Dados Antes'
+        INTERVENTION = 'intervention', 'Em Intervenção'
+        COLLECTING_AFTER = 'collecting_after', 'Coletando Dados Depois'
+        CALCULATED = 'calculated', 'Economia Calculada'
+        CANCELLED = 'cancelled', 'Cancelado'
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    # Relacionamentos
+    asset = models.ForeignKey(
+        'assets.Asset',
+        on_delete=models.CASCADE,
+        related_name='baselines',
+        verbose_name='Ativo'
+    )
+    cost_center = models.ForeignKey(
+        CostCenter,
+        on_delete=models.PROTECT,
+        related_name='baselines',
+        verbose_name='Centro de Custo'
+    )
+    work_order = models.ForeignKey(
+        'cmms.WorkOrder',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='baselines',
+        verbose_name='Ordem de Serviço',
+        help_text='OS da intervenção (se aplicável)'
+    )
+    
+    # Identificação
+    name = models.CharField(
+        max_length=200,
+        verbose_name='Nome',
+        help_text='Nome descritivo (ex: Retrofit Chiller #1 - Energia)'
+    )
+    baseline_type = models.CharField(
+        max_length=20,
+        choices=BaselineType.choices,
+        default=BaselineType.ENERGY,
+        verbose_name='Tipo de Baseline'
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name='Descrição da Intervenção'
+    )
+    
+    # Status
+    status = models.CharField(
+        max_length=30,
+        choices=Status.choices,
+        default=Status.COLLECTING_BEFORE,
+        verbose_name='Status'
+    )
+    
+    # Período ANTES da intervenção
+    before_start = models.DateField(
+        verbose_name='Início Período Antes',
+        help_text='Início da coleta de dados antes da intervenção'
+    )
+    before_end = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Fim Período Antes',
+        help_text='Fim da coleta de dados antes da intervenção'
+    )
+    
+    # Métricas ANTES
+    before_avg_value = models.DecimalField(
+        max_digits=12,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        verbose_name='Valor Médio Antes',
+        help_text='Valor médio no período antes (ex: kWh/dia)'
+    )
+    before_total_value = models.DecimalField(
+        max_digits=15,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        verbose_name='Valor Total Antes',
+        help_text='Valor total no período antes'
+    )
+    before_days = models.PositiveIntegerField(
+        default=0,
+        verbose_name='Dias Coletados Antes'
+    )
+    before_data_points = models.PositiveIntegerField(
+        default=0,
+        verbose_name='Pontos de Dados Antes'
+    )
+    
+    # Data da intervenção
+    intervention_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Data da Intervenção'
+    )
+    
+    # Período DEPOIS da intervenção
+    after_start = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Início Período Depois',
+        help_text='Início da coleta de dados depois da intervenção'
+    )
+    after_end = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Fim Período Depois',
+        help_text='Fim da coleta de dados depois da intervenção'
+    )
+    
+    # Métricas DEPOIS
+    after_avg_value = models.DecimalField(
+        max_digits=12,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        verbose_name='Valor Médio Depois',
+        help_text='Valor médio no período depois (ex: kWh/dia)'
+    )
+    after_total_value = models.DecimalField(
+        max_digits=15,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        verbose_name='Valor Total Depois',
+        help_text='Valor total no período depois'
+    )
+    after_days = models.PositiveIntegerField(
+        default=0,
+        verbose_name='Dias Coletados Depois'
+    )
+    after_data_points = models.PositiveIntegerField(
+        default=0,
+        verbose_name='Pontos de Dados Depois'
+    )
+    
+    # Economia calculada
+    savings_value = models.DecimalField(
+        max_digits=12,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        verbose_name='Economia por Período',
+        help_text='Economia calculada por período (ex: kWh/dia)'
+    )
+    savings_percent = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='Economia (%)',
+        help_text='Percentual de economia'
+    )
+    savings_annual_estimate = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='Economia Anual Estimada (R$)',
+        help_text='Projeção de economia anual em reais'
+    )
+    
+    # Link para SavingsEvent gerado
+    savings_event = models.ForeignKey(
+        SavingsEvent,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='baselines',
+        verbose_name='Evento de Economia',
+        help_text='SavingsEvent gerado automaticamente'
+    )
+    
+    # Unidade de medida
+    unit = models.CharField(
+        max_length=20,
+        default='kWh',
+        verbose_name='Unidade',
+        help_text='Unidade de medida (ex: kWh, horas, R$)'
+    )
+    
+    # Metadados
+    meta = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name='Metadados',
+        help_text='Dados adicionais (ex: configurações, parâmetros)'
+    )
+    
+    # Auditoria
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_baselines',
+        verbose_name='Criado por'
+    )
+    
+    class Meta:
+        verbose_name = 'Baseline'
+        verbose_name_plural = 'Baselines'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['asset'], name='finance_baseline_asset_idx'),
+            models.Index(fields=['cost_center'], name='finance_baseline_cc_idx'),
+            models.Index(fields=['status'], name='finance_baseline_status_idx'),
+            models.Index(fields=['baseline_type'], name='finance_baseline_type_idx'),
+            models.Index(fields=['work_order'], name='finance_baseline_wo_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.get_status_display()})"
+    
+    def clean(self):
+        """Validação de períodos."""
+        if self.before_end and self.before_start:
+            if self.before_end < self.before_start:
+                raise ValidationError({
+                    'before_end': 'Data de fim deve ser posterior à data de início.'
+                })
+        
+        if self.after_end and self.after_start:
+            if self.after_end < self.after_start:
+                raise ValidationError({
+                    'after_end': 'Data de fim deve ser posterior à data de início.'
+                })
+        
+        if self.intervention_date and self.before_end:
+            if self.intervention_date < self.before_end:
+                raise ValidationError({
+                    'intervention_date': 'Data da intervenção deve ser após o período antes.'
+                })
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+    
+    def calculate_savings(self) -> bool:
+        """
+        Calcula economia com base nos dados before/after.
+        
+        Returns:
+            True se cálculo foi bem sucedido
+        """
+        if not self.before_avg_value or not self.after_avg_value:
+            return False
+        
+        # Economia = antes - depois (positivo = economia)
+        self.savings_value = self.before_avg_value - self.after_avg_value
+        
+        # Percentual
+        if self.before_avg_value > 0:
+            self.savings_percent = (
+                (self.savings_value / self.before_avg_value) * 100
+            )
+        
+        return True
+
+
+class RiskSnapshot(models.Model):
+    """
+    Snapshot de Risco Financeiro por Ativo.
+    
+    Captura um momento no tempo do risco financeiro de um ativo,
+    usado para cálculo de BAR (Budget-at-Risk) e priorização.
+    
+    Fórmula de risco:
+    risk_score = failure_probability × (estimated_repair_cost + downtime_cost)
+    
+    BAR = Σ(risk_score) por centro de custo
+    
+    Exemplo:
+    - Chiller #1: 15% chance de falha × R$ 50.000 = R$ 7.500 BAR
+    
+    Referências:
+    - [RSK-001] BAR/Forecast (RiskSnapshot)
+    """
+    
+    class RiskLevel(models.TextChoices):
+        LOW = 'low', 'Baixo'
+        MEDIUM = 'medium', 'Médio'
+        HIGH = 'high', 'Alto'
+        CRITICAL = 'critical', 'Crítico'
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    # Relacionamentos
+    asset = models.ForeignKey(
+        'assets.Asset',
+        on_delete=models.CASCADE,
+        related_name='risk_snapshots',
+        verbose_name='Ativo'
+    )
+    cost_center = models.ForeignKey(
+        CostCenter,
+        on_delete=models.PROTECT,
+        related_name='risk_snapshots',
+        verbose_name='Centro de Custo'
+    )
+    
+    # Data do snapshot
+    snapshot_date = models.DateField(
+        verbose_name='Data do Snapshot',
+        help_text='Data em que o risco foi calculado'
+    )
+    
+    # Probabilidade de falha
+    failure_probability = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        validators=[
+            MinValueValidator(Decimal('0.0000')),
+            MaxValueValidator(Decimal('1.0000'))
+        ],
+        verbose_name='Probabilidade de Falha',
+        help_text='Probabilidade de falha (0-1, ex: 0.15 = 15%)'
+    )
+    
+    # MTBF (Mean Time Between Failures)
+    mtbf_days = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='MTBF (dias)',
+        help_text='Tempo médio entre falhas em dias'
+    )
+    
+    # Custos estimados
+    estimated_repair_cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Custo Estimado de Reparo (R$)',
+        help_text='Custo estimado para reparar em caso de falha'
+    )
+    estimated_downtime_hours = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Downtime Estimado (horas)',
+        help_text='Tempo estimado de parada em horas'
+    )
+    downtime_cost_per_hour = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Custo Downtime (R$/hora)',
+        help_text='Custo por hora de parada'
+    )
+    
+    # Custos calculados
+    downtime_cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name='Custo Total Downtime (R$)',
+        help_text='= downtime_hours × cost_per_hour'
+    )
+    total_impact_cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name='Impacto Total (R$)',
+        help_text='= repair_cost + downtime_cost'
+    )
+    
+    # Risk Score e BAR contribution
+    risk_score = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name='Risk Score (R$)',
+        help_text='= probability × total_impact'
+    )
+    
+    # Nível de risco (calculado)
+    risk_level = models.CharField(
+        max_length=20,
+        choices=RiskLevel.choices,
+        default=RiskLevel.LOW,
+        verbose_name='Nível de Risco'
+    )
+    
+    # Fonte dos dados
+    data_source = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='Fonte dos Dados',
+        help_text='Origem dos dados (ex: histórico, telemetria, especialista)'
+    )
+    
+    # Metadados
+    notes = models.TextField(
+        blank=True,
+        verbose_name='Observações'
+    )
+    meta = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name='Metadados',
+        help_text='Dados adicionais (ex: fatores considerados, histórico)'
+    )
+    
+    # Auditoria
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_risk_snapshots',
+        verbose_name='Criado por'
+    )
+    
+    class Meta:
+        verbose_name = 'Snapshot de Risco'
+        verbose_name_plural = 'Snapshots de Risco'
+        ordering = ['-snapshot_date', '-risk_score']
+        constraints = [
+            # Um snapshot por ativo por dia
+            models.UniqueConstraint(
+                fields=['asset', 'snapshot_date'],
+                name='finance_risksnapshot_unique_asset_date'
+            )
+        ]
+        indexes = [
+            models.Index(fields=['asset', 'snapshot_date'], name='finance_risk_asset_idx'),
+            models.Index(fields=['snapshot_date'], name='finance_risk_date_idx'),
+            models.Index(fields=['cost_center'], name='finance_risk_cc_idx'),
+            models.Index(fields=['risk_level'], name='finance_risk_level_idx'),
+            models.Index(fields=['risk_score'], name='finance_risk_score_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.asset} - {self.snapshot_date} - R$ {self.risk_score}"
+    
+    def save(self, *args, **kwargs):
+        # Calcula campos derivados antes de salvar
+        self.calculate_derived_fields()
+        super().save(*args, **kwargs)
+    
+    def calculate_derived_fields(self):
+        """Calcula campos derivados (downtime_cost, total_impact, risk_score, risk_level)."""
+        # Custo de downtime
+        self.downtime_cost = (
+            self.estimated_downtime_hours * self.downtime_cost_per_hour
+        )
+        
+        # Impacto total
+        self.total_impact_cost = self.estimated_repair_cost + self.downtime_cost
+        
+        # Risk Score
+        self.risk_score = self.failure_probability * self.total_impact_cost
+        
+        # Determina nível de risco
+        self.risk_level = self._determine_risk_level()
+    
+    def _determine_risk_level(self) -> str:
+        """
+        Determina o nível de risco baseado no score e probabilidade.
+        
+        Critérios:
+        - CRITICAL: risk_score > 50000 ou probability > 0.5
+        - HIGH: risk_score > 20000 ou probability > 0.3
+        - MEDIUM: risk_score > 5000 ou probability > 0.15
+        - LOW: demais casos
+        """
+        if self.risk_score > 50000 or self.failure_probability > Decimal('0.5'):
+            return self.RiskLevel.CRITICAL
+        elif self.risk_score > 20000 or self.failure_probability > Decimal('0.3'):
+            return self.RiskLevel.HIGH
+        elif self.risk_score > 5000 or self.failure_probability > Decimal('0.15'):
+            return self.RiskLevel.MEDIUM
+        else:
+            return self.RiskLevel.LOW

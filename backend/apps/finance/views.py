@@ -1429,3 +1429,430 @@ class BudgetSummaryViewSet(viewsets.ViewSet):
             })
         
         return result
+
+
+# ============================================================================
+# V2 (M4/M5) - Energy, Baseline, Risk ViewSets
+# ============================================================================
+
+from .models import EnergyTariff, EnergyReading, Baseline, RiskSnapshot
+from .serializers import (
+    EnergyTariffSerializer,
+    EnergyTariffListSerializer,
+    EnergyReadingSerializer,
+    EnergyReadingCreateSerializer,
+    BaselineSerializer,
+    BaselineCreateSerializer,
+    BaselineTransitionSerializer,
+    RiskSnapshotSerializer,
+    RiskSnapshotCreateSerializer,
+    BARSummarySerializer,
+    BARCostCenterSerializer,
+    BARForecastSerializer,
+)
+from .filters import (
+    EnergyTariffFilter,
+    EnergyReadingFilter,
+    BaselineFilter,
+    RiskSnapshotFilter,
+)
+
+
+class EnergyTariffViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para Tarifas de Energia.
+    
+    Endpoints:
+    - GET /api/finance/energy-tariffs/ - Listar
+    - POST /api/finance/energy-tariffs/ - Criar
+    - GET /api/finance/energy-tariffs/{id}/ - Detalhes
+    - PUT/PATCH /api/finance/energy-tariffs/{id}/ - Atualizar
+    - DELETE /api/finance/energy-tariffs/{id}/ - Excluir
+    - GET /api/finance/energy-tariffs/current/ - Tarifas vigentes
+    - GET /api/finance/energy-tariffs/by-distributor/?distributor=CEMIG - Por distribuidora
+    """
+    queryset = EnergyTariff.objects.all()
+    serializer_class = EnergyTariffSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = EnergyTariffFilter
+    search_fields = ['name', 'distributor', 'tariff_class', 'description']
+    ordering_fields = ['distributor', 'effective_from', 'rate_off_peak', 'created_at']
+    ordering = ['-effective_from']
+    
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return EnergyTariffListSerializer
+        return EnergyTariffSerializer
+    
+    @action(detail=False, methods=['get'])
+    def current(self, request):
+        """Retorna apenas tarifas vigentes hoje."""
+        today = timezone.now().date()
+        tariffs = self.queryset.filter(
+            is_active=True,
+            effective_from__lte=today
+        ).filter(
+            Q(effective_to__isnull=True) | Q(effective_to__gte=today)
+        )
+        serializer = self.get_serializer(tariffs, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def by_distributor(self, request):
+        """Retorna tarifas filtradas por distribuidora."""
+        distributor = request.query_params.get('distributor')
+        if not distributor:
+            return Response(
+                {'error': 'Parâmetro distributor é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        tariffs = self.queryset.filter(distributor__icontains=distributor)
+        serializer = self.get_serializer(tariffs, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def calculate_rate(self, request, pk=None):
+        """Calcula taxa efetiva para um horário e bandeira."""
+        tariff = self.get_object()
+        
+        from datetime import time as time_type
+        hour = int(request.query_params.get('hour', 12))
+        minute = int(request.query_params.get('minute', 0))
+        bandeira = request.query_params.get('bandeira', 'verde')
+        
+        rate_time = time_type(hour, minute)
+        effective_rate = tariff.get_rate_for_time(rate_time, bandeira)
+        
+        return Response({
+            'tariff_id': str(tariff.id),
+            'tariff_name': tariff.name,
+            'time': f'{hour:02d}:{minute:02d}',
+            'bandeira': bandeira,
+            'is_peak': tariff.peak_start <= rate_time <= tariff.peak_end if tariff.peak_start <= tariff.peak_end else rate_time >= tariff.peak_start or rate_time <= tariff.peak_end,
+            'effective_rate': float(effective_rate),
+        })
+
+
+class EnergyReadingViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para Leituras de Energia.
+    
+    Endpoints:
+    - GET /api/finance/energy-readings/ - Listar
+    - POST /api/finance/energy-readings/ - Criar (com cálculo automático)
+    - GET /api/finance/energy-readings/{id}/ - Detalhes
+    - PUT/PATCH /api/finance/energy-readings/{id}/ - Atualizar
+    - DELETE /api/finance/energy-readings/{id}/ - Excluir
+    - POST /api/finance/energy-readings/{id}/process/ - Processar custo
+    - GET /api/finance/energy-readings/summary/ - Resumo
+    """
+    queryset = EnergyReading.objects.select_related(
+        'asset', 'cost_center', 'tariff', 'cost_transaction'
+    )
+    serializer_class = EnergyReadingSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = EnergyReadingFilter
+    search_fields = ['notes']
+    ordering_fields = ['reading_date', 'kwh_total', 'calculated_cost', 'created_at']
+    ordering = ['-reading_date']
+    
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return EnergyReadingCreateSerializer
+        return EnergyReadingSerializer
+    
+    @action(detail=True, methods=['post'])
+    def process(self, request, pk=None):
+        """Processa uma leitura e cria transação no ledger."""
+        reading = self.get_object()
+        
+        if reading.cost_transaction:
+            return Response(
+                {'error': 'Leitura já processada', 'transaction_id': str(reading.cost_transaction_id)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        from .energy_engine import EnergyCostEngine
+        from django.db import connection
+        
+        tenant = connection.tenant
+        result = EnergyCostEngine.process_reading(
+            reading,
+            tenant_id=str(tenant.id) if tenant else None,
+            user=request.user,
+        )
+        
+        return Response(result)
+    
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """Resumo de consumo de energia."""
+        from django.db.models import Sum, Avg, Count
+        from datetime import date
+        
+        # Filtros
+        cost_center_id = request.query_params.get('cost_center_id')
+        asset_id = request.query_params.get('asset_id')
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        
+        qs = self.queryset
+        
+        if cost_center_id:
+            qs = qs.filter(cost_center_id=cost_center_id)
+        if asset_id:
+            qs = qs.filter(asset_id=asset_id)
+        if start_date:
+            qs = qs.filter(reading_date__gte=start_date)
+        if end_date:
+            qs = qs.filter(reading_date__lte=end_date)
+        
+        aggregation = qs.aggregate(
+            total_kwh=Sum('kwh_total'),
+            total_cost=Sum('calculated_cost'),
+            avg_daily_kwh=Avg('kwh_total'),
+            readings_count=Count('id'),
+        )
+        
+        return Response({
+            'total_kwh': float(aggregation['total_kwh'] or 0),
+            'total_cost': float(aggregation['total_cost'] or 0),
+            'avg_daily_kwh': float(aggregation['avg_daily_kwh'] or 0),
+            'readings_count': aggregation['readings_count'] or 0,
+        })
+
+
+class BaselineViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para Baselines de Savings Automático.
+    
+    Endpoints:
+    - GET /api/finance/baselines/ - Listar
+    - POST /api/finance/baselines/ - Criar
+    - GET /api/finance/baselines/{id}/ - Detalhes
+    - PUT/PATCH /api/finance/baselines/{id}/ - Atualizar
+    - DELETE /api/finance/baselines/{id}/ - Excluir
+    - POST /api/finance/baselines/{id}/transition/ - Transição de status
+    - POST /api/finance/baselines/{id}/collect/ - Coletar dados
+    - POST /api/finance/baselines/{id}/calculate/ - Calcular economia
+    """
+    queryset = Baseline.objects.select_related(
+        'asset', 'cost_center', 'work_order', 'savings_event'
+    )
+    serializer_class = BaselineSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = BaselineFilter
+    search_fields = ['name', 'description']
+    ordering_fields = ['created_at', 'status', 'savings_percent']
+    ordering = ['-created_at']
+    
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return BaselineCreateSerializer
+        return BaselineSerializer
+    
+    @action(detail=True, methods=['post'])
+    def transition(self, request, pk=None):
+        """Executa transição de status no baseline."""
+        baseline = self.get_object()
+        serializer = BaselineTransitionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        action_name = serializer.validated_data['action']
+        
+        from .auto_savings_engine import AutoSavingsEngine
+        from django.db import connection
+        
+        tenant = connection.tenant
+        
+        if action_name == 'start_intervention':
+            intervention_date = serializer.validated_data.get('intervention_date')
+            AutoSavingsEngine.start_intervention(baseline, intervention_date)
+            return Response({'status': 'intervention_started'})
+        
+        elif action_name == 'start_after':
+            start_date = serializer.validated_data.get('after_start_date')
+            AutoSavingsEngine.start_after_collection(baseline, start_date)
+            return Response({'status': 'after_collection_started'})
+        
+        elif action_name == 'calculate':
+            result = AutoSavingsEngine.calculate_savings(
+                baseline,
+                tenant_id=str(tenant.id) if tenant else None,
+                user=request.user,
+            )
+            return Response(result)
+        
+        elif action_name == 'cancel':
+            baseline.status = Baseline.Status.CANCELLED
+            baseline.save(update_fields=['status', 'updated_at'])
+            return Response({'status': 'cancelled'})
+        
+        return Response({'error': 'Ação desconhecida'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['post'])
+    def collect(self, request, pk=None):
+        """Coleta dados para o baseline."""
+        baseline = self.get_object()
+        
+        from .auto_savings_engine import AutoSavingsEngine
+        from datetime import date
+        
+        end_date = request.data.get('end_date')
+        if end_date:
+            end_date = date.fromisoformat(end_date)
+        
+        if baseline.status == Baseline.Status.COLLECTING_BEFORE:
+            result = AutoSavingsEngine.collect_before_data(baseline, end_date)
+        elif baseline.status == Baseline.Status.COLLECTING_AFTER:
+            result = AutoSavingsEngine.collect_after_data(baseline, end_date)
+        else:
+            return Response(
+                {'error': f'Status {baseline.status} não permite coleta'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        return Response(result)
+    
+    @action(detail=True, methods=['post'])
+    def calculate(self, request, pk=None):
+        """Calcula economia do baseline."""
+        baseline = self.get_object()
+        
+        from .auto_savings_engine import AutoSavingsEngine
+        from django.db import connection
+        
+        tenant = connection.tenant
+        result = AutoSavingsEngine.calculate_savings(
+            baseline,
+            tenant_id=str(tenant.id) if tenant else None,
+            user=request.user,
+        )
+        
+        return Response(result)
+
+
+class RiskSnapshotViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para Snapshots de Risco.
+    
+    Endpoints:
+    - GET /api/finance/risk-snapshots/ - Listar
+    - POST /api/finance/risk-snapshots/ - Criar
+    - GET /api/finance/risk-snapshots/{id}/ - Detalhes
+    - PUT/PATCH /api/finance/risk-snapshots/{id}/ - Atualizar
+    - DELETE /api/finance/risk-snapshots/{id}/ - Excluir
+    - GET /api/finance/risk-snapshots/by-level/?level=critical - Por nível
+    """
+    queryset = RiskSnapshot.objects.select_related('asset', 'cost_center')
+    serializer_class = RiskSnapshotSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = RiskSnapshotFilter
+    search_fields = ['notes', 'data_source']
+    ordering_fields = ['snapshot_date', 'risk_score', 'failure_probability', 'created_at']
+    ordering = ['-snapshot_date', '-risk_score']
+    
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return RiskSnapshotCreateSerializer
+        return RiskSnapshotSerializer
+    
+    def create(self, request, *args, **kwargs):
+        """Cria snapshot e retorna com campos derivados."""
+        create_serializer = self.get_serializer(data=request.data)
+        create_serializer.is_valid(raise_exception=True)
+        instance = create_serializer.save()
+        
+        # Retornar com serializer completo (incluindo campos derivados)
+        response_serializer = RiskSnapshotSerializer(instance)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=False, methods=['get'])
+    def by_level(self, request):
+        """Lista snapshots por nível de risco."""
+        level = request.query_params.get('level')
+        if not level:
+            return Response(
+                {'error': 'Parâmetro level é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        from .bar_calculator import BARCalculator
+        
+        cost_center_id = request.query_params.get('cost_center_id')
+        cost_center = None
+        if cost_center_id:
+            cost_center = CostCenter.objects.filter(id=cost_center_id).first()
+        
+        assets = BARCalculator.get_assets_by_risk_level(level, cost_center)
+        return Response(assets)
+
+
+class BARViewSet(viewsets.ViewSet):
+    """
+    ViewSet para Budget-at-Risk (BAR).
+    
+    Endpoints:
+    - GET /api/finance/bar/summary/ - Resumo geral
+    - GET /api/finance/bar/cost-center/{id}/ - BAR por centro de custo
+    - GET /api/finance/bar/forecast/ - Projeção
+    """
+    permission_classes = [IsAuthenticated]
+    
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """Retorna resumo consolidado de BAR."""
+        from .bar_calculator import BARCalculator
+        from datetime import date
+        
+        snapshot_date_str = request.query_params.get('snapshot_date')
+        snapshot_date = date.fromisoformat(snapshot_date_str) if snapshot_date_str else None
+        top_n = int(request.query_params.get('top_n', 10))
+        
+        result = BARCalculator.calculate_bar_summary(snapshot_date, top_n)
+        serializer = BARSummarySerializer(result)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], url_path='cost-center/(?P<cost_center_id>[^/.]+)')
+    def cost_center(self, request, cost_center_id=None):
+        """Retorna BAR para um centro de custo específico."""
+        from .bar_calculator import BARCalculator
+        from datetime import date
+        
+        cost_center = CostCenter.objects.filter(id=cost_center_id).first()
+        if not cost_center:
+            return Response(
+                {'error': 'Centro de custo não encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        snapshot_date_str = request.query_params.get('snapshot_date')
+        snapshot_date = date.fromisoformat(snapshot_date_str) if snapshot_date_str else None
+        include_children = request.query_params.get('include_children', 'true').lower() == 'true'
+        
+        result = BARCalculator.calculate_bar_for_cost_center(
+            cost_center, snapshot_date, include_children
+        )
+        serializer = BARCostCenterSerializer(result)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def forecast(self, request):
+        """Retorna projeção de BAR."""
+        from .bar_calculator import BARCalculator
+        
+        cost_center_id = request.query_params.get('cost_center_id')
+        cost_center = None
+        if cost_center_id:
+            cost_center = CostCenter.objects.filter(id=cost_center_id).first()
+        
+        months_ahead = int(request.query_params.get('months', 3))
+        
+        result = BARCalculator.forecast_bar(cost_center, months_ahead)
+        serializer = BARForecastSerializer(result)
+        return Response(serializer.data)
