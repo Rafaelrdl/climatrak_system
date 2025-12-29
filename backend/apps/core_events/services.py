@@ -74,8 +74,15 @@ class EventPublisher:
         # Normalizar UUIDs
         if isinstance(tenant_id, str):
             tenant_id = uuid.UUID(tenant_id)
+        
+        # Converter aggregate_id para UUID
+        # Suporta: UUID, string UUID, ou integer (converte para UUID namespace)
         if isinstance(aggregate_id, str):
             aggregate_id = uuid.UUID(aggregate_id)
+        elif isinstance(aggregate_id, int):
+            # Converter integer para UUID usando namespace determinístico
+            # Isso garante que o mesmo ID sempre gere o mesmo UUID
+            aggregate_id = uuid.uuid5(uuid.NAMESPACE_OID, str(aggregate_id))
         
         # Gerar timestamps
         now = occurred_at or timezone.now()
@@ -152,8 +159,12 @@ class EventPublisher:
         # Normalizar UUIDs
         if isinstance(tenant_id, str):
             tenant_id = uuid.UUID(tenant_id)
+        
+        # Converter aggregate_id para UUID
         if isinstance(aggregate_id, str):
             aggregate_id = uuid.UUID(aggregate_id)
+        elif isinstance(aggregate_id, int):
+            aggregate_id = uuid.uuid5(uuid.NAMESPACE_OID, str(aggregate_id))
         
         # Verificar se já existe
         existing = OutboxEvent.objects.filter(

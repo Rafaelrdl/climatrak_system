@@ -1,22 +1,27 @@
 """
 Tests for work_order.closed event publication (FIN-003)
+
+NOTA: Usa django_tenants.test.cases.TenantTestCase para garantir que os testes
+rodem em um schema de tenant isolado (modelos cmms e finance são tenant-specific).
 """
 import json
 import uuid
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
-from django.test import TestCase, override_settings
+from django.test import override_settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django_tenants.test.cases import TenantTestCase
+from django_tenants.test.client import TenantClient
 
 from apps.cmms.models import (
-    Asset,
     WorkOrder,
     TimeEntry,
     PartUsage,
     ExternalCost,
 )
+from apps.assets.models import Asset
 from apps.cmms.services import WorkOrderService
 from apps.finance.models import CostCenter
 from apps.core_events.models import OutboxEvent
@@ -24,11 +29,17 @@ from apps.core_events.models import OutboxEvent
 User = get_user_model()
 
 
-class WorkOrderEventTestCase(TestCase):
-    """Base test case with common setup for work order event tests."""
+class WorkOrderEventTestCase(TenantTestCase):
+    """Base test case with common setup for work order event tests.
+    
+    Herda de TenantTestCase para criar automaticamente um tenant de teste
+    e executar os testes dentro desse schema.
+    """
 
     def setUp(self):
         """Set up test data."""
+        super().setUp()
+        
         # Create user
         self.user = User.objects.create_user(
             username='testuser',
@@ -43,17 +54,26 @@ class WorkOrderEventTestCase(TestCase):
             is_active=True
         )
 
+        # Create site (required for Asset)
+        from apps.assets.models import Site
+        self.site = Site.objects.create(
+            name='Hospital Central',
+            company='TrakSense Healthcare',
+            timezone='America/Sao_Paulo'
+        )
+
         # Create asset
         self.asset = Asset.objects.create(
             name='Chiller 01',
             tag='CH-001',
-            status='OPERATIONAL'
+            site=self.site,
+            asset_type='CHILLER',
+            status='OK'
         )
 
-        # Create work order
+        # Create work order (WorkOrder usa 'description', não 'title')
         self.work_order = WorkOrder.objects.create(
-            title='Manutenção Preventiva Chiller',
-            description='Troca de filtros e verificação geral',
+            description='Manutenção Preventiva Chiller - Troca de filtros e verificação geral',
             type='PREVENTIVE',
             priority='MEDIUM',
             status='OPEN',
@@ -101,6 +121,8 @@ class WorkOrderEventTestCase(TestCase):
             invoice_number='NF-2024-001'
         )
 
+        # Usar um UUID fixo para tenant_id nos eventos 
+        # (OutboxEvent.tenant_id é UUIDField, não relacionado ao Tenant.id integer)
         self.tenant_id = str(uuid.uuid4())
 
 
@@ -125,10 +147,12 @@ class WorkOrderServiceCloseTests(WorkOrderEventTestCase):
 
         # Verify OutboxEvent exists
         event = OutboxEvent.objects.get(id=result['event_id'])
-        self.assertEqual(event.event_type, 'work_order.closed')
+        self.assertEqual(event.event_name, 'work_order.closed')
         self.assertEqual(event.aggregate_type, 'work_order')
-        self.assertEqual(str(event.aggregate_id), str(self.work_order.id))
-        self.assertEqual(event.tenant_id, self.tenant_id)
+        # aggregate_id é convertido de integer para UUID via uuid5
+        expected_uuid = uuid.uuid5(uuid.NAMESPACE_OID, str(self.work_order.id))
+        self.assertEqual(event.aggregate_id, expected_uuid)
+        self.assertEqual(str(event.tenant_id), self.tenant_id)
         self.assertEqual(event.status, 'pending')
 
     def test_close_work_order_event_payload_complete(self):
@@ -140,33 +164,36 @@ class WorkOrderServiceCloseTests(WorkOrderEventTestCase):
 
         event = OutboxEvent.objects.get(id=result['event_id'])
         payload = event.payload
+        
+        # Os dados específicos estão em payload['data'] (envelope pattern)
+        data = payload['data']
 
         # Verify required fields
-        self.assertEqual(payload['work_order_id'], str(self.work_order.id))
-        self.assertEqual(payload['asset_id'], str(self.asset.id))
-        self.assertEqual(payload['cost_center_id'], str(self.cost_center.id))
-        self.assertEqual(payload['category'], 'preventive')
+        self.assertEqual(data['work_order_id'], str(self.work_order.id))
+        self.assertEqual(data['asset_id'], str(self.asset.id))
+        self.assertEqual(data['cost_center_id'], str(self.cost_center.id))
+        self.assertEqual(data['category'], 'preventive')
 
         # Verify labor entries
-        self.assertIn('labor', payload)
-        self.assertEqual(len(payload['labor']), 2)
+        self.assertIn('labor', data)
+        self.assertEqual(len(data['labor']), 2)
 
-        labor_roles = {entry['role'] for entry in payload['labor']}
+        labor_roles = {entry['role'] for entry in data['labor']}
         self.assertIn('Técnico HVAC', labor_roles)
         self.assertIn('Técnico Sênior', labor_roles)
 
         # Verify parts entries
-        self.assertIn('parts', payload)
-        self.assertEqual(len(payload['parts']), 1)
-        self.assertEqual(payload['parts'][0]['part_name'], 'Filtro de Óleo')
-        self.assertEqual(float(payload['parts'][0]['qty']), 2.0)
-        self.assertEqual(float(payload['parts'][0]['unit_cost']), 120.00)
+        self.assertIn('parts', data)
+        self.assertEqual(len(data['parts']), 1)
+        self.assertEqual(data['parts'][0]['part_name'], 'Filtro de Óleo')
+        self.assertEqual(float(data['parts'][0]['qty']), 2.0)
+        self.assertEqual(float(data['parts'][0]['unit_cost']), 120.00)
 
         # Verify third_party entries
-        self.assertIn('third_party', payload)
-        self.assertEqual(len(payload['third_party']), 1)
-        self.assertEqual(payload['third_party'][0]['description'], 'Calibração de sensores')
-        self.assertEqual(float(payload['third_party'][0]['amount']), 800.00)
+        self.assertIn('third_party', data)
+        self.assertEqual(len(data['third_party']), 1)
+        self.assertEqual(data['third_party'][0]['description'], 'Calibração de sensores')
+        self.assertEqual(float(data['third_party'][0]['amount']), 800.00)
 
     def test_close_work_order_idempotency(self):
         """Closing same work order twice should not create duplicate events."""
@@ -189,10 +216,11 @@ class WorkOrderServiceCloseTests(WorkOrderEventTestCase):
         self.assertIn('já está concluída', str(context.exception))
 
         # Should only have one event
+        expected_uuid = uuid.uuid5(uuid.NAMESPACE_OID, str(self.work_order.id))
         events = OutboxEvent.objects.filter(
             aggregate_type='work_order',
-            aggregate_id=self.work_order.id,
-            event_type='work_order.closed'
+            aggregate_id=expected_uuid,
+            event_name='work_order.closed'
         )
         self.assertEqual(events.count(), 1)
 
@@ -208,13 +236,14 @@ class WorkOrderServiceCloseTests(WorkOrderEventTestCase):
         )
 
         event = OutboxEvent.objects.get(id=result['event_id'])
-        self.assertIsNone(event.payload.get('cost_center_id'))
+        data = event.payload.get('data', {})
+        self.assertIsNone(data.get('cost_center_id'))
 
     def test_close_work_order_empty_costs(self):
         """Work order without any costs should have empty arrays in payload."""
         # Create a new work order without any costs
         empty_wo = WorkOrder.objects.create(
-            title='OS Simples',
+            description='OS Simples para teste',
             type='CORRECTIVE',
             priority='LOW',
             status='OPEN',
@@ -228,11 +257,11 @@ class WorkOrderServiceCloseTests(WorkOrderEventTestCase):
         )
 
         event = OutboxEvent.objects.get(id=result['event_id'])
-        payload = event.payload
+        data = event.payload.get('data', {})
 
-        self.assertEqual(payload['labor'], [])
-        self.assertEqual(payload['parts'], [])
-        self.assertEqual(payload['third_party'], [])
+        self.assertEqual(data.get('labor', []), [])
+        self.assertEqual(data.get('parts', []), [])
+        self.assertEqual(data.get('third_party', []), [])
 
 
 class WorkOrderCostSummaryTests(WorkOrderEventTestCase):
@@ -257,7 +286,7 @@ class WorkOrderCostSummaryTests(WorkOrderEventTestCase):
     def test_cost_summary_empty_work_order(self):
         """Cost summary for work order with no costs should be zero."""
         empty_wo = WorkOrder.objects.create(
-            title='OS Vazia',
+            description='OS Vazia para teste',
             type='CORRECTIVE',
             priority='LOW',
             status='OPEN',
@@ -319,8 +348,11 @@ class WorkOrderEventPayloadFormatTests(WorkOrderEventTestCase):
 
         event = OutboxEvent.objects.get(id=result['event_id'])
         payload = event.payload
+        
+        # Os dados específicos estão em payload['data'] (envelope pattern)
+        data = payload.get('data', {})
 
-        # Contract requires these top-level fields
+        # Contract requires these fields in data
         required_fields = [
             'work_order_id',
             'asset_id',
@@ -331,23 +363,23 @@ class WorkOrderEventPayloadFormatTests(WorkOrderEventTestCase):
             'third_party'
         ]
         for field in required_fields:
-            self.assertIn(field, payload, f"Missing required field: {field}")
+            self.assertIn(field, data, f"Missing required field: {field}")
 
         # Labor entry format
-        for labor in payload['labor']:
+        for labor in data['labor']:
             self.assertIn('role', labor)
             self.assertIn('hours', labor)
             self.assertIsInstance(labor['hours'], (int, float))
 
         # Parts entry format
-        for part in payload['parts']:
+        for part in data['parts']:
             self.assertIn('qty', part)
             self.assertIn('unit_cost', part)
             self.assertIsInstance(part['qty'], (int, float))
             self.assertIsInstance(part['unit_cost'], (int, float))
 
         # Third party entry format
-        for tp in payload['third_party']:
+        for tp in data['third_party']:
             self.assertIn('description', tp)
             self.assertIn('amount', tp)
             self.assertIsInstance(tp['amount'], (int, float))
@@ -363,10 +395,12 @@ class WorkOrderEventPayloadFormatTests(WorkOrderEventTestCase):
 
         # Envelope fields
         self.assertIsNotNone(event.id)
-        self.assertEqual(event.event_type, 'work_order.closed')
+        self.assertEqual(event.event_name, 'work_order.closed')
         self.assertEqual(event.aggregate_type, 'work_order')
-        self.assertEqual(str(event.aggregate_id), str(self.work_order.id))
-        self.assertEqual(event.tenant_id, self.tenant_id)
+        # aggregate_id é convertido de integer para UUID via uuid5
+        expected_uuid = uuid.uuid5(uuid.NAMESPACE_OID, str(self.work_order.id))
+        self.assertEqual(event.aggregate_id, expected_uuid)
+        self.assertEqual(str(event.tenant_id), self.tenant_id)
         self.assertIsNotNone(event.created_at)
         self.assertEqual(event.status, 'pending')
         self.assertIsNotNone(event.idempotency_key)

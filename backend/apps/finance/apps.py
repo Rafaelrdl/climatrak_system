@@ -16,3 +16,13 @@ class FinanceConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'apps.finance'
     verbose_name = 'Finance - Orçamento Vivo'
+
+    def ready(self):
+        """
+        Hook chamado quando o app é carregado.
+        
+        Registra os handlers de eventos do Cost Engine.
+        """
+        # Importar handlers para registrar no dispatcher
+        # Isso garante que @register_event_handler seja executado
+        from . import handlers  # noqa: F401
