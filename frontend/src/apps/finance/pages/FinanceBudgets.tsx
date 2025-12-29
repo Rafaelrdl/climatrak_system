@@ -440,7 +440,6 @@ function CreateEnvelopeDialog({ budgetPlanId, open, onOpenChange }: CreateEnvelo
   const [name, setName] = useState('');
   const [category, setCategory] = useState<TransactionCategory>('preventive');
   const [costCenterId, setCostCenterId] = useState('');
-  const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   
   const { data: costCenters } = useCostCenters();
@@ -453,7 +452,7 @@ function CreateEnvelopeDialog({ budgetPlanId, open, onOpenChange }: CreateEnvelo
         name,
         category,
         cost_center: costCenterId,
-        amount: Number(amount) || 0,
+        amount: 0,
         currency: 'BRL',
         description,
       });
@@ -462,7 +461,6 @@ function CreateEnvelopeDialog({ budgetPlanId, open, onOpenChange }: CreateEnvelo
       setName('');
       setCategory('preventive');
       setCostCenterId('');
-      setAmount('');
       setDescription('');
     } catch (error) {
       console.error('Erro ao criar envelope:', error);
@@ -520,22 +518,6 @@ function CreateEnvelopeDialog({ budgetPlanId, open, onOpenChange }: CreateEnvelo
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="envelope-amount">Valor Total (R$)</Label>
-            <Input
-              id="envelope-amount"
-              type="number"
-              min={0}
-              step={100}
-              placeholder="Ex: 120000.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Valor total anual. Poderá ser distribuído mensalmente depois.
-            </p>
           </div>
           
           <div className="grid gap-2">
