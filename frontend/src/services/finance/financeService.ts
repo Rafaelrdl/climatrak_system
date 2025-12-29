@@ -281,15 +281,18 @@ export async function createSavingsEvent(input: SavingsEventInput): Promise<Savi
 // ==================== Summary ====================
 
 export async function getFinanceSummary(
-  month: string, // YYYY-MM
+  month: string, // YYYY-MM ou YYYY-MM-DD
   costCenterId?: string
 ): Promise<FinanceSummary> {
-  const params: Record<string, string> = { month };
+  // Normalizar para formato YYYY-MM-DD (primeiro dia do mês)
+  const monthDate = month.length === 7 ? `${month}-01` : month;
+  
+  const params: Record<string, string> = { month: monthDate };
   if (costCenterId) {
-    params.cost_center_id = costCenterId;
+    params.cost_center = costCenterId;
   }
   const { data } = await api.get<ApiResponse<FinanceSummary>>(
-    `${BASE_URL}/summary/budget`,
+    `${BASE_URL}/budget-summary`,
     { params }
   );
   return data.data ?? data as unknown as FinanceSummary;
