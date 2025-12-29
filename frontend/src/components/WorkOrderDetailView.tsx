@@ -19,13 +19,15 @@ import {
   FileText,
   Calendar,
   MapPin,
-  AlertCircle
+  AlertCircle,
+  DollarSign,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useSectors, useCompanies } from '@/hooks/useLocationsQuery';
 import { useStockItems } from '@/hooks/useInventoryQuery';
 import { printWorkOrder } from '@/utils/printWorkOrder';
+import { WorkOrderCostsTab } from '@/components/cmms/WorkOrderCostsTab';
 import type { WorkOrder, StockItem } from '@/types';
 import type { ApiInventoryItem } from '@/types/api';
 
@@ -242,6 +244,10 @@ export function WorkOrderDetailView({
                 Execução
               </TabsTrigger>
             )}
+            <TabsTrigger value="costs" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Custos
+            </TabsTrigger>
           </TabsList>
 
           <ScrollArea className="flex-1">
@@ -517,6 +523,16 @@ export function WorkOrderDetailView({
                   </Card>
                 </TabsContent>
               )}
+
+              {/* Costs Tab */}
+              <TabsContent value="costs" className="mt-6">
+                {workOrder?.id && (
+                  <WorkOrderCostsTab
+                    workOrderId={workOrder.id}
+                    workOrderNumber={workOrder.number || ''}
+                  />
+                )}
+              </TabsContent>
             </div>
           </ScrollArea>
         </Tabs>
