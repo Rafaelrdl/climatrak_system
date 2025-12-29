@@ -107,14 +107,14 @@ Implementar núcleo de centros de custo, rate card e orçamento por envelopes.
 **Dependências:** EVT-001, FIN-005
 
 ---
-aq
+
 
 ## M3 - Savings manual + Reporting
 
 ### [FIN-007] SavingsEvent manual (com evidências)
 **Labels:** feature, backend, db, tests  
 **Dependências:** FIN-001
-
+aq
 ### [API-004] APIs SavingsEvent
 **Labels:** api, backend, tests  
 **Dependências:** FIN-007

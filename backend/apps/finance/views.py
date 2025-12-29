@@ -838,3 +838,594 @@ class CommitmentViewSet(viewsets.ModelViewSet):
                 for item in by_month
             ]
         })
+
+
+# =============================================================================
+# SavingsEvent ViewSet
+# =============================================================================
+
+from .models import SavingsEvent
+from .serializers import (
+    SavingsEventSerializer,
+    SavingsEventCreateSerializer,
+    SavingsEventSummarySerializer,
+    BudgetMonthlySummarySerializer,
+)
+from .filters import SavingsEventFilter
+
+
+class SavingsEventViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para Eventos de Economia.
+    
+    Endpoints:
+    - GET /api/finance/savings-events/ - Listar eventos de economia
+    - POST /api/finance/savings-events/ - Criar evento de economia
+    - GET /api/finance/savings-events/{id}/ - Detalhes do evento
+    - PUT/PATCH /api/finance/savings-events/{id}/ - Atualizar evento
+    - DELETE /api/finance/savings-events/{id}/ - Excluir evento
+    - GET /api/finance/savings-events/summary/ - Resumo agregado
+    - GET /api/finance/savings-events/by_type/ - Por tipo de evento
+    - GET /api/finance/savings-events/by_month/ - Por mês
+    
+    Ref: docs/finance/01-erd.md, docs/api/finance.yaml
+    """
+    queryset = SavingsEvent.objects.select_related(
+        'cost_center', 'asset', 'work_order', 'alert', 'created_by'
+    ).all()
+    serializer_class = SavingsEventSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = SavingsEventFilter
+    search_fields = ['description', 'calculation_method']
+    ordering_fields = ['occurred_at', 'savings_amount', 'created_at', 'event_type']
+    ordering = ['-occurred_at']
+    
+    def get_serializer_class(self):
+        """Retorna serializer apropriado para a ação."""
+        if self.action == 'create':
+            return SavingsEventCreateSerializer
+        return SavingsEventSerializer
+    
+    def create(self, request, *args, **kwargs):
+        """Cria evento de economia e retorna dados completos."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        
+        # Retornar serializer de leitura com dados completos
+        response_serializer = SavingsEventSerializer(instance, context={'request': request})
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """
+        Retorna resumo agregado de economias.
+        
+        Query params:
+        - start_date: Data inicial (YYYY-MM-DD)
+        - end_date: Data final (YYYY-MM-DD)
+        - cost_center: UUID do centro de custo
+        - event_type: Tipo de evento
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        # Total geral
+        totals = queryset.aggregate(
+            total_savings=Sum('savings_amount'),
+            count=Count('id')
+        )
+        
+        # Por tipo de evento
+        by_event_type = queryset.values('event_type').annotate(
+            total=Sum('savings_amount'),
+            count=Count('id')
+        ).order_by('-total')
+        
+        # Por nível de confiança
+        by_confidence = queryset.values('confidence').annotate(
+            total=Sum('savings_amount'),
+            count=Count('id')
+        ).order_by('confidence')
+        
+        # Datas do período filtrado
+        dates = queryset.aggregate(
+            start=db_models.Min('occurred_at'),
+            end=db_models.Max('occurred_at')
+        )
+        
+        return Response({
+            'period_start': dates['start'].date().isoformat() if dates['start'] else None,
+            'period_end': dates['end'].date().isoformat() if dates['end'] else None,
+            'total_savings': totals['total_savings'] or Decimal('0.00'),
+            'count': totals['count'] or 0,
+            'by_event_type': [
+                {
+                    'event_type': item['event_type'],
+                    'event_type_display': dict(SavingsEvent.EventType.choices).get(
+                        item['event_type'], item['event_type']
+                    ),
+                    'total': item['total'] or Decimal('0.00'),
+                    'count': item['count']
+                }
+                for item in by_event_type
+            ],
+            'by_confidence': [
+                {
+                    'confidence': item['confidence'],
+                    'confidence_display': dict(SavingsEvent.Confidence.choices).get(
+                        item['confidence'], item['confidence']
+                    ),
+                    'total': item['total'] or Decimal('0.00'),
+                    'count': item['count']
+                }
+                for item in by_confidence
+            ]
+        })
+    
+    @action(detail=False, methods=['get'])
+    def by_type(self, request):
+        """Retorna totais de economia por tipo."""
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        by_type = queryset.values('event_type').annotate(
+            total_savings=Sum('savings_amount'),
+            count=Count('id')
+        ).order_by('-total_savings')
+        
+        return Response({
+            'by_type': [
+                {
+                    'event_type': item['event_type'],
+                    'event_type_display': dict(SavingsEvent.EventType.choices).get(
+                        item['event_type'], item['event_type']
+                    ),
+                    'total_savings': item['total_savings'] or Decimal('0.00'),
+                    'count': item['count']
+                }
+                for item in by_type
+            ]
+        })
+    
+    @action(detail=False, methods=['get'])
+    def by_month(self, request):
+        """
+        Retorna totais de economia por mês.
+        
+        Query params:
+        - year: Ano (opcional)
+        """
+        from django.db.models.functions import TruncMonth
+        
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        by_month = queryset.annotate(
+            month=TruncMonth('occurred_at')
+        ).values('month').annotate(
+            total_savings=Sum('savings_amount'),
+            count=Count('id')
+        ).order_by('month')
+        
+        return Response({
+            'by_month': [
+                {
+                    'month': item['month'].isoformat() if item['month'] else None,
+                    'month_name': item['month'].strftime('%B/%Y') if item['month'] else None,
+                    'total_savings': item['total_savings'] or Decimal('0.00'),
+                    'count': item['count']
+                }
+                for item in by_month
+            ]
+        })
+    
+    @action(detail=False, methods=['get'])
+    def by_cost_center(self, request):
+        """Retorna totais de economia por centro de custo."""
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        by_cc = queryset.values(
+            'cost_center', 'cost_center__code', 'cost_center__name'
+        ).annotate(
+            total_savings=Sum('savings_amount'),
+            count=Count('id')
+        ).order_by('-total_savings')
+        
+        return Response({
+            'by_cost_center': [
+                {
+                    'cost_center_id': str(item['cost_center']),
+                    'cost_center_code': item['cost_center__code'],
+                    'cost_center_name': item['cost_center__name'],
+                    'total_savings': item['total_savings'] or Decimal('0.00'),
+                    'count': item['count']
+                }
+                for item in by_cc
+            ]
+        })
+
+
+# =============================================================================
+# Budget Summary ViewSet (Relatório Mensal)
+# =============================================================================
+
+from django.db import models as db_models
+
+
+class BudgetSummaryViewSet(viewsets.ViewSet):
+    """
+    ViewSet para Summary Mensal de Orçamento.
+    
+    Endpoints:
+    - GET /api/finance/budget-summary/?month=2024-06-01 - Summary do mês
+    - GET /api/finance/budget-summary/year/?year=2024 - Summary do ano
+    
+    Retorna:
+    - planned: soma do BudgetMonth para o período
+    - committed: soma de Commitments ativos (SUBMITTED + APPROVED)
+    - actual: soma do Ledger (CostTransaction)
+    - savings: soma de SavingsEvent
+    - variance: planned - actual
+    
+    Ref: docs/finance/02-regras-negocio.md seção 8
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def list(self, request):
+        """
+        Summary mensal.
+        
+        Query params:
+        - month: Data do mês (YYYY-MM-DD ou YYYY-MM-01) - obrigatório
+        - cost_center: UUID do centro de custo (opcional)
+        """
+        from datetime import date
+        from dateutil.relativedelta import relativedelta
+        
+        month_str = request.query_params.get('month')
+        cost_center_id = request.query_params.get('cost_center')
+        
+        if not month_str:
+            return Response(
+                {'error': 'Parâmetro month é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            month_date = date.fromisoformat(month_str)
+            # Normalizar para primeiro dia do mês
+            month_date = month_date.replace(day=1)
+        except ValueError:
+            return Response(
+                {'error': 'Formato de data inválido. Use YYYY-MM-DD'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Período do mês
+        month_start = month_date
+        month_end = month_date + relativedelta(months=1, days=-1)
+        
+        # Filtros base
+        cc_filter = Q()
+        if cost_center_id:
+            cc_filter = Q(cost_center_id=cost_center_id)
+        
+        # 1. Planned: BudgetMonth
+        planned_qs = BudgetMonth.objects.filter(
+            month=month_date
+        )
+        if cost_center_id:
+            planned_qs = planned_qs.filter(envelope__cost_center_id=cost_center_id)
+        
+        planned = planned_qs.aggregate(
+            total=Sum('planned_amount')
+        )['total'] or Decimal('0.00')
+        
+        # 2. Committed: Commitments ativos (SUBMITTED + APPROVED)
+        committed_statuses = [
+            Commitment.Status.SUBMITTED,
+            Commitment.Status.APPROVED
+        ]
+        committed_qs = Commitment.objects.filter(
+            budget_month=month_date,
+            status__in=committed_statuses
+        )
+        if cost_center_id:
+            committed_qs = committed_qs.filter(cost_center_id=cost_center_id)
+        
+        committed = committed_qs.aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+        
+        # 3. Actual: CostTransaction do período
+        actual_qs = CostTransaction.objects.filter(
+            occurred_at__date__gte=month_start,
+            occurred_at__date__lte=month_end
+        )
+        if cost_center_id:
+            actual_qs = actual_qs.filter(cost_center_id=cost_center_id)
+        
+        actual = actual_qs.aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+        
+        # 4. Savings: SavingsEvent do período
+        savings_qs = SavingsEvent.objects.filter(
+            occurred_at__date__gte=month_start,
+            occurred_at__date__lte=month_end
+        )
+        if cost_center_id:
+            savings_qs = savings_qs.filter(cost_center_id=cost_center_id)
+        
+        savings = savings_qs.aggregate(
+            total=Sum('savings_amount')
+        )['total'] or Decimal('0.00')
+        
+        # Variância
+        variance = planned - actual
+        variance_percent = Decimal('0.00')
+        if planned > 0:
+            variance_percent = (variance / planned * 100).quantize(Decimal('0.01'))
+        
+        # Breakdown por categoria
+        by_category = self._get_category_breakdown(
+            month_date, month_start, month_end, cost_center_id
+        )
+        
+        # Cost center info
+        cost_center_name = None
+        if cost_center_id:
+            try:
+                cc = CostCenter.objects.get(id=cost_center_id)
+                cost_center_name = cc.name
+            except CostCenter.DoesNotExist:
+                pass
+        
+        return Response({
+            'month': month_date.isoformat(),
+            'cost_center_id': cost_center_id,
+            'cost_center_name': cost_center_name,
+            'planned': planned,
+            'committed': committed,
+            'actual': actual,
+            'savings': savings,
+            'variance': variance,
+            'variance_percent': variance_percent,
+            'by_category': by_category
+        })
+    
+    def _get_category_breakdown(self, month_date, month_start, month_end, cost_center_id):
+        """Retorna breakdown por categoria."""
+        categories = dict(CostTransaction.Category.choices)
+        result = []
+        
+        for cat_key, cat_display in categories.items():
+            # Planned por categoria (via BudgetEnvelope.category)
+            planned_qs = BudgetMonth.objects.filter(
+                month=month_date,
+                envelope__category=cat_key
+            )
+            if cost_center_id:
+                planned_qs = planned_qs.filter(envelope__cost_center_id=cost_center_id)
+            cat_planned = planned_qs.aggregate(
+                total=Sum('planned_amount')
+            )['total'] or Decimal('0.00')
+            
+            # Committed por categoria
+            committed_statuses = [
+                Commitment.Status.SUBMITTED,
+                Commitment.Status.APPROVED
+            ]
+            committed_qs = Commitment.objects.filter(
+                budget_month=month_date,
+                category=cat_key,
+                status__in=committed_statuses
+            )
+            if cost_center_id:
+                committed_qs = committed_qs.filter(cost_center_id=cost_center_id)
+            cat_committed = committed_qs.aggregate(
+                total=Sum('amount')
+            )['total'] or Decimal('0.00')
+            
+            # Actual por categoria
+            actual_qs = CostTransaction.objects.filter(
+                occurred_at__date__gte=month_start,
+                occurred_at__date__lte=month_end,
+                category=cat_key
+            )
+            if cost_center_id:
+                actual_qs = actual_qs.filter(cost_center_id=cost_center_id)
+            cat_actual = actual_qs.aggregate(
+                total=Sum('amount')
+            )['total'] or Decimal('0.00')
+            
+            # Savings por categoria (usando event_type mapeado para category)
+            # Por simplicidade, agrupamos all savings sem categorizar
+            # Em produção, poderia haver um mapeamento event_type -> category
+            cat_savings = Decimal('0.00')
+            
+            # Só adiciona se tiver algum valor
+            if any([cat_planned, cat_committed, cat_actual]):
+                result.append({
+                    'category': cat_key,
+                    'category_display': cat_display,
+                    'planned': cat_planned,
+                    'committed': cat_committed,
+                    'actual': cat_actual,
+                    'savings': cat_savings
+                })
+        
+        return result
+    
+    @action(detail=False, methods=['get'])
+    def year(self, request):
+        """
+        Summary anual.
+        
+        Query params:
+        - year: Ano (YYYY) - obrigatório
+        - cost_center: UUID do centro de custo (opcional)
+        """
+        from datetime import date
+        
+        year_str = request.query_params.get('year')
+        cost_center_id = request.query_params.get('cost_center')
+        
+        if not year_str:
+            return Response(
+                {'error': 'Parâmetro year é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            year = int(year_str)
+        except ValueError:
+            return Response(
+                {'error': 'Formato de ano inválido. Use YYYY'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        year_start = date(year, 1, 1)
+        year_end = date(year, 12, 31)
+        
+        # Filtros base
+        cc_filter = Q()
+        if cost_center_id:
+            cc_filter = Q(cost_center_id=cost_center_id)
+        
+        # Planned
+        planned_qs = BudgetMonth.objects.filter(
+            month__gte=year_start,
+            month__lte=year_end
+        )
+        if cost_center_id:
+            planned_qs = planned_qs.filter(envelope__cost_center_id=cost_center_id)
+        planned = planned_qs.aggregate(
+            total=Sum('planned_amount')
+        )['total'] or Decimal('0.00')
+        
+        # Committed
+        committed_statuses = [
+            Commitment.Status.SUBMITTED,
+            Commitment.Status.APPROVED
+        ]
+        committed_qs = Commitment.objects.filter(
+            budget_month__gte=year_start,
+            budget_month__lte=year_end,
+            status__in=committed_statuses
+        )
+        if cost_center_id:
+            committed_qs = committed_qs.filter(cost_center_id=cost_center_id)
+        committed = committed_qs.aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+        
+        # Actual
+        actual_qs = CostTransaction.objects.filter(
+            occurred_at__date__gte=year_start,
+            occurred_at__date__lte=year_end
+        )
+        if cost_center_id:
+            actual_qs = actual_qs.filter(cost_center_id=cost_center_id)
+        actual = actual_qs.aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+        
+        # Savings
+        savings_qs = SavingsEvent.objects.filter(
+            occurred_at__date__gte=year_start,
+            occurred_at__date__lte=year_end
+        )
+        if cost_center_id:
+            savings_qs = savings_qs.filter(cost_center_id=cost_center_id)
+        savings = savings_qs.aggregate(
+            total=Sum('savings_amount')
+        )['total'] or Decimal('0.00')
+        
+        # Variância
+        variance = planned - actual
+        variance_percent = Decimal('0.00')
+        if planned > 0:
+            variance_percent = (variance / planned * 100).quantize(Decimal('0.01'))
+        
+        # By month
+        by_month = self._get_monthly_breakdown(year, cost_center_id)
+        
+        return Response({
+            'year': year,
+            'cost_center_id': cost_center_id,
+            'planned': planned,
+            'committed': committed,
+            'actual': actual,
+            'savings': savings,
+            'variance': variance,
+            'variance_percent': variance_percent,
+            'by_month': by_month
+        })
+    
+    def _get_monthly_breakdown(self, year, cost_center_id):
+        """Retorna breakdown por mês do ano."""
+        from datetime import date
+        from dateutil.relativedelta import relativedelta
+        
+        result = []
+        
+        for month_num in range(1, 13):
+            month_date = date(year, month_num, 1)
+            month_end = month_date + relativedelta(months=1, days=-1)
+            
+            # Planned
+            planned_qs = BudgetMonth.objects.filter(month=month_date)
+            if cost_center_id:
+                planned_qs = planned_qs.filter(envelope__cost_center_id=cost_center_id)
+            planned = planned_qs.aggregate(
+                total=Sum('planned_amount')
+            )['total'] or Decimal('0.00')
+            
+            # Committed
+            committed_statuses = [
+                Commitment.Status.SUBMITTED,
+                Commitment.Status.APPROVED
+            ]
+            committed_qs = Commitment.objects.filter(
+                budget_month=month_date,
+                status__in=committed_statuses
+            )
+            if cost_center_id:
+                committed_qs = committed_qs.filter(cost_center_id=cost_center_id)
+            committed = committed_qs.aggregate(
+                total=Sum('amount')
+            )['total'] or Decimal('0.00')
+            
+            # Actual
+            actual_qs = CostTransaction.objects.filter(
+                occurred_at__date__gte=month_date,
+                occurred_at__date__lte=month_end
+            )
+            if cost_center_id:
+                actual_qs = actual_qs.filter(cost_center_id=cost_center_id)
+            actual = actual_qs.aggregate(
+                total=Sum('amount')
+            )['total'] or Decimal('0.00')
+            
+            # Savings
+            savings_qs = SavingsEvent.objects.filter(
+                occurred_at__date__gte=month_date,
+                occurred_at__date__lte=month_end
+            )
+            if cost_center_id:
+                savings_qs = savings_qs.filter(cost_center_id=cost_center_id)
+            savings = savings_qs.aggregate(
+                total=Sum('savings_amount')
+            )['total'] or Decimal('0.00')
+            
+            result.append({
+                'month': month_date.isoformat(),
+                'month_name': month_date.strftime('%B'),
+                'planned': planned,
+                'committed': committed,
+                'actual': actual,
+                'savings': savings,
+                'variance': planned - actual
+            })
+        
+        return result

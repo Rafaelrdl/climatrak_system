@@ -1282,3 +1282,200 @@ class LedgerAdjustment(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class SavingsEvent(models.Model):
+    """
+    Evento de Economia.
+    
+    Registra economias identificadas através de manutenção preventiva,
+    alertas preditivos, ou outros eventos que evitaram custos maiores.
+    
+    Tipos de economia:
+    - avoided_failure: Falha evitada por manutenção preventiva
+    - energy_savings: Economia de energia
+    - optimized_maintenance: Manutenção otimizada
+    - early_detection: Detecção precoce de problema
+    - other: Outros tipos de economia
+    
+    Referências:
+    - docs/finance/01-erd.md
+    - docs/finance/02-regras-negocio.md (seção 9)
+    - docs/events/02-eventos-mvp.md (savings.event_posted)
+    """
+    
+    class EventType(models.TextChoices):
+        AVOIDED_FAILURE = 'avoided_failure', 'Falha Evitada'
+        ENERGY_SAVINGS = 'energy_savings', 'Economia de Energia'
+        OPTIMIZED_MAINTENANCE = 'optimized_maintenance', 'Manutenção Otimizada'
+        EARLY_DETECTION = 'early_detection', 'Detecção Precoce'
+        REDUCED_DOWNTIME = 'reduced_downtime', 'Redução de Parada'
+        OTHER = 'other', 'Outros'
+    
+    class Confidence(models.TextChoices):
+        HIGH = 'high', 'Alta'
+        MEDIUM = 'medium', 'Média'
+        LOW = 'low', 'Baixa'
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    # Tipo de economia
+    event_type = models.CharField(
+        max_length=30,
+        choices=EventType.choices,
+        verbose_name='Tipo de Evento'
+    )
+    
+    # Valor economizado
+    savings_amount = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name='Valor Economizado',
+        help_text='Valor estimado da economia'
+    )
+    currency = models.CharField(
+        max_length=3,
+        default='BRL',
+        verbose_name='Moeda'
+    )
+    
+    # Nível de confiança da estimativa
+    confidence = models.CharField(
+        max_length=10,
+        choices=Confidence.choices,
+        default=Confidence.MEDIUM,
+        verbose_name='Confiança',
+        help_text='Nível de confiança na estimativa'
+    )
+    
+    # Data da ocorrência
+    occurred_at = models.DateTimeField(
+        verbose_name='Data da Ocorrência',
+        help_text='Data em que a economia foi identificada'
+    )
+    
+    # Descrição
+    description = models.TextField(
+        verbose_name='Descrição',
+        help_text='Descrição detalhada do evento de economia'
+    )
+    
+    # Metodologia de cálculo
+    calculation_method = models.TextField(
+        blank=True,
+        verbose_name='Metodologia de Cálculo',
+        help_text='Como o valor da economia foi calculado'
+    )
+    
+    # Relacionamento obrigatório
+    cost_center = models.ForeignKey(
+        CostCenter,
+        on_delete=models.PROTECT,
+        related_name='savings_events',
+        verbose_name='Centro de Custo'
+    )
+    
+    # Relacionamentos opcionais (evidências)
+    asset = models.ForeignKey(
+        'assets.Asset',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='savings_events',
+        verbose_name='Ativo',
+        help_text='Ativo relacionado à economia'
+    )
+    work_order = models.ForeignKey(
+        'cmms.WorkOrder',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='savings_events',
+        verbose_name='Ordem de Serviço',
+        help_text='OS que identificou/gerou a economia'
+    )
+    alert = models.ForeignKey(
+        'alerts.Alert',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='savings_events',
+        verbose_name='Alerta',
+        help_text='Alerta que originou a economia'
+    )
+    
+    # Evidências/Anexos (JSON para flexibilidade no MVP)
+    evidence = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name='Evidências',
+        help_text='Links, fotos, documentos que comprovam a economia'
+    )
+    
+    # Auditoria
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_savings_events',
+        verbose_name='Criado por'
+    )
+    
+    class Meta:
+        verbose_name = 'Evento de Economia'
+        verbose_name_plural = 'Eventos de Economia'
+        ordering = ['-occurred_at']
+        indexes = [
+            models.Index(fields=['cost_center'], name='finance_savings_cc_idx'),
+            models.Index(fields=['event_type'], name='finance_savings_type_idx'),
+            models.Index(fields=['occurred_at'], name='finance_savings_occurred_idx'),
+            models.Index(fields=['asset'], name='finance_savings_asset_idx'),
+            models.Index(fields=['work_order'], name='finance_savings_wo_idx'),
+            # Índice composto para summary
+            models.Index(
+                fields=['cost_center', 'occurred_at', 'event_type'],
+                name='finance_savings_summary_idx'
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.get_event_type_display()} - R$ {self.savings_amount} ({self.occurred_at.date()})"
+    
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+        
+        # Publicar evento na outbox ao criar
+        if is_new:
+            self._publish_event()
+    
+    def _publish_event(self):
+        """Publica evento savings.event_posted na outbox."""
+        from apps.core_events.services import EventPublisher
+        from django.db import connection
+        
+        tenant = connection.tenant
+        
+        EventPublisher.publish(
+            tenant_id=tenant.id,
+            event_name='savings.event_posted',
+            aggregate_type='savings_event',
+            aggregate_id=self.id,
+            data={
+                'savings_event_id': str(self.id),
+                'amount': float(self.savings_amount),
+                'occurred_at': self.occurred_at.isoformat(),
+                'cost_center_id': str(self.cost_center_id),
+                'asset_id': str(self.asset_id) if self.asset_id else None,
+                'event_type': self.event_type,
+            },
+            idempotency_key=f"savings:{self.id}:created",
+        )

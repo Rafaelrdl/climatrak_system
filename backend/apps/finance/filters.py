@@ -310,3 +310,96 @@ class CommitmentFilter(django_filters.FilterSet):
         start = date(year, 1, 1)
         end = date(year, 12, 31)
         return queryset.filter(budget_month__gte=start, budget_month__lte=end)
+
+
+# =============================================================================
+# SavingsEvent Filter
+# =============================================================================
+
+from .models import SavingsEvent
+
+
+class SavingsEventFilter(django_filters.FilterSet):
+    """
+    Filtros para Eventos de Economia.
+    
+    Filtros principais:
+    - Por tipo de evento (event_type)
+    - Por período (occurred_at)
+    - Por centro de custo
+    - Por ativo ou OS vinculada
+    - Por nível de confiança
+    """
+    
+    # Filtros de texto
+    description = django_filters.CharFilter(lookup_expr='icontains')
+    calculation_method = django_filters.CharFilter(lookup_expr='icontains')
+    
+    # Filtros de classificação
+    event_type = django_filters.ChoiceFilter(choices=SavingsEvent.EventType.choices)
+    event_type_in = django_filters.MultipleChoiceFilter(
+        field_name='event_type',
+        choices=SavingsEvent.EventType.choices,
+    )
+    confidence = django_filters.ChoiceFilter(choices=SavingsEvent.Confidence.choices)
+    
+    # Filtros de relacionamento
+    cost_center = django_filters.UUIDFilter(field_name='cost_center_id')
+    asset = django_filters.UUIDFilter(field_name='asset_id')
+    work_order = django_filters.UUIDFilter(field_name='work_order_id')
+    alert = django_filters.UUIDFilter(field_name='alert_id')
+    
+    # Filtros de período (occurred_at)
+    start_date = django_filters.DateFilter(field_name='occurred_at', lookup_expr='date__gte')
+    end_date = django_filters.DateFilter(field_name='occurred_at', lookup_expr='date__lte')
+    occurred_at_gte = django_filters.DateTimeFilter(field_name='occurred_at', lookup_expr='gte')
+    occurred_at_lte = django_filters.DateTimeFilter(field_name='occurred_at', lookup_expr='lte')
+    year = django_filters.NumberFilter(method='filter_year')
+    month = django_filters.NumberFilter(method='filter_month')
+    
+    # Filtros de valor
+    min_amount = django_filters.NumberFilter(field_name='savings_amount', lookup_expr='gte')
+    max_amount = django_filters.NumberFilter(field_name='savings_amount', lookup_expr='lte')
+    
+    # Filtros de criação
+    created_at_gte = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='gte')
+    created_at_lte = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='lte')
+    created_by = django_filters.UUIDFilter(field_name='created_by_id')
+    
+    # Filtro para economias com evidência
+    has_evidence = django_filters.BooleanFilter(method='filter_has_evidence')
+    
+    class Meta:
+        model = SavingsEvent
+        fields = [
+            'description', 'calculation_method',
+            'event_type', 'event_type_in', 'confidence',
+            'cost_center', 'asset', 'work_order', 'alert',
+            'start_date', 'end_date', 'occurred_at_gte', 'occurred_at_lte',
+            'year', 'month',
+            'min_amount', 'max_amount',
+            'created_at_gte', 'created_at_lte', 'created_by',
+            'has_evidence'
+        ]
+    
+    def filter_year(self, queryset, name, value):
+        """Filtra por ano da ocorrência."""
+        return queryset.filter(occurred_at__year=int(value))
+    
+    def filter_month(self, queryset, name, value):
+        """Filtra por mês da ocorrência."""
+        return queryset.filter(occurred_at__month=int(value))
+    
+    def filter_has_evidence(self, queryset, name, value):
+        """Filtra economias com/sem evidências."""
+        from django.db.models import Q
+        if value:
+            # Has evidence: evidence is not empty dict/null
+            return queryset.exclude(
+                Q(evidence__isnull=True) | Q(evidence={})
+            )
+        else:
+            # No evidence
+            return queryset.filter(
+                Q(evidence__isnull=True) | Q(evidence={})
+            )

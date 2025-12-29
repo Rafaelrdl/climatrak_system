@@ -706,3 +706,207 @@ class CommitmentSummarySerializer(serializers.Serializer):
     status = serializers.CharField()
     total_amount = serializers.DecimalField(max_digits=15, decimal_places=2)
     count = serializers.IntegerField()
+
+
+# ============================================================================
+# SavingsEvent Serializers
+# ============================================================================
+
+from .models import SavingsEvent
+
+
+class SavingsEventSerializer(serializers.ModelSerializer):
+    """
+    Serializer para leitura de Eventos de Economia.
+    
+    Inclui:
+    - Campos de display para choices
+    - Nomes relacionados (cost_center, asset, work_order)
+    - Informações do criador
+    """
+    event_type_display = serializers.CharField(source='get_event_type_display', read_only=True)
+    confidence_display = serializers.CharField(source='get_confidence_display', read_only=True)
+    cost_center_name = serializers.CharField(source='cost_center.name', read_only=True)
+    cost_center_code = serializers.CharField(source='cost_center.code', read_only=True)
+    asset_name = serializers.SerializerMethodField()
+    work_order_number = serializers.CharField(source='work_order.number', read_only=True, allow_null=True)
+    alert_message = serializers.CharField(source='alert.message', read_only=True, allow_null=True)
+    created_by_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = SavingsEvent
+        fields = [
+            'id', 'event_type', 'event_type_display',
+            'savings_amount', 'currency',
+            'confidence', 'confidence_display',
+            'occurred_at', 'description', 'calculation_method',
+            'cost_center', 'cost_center_name', 'cost_center_code',
+            'asset', 'asset_name',
+            'work_order', 'work_order_number',
+            'alert', 'alert_message',
+            'evidence',
+            'created_at', 'updated_at', 'created_by', 'created_by_name'
+        ]
+        read_only_fields = [
+            'id', 'created_at', 'updated_at', 'created_by'
+        ]
+    
+    def get_asset_name(self, obj):
+        if obj.asset:
+            return str(obj.asset)
+        return None
+    
+    def get_created_by_name(self, obj):
+        if obj.created_by:
+            return obj.created_by.get_full_name() or obj.created_by.email
+        return None
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class SavingsEventCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer para criação de Eventos de Economia.
+    
+    Campos obrigatórios:
+    - event_type
+    - savings_amount
+    - occurred_at
+    - description
+    - cost_center
+    
+    Campos opcionais:
+    - confidence (default: medium)
+    - calculation_method
+    - asset
+    - work_order
+    - alert
+    - evidence
+    """
+    
+    class Meta:
+        model = SavingsEvent
+        fields = [
+            'id', 'event_type', 'savings_amount', 'currency',
+            'confidence', 'occurred_at', 'description', 'calculation_method',
+            'cost_center', 'asset', 'work_order', 'alert',
+            'evidence'
+        ]
+        read_only_fields = ['id']
+    
+    def validate_evidence(self, value):
+        """Valida estrutura das evidências."""
+        if value is None:
+            return {}
+        
+        if not isinstance(value, dict):
+            raise serializers.ValidationError(
+                'Evidências devem ser um objeto com campos: attachments, links, notes'
+            )
+        
+        # Validar structure esperada
+        allowed_keys = {'attachments', 'links', 'notes', 'photos'}
+        if value and not set(value.keys()).issubset(allowed_keys):
+            extra_keys = set(value.keys()) - allowed_keys
+            raise serializers.ValidationError(
+                f'Campos não permitidos em evidências: {extra_keys}'
+            )
+        
+        return value
+    
+    def validate(self, attrs):
+        """Validação cruzada."""
+        # Se tem work_order, asset deveria ser o mesmo da OS
+        work_order = attrs.get('work_order')
+        asset = attrs.get('asset')
+        
+        if work_order and asset:
+            if hasattr(work_order, 'asset') and work_order.asset != asset:
+                raise serializers.ValidationError({
+                    'asset': 'Ativo informado difere do ativo da Ordem de Serviço'
+                })
+        
+        return attrs
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class SavingsEventSummarySerializer(serializers.Serializer):
+    """
+    Serializer para resumo de economias.
+    
+    Usado em endpoints de agregação.
+    """
+    period_start = serializers.DateField()
+    period_end = serializers.DateField()
+    total_savings = serializers.DecimalField(max_digits=15, decimal_places=2)
+    count = serializers.IntegerField()
+    by_event_type = serializers.ListField(
+        child=serializers.DictField(),
+        help_text='Economias agrupadas por tipo'
+    )
+    by_confidence = serializers.ListField(
+        child=serializers.DictField(),
+        help_text='Economias agrupadas por nível de confiança'
+    )
+
+
+# ============================================================================
+# Budget Summary Serializers (para relatório mensal)
+# ============================================================================
+
+class BudgetMonthlySummarySerializer(serializers.Serializer):
+    """
+    Serializer para Summary Mensal de Orçamento.
+    
+    Retorna:
+    - planned: do BudgetMonth
+    - committed: soma de Commitments ativos (SUBMITTED + APPROVED)
+    - actual: soma do Ledger
+    - savings: soma de SavingsEvent
+    - variance: planned - actual
+    
+    Ref: docs/finance/02-regras-negocio.md seção 8
+    """
+    month = serializers.DateField()
+    cost_center_id = serializers.UUIDField(allow_null=True)
+    cost_center_name = serializers.CharField(allow_null=True)
+    
+    # Valores principais
+    planned = serializers.DecimalField(max_digits=15, decimal_places=2)
+    committed = serializers.DecimalField(max_digits=15, decimal_places=2)
+    actual = serializers.DecimalField(max_digits=15, decimal_places=2)
+    savings = serializers.DecimalField(max_digits=15, decimal_places=2)
+    
+    # Variâncias
+    variance = serializers.DecimalField(max_digits=15, decimal_places=2, help_text='planned - actual')
+    variance_percent = serializers.DecimalField(
+        max_digits=5, decimal_places=2,
+        help_text='(planned - actual) / planned * 100'
+    )
+    
+    # Breakdown por categoria
+    by_category = serializers.ListField(
+        child=serializers.DictField(),
+        help_text='Valores agrupados por categoria'
+    )
+
+
+class BudgetCategoryBreakdownSerializer(serializers.Serializer):
+    """
+    Serializer para breakdown por categoria no summary.
+    """
+    category = serializers.CharField()
+    category_display = serializers.CharField()
+    planned = serializers.DecimalField(max_digits=15, decimal_places=2)
+    committed = serializers.DecimalField(max_digits=15, decimal_places=2)
+    actual = serializers.DecimalField(max_digits=15, decimal_places=2)
+    savings = serializers.DecimalField(max_digits=15, decimal_places=2)
