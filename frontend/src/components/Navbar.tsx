@@ -17,6 +17,7 @@ import { useNavbarOverflow } from '@/hooks/useNavbarOverflow';
 // Importar navegação dos módulos
 import { cmmsNavigation, cmmsModuleName, cmmsTheme, type NavItem } from '@/apps/cmms/navigation';
 import { monitorNavigation, monitorModuleName, monitorTheme } from '@/apps/monitor/navigation';
+import { financeNavigation, financeModuleName, financeTheme } from '@/apps/finance/navigation';
 
 // Hook para obter a navegação baseada no módulo ativo
 function useModuleNavigation(): { 
@@ -31,6 +32,13 @@ function useModuleNavigation(): {
       navigation: monitorNavigation, 
       moduleName: monitorModuleName, 
       theme: monitorTheme 
+    };
+  }
+  if (location.pathname.startsWith('/finance')) {
+    return { 
+      navigation: financeNavigation, 
+      moduleName: financeModuleName, 
+      theme: financeTheme 
     };
   }
   return { 

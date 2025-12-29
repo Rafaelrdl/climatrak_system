@@ -1,7 +1,7 @@
 /**
  * Módulos da Plataforma TrakSense
  * 
- * A plataforma é composta por dois módulos principais:
+ * A plataforma é composta por três módulos principais:
  * 
  * 1. CMMS (TrakNor) - Sistema de Gestão de Manutenção
  *    Rotas: /cmms/*
@@ -10,12 +10,18 @@
  * 2. Monitor (TrakSense) - Sistema de Monitoramento IoT
  *    Rotas: /monitor/*
  *    Funcionalidades: Dashboard tempo real, Sensores, Alertas, etc.
+ * 
+ * 3. Finance - Sistema de Gestão Financeira
+ *    Rotas: /finance/*
+ *    Funcionalidades: Orçamentos, Ledger, Compromissos, Economia
  */
 
 // Routes
 export { CmmsRoutes } from './cmms/routes';
 export { MonitorRoutes } from './monitor/routes';
+export { FinanceRoutes } from './finance/routes';
 
 // Módulos completos
 export * as cmms from './cmms';
 export * as monitor from './monitor';
+export * as finance from './finance';

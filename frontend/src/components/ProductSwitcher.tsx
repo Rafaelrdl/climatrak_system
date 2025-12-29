@@ -1,9 +1,10 @@
 /**
- * ProductSwitcher - Componente para alternar entre produtos (CMMS e Monitor)
+ * ProductSwitcher - Componente para alternar entre produtos (CMMS, Monitor e Finance)
  * 
  * Dropdown no header que permite navegar rapidamente entre:
  * - TrakNor CMMS (Gestão de Manutenção)
  * - TrakSense Monitor (Monitoramento IoT)
+ * - Finance (Gestão Financeira)
  */
 
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -19,10 +20,12 @@ import { Button } from '@/components/ui/button';
 import { 
   Wrench, 
   Activity, 
+  Wallet,
   ChevronDown,
   Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAbility } from '@/hooks/useAbility';
 import TrakNorLogoUrl from '@/assets/images/traknor-logo.svg';
 
 interface Product {
@@ -32,6 +35,9 @@ interface Product {
   icon: React.ReactNode;
   path: string;
   color: string;
+  bgColor: string;
+  borderColor: string;
+  requiresPermission?: { action: 'view'; subject: 'finance' | '*' };
 }
 
 const products: Product[] = [
@@ -42,6 +48,8 @@ const products: Product[] = [
     icon: <Wrench className="h-5 w-5" />,
     path: '/cmms',
     color: 'text-blue-600',
+    bgColor: 'bg-blue-50/50',
+    borderColor: 'border-blue-200',
   },
   {
     id: 'monitor',
@@ -50,17 +58,39 @@ const products: Product[] = [
     icon: <Activity className="h-5 w-5" />,
     path: '/monitor',
     color: 'text-green-600',
+    bgColor: 'bg-green-50/50',
+    borderColor: 'border-green-200',
+  },
+  {
+    id: 'finance',
+    name: 'Finance',
+    description: 'Gestão Financeira',
+    icon: <Wallet className="h-5 w-5" />,
+    path: '/finance',
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-50/50',
+    borderColor: 'border-emerald-200',
+    requiresPermission: { action: 'view', subject: 'finance' },
   },
 ];
 
 export function ProductSwitcher() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { can } = useAbility();
+
+  // Filtra produtos baseado em permissões
+  const availableProducts = products.filter(product => {
+    if (product.requiresPermission) {
+      return can(product.requiresPermission.action, product.requiresPermission.subject);
+    }
+    return true;
+  });
 
   // Determina qual produto está ativo baseado na URL
-  const currentProduct = products.find(p => 
+  const currentProduct = availableProducts.find(p => 
     location.pathname.startsWith(p.path)
-  ) || products[0];
+  ) || availableProducts[0];
 
   const handleProductChange = (product: Product) => {
     if (product.id !== currentProduct.id) {
@@ -75,9 +105,8 @@ export function ProductSwitcher() {
           variant="ghost" 
           className={cn(
             "h-auto py-2 px-3 gap-2 hover:bg-accent border-2 transition-colors",
-            currentProduct.id === 'cmms' 
-              ? "border-blue-200 bg-blue-50/50 hover:bg-blue-100/50" 
-              : "border-green-200 bg-green-50/50 hover:bg-green-100/50"
+            currentProduct.borderColor,
+            currentProduct.bgColor
           )}
         >
           {/* Logo */}
@@ -89,7 +118,7 @@ export function ProductSwitcher() {
           <div className="flex flex-col items-start">
             <span className={cn(
               "text-sm font-semibold leading-none",
-              currentProduct.id === 'cmms' ? "text-blue-700" : "text-green-700"
+              currentProduct.color
             )}>
               {currentProduct.name}
             </span>
@@ -107,7 +136,7 @@ export function ProductSwitcher() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         
-        {products.map((product) => (
+        {availableProducts.map((product) => (
           <DropdownMenuItem
             key={product.id}
             onClick={() => handleProductChange(product)}
