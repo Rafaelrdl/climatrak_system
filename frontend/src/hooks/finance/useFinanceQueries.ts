@@ -89,6 +89,21 @@ export function useEnvelopes(budgetPlanId: string) {
   });
 }
 
+export function useCreateEnvelope() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (input: Omit<Envelope, 'id' | 'created_at' | 'updated_at'>) =>
+      financeService.createEnvelope(input),
+    onSuccess: (data) => {
+      // Invalidate envelopes for the budget plan
+      queryClient.invalidateQueries({ 
+        queryKey: financeKeys.budgets.envelopes(data.budget_plan) 
+      });
+    },
+  });
+}
+
 // ==================== Commitments ====================
 
 export function useCommitments(filters: CommitmentFilters) {

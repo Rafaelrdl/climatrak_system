@@ -187,7 +187,7 @@ export async function updateBudgetPlan(
 // ==================== Envelopes ====================
 
 export async function getEnvelopes(budgetPlanId: string): Promise<Envelope[]> {
-  const { data } = await api.get(`${BASE_URL}/envelopes/`, {
+  const { data } = await api.get(`${BASE_URL}/budget-envelopes/`, {
     params: { budget_plan_id: budgetPlanId },
   });
   return extractArray<Envelope>(data);
@@ -196,7 +196,7 @@ export async function getEnvelopes(budgetPlanId: string): Promise<Envelope[]> {
 export async function createEnvelope(
   input: Omit<Envelope, 'id' | 'created_at' | 'updated_at'>
 ): Promise<Envelope> {
-  const { data } = await api.post<ApiResponse<Envelope>>(`${BASE_URL}/envelopes/`, input);
+  const { data } = await api.post<ApiResponse<Envelope>>(`${BASE_URL}/budget-envelopes/`, input);
   return data.data ?? data as unknown as Envelope;
 }
 
@@ -205,7 +205,7 @@ export async function updateEnvelopeMonths(
   months: EnvelopeMonth[]
 ): Promise<Envelope> {
   const { data } = await api.put<ApiResponse<Envelope>>(
-    `${BASE_URL}/envelopes/${envelopeId}/months/`,
+    `${BASE_URL}/budget-envelopes/${envelopeId}/months/`,
     { months }
   );
   return data.data ?? data as unknown as Envelope;

@@ -46,10 +46,14 @@ export interface BudgetPlan {
 
 export interface Envelope {
   id: string;
-  budget_plan_id: string;
-  cost_center_id: string;
+  budget_plan: string;
+  cost_center: string;
   category: TransactionCategory;
   name: string;
+  description?: string;
+  amount: number;
+  currency: string;
+  is_active?: boolean;
   rules?: {
     asset_ids?: string[];
     location_ids?: string[];

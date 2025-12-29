@@ -18,6 +18,7 @@ export {
   useBudgetPlans,
   useCreateBudgetPlan,
   useEnvelopes,
+  useCreateEnvelope,
   
   // Commitments
   useCommitments,

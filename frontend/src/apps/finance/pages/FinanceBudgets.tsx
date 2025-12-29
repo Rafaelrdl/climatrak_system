@@ -65,10 +65,11 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { MoneyCell } from '@/components/finance';
-import { 
-  useBudgetPlans, 
+import {
+  useBudgetPlans,
   useCreateBudgetPlan,
   useEnvelopes,
+  useCreateEnvelope,
   useCostCenters,
 } from '@/hooks/finance';
 import { useAbility } from '@/hooks/useAbility';
@@ -136,8 +137,9 @@ function CreatePlanDialog({ open, onOpenChange, onSuccess }: CreatePlanDialogPro
 
   const handleSubmit = async () => {
     try {
-      // Gerar código automaticamente
-      const code = `BUDGET-${year}`;
+      // Gerar código automaticamente (com timestamp para evitar duplicação)
+      const timestamp = Date.now().toString().slice(-6);
+      const code = `BUDGET-${year}-${timestamp}`;
       
       // Gerar datas de início e fim baseadas no ano
       const start_date = `${year}-01-01`;
@@ -306,8 +308,8 @@ function EnvelopeEditor({ envelope, months, isLocked, onMonthsChange }: Envelope
   const { data: costCenters } = useCostCenters();
   
   const costCenterName = useMemo(() => {
-    return costCenters?.find(cc => cc.id === envelope.cost_center_id)?.name ?? 'N/A';
-  }, [costCenters, envelope.cost_center_id]);
+    return costCenters?.find(cc => cc.id === envelope.cost_center)?.name ?? 'N/A';
+  }, [costCenters, envelope.cost_center]);
 
   const totalPlanned = useMemo(() => 
     months.reduce((sum, m) => sum + m.planned_amount, 0)
@@ -438,18 +440,33 @@ function CreateEnvelopeDialog({ budgetPlanId, open, onOpenChange }: CreateEnvelo
   const [name, setName] = useState('');
   const [category, setCategory] = useState<TransactionCategory>('preventive');
   const [costCenterId, setCostCenterId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState('');
   
   const { data: costCenters } = useCostCenters();
+  const createEnvelope = useCreateEnvelope();
 
-  // TODO: Implementar useCreateEnvelope quando o endpoint estiver disponível
   const handleSubmit = async () => {
-    // await createEnvelope.mutateAsync({ ... });
-    console.log('Create envelope:', { budgetPlanId, name, category, costCenterId });
-    onOpenChange(false);
-    // Reset form
-    setName('');
-    setCategory('preventive');
-    setCostCenterId('');
+    try {
+      await createEnvelope.mutateAsync({
+        budget_plan: budgetPlanId,
+        name,
+        category,
+        cost_center: costCenterId,
+        amount: Number(amount) || 0,
+        currency: 'BRL',
+        description,
+      });
+      onOpenChange(false);
+      // Reset form
+      setName('');
+      setCategory('preventive');
+      setCostCenterId('');
+      setAmount('');
+      setDescription('');
+    } catch (error) {
+      console.error('Erro ao criar envelope:', error);
+    }
   };
 
   return (
@@ -504,13 +521,43 @@ function CreateEnvelopeDialog({ budgetPlanId, open, onOpenChange }: CreateEnvelo
               </SelectContent>
             </Select>
           </div>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="envelope-amount">Valor Total (R$)</Label>
+            <Input
+              id="envelope-amount"
+              type="number"
+              min={0}
+              step={100}
+              placeholder="Ex: 120000.00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Valor total anual. Poderá ser distribuído mensalmente depois.
+            </p>
+          </div>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="envelope-description">Descrição (opcional)</Label>
+            <Input
+              id="envelope-description"
+              placeholder="Ex: Manutenção preventiva de chillers"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
         </div>
         
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={!name || !costCenterId}>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={!name || !costCenterId || createEnvelope.isPending}
+          >
+            {createEnvelope.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Criar Envelope
           </Button>
         </DialogFooter>
@@ -527,7 +574,7 @@ interface PlanDetailProps {
 
 function PlanDetail({ plan }: PlanDetailProps) {
   const ability = useAbility();
-  const canEdit = ability.can('update', 'finance_budget') && plan.status !== 'locked';
+  const canEdit = ability.can('edit', 'finance') && plan.status !== 'locked';
   
   const [isCreateEnvelopeOpen, setIsCreateEnvelopeOpen] = useState(false);
   const [envelopeMonths, setEnvelopeMonths] = useState<Record<string, EnvelopeMonth[]>>({});
@@ -683,7 +730,7 @@ function PlanDetail({ plan }: PlanDetailProps) {
 
 export function FinanceBudgets() {
   const ability = useAbility();
-  const canCreate = ability.can('create', 'finance_budget');
+  const canCreate = ability.can('create', 'finance');
 
   const [selectedYear, setSelectedYear] = useState<number>(getCurrentYear());
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
