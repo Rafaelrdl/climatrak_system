@@ -553,6 +553,15 @@ class BudgetMonth(models.Model):
         help_text='Valor planejado para este mês'
     )
     
+    contingency_amount = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Valor de Contingência',
+        help_text='Valor reservado para contingências neste mês'
+    )
+    
     # Lock de período
     is_locked = models.BooleanField(
         default=False,

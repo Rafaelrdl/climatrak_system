@@ -120,7 +120,7 @@ class BudgetMonthSerializer(serializers.ModelSerializer):
         model = BudgetMonth
         fields = [
             'id', 'envelope', 'month', 'month_name',
-            'planned_amount',
+            'planned_amount', 'contingency_amount',
             'is_locked', 'locked_at', 'locked_by', 'locked_by_name',
             'created_at', 'updated_at'
         ]
@@ -136,7 +136,7 @@ class BudgetMonthWriteSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = BudgetMonth
-        fields = ['id', 'month', 'planned_amount']
+        fields = ['id', 'month', 'planned_amount', 'contingency_amount']
         read_only_fields = ['id']
 
 

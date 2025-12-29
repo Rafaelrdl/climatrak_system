@@ -67,6 +67,7 @@ export interface BudgetMonthFromBackend {
   id: string;
   month: string; // DateField "YYYY-MM-DD"
   planned_amount: number;
+  contingency_amount: number;
   is_locked: boolean;
   locked_at?: string;
   locked_by?: string;
@@ -82,6 +83,7 @@ export interface EnvelopeMonth {
 export interface BudgetMonthInput {
   month: string; // YYYY-MM-DD format (backend)
   planned_amount: number;
+  contingency_amount?: number;
 }
 
 // ==================== Ledger ====================

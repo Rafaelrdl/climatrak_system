@@ -383,11 +383,11 @@ function EnvelopeEditor({ envelope, months, isLocked, onMonthsChange }: Envelope
     
     // Se está editando este campo, retorna o valor bruto
     if (editingField === fieldKey) {
-      return String(value || '');
+      return value > 0 ? String(value) : '';
     }
     
-    // Senão, retorna formatado
-    return value ? formatMoneyBR(value) : '';
+    // Senão, retorna formatado apenas se tiver valor
+    return value > 0 ? formatMoneyBR(value) : '';
   };
 
   return (
@@ -613,7 +613,9 @@ function PlanDetail({ plan }: PlanDetailProps) {
   
   const [isCreateEnvelopeOpen, setIsCreateEnvelopeOpen] = useState(false);
   const [envelopeMonths, setEnvelopeMonths] = useState<Record<string, EnvelopeMonth[]>>({});
+  const [modifiedEnvelopes, setModifiedEnvelopes] = useState<Set<string>>(new Set());
   const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const { data: envelopes, isLoading, error } = useEnvelopes(plan.id);
   const updateEnvelopeMonths = useUpdateEnvelopeMonths();
@@ -622,45 +624,81 @@ function PlanDetail({ plan }: PlanDetailProps) {
   useEffect(() => {
     if (!envelopes) return;
     
-    const initialMonths: Record<string, EnvelopeMonth[]> = {};
-    envelopes.forEach(envelope => {
-      // Sempre inicializar array, mesmo que vazio
-      if (envelope.months && envelope.months.length > 0) {
-        // Converter dados do backend (month: "2025-01-01") para formato frontend (month: 1)
-        initialMonths[envelope.id] = envelope.months.map(m => {
-          const date = new Date(m.month);
-          return {
-            month: date.getMonth() + 1, // 0-11 -> 1-12
-            planned_amount: m.planned_amount,
-            contingency_amount: 0,
-          };
-        });
-      } else {
-        // Inicializar array vazio para envelopes sem meses
-        initialMonths[envelope.id] = [];
-      }
-    });
+    // NÃO sobrescrever estado durante salvamento
+    if (isSaving) {
+      console.log('useEffect: Ignorando durante salvamento');
+      return;
+    }
     
-    setEnvelopeMonths(initialMonths);
-  }, [envelopes]);
+    console.log('useEffect: Carregando envelopes do backend:', envelopes.map(e => ({ 
+      id: e.id, 
+      name: e.name, 
+      months: e.months?.length 
+    })));
+    
+    setEnvelopeMonths(prevMonths => {
+      const initialMonths: Record<string, EnvelopeMonth[]> = {};
+      envelopes.forEach(envelope => {
+        // Sempre inicializar array, mesmo que vazio
+        if (envelope.months && envelope.months.length > 0) {
+          // Converter dados do backend (month: "2025-01-01") para formato frontend (month: 1)
+          initialMonths[envelope.id] = envelope.months.map(m => {
+            // Extrair mês diretamente da string para evitar problemas de timezone
+            // Formato esperado: "YYYY-MM-DD"
+            const monthStr = m.month.split('-')[1];
+            const monthNum = parseInt(monthStr, 10); // 01-12 -> 1-12
+            
+            return {
+              month: monthNum,
+              planned_amount: m.planned_amount,
+              contingency_amount: m.contingency_amount || 0,
+            };
+          });
+          
+          console.log(`Envelope ${envelope.name}:`, initialMonths[envelope.id].map(m => ({ 
+            month: m.month, 
+            planned: m.planned_amount 
+          })));
+        } else {
+          // Preservar meses existentes ou inicializar array vazio
+          initialMonths[envelope.id] = prevMonths[envelope.id] ?? [];
+        }
+      });
+      
+      return initialMonths;
+    });
+  }, [envelopes, isSaving]);
 
   const handleMonthsChange = (envelopeId: string, months: EnvelopeMonth[]) => {
     setEnvelopeMonths(prev => ({
       ...prev,
       [envelopeId]: months,
     }));
+    setModifiedEnvelopes(prev => new Set(prev).add(envelopeId));
     setHasChanges(true);
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
-      // Save each changed envelope
-      const promises = Object.entries(envelopeMonths).map(([envelopeId, months]) => {
-        // Converter meses de número (1-12) para data (YYYY-MM-01)
-        const monthsForBackend = months.map(m => ({
-          month: `${plan.year}-${String(m.month).padStart(2, '0')}-01`,
-          planned_amount: m.planned_amount,
-        }));
+      // Salvar apenas envelopes modificados
+      const promises = Array.from(modifiedEnvelopes).map(envelopeId => {
+        const months = envelopeMonths[envelopeId];
+        if (!months || months.length === 0) return Promise.resolve();
+        
+        // Converter TODOS os 12 meses de número (1-12) para data (YYYY-MM-01)
+        // Importante: enviar todos os meses porque o backend deleta e recria
+        const allMonths = Array.from({ length: 12 }, (_, i) => i + 1);
+        const monthsForBackend = allMonths.map(monthNum => {
+          const existingMonth = months.find(m => m.month === monthNum);
+          return {
+            month: `${plan.year}-${String(monthNum).padStart(2, '0')}-01`,
+            planned_amount: Number(existingMonth?.planned_amount) || 0,
+            contingency_amount: Number(existingMonth?.contingency_amount) || 0,
+          };
+        });
+        
+        console.log('Enviando para backend:', { envelopeId, monthsForBackend });
         
         return updateEnvelopeMonths.mutateAsync({ 
           envelopeId, 
@@ -670,9 +708,14 @@ function PlanDetail({ plan }: PlanDetailProps) {
       
       await Promise.all(promises);
       setHasChanges(false);
-      // Não limpa o estado - ele será atualizado quando os dados do backend chegarem
+      setModifiedEnvelopes(new Set());
+      console.log('Salvamento concluído');
     } catch (error) {
       console.error('Erro ao salvar meses:', error);
+    } finally {
+      // Aguardar um pequeno delay para garantir que o backend processou
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setIsSaving(false);
     }
   };
 

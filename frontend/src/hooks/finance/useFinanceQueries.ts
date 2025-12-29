@@ -108,12 +108,15 @@ export function useUpdateEnvelopeMonths() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ envelopeId, months }: { envelopeId: string; months: { month: string; planned_amount: number }[] }) =>
+    mutationFn: ({ envelopeId, months }: { envelopeId: string; months: { month: string; planned_amount: number; contingency_amount?: number }[] }) =>
       financeService.updateEnvelopeMonths(envelopeId, months),
-    onSuccess: (data) => {
-      // Invalidate envelopes for the budget plan
-      queryClient.invalidateQueries({ 
+    onSuccess: async (data) => {
+      // Aguardar invalidação e refetch para garantir dados atualizados
+      await queryClient.invalidateQueries({ 
         queryKey: financeKeys.budgets.envelopes(data.budget_plan) 
+      });
+      await queryClient.refetchQueries({
+        queryKey: financeKeys.budgets.envelopes(data.budget_plan)
       });
     },
   });
