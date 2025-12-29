@@ -30,12 +30,19 @@ class CostCenterSerializer(serializers.ModelSerializer):
     full_path = serializers.CharField(read_only=True)
     children_count = serializers.SerializerMethodField()
     parent_name = serializers.CharField(source='parent.name', read_only=True, allow_null=True)
+    # Adicionar parent_id como campo writable (UUID)
+    parent_id = serializers.PrimaryKeyRelatedField(
+        queryset=CostCenter.objects.all(),
+        source='parent',
+        required=False,
+        allow_null=True
+    )
     
     class Meta:
         model = CostCenter
         fields = [
             'id', 'code', 'name', 'description',
-            'parent', 'parent_id', 'parent_name', 'level', 'full_path', 'children_count',
+            'parent_id', 'parent_name', 'level', 'full_path', 'children_count',
             'tags', 'is_active',
             'created_at', 'updated_at', 'created_by'
         ]
