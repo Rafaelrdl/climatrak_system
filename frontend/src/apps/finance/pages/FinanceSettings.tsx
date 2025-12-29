@@ -117,28 +117,30 @@ function CostCenterDialog({ open, onOpenChange, costCenter, costCenters }: CostC
   useState(() => {
     setName(costCenter?.name ?? '');
     setCode(costCenter?.code ?? '');
-    setParentId(costCenter?.parent_id ?? '');
+    setParentId(costCenter?.parent_id ?? '__none__');
   });
 
   const handleSubmit = async () => {
     try {
+      const parentValue = parentId === '__none__' ? null : parentId;
+      
       if (isEditing && costCenter) {
         await updateCostCenter.mutateAsync({
           id: costCenter.id,
-          input: { name, code, parent_id: parentId || null },
+          input: { name, code, parent_id: parentValue },
         });
       } else {
         await createCostCenter.mutateAsync({
           name,
           code,
-          parent_id: parentId || null,
+          parent_id: parentValue,
         });
       }
       onOpenChange(false);
       // Reset form
       setName('');
       setCode('');
-      setParentId('');
+      setParentId('__none__');
     } catch (error) {
       console.error('Erro ao salvar centro de custo:', error);
     }
@@ -186,7 +188,7 @@ function CostCenterDialog({ open, onOpenChange, costCenter, costCenters }: CostC
                 <SelectValue placeholder="Nenhum (raiz)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum (raiz)</SelectItem>
+                <SelectItem value="__none__">Nenhum (raiz)</SelectItem>
                 {costCenters
                   .filter(cc => cc.id !== costCenter?.id) // Can't be parent of itself
                   .map((cc) => (
