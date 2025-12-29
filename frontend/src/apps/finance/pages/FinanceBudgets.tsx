@@ -11,7 +11,7 @@
  * - Editor mensal (grid 12 meses com planned + contingency)
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Plus,
   Calendar,
@@ -70,6 +70,7 @@ import {
   useCreateBudgetPlan,
   useEnvelopes,
   useCreateEnvelope,
+  useUpdateEnvelopeMonths,
   useCostCenters,
 } from '@/hooks/finance';
 import { useAbility } from '@/hooks/useAbility';
@@ -312,24 +313,25 @@ function EnvelopeEditor({ envelope, months, isLocked, onMonthsChange }: Envelope
   }, [costCenters, envelope.cost_center]);
 
   const totalPlanned = useMemo(() => 
-    months.reduce((sum, m) => sum + m.planned_amount, 0)
+    months.reduce((sum, m) => sum + (Number(m.planned_amount) || 0), 0)
   , [months]);
 
   const totalContingency = useMemo(() => 
-    months.reduce((sum, m) => sum + m.contingency_amount, 0)
+    months.reduce((sum, m) => sum + (Number(m.contingency_amount) || 0), 0)
   , [months]);
 
   const handleMonthChange = (monthIndex: number, field: 'planned_amount' | 'contingency_amount', value: number) => {
+    const numValue = Number(value) || 0;
     const newMonths = [...months];
     const existingMonth = newMonths.find(m => m.month === monthIndex + 1);
     
     if (existingMonth) {
-      existingMonth[field] = value;
+      existingMonth[field] = numValue;
     } else {
       newMonths.push({
         month: monthIndex + 1,
-        planned_amount: field === 'planned_amount' ? value : 0,
-        contingency_amount: field === 'contingency_amount' ? value : 0,
+        planned_amount: field === 'planned_amount' ? numValue : 0,
+        contingency_amount: field === 'contingency_amount' ? numValue : 0,
       });
     }
     
@@ -563,9 +565,34 @@ function PlanDetail({ plan }: PlanDetailProps) {
   const [hasChanges, setHasChanges] = useState(false);
 
   const { data: envelopes, isLoading, error } = useEnvelopes(plan.id);
+  const updateEnvelopeMonths = useUpdateEnvelopeMonths();
 
-  // Initialize envelope months from data
-  // In real implementation, this would come from the API
+  // Initialize envelope months from backend data
+  useEffect(() => {
+    if (!envelopes) return;
+    
+    const initialMonths: Record<string, EnvelopeMonth[]> = {};
+    envelopes.forEach(envelope => {
+      // Sempre inicializar array, mesmo que vazio
+      if (envelope.months && envelope.months.length > 0) {
+        // Converter dados do backend (month: "2025-01-01") para formato frontend (month: 1)
+        initialMonths[envelope.id] = envelope.months.map(m => {
+          const date = new Date(m.month);
+          return {
+            month: date.getMonth() + 1, // 0-11 -> 1-12
+            planned_amount: m.planned_amount,
+            contingency_amount: 0,
+          };
+        });
+      } else {
+        // Inicializar array vazio para envelopes sem meses
+        initialMonths[envelope.id] = [];
+      }
+    });
+    
+    setEnvelopeMonths(initialMonths);
+  }, [envelopes]);
+
   const handleMonthsChange = (envelopeId: string, months: EnvelopeMonth[]) => {
     setEnvelopeMonths(prev => ({
       ...prev,
@@ -575,23 +602,45 @@ function PlanDetail({ plan }: PlanDetailProps) {
   };
 
   const handleSave = async () => {
-    // TODO: Call updateEnvelopeMonths for each changed envelope
-    console.log('Saving envelope months:', envelopeMonths);
-    setHasChanges(false);
+    try {
+      // Save each changed envelope
+      const promises = Object.entries(envelopeMonths).map(([envelopeId, months]) => {
+        // Converter meses de número (1-12) para data (YYYY-MM-01)
+        const monthsForBackend = months.map(m => ({
+          month: `${plan.year}-${String(m.month).padStart(2, '0')}-01`,
+          planned_amount: m.planned_amount,
+        }));
+        
+        return updateEnvelopeMonths.mutateAsync({ 
+          envelopeId, 
+          months: monthsForBackend 
+        });
+      });
+      
+      await Promise.all(promises);
+      setHasChanges(false);
+      // Não limpa o estado - ele será atualizado quando os dados do backend chegarem
+    } catch (error) {
+      console.error('Erro ao salvar meses:', error);
+    }
   };
 
   const totalPlanned = useMemo(() => {
     if (!envelopes) return 0;
-    return Object.values(envelopeMonths).reduce((total, months) => 
-      total + months.reduce((sum, m) => sum + m.planned_amount, 0)
-    , 0);
+    return envelopes.reduce((total, envelope) => {
+      const months = envelopeMonths[envelope.id] ?? [];
+      const monthsTotal = months.reduce((sum, m) => sum + (Number(m.planned_amount) || 0), 0);
+      return total + monthsTotal;
+    }, 0);
   }, [envelopes, envelopeMonths]);
 
   const totalContingency = useMemo(() => {
     if (!envelopes) return 0;
-    return Object.values(envelopeMonths).reduce((total, months) => 
-      total + months.reduce((sum, m) => sum + m.contingency_amount, 0)
-    , 0);
+    return envelopes.reduce((total, envelope) => {
+      const months = envelopeMonths[envelope.id] ?? [];
+      const monthsTotal = months.reduce((sum, m) => sum + (Number(m.contingency_amount) || 0), 0);
+      return total + monthsTotal;
+    }, 0);
   }, [envelopes, envelopeMonths]);
 
   if (isLoading) {

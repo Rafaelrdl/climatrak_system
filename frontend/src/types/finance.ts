@@ -58,14 +58,30 @@ export interface Envelope {
     asset_ids?: string[];
     location_ids?: string[];
   };
+  months?: BudgetMonthFromBackend[]; // dados do backend
   created_at: string;
   updated_at: string;
 }
 
-export interface EnvelopeMonth {
-  month: number; // 1-12
+export interface BudgetMonthFromBackend {
+  id: string;
+  month: string; // DateField "YYYY-MM-DD"
   planned_amount: number;
-  contingency_amount: number;
+  is_locked: boolean;
+  locked_at?: string;
+  locked_by?: string;
+}
+
+export interface EnvelopeMonth {
+  id?: string;
+  month: number; // 1-12 (frontend)
+  planned_amount: number;
+  contingency_amount: number; // frontend only
+}
+
+export interface BudgetMonthInput {
+  month: string; // YYYY-MM-DD format (backend)
+  planned_amount: number;
 }
 
 // ==================== Ledger ====================

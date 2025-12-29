@@ -202,10 +202,10 @@ export async function createEnvelope(
 
 export async function updateEnvelopeMonths(
   envelopeId: string,
-  months: EnvelopeMonth[]
+  months: { month: string; planned_amount: number }[]
 ): Promise<Envelope> {
-  const { data } = await api.put<ApiResponse<Envelope>>(
-    `${BASE_URL}/budget-envelopes/${envelopeId}/months/`,
+  const { data } = await api.patch<ApiResponse<Envelope>>(
+    `${BASE_URL}/budget-envelopes/${envelopeId}/`,
     { months }
   );
   return data.data ?? data as unknown as Envelope;

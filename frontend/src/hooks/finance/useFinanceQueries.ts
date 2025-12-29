@@ -104,6 +104,21 @@ export function useCreateEnvelope() {
   });
 }
 
+export function useUpdateEnvelopeMonths() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ envelopeId, months }: { envelopeId: string; months: { month: string; planned_amount: number }[] }) =>
+      financeService.updateEnvelopeMonths(envelopeId, months),
+    onSuccess: (data) => {
+      // Invalidate envelopes for the budget plan
+      queryClient.invalidateQueries({ 
+        queryKey: financeKeys.budgets.envelopes(data.budget_plan) 
+      });
+    },
+  });
+}
+
 // ==================== Commitments ====================
 
 export function useCommitments(filters: CommitmentFilters) {

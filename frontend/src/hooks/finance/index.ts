@@ -19,6 +19,7 @@ export {
   useCreateBudgetPlan,
   useEnvelopes,
   useCreateEnvelope,
+  useUpdateEnvelopeMonths,
   
   // Commitments
   useCommitments,
