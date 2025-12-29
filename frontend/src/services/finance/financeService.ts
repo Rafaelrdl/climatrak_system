@@ -28,11 +28,92 @@ import type {
 
 const BASE_URL = '/finance';
 
+// ==================== Helper para extrair dados ====================
+
+/**
+ * Resposta paginada do Django REST Framework
+ */
+interface DjangoPaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+/**
+ * Extrai array de dados de uma resposta que pode ser:
+ * - Array direto
+ * - { data: [...] } (formato ApiResponse)
+ * - { results: [...] } (formato Django paginado)
+ */
+function extractArray<T>(response: unknown): T[] {
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (response && typeof response === 'object') {
+    const obj = response as Record<string, unknown>;
+    // Django paginated response
+    if ('results' in obj && Array.isArray(obj.results)) {
+      return obj.results as T[];
+    }
+    // ApiResponse format
+    if ('data' in obj && Array.isArray(obj.data)) {
+      return obj.data as T[];
+    }
+  }
+  return [];
+}
+
+/**
+ * Normaliza resposta paginada do Django para o formato esperado pelo frontend
+ * Django: { count, next, previous, results }
+ * Frontend: { data, meta: { page, page_size, total, total_pages } }
+ */
+function normalizePaginatedResponse<T>(
+  response: unknown,
+  pageSize: number = 50
+): PaginatedResponse<T> {
+  if (response && typeof response === 'object') {
+    const obj = response as Record<string, unknown>;
+    
+    // Se já está no formato esperado
+    if ('data' in obj && 'meta' in obj) {
+      return response as PaginatedResponse<T>;
+    }
+    
+    // Django paginated response
+    if ('results' in obj) {
+      const djangoResp = obj as DjangoPaginatedResponse<T>;
+      const total = djangoResp.count ?? 0;
+      return {
+        data: djangoResp.results ?? [],
+        meta: {
+          page: 1,
+          page_size: pageSize,
+          total,
+          total_pages: Math.ceil(total / pageSize) || 1,
+        },
+      };
+    }
+  }
+  
+  // Fallback para array vazio
+  return {
+    data: [],
+    meta: {
+      page: 1,
+      page_size: pageSize,
+      total: 0,
+      total_pages: 1,
+    },
+  };
+}
+
 // ==================== Cost Centers ====================
 
 export async function getCostCenters(): Promise<CostCenter[]> {
-  const { data } = await api.get<ApiResponse<CostCenter[]>>(`${BASE_URL}/cost-centers`);
-  return data.data ?? data as unknown as CostCenter[];
+  const { data } = await api.get(`${BASE_URL}/cost-centers`);
+  return extractArray<CostCenter>(data);
 }
 
 export async function createCostCenter(
@@ -57,8 +138,8 @@ export async function deleteCostCenter(id: string): Promise<void> {
 // ==================== Rate Cards ====================
 
 export async function getRateCards(): Promise<RateCard[]> {
-  const { data } = await api.get<ApiResponse<RateCard[]>>(`${BASE_URL}/rate-cards`);
-  return data.data ?? data as unknown as RateCard[];
+  const { data } = await api.get(`${BASE_URL}/rate-cards`);
+  return extractArray<RateCard>(data);
 }
 
 export async function createRateCard(
@@ -72,8 +153,8 @@ export async function createRateCard(
 
 export async function getBudgetPlans(year?: number): Promise<BudgetPlan[]> {
   const params = year ? { year } : {};
-  const { data } = await api.get<ApiResponse<BudgetPlan[]>>(`${BASE_URL}/budget-plans`, { params });
-  return data.data ?? data as unknown as BudgetPlan[];
+  const { data } = await api.get(`${BASE_URL}/budget-plans`, { params });
+  return extractArray<BudgetPlan>(data);
 }
 
 export async function createBudgetPlan(
@@ -94,10 +175,10 @@ export async function updateBudgetPlan(
 // ==================== Envelopes ====================
 
 export async function getEnvelopes(budgetPlanId: string): Promise<Envelope[]> {
-  const { data } = await api.get<ApiResponse<Envelope[]>>(`${BASE_URL}/envelopes`, {
+  const { data } = await api.get(`${BASE_URL}/envelopes`, {
     params: { budget_plan_id: budgetPlanId },
   });
-  return data.data ?? data as unknown as Envelope[];
+  return extractArray<Envelope>(data);
 }
 
 export async function createEnvelope(
@@ -123,11 +204,11 @@ export async function updateEnvelopeMonths(
 export async function getTransactions(
   filters: LedgerFilters
 ): Promise<PaginatedResponse<CostTransaction>> {
-  const { data } = await api.get<PaginatedResponse<CostTransaction>>(
+  const { data } = await api.get(
     `${BASE_URL}/transactions`,
     { params: filters }
   );
-  return data;
+  return normalizePaginatedResponse<CostTransaction>(data, filters.page_size ?? 50);
 }
 
 export async function createManualTransaction(
@@ -145,11 +226,11 @@ export async function createManualTransaction(
 export async function getCommitments(
   filters: CommitmentFilters
 ): Promise<PaginatedResponse<Commitment>> {
-  const { data } = await api.get<PaginatedResponse<Commitment>>(
+  const { data } = await api.get(
     `${BASE_URL}/commitments`,
     { params: filters }
   );
-  return data;
+  return normalizePaginatedResponse<Commitment>(data, filters.page_size ?? 50);
 }
 
 export async function getCommitment(id: string): Promise<Commitment> {
@@ -185,11 +266,11 @@ export async function cancelCommitment(id: string): Promise<Commitment> {
 export async function getSavingsEvents(
   filters: SavingsFilters
 ): Promise<PaginatedResponse<SavingsEvent>> {
-  const { data } = await api.get<PaginatedResponse<SavingsEvent>>(
+  const { data } = await api.get(
     `${BASE_URL}/savings-events`,
     { params: filters }
   );
-  return data;
+  return normalizePaginatedResponse<SavingsEvent>(data, filters.page_size ?? 50);
 }
 
 export async function createSavingsEvent(input: SavingsEventInput): Promise<SavingsEvent> {
