@@ -221,6 +221,7 @@ export interface SavingsFilters {
   cost_center_id?: string;
   asset_id?: string;
   event_type?: SavingsEventType;
+  confidence?: SavingsConfidence;
   page?: number;
   page_size?: number;
 }
