@@ -29,9 +29,11 @@ import {
   Camera,
   Upload,
   ClipboardCheck,
-  Loader2
+  Loader2,
+  PenTool
 } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
+import { SignaturePad, type SignaturePadRef } from '@/components/ui/signature-pad';
 import { useCompanies, useSectors } from '@/hooks/useLocationsQuery';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useStockItems } from '@/hooks/useInventoryQuery';
@@ -130,6 +132,11 @@ export function WorkOrderEditModal({
   const [checklistResponses, setChecklistResponses] = useState<ChecklistResponse[]>([]);
   const [executionDescription, setExecutionDescription] = useState('');
   
+  // Estados para assinatura
+  const [signedBy, setSignedBy] = useState('');
+  const [hasSignature, setHasSignature] = useState(false);
+  const signaturePadRef = useRef<SignaturePadRef>(null);
+  
   const { data: equipment = [] } = useEquipments();
   const { data: sectors = [] } = useSectors();
   const { data: companies = [] } = useCompanies();
@@ -212,6 +219,15 @@ export function WorkOrderEditModal({
       
       setChecklistResponses(defaultChecklist);
       setExecutionDescription(currentWorkOrder.executionDescription || '');
+      
+      // Carregar dados de assinatura
+      setSignedBy(currentWorkOrder.signedBy || '');
+      setHasSignature(!!currentWorkOrder.signature);
+      // Carregar assinatura existente no SignaturePad após render
+      if (currentWorkOrder.signature && signaturePadRef.current) {
+        signaturePadRef.current.fromDataURL(currentWorkOrder.signature);
+      }
+      
       setActiveTab("details");
       setErrors({});
     }
@@ -228,6 +244,9 @@ export function WorkOrderEditModal({
       setNewPhotoFiles(new Map());
       setDeletedPhotoIds([]); // Limpar fotos marcadas para deletar
       setOriginalStockItems([]); // Limpar itens originais
+      setSignedBy(''); // Limpar nome de quem assinou
+      setHasSignature(false); // Limpar flag de assinatura
+      signaturePadRef.current?.clear(); // Limpar canvas de assinatura
     }
   }, [isOpen]);
 
@@ -383,6 +402,11 @@ export function WorkOrderEditModal({
       const existingPhotos = uploadedPhotos.filter(p => !p.id.startsWith('photo-'));
       const allPhotos = [...existingPhotos, ...uploadedNewPhotos];
 
+      // Obter dados de assinatura
+      const signatureData = signaturePadRef.current && !signaturePadRef.current.isEmpty() 
+        ? signaturePadRef.current.toDataURL() 
+        : currentWorkOrder?.signature;
+
       // Combina os dados do formulário
       const updatedWorkOrder: WorkOrder = {
         ...workOrder,
@@ -397,6 +421,11 @@ export function WorkOrderEditModal({
         executionDescription,
         photos: allPhotos,
         checklistResponses,
+        signature: signatureData,
+        signedBy: signedBy || currentWorkOrder?.signedBy,
+        signedAt: signatureData && signedBy && !currentWorkOrder?.signedAt 
+          ? new Date().toISOString() 
+          : currentWorkOrder?.signedAt,
       };
       
       onSave(updatedWorkOrder);
@@ -563,6 +592,16 @@ export function WorkOrderEditModal({
               >
                 <Wrench className="h-4 w-4" />
                 <span>Execução</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="signature" 
+                className="flex items-center gap-2 data-[state=active]:bg-background"
+              >
+                <PenTool className="h-4 w-4" />
+                <span>Assinatura</span>
+                {(hasSignature || currentWorkOrder?.signature) && (
+                  <span className="h-2 w-2 bg-green-500 rounded-full" />
+                )}
               </TabsTrigger>
             </TabsList>
             
@@ -1320,6 +1359,116 @@ export function WorkOrderEditModal({
                     </ScrollArea>
                   </TabsContent>
                 )}
+                
+                {/* Aba de Assinatura */}
+                <TabsContent value="signature" className="mt-0">
+                  <ScrollArea className="h-[60vh] pr-4">
+                    <div className="space-y-6">
+                      {/* Informações sobre assinatura */}
+                      <div className="rounded-lg border bg-card">
+                        <div className="px-4 py-3 border-b bg-muted/50">
+                          <h3 className="text-sm font-medium flex items-center gap-2">
+                            <PenTool className="h-4 w-4 text-muted-foreground" />
+                            Assinatura de Comprovação
+                          </h3>
+                        </div>
+                        <div className="p-4 space-y-4">
+                          <p className="text-sm text-muted-foreground">
+                            Após a execução da ordem de serviço, o solicitante ou responsável deve assinar 
+                            abaixo para comprovar que o serviço foi realizado.
+                          </p>
+                          
+                          {/* Nome de quem assina */}
+                          <div className="space-y-2">
+                            <Label htmlFor="signedBy">Nome do Responsável pela Assinatura</Label>
+                            <Input
+                              id="signedBy"
+                              placeholder="Digite o nome completo de quem está assinando"
+                              value={signedBy}
+                              onChange={(e) => setSignedBy(e.target.value)}
+                              disabled={formData.status !== 'COMPLETED'}
+                            />
+                            {formData.status !== 'COMPLETED' && (
+                              <p className="text-xs text-muted-foreground">
+                                A assinatura só pode ser coletada quando a ordem estiver concluída.
+                              </p>
+                            )}
+                          </div>
+                          
+                          {/* Campo de Assinatura */}
+                          <div className="space-y-2">
+                            <Label>Assinatura</Label>
+                            {currentWorkOrder?.signature && !hasSignature ? (
+                              <div className="space-y-3">
+                                <div className="border rounded-lg p-2 bg-white">
+                                  <img 
+                                    src={currentWorkOrder.signature} 
+                                    alt="Assinatura existente" 
+                                    className="max-w-full h-auto"
+                                  />
+                                </div>
+                                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                  <span>
+                                    Assinado por: <strong>{currentWorkOrder.signedBy}</strong>
+                                  </span>
+                                  {currentWorkOrder.signedAt && (
+                                    <span>
+                                      em {new Date(currentWorkOrder.signedAt).toLocaleString('pt-BR')}
+                                    </span>
+                                  )}
+                                </div>
+                                {formData.status === 'COMPLETED' && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setHasSignature(true);
+                                      setSignedBy('');
+                                    }}
+                                  >
+                                    Coletar Nova Assinatura
+                                  </Button>
+                                )}
+                              </div>
+                            ) : (
+                              <SignaturePad
+                                ref={signaturePadRef}
+                                width={460}
+                                height={200}
+                                disabled={formData.status !== 'COMPLETED'}
+                                onChange={(empty) => setHasSignature(!empty)}
+                                initialValue={currentWorkOrder?.signature}
+                              />
+                            )}
+                          </div>
+                          
+                          {/* Status da Assinatura */}
+                          {formData.status === 'COMPLETED' && (
+                            <div className={cn(
+                              "flex items-center gap-2 p-3 rounded-lg text-sm",
+                              hasSignature || currentWorkOrder?.signature
+                                ? "bg-green-50 text-green-700 border border-green-200"
+                                : "bg-amber-50 text-amber-700 border border-amber-200"
+                            )}>
+                              {hasSignature || currentWorkOrder?.signature ? (
+                                <>
+                                  <ClipboardCheck className="h-4 w-4" />
+                                  <span>Ordem de serviço assinada</span>
+                                </>
+                              ) : (
+                                <>
+                                  <AlertTriangle className="h-4 w-4" />
+                                  <span>Aguardando assinatura do responsável</span>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
               </div>
             </ScrollArea>
           </Tabs>

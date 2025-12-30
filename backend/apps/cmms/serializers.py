@@ -216,6 +216,7 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             'checklist_template', 'checklist_responses',
             'photos', 'items', 'is_overdue',
             'request', 'maintenance_plan', 'cancellation_reason',
+            'signature', 'signed_by', 'signed_at',
             'created_at', 'updated_at'
         ]
         read_only_fields = [

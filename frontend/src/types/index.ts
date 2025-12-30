@@ -131,6 +131,12 @@ export interface WorkOrder {
   maintenancePlanId?: string;
   /** ID da solicitação que gerou esta OS (se aplicável) */
   requestId?: string;
+  /** Assinatura do solicitante/responsável (base64 da imagem) */
+  signature?: string;
+  /** Nome de quem assinou a ordem de serviço */
+  signedBy?: string;
+  /** Data/hora da assinatura */
+  signedAt?: string;
 }
 
 export interface WorkOrderStockItem {

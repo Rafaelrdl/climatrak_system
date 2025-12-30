@@ -311,6 +311,10 @@ export interface ApiWorkOrder {
   created_by_name: string | null;
   maintenance_plan: number | null;
   request: number | null;
+  // Campos de assinatura
+  signature: string | null;
+  signed_by: string | null;
+  signed_at: string | null;
   created_at: string;
   updated_at: string;
 }

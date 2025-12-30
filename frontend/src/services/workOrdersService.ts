@@ -157,6 +157,10 @@ const mapWorkOrder = (wo: ApiWorkOrder): WorkOrder => ({
     unit: i.unit,
     quantity: i.quantity,
   })) : [],
+  // Campos de assinatura
+  signature: wo.signature || undefined,
+  signedBy: wo.signed_by || undefined,
+  signedAt: wo.signed_at || undefined,
 });
 
 /**
@@ -188,6 +192,11 @@ const mapToApi = (data: Partial<WorkOrder>): Record<string, unknown> => {
   if (data.executionDescription !== undefined) payload.execution_description = data.executionDescription;
   if (data.startedAt) payload.started_at = data.startedAt;
   if (data.completedAt) payload.completed_at = data.completedAt;
+  
+  // Campos de assinatura
+  if (data.signature !== undefined) payload.signature = data.signature;
+  if (data.signedBy !== undefined) payload.signed_by = data.signedBy;
+  if (data.signedAt !== undefined) payload.signed_at = data.signedAt;
   
   return payload;
 };

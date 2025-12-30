@@ -352,6 +352,25 @@ class WorkOrder(models.Model):
         verbose_name='Motivo do Cancelamento'
     )
     
+    # Assinatura de comprovação
+    signature = models.TextField(
+        blank=True,
+        verbose_name='Assinatura',
+        help_text='Assinatura do responsável em base64 (data URL da imagem)'
+    )
+    signed_by = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='Assinado por',
+        help_text='Nome de quem assinou a ordem de serviço'
+    )
+    signed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Assinado em',
+        help_text='Data/hora da assinatura'
+    )
+    
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
