@@ -529,37 +529,67 @@ export function WorkOrderViewModal({
                           </div>
                         </div>
 
-                        {/* Botão para processar custos */}
-                        <div className="flex justify-center">
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="gap-2"
-                            disabled={isProcessingCosts}
-                            onClick={async () => {
-                              setIsProcessingCosts(true);
-                              try {
-                                const result = await workOrdersService.postCosts(String(currentWorkOrder.id));
-                                toast.success(`Custos processados! ${result.transactions_created} transação(ões) criada(s)`);
-                                
-                                // Invalidar cache e refetch
-                                await queryClient.invalidateQueries({ queryKey: ['finance', 'ledger'] });
-                                await refetchCosts();
-                              } catch (error: any) {
-                                toast.error(error.message || 'Erro ao processar custos');
-                              } finally {
-                                // Aguardar um pouco antes de remover o loading para garantir que a UI atualize
-                                setTimeout(() => setIsProcessingCosts(false), 500);
-                              }
-                            }}
-                          >
-                            {isProcessingCosts ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <DollarSign className="h-4 w-4" />
-                            )}
-                            {isProcessingCosts ? 'Processando...' : 'Processar Custos Agora'}
-                          </Button>
+                        {/* Botões de ação */}
+                        <div className="flex flex-col gap-3">
+                          {/* Botão de concluir OS (só se não estiver concluída) */}
+                          {!isCompleted && (
+                            <div className="flex justify-center">
+                              <Button
+                                variant="default"
+                                size="lg"
+                                className="gap-2 bg-green-600 hover:bg-green-700"
+                                onClick={async () => {
+                                  try {
+                                    await workOrdersService.complete(String(currentWorkOrder.id), {
+                                      checklist_responses: []
+                                    });
+                                    toast.success('OS concluída com sucesso! Custos processados automaticamente.');
+                                    onClose();
+                                  } catch (error: any) {
+                                    toast.error(error.message || 'Erro ao concluir OS');
+                                  }
+                                }}
+                              >
+                                <CheckCircle className="h-5 w-5" />
+                                Concluir Ordem de Serviço
+                              </Button>
+                            </div>
+                          )}
+                          
+                          {/* Botão para processar custos manualmente (se já concluída mas sem custos) */}
+                          {isCompleted && (
+                            <div className="flex justify-center">
+                              <Button
+                                variant="default"
+                                size="sm"
+                                className="gap-2"
+                                disabled={isProcessingCosts}
+                                onClick={async () => {
+                                  setIsProcessingCosts(true);
+                                  try {
+                                    const result = await workOrdersService.postCosts(String(currentWorkOrder.id));
+                                    toast.success(`Custos processados! ${result.transactions_created} transação(ões) criada(s)`);
+                                    
+                                    // Invalidar cache e refetch
+                                    await queryClient.invalidateQueries({ queryKey: ['finance', 'ledger'] });
+                                    await refetchCosts();
+                                  } catch (error: any) {
+                                    toast.error(error.message || 'Erro ao processar custos');
+                                  } finally {
+                                    // Aguardar um pouco antes de remover o loading para garantir que a UI atualize
+                                    setTimeout(() => setIsProcessingCosts(false), 500);
+                                  }
+                                }}
+                              >
+                                {isProcessingCosts ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <DollarSign className="h-4 w-4" />
+                                )}
+                                {isProcessingCosts ? 'Processando...' : 'Processar Custos Agora'}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ) : (

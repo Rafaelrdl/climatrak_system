@@ -192,6 +192,140 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+    def update(self, request, *args, **kwargs):
+        """Override update para processar custos automaticamente ao concluir."""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        old_status = instance.status
+        
+        logger.info(f"🔄 UPDATE OS {instance.number}: status atual = {old_status}")
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        # Se mudou de qualquer status para COMPLETED, processar custos
+        new_status = serializer.instance.status
+        logger.info(f"📊 UPDATE OS {instance.number}: novo status = {new_status}")
+        
+        if old_status != WorkOrder.Status.COMPLETED and new_status == WorkOrder.Status.COMPLETED:
+            logger.info(f"✅ Mudança detectada: {old_status} → {new_status}. Processando custos...")
+            self._process_costs_on_completion(serializer.instance)
+        else:
+            logger.info(f"⏭️ Sem mudança para COMPLETED (old={old_status}, new={new_status})")
+        
+        return Response(serializer.data)
+
+    def partial_update(self, request, *args, **kwargs):
+        """Override partial_update para processar custos automaticamente ao concluir."""
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+
+    def _process_costs_on_completion(self, work_order):
+        """Processa custos automaticamente quando OS é concluída."""
+        try:
+            from django.db import connection
+            from apps.cmms.models import TimeEntry, PartUsage
+            from apps.finance.cost_engine import CostEngineService
+            
+            logger.info(f"🤖 Processamento automático de custos para OS {work_order.number}...")
+            
+            # Auto-criar TimeEntry se não existir
+            time_entries_count = work_order.time_entries.count()
+            if time_entries_count == 0:
+                # Usar actual_hours ou criar entrada padrão de 1h
+                hours = work_order.actual_hours if work_order.actual_hours else Decimal('1.0')
+                TimeEntry.objects.create(
+                    work_order=work_order,
+                    role='Técnico',
+                    hours=hours,
+                    hourly_rate=Decimal('75.00'),
+                    work_date=timezone.now().date(),
+                )
+                logger.info(f"✅ TimeEntry auto-criado: {hours}h de Técnico")
+            
+            # Auto-criar PartUsage de WorkOrderItem se não existir
+            part_usages_count = work_order.part_usages.count()
+            if part_usages_count == 0:
+                items_converted = 0
+                for wo_item in work_order.items.all():
+                    if wo_item.inventory_item:
+                        PartUsage.objects.create(
+                            work_order=work_order,
+                            inventory_item=wo_item.inventory_item,
+                            part_number=wo_item.inventory_item.code,
+                            part_name=wo_item.inventory_item.name,
+                            quantity=wo_item.quantity,
+                            unit=wo_item.inventory_item.unit,
+                            unit_cost=wo_item.inventory_item.unit_cost,
+                        )
+                        items_converted += 1
+                if items_converted > 0:
+                    logger.info(f"✅ {items_converted} PartUsage auto-criados de WorkOrderItem")
+            
+            # Refresh para pegar os novos TimeEntry e PartUsage
+            work_order.refresh_from_db()
+            
+            # Mapear tipo da OS para category
+            type_to_category = {
+                'PREVENTIVE': 'preventive',
+                'CORRECTIVE': 'corrective',
+                'EMERGENCY': 'emergency',
+                'REQUEST': 'request',
+            }
+            category = type_to_category.get(work_order.type, 'other')
+            
+            # Montar event_data no formato esperado pelo CostEngine
+            event_data = {
+                'work_order_id': str(work_order.id),
+                'work_order_number': work_order.number,
+                'asset_id': str(work_order.asset_id),
+                'cost_center_id': str(work_order.cost_center_id) if work_order.cost_center_id else None,
+                'category': category,
+                'completed_at': work_order.completed_at.isoformat() if work_order.completed_at else timezone.now().isoformat(),
+                'labor': [
+                    {
+                        'time_entry_id': str(te.id),
+                        'role': te.role,
+                        'hours': float(te.hours),
+                        'hourly_rate': float(te.hourly_rate) if te.hourly_rate else 75.0,
+                    }
+                    for te in work_order.time_entries.all()
+                ],
+                'parts': [
+                    {
+                        'part_usage_id': str(pu.id),
+                        'part_id': str(pu.inventory_item_id) if pu.inventory_item_id else None,
+                        'part_number': pu.part_number,
+                        'part_name': pu.part_name,
+                        'qty': float(pu.quantity),
+                        'unit_cost': float(pu.unit_cost) if pu.unit_cost else 0,
+                    }
+                    for pu in work_order.part_usages.all()
+                ],
+                'third_party': [
+                    {
+                        'external_cost_id': str(ec.id),
+                        'description': ec.description,
+                        'amount': float(ec.amount),
+                    }
+                    for ec in work_order.external_costs.all()
+                ],
+            }
+            
+            logger.info(f"📦 event_data: labor={len(event_data['labor'])}, parts={len(event_data['parts'])}, third_party={len(event_data['third_party'])}")
+            
+            # Processar custos
+            result = CostEngineService.process_work_order_closed(
+                event_data=event_data,
+                tenant_id=connection.schema_name,
+            )
+            
+            logger.info(f"✅ Processamento automático concluído: {result.get('transactions_created', 0)} transação(ões) criada(s)")
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao processar custos automaticamente para OS {work_order.number}: {str(e)}", exc_info=True)
+
     @action(detail=True, methods=['post'])
     def start(self, request, pk=None):
         """Inicia a execução de uma OS."""
@@ -236,7 +370,7 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
         try:
             from django.db import connection
             from apps.cmms.models import TimeEntry, PartUsage
-            from apps.finance.services import CostEngineService
+            from apps.finance.cost_engine import CostEngineService
             
             logger.info(f"🤖 Processamento automático de custos para OS {work_order.number}...")
             
@@ -263,7 +397,7 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                         PartUsage.objects.create(
                             work_order=work_order,
                             inventory_item=wo_item.inventory_item,
-                            part_number=wo_item.inventory_item.part_number,
+                            part_number=wo_item.inventory_item.code,
                             part_name=wo_item.inventory_item.name,
                             quantity=wo_item.quantity,
                             unit=wo_item.inventory_item.unit,
