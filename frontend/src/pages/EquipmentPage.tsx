@@ -348,6 +348,9 @@ function AssetsContent() {
       if (numPhases === 3) {
         // Trifásico: S = √3 × V × I
         S = Math.sqrt(3) * V * I;
+      } else if (numPhases === 2) {
+        // Bifásico: S = 2 × V × I × cos(30°) = √3 × V × I (aproximação para bifásico delta)
+        S = Math.sqrt(3) * V * I;
       } else {
         // Monofásico: S = V × I
         S = V * I;
@@ -639,7 +642,7 @@ function AssetsContent() {
             <TabsContent value="basic" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                 {/* Tag do equipamento */}
-                <div className="md:col-span-2">
+                <div>
                   <Label htmlFor="tag" className="mb-2 block">
                     Tag do Ativo *
                     <span className="text-xs text-muted-foreground ml-2 font-normal">
@@ -783,7 +786,7 @@ function AssetsContent() {
                     value={newEquipment.installDate}
                     onChange={(e) => setNewEquipment(prev => ({ ...prev, installDate: e.target.value }))}
                     required
-                    className="h-10 w-48"
+                    className="h-10"
                   />
                 </div>
                 
@@ -798,7 +801,7 @@ function AssetsContent() {
                     type="date"
                     value={newEquipment.warrantyExpiry}
                     onChange={(e) => setNewEquipment(prev => ({ ...prev, warrantyExpiry: e.target.value }))}
-                    className="h-10 w-48"
+                    className="h-10"
                   />
                 </div>
                 
@@ -876,7 +879,7 @@ function AssetsContent() {
                 </div>
                 
                 {/* Seletor de Subsetor */}
-                <div>
+                <div className="md:col-span-2">
                   <Label htmlFor="subsection" className="mb-2 block">
                     Subsetor
                     <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
@@ -905,7 +908,7 @@ function AssetsContent() {
                 </div>
                 
                 {/* Localização específica */}
-                <div>
+                <div className="md:col-span-2">
                   <Label htmlFor="location" className="mb-2 block">
                     Localização Específica
                     <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
@@ -949,7 +952,7 @@ function AssetsContent() {
                   <Select 
                     value={newEquipment.phases?.toString()} 
                     onValueChange={(value) => 
-                      setNewEquipment(prev => ({ ...prev, phases: parseInt(value) as 1 | 3 }))
+                      setNewEquipment(prev => ({ ...prev, phases: parseInt(value) as 1 | 2 | 3 }))
                     }
                   >
                     <SelectTrigger className="h-10">
@@ -957,6 +960,7 @@ function AssetsContent() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="1">Monofásico (1 fase)</SelectItem>
+                      <SelectItem value="2">Bifásico (2 fases)</SelectItem>
                       <SelectItem value="3">Trifásico (3 fases)</SelectItem>
                     </SelectContent>
                   </Select>
@@ -1039,13 +1043,48 @@ function AssetsContent() {
                   <Label htmlFor="refrigerant" className="mb-2 block">
                     Fluido Refrigerante
                   </Label>
-                  <Input 
-                    id="refrigerant"
-                    value={newEquipment.refrigerant}
-                    onChange={(e) => setNewEquipment(prev => ({ ...prev, refrigerant: e.target.value }))}
-                    placeholder="Ex: R-410A"
-                    className="h-10"
-                  />
+                  <Select 
+                    value={newEquipment.refrigerant} 
+                    onValueChange={(value) => setNewEquipment(prev => ({ ...prev, refrigerant: value }))}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Selecione o refrigerante" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="R-11">R-11</SelectItem>
+                      <SelectItem value="R-12">R-12</SelectItem>
+                      <SelectItem value="R-22">R-22</SelectItem>
+                      <SelectItem value="R-23">R-23</SelectItem>
+                      <SelectItem value="R-32">R-32</SelectItem>
+                      <SelectItem value="R-113">R-113</SelectItem>
+                      <SelectItem value="R-114">R-114</SelectItem>
+                      <SelectItem value="R-115">R-115</SelectItem>
+                      <SelectItem value="R-123">R-123</SelectItem>
+                      <SelectItem value="R-1234yf">R-1234yf</SelectItem>
+                      <SelectItem value="R-1234ze">R-1234ze</SelectItem>
+                      <SelectItem value="R-1233zd">R-1233zd</SelectItem>
+                      <SelectItem value="R-134a">R-134a</SelectItem>
+                      <SelectItem value="R-141b">R-141b</SelectItem>
+                      <SelectItem value="R-142b">R-142b</SelectItem>
+                      <SelectItem value="R-143a">R-143a</SelectItem>
+                      <SelectItem value="R-152a">R-152a</SelectItem>
+                      <SelectItem value="R-404A">R-404A</SelectItem>
+                      <SelectItem value="R-407C">R-407C</SelectItem>
+                      <SelectItem value="R-407F">R-407F</SelectItem>
+                      <SelectItem value="R-410A">R-410A</SelectItem>
+                      <SelectItem value="R-448A">R-448A</SelectItem>
+                      <SelectItem value="R-449A">R-449A</SelectItem>
+                      <SelectItem value="R-452A">R-452A</SelectItem>
+                      <SelectItem value="R-454B">R-454B</SelectItem>
+                      <SelectItem value="R-507A">R-507A</SelectItem>
+                      <SelectItem value="R-513A">R-513A</SelectItem>
+                      <SelectItem value="R-717">R-717 (Amônia)</SelectItem>
+                      <SelectItem value="R-744">R-744 (CO₂)</SelectItem>
+                      <SelectItem value="R-290">R-290 (Propano)</SelectItem>
+                      <SelectItem value="R-600a">R-600a (Isobutano)</SelectItem>
+                      <SelectItem value="R-1270">R-1270 (Propileno)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Separador visual */}

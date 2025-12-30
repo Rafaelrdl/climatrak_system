@@ -291,6 +291,7 @@ class Asset(models.Model):
     # Número de Fases
     PHASES_CHOICES = [
         (1, 'Monofásico'),
+        (2, 'Bifásico'),
         (3, 'Trifásico'),
     ]
     phases = models.PositiveSmallIntegerField(
