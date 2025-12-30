@@ -219,8 +219,8 @@ export interface FinanceSummary {
 // ==================== Filters ====================
 
 export interface LedgerFilters {
-  from?: string;
-  to?: string;
+  start_date?: string;
+  end_date?: string;
   cost_center_id?: string;
   asset_id?: string;
   work_order_id?: string;

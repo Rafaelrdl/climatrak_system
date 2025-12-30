@@ -52,13 +52,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -108,6 +101,14 @@ function formatDate(dateStr: string): string {
 
 function formatDateTime(dateStr: string): string {
   return new Date(dateStr).toLocaleString('pt-BR');
+}
+
+function getCurrentLocalDate(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function getFirstDayOfMonth(): string {
@@ -251,131 +252,153 @@ function FilterPanel({ filters, onFiltersChange, onClear }: FilterPanelProps) {
   );
 }
 
-// ==================== Transaction Detail Sheet ====================
+// ==================== Transaction Detail Dialog ====================
 
-interface TransactionDetailSheetProps {
+interface TransactionDetailDialogProps {
   transaction: CostTransaction | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-function TransactionDetailSheet({ transaction, open, onOpenChange }: TransactionDetailSheetProps) {
+function TransactionDetailDialog({ transaction, open, onOpenChange }: TransactionDetailDialogProps) {
   if (!transaction) return null;
 
   const typeInfo = getTypeInfo(transaction.transaction_type);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5" />
-            Detalhe da Transação
-          </SheetTitle>
-          <SheetDescription>
-            {transaction.idempotency_key}
-          </SheetDescription>
-        </SheetHeader>
-
-        <div className="mt-6 space-y-6">
-          {/* Valor Principal */}
-          <div className="text-center py-4 bg-muted/50 rounded-lg">
-            <p className="text-sm text-muted-foreground mb-1">Valor</p>
-            <p className="text-3xl font-bold">
-              <MoneyCell value={transaction.amount} />
-            </p>
-            <Badge className={cn('mt-2', typeInfo.color)}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="space-y-3">
+          <div className="flex items-start justify-between gap-4 pr-8">
+            <DialogTitle className="text-xl font-semibold">Detalhes da Transação</DialogTitle>
+            <Badge className={cn('shrink-0', typeInfo.color)}>
               {typeInfo.label}
             </Badge>
           </div>
+          <DialogDescription>
+            {transaction.idempotency_key}
+          </DialogDescription>
+        </DialogHeader>
 
-          <Separator />
+        <div className="space-y-6 py-4">
+          {/* Valor em Destaque */}
+          <div className="py-6 px-4 rounded-lg bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20">
+            <div className="text-center space-y-2">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Valor da Transação</p>
+              <div className="text-4xl font-bold text-primary">
+                <MoneyCell value={transaction.amount} size="lg" />
+              </div>
+            </div>
+          </div>
 
           {/* Informações Principais */}
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Data</p>
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+              Informações Gerais
+            </h3>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Data da Ocorrência</p>
                 <p className="font-medium">{formatDateTime(transaction.occurred_at)}</p>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Categoria</p>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Categoria</p>
                 <p className="font-medium">{getCategoryLabel(transaction.category)}</p>
               </div>
-            </div>
-
-            <div>
-              <p className="text-sm text-muted-foreground">Centro de Custo</p>
-              <p className="font-medium">{transaction.cost_center_name ?? transaction.cost_center_id}</p>
-            </div>
-
-            {transaction.asset_name && (
-              <div>
-                <p className="text-sm text-muted-foreground">Ativo</p>
-                <p className="font-medium">{transaction.asset_name}</p>
+              <div className="space-y-1 col-span-2">
+                <p className="text-xs text-muted-foreground">Centro de Custo</p>
+                <p className="font-medium">{transaction.cost_center_name ?? transaction.cost_center_id}</p>
               </div>
-            )}
+              <div className="space-y-1 col-span-2">
+                <p className="text-xs text-muted-foreground">Criado em</p>
+                <p className="font-medium">{formatDateTime(transaction.created_at)}</p>
+              </div>
+            </div>
+          </div>
 
-            {transaction.work_order_number && (
+          {/* Vínculos */}
+          {(transaction.asset_name || transaction.work_order_number) && (
+            <>
+              <Separator />
               <div>
-                <p className="text-sm text-muted-foreground">Ordem de Serviço</p>
-                <div className="flex items-center gap-2">
-                  <p className="font-medium">{transaction.work_order_number}</p>
-                  <Button variant="ghost" size="sm" asChild>
-                    <a 
-                      href={`/cmms/work-orders/${transaction.work_order_id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  </Button>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+                  Vínculos
+                </h3>
+                <div className="space-y-3">
+                  {transaction.asset_name && (
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">
+                        <Wrench className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Ativo</p>
+                        <p className="font-medium">{transaction.asset_name}</p>
+                      </div>
+                    </div>
+                  )}
+                  {transaction.work_order_number && (
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">
+                        <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-muted-foreground">Ordem de Serviço</p>
+                        <p className="font-medium">OS #{transaction.work_order_number}</p>
+                      </div>
+                      <Button variant="ghost" size="sm" asChild>
+                        <a 
+                          href={`/cmms/work-orders/${transaction.work_order_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
-
-          <Separator />
-
-          {/* Metadados */}
-          {transaction.meta && Object.keys(transaction.meta).length > 0 && (
-            <div>
-              <p className="text-sm font-medium mb-2">Informações Adicionais</p>
-              <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                {transaction.meta.reason && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Motivo</p>
-                    <p className="text-sm">{String(transaction.meta.reason)}</p>
-                  </div>
-                )}
-                {transaction.meta.invoice && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Nota Fiscal</p>
-                    <p className="text-sm">{String(transaction.meta.invoice)}</p>
-                  </div>
-                )}
-                {Object.entries(transaction.meta)
-                  .filter(([key]) => !['reason', 'invoice'].includes(key))
-                  .map(([key, value]) => (
-                    <div key={key}>
-                      <p className="text-xs text-muted-foreground">{key}</p>
-                      <p className="text-sm">{String(value)}</p>
-                    </div>
-                  ))
-                }
-              </div>
-            </div>
+            </>
           )}
 
-          {/* Rodapé */}
-          <div className="pt-4 border-t">
-            <p className="text-xs text-muted-foreground">
-              Criado em {formatDateTime(transaction.created_at)}
-            </p>
-          </div>
+          {/* Informações Adicionais (Meta) */}
+          {transaction.meta && Object.keys(transaction.meta).length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  Informações Adicionais
+                </h3>
+                <div className="space-y-3">
+                  {transaction.meta.reason && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Motivo</p>
+                      <p className="text-sm leading-relaxed">{String(transaction.meta.reason)}</p>
+                    </div>
+                  )}
+                  {transaction.meta.invoice && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Nota Fiscal</p>
+                      <p className="text-sm font-medium">{String(transaction.meta.invoice)}</p>
+                    </div>
+                  )}
+                  {Object.entries(transaction.meta)
+                    .filter(([key]) => !['reason', 'invoice'].includes(key))
+                    .map(([key, value]) => (
+                      <div key={key} className="space-y-1">
+                        <p className="text-xs text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</p>
+                        <p className="text-sm">{String(value)}</p>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+            </>
+          )}
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -400,7 +423,7 @@ function ManualAdjustmentDialog({ open, onOpenChange }: ManualAdjustmentDialogPr
     reason: string;
     invoice: string;
   }>({
-    occurred_at: new Date().toISOString().slice(0, 16),
+    occurred_at: getCurrentLocalDate(),
     amount: '',
     category: 'other',
     cost_center_id: '',
@@ -449,7 +472,7 @@ function ManualAdjustmentDialog({ open, onOpenChange }: ManualAdjustmentDialogPr
       
       // Reset form
       setFormData({
-        occurred_at: new Date().toISOString().slice(0, 16),
+        occurred_at: getCurrentLocalDate(),
         amount: '',
         category: 'other',
         cost_center_id: '',
@@ -498,12 +521,13 @@ function ManualAdjustmentDialog({ open, onOpenChange }: ManualAdjustmentDialogPr
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="occurred_at">Data/Hora *</Label>
+              <Label htmlFor="occurred_at">Data da Ocorrência *</Label>
               <Input
                 id="occurred_at"
-                type="datetime-local"
+                type="date"
                 value={formData.occurred_at}
                 onChange={(e) => setFormData(prev => ({ ...prev, occurred_at: e.target.value }))}
+                className="w-40"
               />
             </div>
             <div className="grid gap-2">
@@ -635,8 +659,8 @@ export function FinanceLedger() {
 
   // Filters from URL
   const filters: LedgerFilters = useMemo(() => ({
-    from: searchParams.get('from') ?? getFirstDayOfMonth(),
-    to: searchParams.get('to') ?? getLastDayOfMonth(),
+    start_date: searchParams.get('start_date') ?? getFirstDayOfMonth(),
+    end_date: searchParams.get('end_date') ?? getLastDayOfMonth(),
     cost_center_id: searchParams.get('cost_center_id') ?? undefined,
     asset_id: searchParams.get('asset_id') ?? undefined,
     work_order_id: searchParams.get('work_order_id') ?? undefined,
@@ -658,8 +682,8 @@ export function FinanceLedger() {
   // Handlers
   const handleFiltersChange = useCallback((newFilters: LedgerFilters) => {
     const params = new URLSearchParams();
-    if (newFilters.from) params.set('from', newFilters.from);
-    if (newFilters.to) params.set('to', newFilters.to);
+    if (newFilters.start_date) params.set('start_date', newFilters.start_date);
+    if (newFilters.end_date) params.set('end_date', newFilters.end_date);
     if (newFilters.cost_center_id) params.set('cost_center_id', newFilters.cost_center_id);
     if (newFilters.asset_id) params.set('asset_id', newFilters.asset_id);
     if (newFilters.work_order_id) params.set('work_order_id', newFilters.work_order_id);
@@ -679,8 +703,8 @@ export function FinanceLedger() {
 
   const handleClearFilters = useCallback(() => {
     const params = new URLSearchParams();
-    params.set('from', getFirstDayOfMonth());
-    params.set('to', getLastDayOfMonth());
+    params.set('start_date', getFirstDayOfMonth());
+    params.set('end_date', getLastDayOfMonth());
     params.set('page', '1');
     params.set('page_size', '20');
     setSearchParams(params);
@@ -715,7 +739,7 @@ export function FinanceLedger() {
           </Badge>
         );
       },
-      width: 120,
+      width: 110,
     },
     {
       id: 'category',
@@ -730,38 +754,51 @@ export function FinanceLedger() {
       id: 'cost_center',
       header: 'Centro de Custo',
       cell: (row) => (
-        <div className="flex items-center gap-2">
-          <Building2 className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm truncate max-w-[150px]">
-            {row.cost_center_name ?? '-'}
-          </span>
-        </div>
+        <span className="text-sm truncate max-w-[180px]">
+          {row.cost_center_name ?? '-'}
+        </span>
       ),
+      width: 180,
+    },
+    {
+      id: 'reason',
+      header: 'Motivo',
+      cell: (row) => (
+        <span className="text-sm text-muted-foreground truncate max-w-[150px]">
+          {row.meta?.reason ? String(row.meta.reason) : '-'}
+        </span>
+      ),
+      width: 150,
+    },
+    {
+      id: 'invoice',
+      header: 'Nota Fiscal',
+      cell: (row) => (
+        <span className="text-sm truncate max-w-[100px]">
+          {row.meta?.invoice ? String(row.meta.invoice) : '-'}
+        </span>
+      ),
+      width: 100,
     },
     {
       id: 'asset',
       header: 'Ativo',
-      cell: (row) => row.asset_name ? (
-        <div className="flex items-center gap-2">
-          <Wrench className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm truncate max-w-[150px]">{row.asset_name}</span>
-        </div>
-      ) : (
-        <span className="text-sm text-muted-foreground">-</span>
+      cell: (row) => (
+        <span className="text-sm truncate max-w-[130px]">
+          {row.asset_name ?? '-'}
+        </span>
       ),
+      width: 130,
     },
     {
       id: 'work_order',
       header: 'OS',
-      cell: (row) => row.work_order_number ? (
-        <div className="flex items-center gap-2">
-          <ClipboardList className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm">{row.work_order_number}</span>
-        </div>
-      ) : (
-        <span className="text-sm text-muted-foreground">-</span>
+      cell: (row) => (
+        <span className="text-sm">
+          {row.work_order_number ?? '-'}
+        </span>
       ),
-      width: 100,
+      width: 90,
     },
     {
       id: 'amount',
@@ -834,8 +871,8 @@ export function FinanceLedger() {
                 <Input
                   type="date"
                   className="w-[140px]"
-                  value={filters.from ?? ''}
-                  onChange={(e) => handleFiltersChange({ ...filters, from: e.target.value })}
+                  value={filters.start_date ?? ''}
+                  onChange={(e) => handleFiltersChange({ ...filters, start_date: e.target.value })}
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -843,8 +880,8 @@ export function FinanceLedger() {
                 <Input
                   type="date"
                   className="w-[140px]"
-                  value={filters.to ?? ''}
-                  onChange={(e) => handleFiltersChange({ ...filters, to: e.target.value })}
+                  value={filters.end_date ?? ''}
+                  onChange={(e) => handleFiltersChange({ ...filters, end_date: e.target.value })}
                 />
               </div>
             </div>
@@ -885,8 +922,8 @@ export function FinanceLedger() {
         </CardContent>
       </Card>
 
-      {/* Transaction Detail Sheet */}
-      <TransactionDetailSheet
+      {/* Transaction Detail Dialog */}
+      <TransactionDetailDialog
         transaction={selectedTransaction}
         open={detailSheetOpen}
         onOpenChange={setDetailSheetOpen}
