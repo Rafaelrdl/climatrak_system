@@ -246,6 +246,146 @@ class Asset(models.Model):
         help_text='Serial number do equipamento'
     )
     
+    # Patrimônio
+    patrimony_number = models.CharField(
+        'Número de Patrimônio',
+        max_length=100,
+        blank=True,
+        help_text='Número de patrimônio interno da empresa'
+    )
+    
+    # Criticidade do equipamento
+    CRITICALITY_CHOICES = [
+        ('BAIXA', 'Baixa'),
+        ('MEDIA', 'Média'),
+        ('ALTA', 'Alta'),
+        ('CRITICA', 'Crítica'),
+    ]
+    criticality = models.CharField(
+        'Criticidade',
+        max_length=10,
+        choices=CRITICALITY_CHOICES,
+        default='MEDIA',
+        help_text='Nível de criticidade operacional do equipamento'
+    )
+    
+    # Fim da garantia
+    warranty_expiry = models.DateField(
+        'Fim da Garantia',
+        null=True,
+        blank=True,
+        help_text='Data de expiração da garantia do equipamento'
+    )
+    
+    # ========== ESPECIFICAÇÕES ELÉTRICAS ==========
+    # Tensão Nominal (V)
+    nominal_voltage = models.DecimalField(
+        'Tensão Nominal (V)',
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Tensão nominal de operação em Volts'
+    )
+    
+    # Número de Fases
+    PHASES_CHOICES = [
+        (1, 'Monofásico'),
+        (3, 'Trifásico'),
+    ]
+    phases = models.PositiveSmallIntegerField(
+        'Fases',
+        choices=PHASES_CHOICES,
+        default=3,
+        help_text='Número de fases do equipamento'
+    )
+    
+    # Corrente Nominal (A)
+    nominal_current = models.DecimalField(
+        'Corrente Nominal (A)',
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Corrente nominal de operação em Amperes'
+    )
+    
+    # Fator de Potência
+    power_factor = models.DecimalField(
+        'Fator de Potência',
+        max_digits=4,
+        decimal_places=3,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(1)],
+        help_text='Fator de potência (cos φ) - valor entre 0 e 1'
+    )
+    
+    # ========== CAPACIDADE ==========
+    # Capacidade
+    capacity = models.DecimalField(
+        'Capacidade',
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Capacidade térmica do equipamento'
+    )
+    
+    # Unidade de Capacidade
+    CAPACITY_UNIT_CHOICES = [
+        ('BTU', 'BTUs'),
+        ('TR', 'TR (Toneladas de Refrigeração)'),
+        ('KCAL', 'kcal/h'),
+        ('KW', 'kW (Térmico)'),
+    ]
+    capacity_unit = models.CharField(
+        'Unidade de Capacidade',
+        max_length=10,
+        choices=CAPACITY_UNIT_CHOICES,
+        default='BTU',
+        help_text='Unidade de medida da capacidade térmica'
+    )
+    
+    # Fluido Refrigerante
+    refrigerant = models.CharField(
+        'Fluido Refrigerante',
+        max_length=50,
+        blank=True,
+        help_text='Tipo de fluido refrigerante (ex: R-410A, R-134a)'
+    )
+    
+    # ========== POTÊNCIAS (Calculadas ou Informadas) ==========
+    # Potência Ativa (kW)
+    active_power_kw = models.DecimalField(
+        'Potência Ativa (kW)',
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Potência ativa em kW (P = S × FP)'
+    )
+    
+    # Potência Aparente (kVA)
+    apparent_power_kva = models.DecimalField(
+        'Potência Aparente (kVA)',
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Potência aparente em kVA (S = √3 × V × I)'
+    )
+    
+    # Potência Reativa (kVAr)
+    reactive_power_kvar = models.DecimalField(
+        'Potência Reativa (kVAr)',
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Potência reativa em kVAr (Q = √(S² - P²))'
+    )
+    
     # Status operacional
     status = models.CharField(
         'Status',

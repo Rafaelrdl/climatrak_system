@@ -182,21 +182,43 @@ function AssetsContent() {
   // ========== ESTADO DO FORMULÁRIO DE NOVO EQUIPAMENTO ==========
   // Estado para armazenar os dados do formulário de criação de equipamento
   const [newEquipment, setNewEquipment] = useState({
+    // Informações Básicas
     tag: '',           // Identificação única do equipamento (ex: AC-001)
-    model: '',         // Modelo do equipamento
-    brand: '',         // Marca do equipamento
     type: 'SPLIT' as Equipment['type'], // Tipo do equipamento (SPLIT, CENTRAL, VRF, CHILLER)
+    brand: '',         // Marca do equipamento
+    model: '',         // Modelo do equipamento
+    serialNumber: '',  // Número de série
+    patrimonio: '',    // Número de patrimônio
+    criticidade: 'MEDIA' as Equipment['criticidade'], // Criticidade do equipamento (BAIXA, MEDIA, ALTA, CRITICA)
     status: 'FUNCTIONING' as Equipment['status'], // Status do equipamento (FUNCTIONING, MAINTENANCE, STOPPED)
-    capacity: '',      // Capacidade em BTUs
-    criticidade: 'MEDIA' as Equipment['criticidade'], // Criticidade do equipamento (BAIXA, MEDIA, ALTA)
+    installDate: '',   // Data de instalação
+    warrantyExpiry: '', // Data de expiração da garantia
+    notes: '',         // Observações adicionais
+    
+    // Localização
+    companyId: '',     // ID da empresa
     sectorId: '',      // ID do setor onde o equipamento está localizado
     subSectionId: '',  // ID do subsetor (opcional)
-    installDate: '',   // Data de instalação
-    nextMaintenance: '', // Data da próxima manutenção
-    serialNumber: '',  // Número de série
-    warrantyExpiry: '', // Data de expiração da garantia
     location: '',      // Localização específica (ex: Sala 101, Teto - Posição A)
-    notes: ''          // Observações adicionais
+    
+    // Especificações Técnicas (antigos campos)
+    capacity: '',      // Capacidade
+    capacityUnit: 'BTU' as 'BTU' | 'TR' | 'KCAL', // Unidade de capacidade
+    
+    // Especificações Elétricas
+    nominalVoltage: undefined as number | undefined,    // Tensão nominal (V)
+    phases: 3 as 1 | 3,                                 // Fases (1 ou 3)
+    nominalCurrent: undefined as number | undefined,    // Corrente nominal (A)
+    powerFactor: undefined as number | undefined,       // Fator de potência (0-1)
+    refrigerant: '',                                    // Fluido refrigerante
+    
+    // Potências (calculadas automaticamente)
+    activePower: undefined as number | undefined,       // Potência ativa (kW)
+    apparentPower: undefined as number | undefined,     // Potência aparente (kVA)
+    reactivePower: undefined as number | undefined,     // Potência reativa (kVAr)
+    
+    // Campo legado (manter para compatibilidade)
+    nextMaintenance: '', // Data da próxima manutenção
   });
 
   // ========== FUNÇÕES DE MANIPULAÇÃO ==========
@@ -207,7 +229,7 @@ function AssetsContent() {
    * Cria um novo equipamento com base nos dados do formulário.
    * Auto-vincula o equipamento ao local selecionado na árvore quando possível.
    */
-  const handleAddEquipment = () => {
+  const handleAddEquipment = async () => {
     // Helper function to extract original ID from unique node ID
     const extractOriginalId = (nodeId: string, type: 'sector' | 'subsection'): string | null => {
       if (!nodeId) return null;
@@ -224,48 +246,137 @@ function AssetsContent() {
       
       return null;
     };
-    
-    const equipment_data: Equipment = {
-      id: Date.now().toString(), // ID único baseado no timestamp
-      ...newEquipment,
-      capacity: parseInt(newEquipment.capacity), // Converte capacidade para número
-      status: newEquipment.status, // Usa o status selecionado no formulário
-      totalOperatingHours: 0, // Horas de operação inicial
-      energyConsumption: Math.floor(Math.random() * 200) + 150, // Consumo de energia mockado
-      // Auto-vinculação ao local selecionado na árvore usando IDs originais
-      sectorId: selectedNode?.type === 'sector' ? extractOriginalId(selectedNode.id, 'sector') || newEquipment.sectorId : 
-                selectedNode?.type === 'subsection' ? (selectedNode.data as SubSection).sectorId :
-                newEquipment.sectorId,
-      subSectionId: selectedNode?.type === 'subsection' ? extractOriginalId(selectedNode.id, 'subsection') || newEquipment.subSectionId : newEquipment.subSectionId
-    };
-    
-    // Adiciona o novo equipamento à lista existente
-    // TODO: Implementar useCreateEquipment mutation quando API estiver pronta
 
-    // setEquipment((current) => [...(current || []), equipment_data]);
-    
-    // Reset do formulário para valores iniciais
-    setNewEquipment({
-      tag: '',
-      model: '',
-      brand: '',
-      type: 'SPLIT',
-      status: 'FUNCTIONING',
-      capacity: '',
-      criticidade: 'MEDIA',
-      sectorId: '',
-      subSectionId: '',
-      installDate: '',
-      nextMaintenance: '',
-      serialNumber: '',
-      warrantyExpiry: '',
-      location: '',
-      notes: ''
-    });
-    
-    // Fecha o modal de criação
-    setIsEquipmentDialogOpen(false);
+    // Monta os dados para criação
+    const sectorId = selectedNode?.type === 'sector' 
+      ? extractOriginalId(selectedNode.id, 'sector') || newEquipment.sectorId 
+      : selectedNode?.type === 'subsection' 
+        ? (selectedNode.data as SubSection).sectorId 
+        : newEquipment.sectorId;
+
+    const subSectionId = selectedNode?.type === 'subsection' 
+      ? extractOriginalId(selectedNode.id, 'subsection') || newEquipment.subSectionId 
+      : newEquipment.subSectionId;
+
+    // Mapear tipo do frontend para o backend
+    const typeMapping: Record<string, string> = {
+      'CHILLER': 'CHILLER',
+      'CENTRAL': 'AHU',
+      'VRF': 'VRF',
+      'SPLIT': 'FAN_COIL',
+    };
+
+    try {
+      await equipmentService.create({
+        tag: newEquipment.tag,
+        name: newEquipment.notes || newEquipment.tag, // Usa tag como nome se não tiver notas
+        site: 1, // TODO: Obter do contexto do site atual
+        assetType: typeMapping[newEquipment.type] || newEquipment.type,
+        manufacturer: newEquipment.brand,
+        model: newEquipment.model,
+        serialNumber: newEquipment.serialNumber,
+        patrimonio: newEquipment.patrimonio,
+        criticidade: newEquipment.criticidade,
+        warrantyExpiry: newEquipment.warrantyExpiry,
+        installDate: newEquipment.installDate,
+        sectorId: sectorId || undefined,
+        subSectionId: subSectionId || undefined,
+        location: newEquipment.location,
+        capacity: newEquipment.capacity ? parseInt(newEquipment.capacity) : undefined,
+        capacityUnit: newEquipment.capacityUnit,
+        nominalVoltage: newEquipment.nominalVoltage,
+        phases: newEquipment.phases,
+        nominalCurrent: newEquipment.nominalCurrent,
+        powerFactor: newEquipment.powerFactor,
+        refrigerant: newEquipment.refrigerant,
+        activePower: newEquipment.activePower,
+        apparentPower: newEquipment.apparentPower,
+        reactivePower: newEquipment.reactivePower,
+      });
+
+      // Invalida o cache para recarregar a lista de equipamentos
+      queryClient.invalidateQueries({ queryKey: equipmentKeys.all });
+      
+      // Reset do formulário para valores iniciais
+      setNewEquipment({
+        tag: '',
+        type: 'SPLIT',
+        brand: '',
+        model: '',
+        serialNumber: '',
+        patrimonio: '',
+        criticidade: 'MEDIA',
+        status: 'FUNCTIONING',
+        installDate: '',
+        warrantyExpiry: '',
+        notes: '',
+        companyId: '',
+        sectorId: '',
+        subSectionId: '',
+        location: '',
+        capacity: '',
+        capacityUnit: 'BTU',
+        nominalVoltage: undefined,
+        phases: 3,
+        nominalCurrent: undefined,
+        powerFactor: undefined,
+        refrigerant: '',
+        activePower: undefined,
+        apparentPower: undefined,
+        reactivePower: undefined,
+        nextMaintenance: '',
+      });
+      
+      // Fecha o modal de criação
+      setIsEquipmentDialogOpen(false);
+    } catch (error) {
+      console.error('Erro ao criar equipamento:', error);
+      // TODO: Mostrar toast de erro
+    }
   };
+
+  // ========== CÁLCULO AUTOMÁTICO DE POTÊNCIAS ==========
+  // Calcula potências baseado em tensão, corrente, fases e fator de potência
+  useEffect(() => {
+    const V = newEquipment.nominalVoltage;
+    const I = newEquipment.nominalCurrent;
+    const numPhases = newEquipment.phases || 3;
+    const FP = newEquipment.powerFactor;
+
+    if (V && I && numPhases) {
+      let S: number;
+      if (numPhases === 3) {
+        // Trifásico: S = √3 × V × I
+        S = Math.sqrt(3) * V * I;
+      } else {
+        // Monofásico: S = V × I
+        S = V * I;
+      }
+
+      // Converte W para kVA
+      const S_kVA = S / 1000;
+
+      setNewEquipment((prev) => ({
+        ...prev,
+        apparentPower: parseFloat(S_kVA.toFixed(2)),
+      }));
+
+      // Se tem FP, calcula Potência Ativa (P) e Reativa (Q)
+      if (FP && FP > 0 && FP <= 1) {
+        // P = S × FP (Potência Ativa)
+        const P_kW = S_kVA * FP;
+
+        // Q = √(S² - P²) (Potência Reativa)
+        const Q_kVAr = Math.sqrt(S_kVA * S_kVA - P_kW * P_kW);
+
+        setNewEquipment((prev) => ({
+          ...prev,
+          activePower: parseFloat(P_kW.toFixed(2)),
+          reactivePower: parseFloat(Q_kVAr.toFixed(2)),
+        }));
+      }
+    }
+  }, [newEquipment.nominalVoltage, newEquipment.nominalCurrent, newEquipment.phases, newEquipment.powerFactor]);
 
   /**
    * EDITAR EQUIPAMENTO EXISTENTE
@@ -498,31 +609,41 @@ function AssetsContent() {
       )}
 
       {/* ========== MODAL DE CRIAÇÃO DE EQUIPAMENTO ========== */}
-      {/* Formulário completo para adicionar um novo equipamento */}
+      {/* Formulário completo para adicionar um novo ativo */}
       <Dialog open={isEquipmentDialogOpen} onOpenChange={setIsEquipmentDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-6 md:p-8">
-          <DialogHeader className="mb-6">
-            <DialogTitle className="text-2xl">Adicionar Equipamento</DialogTitle>
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-2xl">Adicionar Ativo</DialogTitle>
             <DialogDescription>
-              Preencha os dados do equipamento para adicioná-lo ao sistema. Os campos marcados com * são obrigatórios.
+              Preencha os dados do ativo para adicioná-lo ao sistema. Os campos marcados com * são obrigatórios.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-8">
-            {/* ========== SEÇÃO: INFORMAÇÕES BÁSICAS ========== */}
-            <div className="bg-muted/30 rounded-lg p-6 border border-border/50">
-              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                <Info className="w-4 h-4 text-primary" />
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger value="basic" className="flex items-center gap-2">
+                <Info className="w-4 h-4" />
                 Informações Básicas
-              </h3>
-              
+              </TabsTrigger>
+              <TabsTrigger value="location" className="flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                Localização
+              </TabsTrigger>
+              <TabsTrigger value="specs" className="flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                Especificações
+              </TabsTrigger>
+            </TabsList>
+
+            {/* ========== ABA: INFORMAÇÕES BÁSICAS ========== */}
+            <TabsContent value="basic" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-                {/* Tag do equipamento - campo mais importante ocupa coluna inteira */}
+                {/* Tag do equipamento */}
                 <div className="md:col-span-2">
                   <Label htmlFor="tag" className="mb-2 block">
-                    Tag do Equipamento *
+                    Tag do Ativo *
                     <span className="text-xs text-muted-foreground ml-2 font-normal">
-                      Identificação única do equipamento
+                      Identificação única
                     </span>
                   </Label>
                   <Input 
@@ -537,7 +658,7 @@ function AssetsContent() {
                 
                 {/* Tipo do equipamento */}
                 <div>
-                  <Label htmlFor="type" className="mb-2 block">Tipo do Equipamento *</Label>
+                  <Label htmlFor="type" className="mb-2 block">Tipo do Ativo *</Label>
                   <Select 
                     value={newEquipment.type} 
                     onValueChange={(value: Equipment['type']) => 
@@ -582,32 +703,39 @@ function AssetsContent() {
                   />
                 </div>
                 
+                {/* Número de série */}
                 <div>
-                  <Label htmlFor="capacity" className="mb-2 block">
-                    Capacidade (BTUs) *
-                    <span className="text-xs text-muted-foreground ml-2 font-normal">
-                      Potência do equipamento
-                    </span>
+                  <Label htmlFor="serialNumber" className="mb-2 block">
+                    Número de Série
+                    <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
                   </Label>
                   <Input 
-                    id="capacity"
-                    type="number"
-                    value={newEquipment.capacity}
-                    onChange={(e) => setNewEquipment(prev => ({ ...prev, capacity: e.target.value }))}
-                    placeholder="18000"
-                    required
+                    id="serialNumber"
+                    value={newEquipment.serialNumber}
+                    onChange={(e) => setNewEquipment(prev => ({ ...prev, serialNumber: e.target.value }))}
+                    placeholder="SN123456789"
                     className="h-10"
                   />
                 </div>
                 
+                {/* Patrimônio */}
+                <div>
+                  <Label htmlFor="patrimonio" className="mb-2 block">
+                    Patrimônio
+                    <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
+                  </Label>
+                  <Input 
+                    id="patrimonio"
+                    value={newEquipment.patrimonio}
+                    onChange={(e) => setNewEquipment(prev => ({ ...prev, patrimonio: e.target.value }))}
+                    placeholder="PAT-00001"
+                    className="h-10"
+                  />
+                </div>
+
                 {/* Criticidade do equipamento */}
                 <div>
-                  <Label htmlFor="criticidade" className="mb-2 block">
-                    Criticidade *
-                    <span className="text-xs text-muted-foreground ml-2 font-normal">
-                      Nível de importância operacional
-                    </span>
-                  </Label>
+                  <Label htmlFor="criticidade" className="mb-2 block">Criticidade *</Label>
                   <Select 
                     value={newEquipment.criticidade} 
                     onValueChange={(value: Equipment['criticidade']) => 
@@ -628,12 +756,7 @@ function AssetsContent() {
 
                 {/* Status do equipamento */}
                 <div>
-                  <Label htmlFor="status" className="mb-2 block">
-                    Status *
-                    <span className="text-xs text-muted-foreground ml-2 font-normal">
-                      Estado operacional do equipamento
-                    </span>
-                  </Label>
+                  <Label htmlFor="status" className="mb-2 block">Status *</Label>
                   <Select 
                     value={newEquipment.status} 
                     onValueChange={(value: Equipment['status']) => 
@@ -650,32 +773,81 @@ function AssetsContent() {
                     </SelectContent>
                   </Select>
                 </div>
-                
-                {/* Número de série (opcional) */}
+
+                {/* Data de instalação */}
                 <div>
-                  <Label htmlFor="serialNumber" className="mb-2 block">
-                    Número de Série
+                  <Label htmlFor="installDate" className="mb-2 block">Data de Instalação *</Label>
+                  <Input 
+                    id="installDate"
+                    type="date"
+                    value={newEquipment.installDate}
+                    onChange={(e) => setNewEquipment(prev => ({ ...prev, installDate: e.target.value }))}
+                    required
+                    className="h-10 w-48"
+                  />
+                </div>
+                
+                {/* Fim da garantia */}
+                <div>
+                  <Label htmlFor="warrantyExpiry" className="mb-2 block">
+                    Fim da Garantia
                     <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
                   </Label>
                   <Input 
-                    id="serialNumber"
-                    value={newEquipment.serialNumber}
-                    onChange={(e) => setNewEquipment(prev => ({ ...prev, serialNumber: e.target.value }))}
-                    placeholder="SN123456789"
-                    className="h-10"
+                    id="warrantyExpiry"
+                    type="date"
+                    value={newEquipment.warrantyExpiry}
+                    onChange={(e) => setNewEquipment(prev => ({ ...prev, warrantyExpiry: e.target.value }))}
+                    className="h-10 w-48"
+                  />
+                </div>
+                
+                {/* Observações */}
+                <div className="md:col-span-2">
+                  <Label htmlFor="notes" className="mb-2 block">
+                    Observações
+                    <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
+                  </Label>
+                  <Textarea 
+                    id="notes"
+                    value={newEquipment.notes}
+                    onChange={(e) => setNewEquipment(prev => ({ ...prev, notes: e.target.value }))}
+                    placeholder="Informações adicionais sobre o ativo..."
+                    rows={3}
+                    className="min-h-[80px] resize-none"
                   />
                 </div>
               </div>
-            </div>
+            </TabsContent>
 
-            {/* ========== SEÇÃO: INFORMAÇÕES DE LOCALIZAÇÃO ========== */}
-            <div className="bg-muted/30 rounded-lg p-6 border border-border/50">
-              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-primary" />
-                Informações de Localização
-              </h3>
-              
+            {/* ========== ABA: LOCALIZAÇÃO ========== */}
+            <TabsContent value="location" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                {/* Seletor de Empresa */}
+                <div>
+                  <Label htmlFor="company" className="mb-2 block">Empresa *</Label>
+                  <Select 
+                    value={newEquipment.companyId} 
+                    onValueChange={(value) => setNewEquipment(prev => ({
+                      ...prev,
+                      companyId: value,
+                      sectorId: '',
+                      subSectionId: ''
+                    }))}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Selecione a empresa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map(company => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
                 {/* Seletor de Setor */}
                 <div>
                   <Label htmlFor="sector" className="mb-2 block">Setor *</Label>
@@ -684,19 +856,21 @@ function AssetsContent() {
                     onValueChange={(value) => setNewEquipment(prev => ({
                       ...prev,
                       sectorId: value,
-                      subSectionId: ''  // Resetar subsection ao mudar de setor
+                      subSectionId: ''
                     }))}
-                    disabled={selectedNode?.type === 'sector' || selectedNode?.type === 'subsection'}
+                    disabled={!newEquipment.companyId}
                   >
                     <SelectTrigger className="h-10">
                       <SelectValue placeholder="Selecione o setor" />
                     </SelectTrigger>
                     <SelectContent>
-                      {sectors.map(sector => (
-                        <SelectItem key={sector.id} value={sector.id}>
-                          {sector.name}
-                        </SelectItem>
-                      ))}
+                      {sectors
+                        .filter(s => s.companyId === newEquipment.companyId)
+                        .map(sector => (
+                          <SelectItem key={sector.id} value={sector.id}>
+                            {sector.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -705,7 +879,7 @@ function AssetsContent() {
                 <div>
                   <Label htmlFor="subsection" className="mb-2 block">
                     Subsetor
-                    <span className="text-xs text-muted-foreground ml-2 font-normal">(se aplicável)</span>
+                    <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
                   </Label>
                   <Select 
                     value={newEquipment.subSectionId} 
@@ -713,7 +887,7 @@ function AssetsContent() {
                       ...prev,
                       subSectionId: value
                     }))}
-                    disabled={selectedNode?.type === 'subsection' || !newEquipment.sectorId}
+                    disabled={!newEquipment.sectorId}
                   >
                     <SelectTrigger className="h-10">
                       <SelectValue placeholder="Selecione o subsetor" />
@@ -731,8 +905,11 @@ function AssetsContent() {
                 </div>
                 
                 {/* Localização específica */}
-                <div className="md:col-span-2">
-                  <Label htmlFor="location" className="mb-2 block">Localização Específica</Label>
+                <div>
+                  <Label htmlFor="location" className="mb-2 block">
+                    Localização Específica
+                    <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
+                  </Label>
                   <Input 
                     id="location"
                     value={newEquipment.location}
@@ -742,94 +919,200 @@ function AssetsContent() {
                   />
                 </div>
               </div>
-            </div>
+            </TabsContent>
 
-            {/* ========== SEÇÃO: DATAS E GARANTIA ========== */}
-            <div className="bg-muted/30 rounded-lg p-6 border border-border/50">
-              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-primary" />
-                Datas e Garantia
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5">
-                {/* Data de instalação */}
+            {/* ========== ABA: ESPECIFICAÇÕES ========== */}
+            <TabsContent value="specs" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                {/* Tensão Nominal */}
                 <div>
-                  <Label htmlFor="installDate" className="mb-2 block">Data de Instalação *</Label>
-                  <Input 
-                    id="installDate"
-                    type="date"
-                    value={newEquipment.installDate}
-                    onChange={(e) => setNewEquipment(prev => ({ ...prev, installDate: e.target.value }))}
-                    required
-                    className="h-10"
-                  />
-                </div>
-                
-                {/* Próxima manutenção */}
-                <div>
-                  <Label htmlFor="nextMaintenance" className="mb-2 block">Próxima Manutenção *</Label>
-                  <Input 
-                    id="nextMaintenance"
-                    type="date"
-                    value={newEquipment.nextMaintenance}
-                    onChange={(e) => setNewEquipment(prev => ({ ...prev, nextMaintenance: e.target.value }))}
-                    required
-                    className="h-10"
-                  />
-                </div>
-                
-                {/* Fim da garantia */}
-                <div>
-                  <Label htmlFor="warrantyExpiry" className="mb-2 block">
-                    Fim da Garantia
-                    <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
+                  <Label htmlFor="nominalVoltage" className="mb-2 block">
+                    Tensão Nominal (V)
                   </Label>
                   <Input 
-                    id="warrantyExpiry"
-                    type="date"
-                    value={newEquipment.warrantyExpiry}
-                    onChange={(e) => setNewEquipment(prev => ({ ...prev, warrantyExpiry: e.target.value }))}
+                    id="nominalVoltage"
+                    type="number"
+                    step="0.1"
+                    value={newEquipment.nominalVoltage ?? ''}
+                    onChange={(e) => setNewEquipment(prev => ({ 
+                      ...prev, 
+                      nominalVoltage: e.target.value ? parseFloat(e.target.value) : undefined 
+                    }))}
+                    placeholder="Ex: 380"
                     className="h-10"
                   />
                 </div>
-              </div>
-            </div>
 
-            {/* ========== SEÇÃO: OBSERVAÇÕES ========== */}
-            <div className="bg-muted/30 rounded-lg p-6 border border-border/50">
-              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary" />
-                Observações
-              </h3>
-              
-              <div>
-                <Label htmlFor="notes" className="mb-2 block">
-                  Informações Adicionais
-                  <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
-                </Label>
-                <Textarea 
-                  id="notes"
-                  value={newEquipment.notes}
-                  onChange={(e) => setNewEquipment(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Informações adicionais sobre o equipamento..."
-                  rows={3}
-                  className="min-h-[80px] resize-none"
-                />
+                {/* Fases */}
+                <div>
+                  <Label htmlFor="phases" className="mb-2 block">Fases</Label>
+                  <Select 
+                    value={newEquipment.phases?.toString()} 
+                    onValueChange={(value) => 
+                      setNewEquipment(prev => ({ ...prev, phases: parseInt(value) as 1 | 3 }))
+                    }
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Monofásico (1 fase)</SelectItem>
+                      <SelectItem value="3">Trifásico (3 fases)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Corrente Nominal */}
+                <div>
+                  <Label htmlFor="nominalCurrent" className="mb-2 block">
+                    Corrente Nominal (A)
+                  </Label>
+                  <Input 
+                    id="nominalCurrent"
+                    type="number"
+                    step="0.1"
+                    value={newEquipment.nominalCurrent ?? ''}
+                    onChange={(e) => setNewEquipment(prev => ({ 
+                      ...prev, 
+                      nominalCurrent: e.target.value ? parseFloat(e.target.value) : undefined 
+                    }))}
+                    placeholder="Ex: 150"
+                    className="h-10"
+                  />
+                </div>
+
+                {/* Fator de Potência */}
+                <div>
+                  <Label htmlFor="powerFactor" className="mb-2 block">
+                    Fator de Potência
+                    <span className="text-xs text-muted-foreground ml-2 font-normal">(0 a 1)</span>
+                  </Label>
+                  <Input 
+                    id="powerFactor"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1"
+                    value={newEquipment.powerFactor ?? ''}
+                    onChange={(e) => setNewEquipment(prev => ({ 
+                      ...prev, 
+                      powerFactor: e.target.value ? parseFloat(e.target.value) : undefined 
+                    }))}
+                    placeholder="Ex: 0.85"
+                    className="h-10"
+                  />
+                </div>
+
+                {/* Capacidade + Unidade */}
+                <div>
+                  <Label htmlFor="capacity" className="mb-2 block">Capacidade *</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      id="capacity"
+                      type="number"
+                      value={newEquipment.capacity}
+                      onChange={(e) => setNewEquipment(prev => ({ ...prev, capacity: e.target.value }))}
+                      placeholder="Ex: 300"
+                      required
+                      className="h-10 flex-1"
+                    />
+                    <Select 
+                      value={newEquipment.capacityUnit} 
+                      onValueChange={(value: 'BTU' | 'TR' | 'KCAL') => 
+                        setNewEquipment(prev => ({ ...prev, capacityUnit: value }))
+                      }
+                    >
+                      <SelectTrigger className="h-10 w-28">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BTU">BTUs</SelectItem>
+                        <SelectItem value="TR">TR</SelectItem>
+                        <SelectItem value="KCAL">kcal/h</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Fluido Refrigerante */}
+                <div>
+                  <Label htmlFor="refrigerant" className="mb-2 block">
+                    Fluido Refrigerante
+                  </Label>
+                  <Input 
+                    id="refrigerant"
+                    value={newEquipment.refrigerant}
+                    onChange={(e) => setNewEquipment(prev => ({ ...prev, refrigerant: e.target.value }))}
+                    placeholder="Ex: R-410A"
+                    className="h-10"
+                  />
+                </div>
+
+                {/* Separador visual */}
+                <div className="md:col-span-2 border-t pt-4 mt-2">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-4">
+                    Potências (calculadas automaticamente)
+                  </h4>
+                </div>
+
+                {/* Potência Ativa */}
+                <div>
+                  <Label htmlFor="activePower" className="mb-2 block">
+                    Potência Ativa (kW)
+                    <span className="text-xs text-muted-foreground ml-2 font-normal">P = S × FP</span>
+                  </Label>
+                  <Input 
+                    id="activePower"
+                    type="number"
+                    value={newEquipment.activePower?.toFixed(2) ?? ''}
+                    disabled
+                    className="h-10 bg-muted"
+                  />
+                </div>
+
+                {/* Potência Aparente */}
+                <div>
+                  <Label htmlFor="apparentPower" className="mb-2 block">
+                    Potência Aparente (kVA)
+                    <span className="text-xs text-muted-foreground ml-2 font-normal">S = √3×V×I</span>
+                  </Label>
+                  <Input 
+                    id="apparentPower"
+                    type="number"
+                    value={newEquipment.apparentPower?.toFixed(2) ?? ''}
+                    disabled
+                    className="h-10 bg-muted"
+                  />
+                </div>
+
+                {/* Potência Reativa */}
+                <div>
+                  <Label htmlFor="reactivePower" className="mb-2 block">
+                    Potência Reativa (kVAr)
+                    <span className="text-xs text-muted-foreground ml-2 font-normal">Q = √(S²-P²)</span>
+                  </Label>
+                  <Input 
+                    id="reactivePower"
+                    type="number"
+                    value={newEquipment.reactivePower?.toFixed(2) ?? ''}
+                    disabled
+                    className="h-10 bg-muted"
+                  />
+                </div>
               </div>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
 
           {/* ========== BOTÕES DE AÇÃO DO FORMULÁRIO ========== */}
           <div className="flex justify-end gap-4 mt-8 pt-4 border-t">
             <Button variant="outline" onClick={() => setIsEquipmentDialogOpen(false)}>
               Cancelar
             </Button>
-            {/* Botão de adicionar - desabilitado se campos obrigatórios não estão preenchidos */}
             <Button 
               onClick={handleAddEquipment} 
-              disabled={!newEquipment.tag || !newEquipment.brand || !newEquipment.model || !newEquipment.capacity || !newEquipment.criticidade || !newEquipment.installDate || !newEquipment.nextMaintenance}
+              disabled={!newEquipment.tag || !newEquipment.brand || !newEquipment.model || !newEquipment.capacity || !newEquipment.criticidade || !newEquipment.installDate}
             >
-              Adicionar Equipamento
+              Adicionar Ativo
             </Button>
           </div>
         </DialogContent>

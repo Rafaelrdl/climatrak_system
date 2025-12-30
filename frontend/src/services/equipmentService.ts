@@ -33,6 +33,9 @@ interface ApiAsset {
   manufacturer?: string;
   model?: string;
   serial_number?: string;
+  patrimony_number?: string;
+  criticality?: string;
+  warranty_expiry?: string;
   status: string;
   health_score: number;
   installation_date?: string;
@@ -51,6 +54,17 @@ interface ApiAsset {
   company_id?: number | null;
   sector_name?: string | null;
   subsection_name?: string | null;
+  // Especificações elétricas
+  nominal_voltage?: number | string | null;
+  phases?: number | null;
+  nominal_current?: number | string | null;
+  power_factor?: number | string | null;
+  capacity?: number | string | null;
+  capacity_unit?: string | null;
+  refrigerant?: string | null;
+  active_power_kw?: number | string | null;
+  apparent_power_kva?: number | string | null;
+  reactive_power_kvar?: number | string | null;
 }
 
 interface PaginatedResponse<T> {
@@ -98,10 +112,14 @@ const mapAssetStatus = (status: string): Equipment['status'] => {
 };
 
 /**
- * Mapeia criticidade baseado em specifications ou health_score
+ * Mapeia criticidade do backend ou specifications
  */
-const mapCriticidade = (specs?: Record<string, unknown>, healthScore?: number): Equipment['criticidade'] => {
-  // Primeiro tentar ler da specifications
+const mapCriticidade = (criticality?: string, specs?: Record<string, unknown>, healthScore?: number): Equipment['criticidade'] => {
+  // Primeiro tentar ler do campo criticality do backend
+  if (criticality && ['BAIXA', 'MEDIA', 'ALTA', 'CRITICA'].includes(criticality)) {
+    return criticality as Equipment['criticidade'];
+  }
+  // Depois tentar ler da specifications
   if (specs?.criticidade && typeof specs.criticidade === 'string') {
     const criticidade = specs.criticidade as Equipment['criticidade'];
     if (['BAIXA', 'MEDIA', 'ALTA', 'CRITICA'].includes(criticidade)) {
@@ -122,6 +140,17 @@ const apiAssetToEquipment = (asset: ApiAsset): Equipment & {
   companyId?: string;
   sectorName?: string;
   subsectionName?: string;
+  patrimonio?: string;
+  warrantyExpiry?: string;
+  nominalVoltage?: number;
+  phases?: number;
+  nominalCurrent?: number;
+  powerFactor?: number;
+  capacityUnit?: string;
+  refrigerant?: string;
+  activePower?: number;
+  apparentPower?: number;
+  reactivePower?: number;
 } => {
   // Debug: log para verificar o mapeamento de localização
   if (asset.sector || asset.company_id) {
@@ -134,7 +163,7 @@ const apiAssetToEquipment = (asset: ApiAsset): Equipment & {
     model: asset.model || '',
     brand: asset.manufacturer || '',
     type: mapAssetType(asset.asset_type),
-    capacity: (asset.specifications?.capacity as number) || 0,
+    capacity: asset.capacity ? Number(asset.capacity) : (asset.specifications?.capacity as number) || 0,
     sectorId: asset.sector ? String(asset.sector) : undefined,
     subSectionId: asset.subsection ? String(asset.subsection) : undefined,
     // Campos extras para o modal
@@ -144,23 +173,46 @@ const apiAssetToEquipment = (asset: ApiAsset): Equipment & {
     installDate: asset.installation_date || '',
     nextMaintenance: '', // TODO: Calcular próxima manutenção
     status: mapAssetStatus(asset.status),
-    criticidade: mapCriticidade(asset.specifications, asset.health_score),
+    criticidade: mapCriticidade(asset.criticality, asset.specifications, asset.health_score),
     lastMaintenance: asset.last_maintenance,
     totalOperatingHours: undefined, // TODO: Calcular horas
     energyConsumption: undefined, // TODO: Calcular consumo
-    warrantyExpiry: undefined,
+    warrantyExpiry: asset.warranty_expiry || undefined,
     serialNumber: asset.serial_number,
+    patrimonio: asset.patrimony_number || undefined,
     location: asset.location_description || asset.full_location,
     notes: asset.name,
+    // Especificações elétricas
+    nominalVoltage: asset.nominal_voltage ? Number(asset.nominal_voltage) : undefined,
+    phases: asset.phases ? Number(asset.phases) : undefined,
+    nominalCurrent: asset.nominal_current ? Number(asset.nominal_current) : undefined,
+    powerFactor: asset.power_factor ? Number(asset.power_factor) : undefined,
+    capacityUnit: asset.capacity_unit || undefined,
+    refrigerant: asset.refrigerant || undefined,
+    activePower: asset.active_power_kw ? Number(asset.active_power_kw) : undefined,
+    apparentPower: asset.apparent_power_kva ? Number(asset.apparent_power_kva) : undefined,
+    reactivePower: asset.reactive_power_kvar ? Number(asset.reactive_power_kvar) : undefined,
     // Incluir specifications para poder ler no modal
     specifications: asset.specifications,
   };
 };
 
 /**
- * Converte Equipment para dados parciais de ApiAsset (para updates)
+ * Converte Equipment para dados parciais de ApiAsset (para updates e create)
  */
-const equipmentToApiAsset = (equipment: Partial<Equipment>): Partial<ApiAsset> => {
+const equipmentToApiAsset = (equipment: Partial<Equipment> & {
+  patrimonio?: string;
+  capacityUnit?: string;
+  nominalVoltage?: number | string;
+  phases?: number;
+  nominalCurrent?: number | string;
+  powerFactor?: number | string;
+  refrigerant?: string;
+  activePower?: number | string;
+  apparentPower?: number | string;
+  reactivePower?: number | string;
+  warrantyExpiry?: string;
+}): Partial<ApiAsset> => {
   const data: Partial<ApiAsset> = {};
   
   // Campos de texto - enviar mesmo se vazios para permitir limpar valores
@@ -168,10 +220,17 @@ const equipmentToApiAsset = (equipment: Partial<Equipment>): Partial<ApiAsset> =
   if (equipment.model !== undefined) data.model = equipment.model;
   if (equipment.brand !== undefined) data.manufacturer = equipment.brand;
   if (equipment.serialNumber !== undefined) data.serial_number = equipment.serialNumber;
+  if (equipment.patrimonio !== undefined) data.patrimony_number = equipment.patrimonio;
   if (equipment.installDate !== undefined) data.installation_date = equipment.installDate;
   if (equipment.lastMaintenance !== undefined) data.last_maintenance = equipment.lastMaintenance;
+  if (equipment.warrantyExpiry !== undefined) data.warranty_expiry = equipment.warrantyExpiry;
   if (equipment.location !== undefined) data.location_description = equipment.location;
   if (equipment.notes !== undefined) data.name = equipment.notes;
+  
+  // Criticidade - mapear para o campo do backend
+  if (equipment.criticidade !== undefined) {
+    data.criticality = equipment.criticidade;
+  }
   
   // Campos de localização (sector e subsection)
   if (equipment.sectorId !== undefined) {
@@ -181,10 +240,42 @@ const equipmentToApiAsset = (equipment: Partial<Equipment>): Partial<ApiAsset> =
     data.subsection = equipment.subSectionId ? parseInt(equipment.subSectionId, 10) : null;
   }
   
+  // Especificações elétricas
+  if (equipment.nominalVoltage !== undefined) {
+    data.nominal_voltage = equipment.nominalVoltage ? String(equipment.nominalVoltage) : null;
+  }
+  if (equipment.phases !== undefined) {
+    data.phases = equipment.phases || null;
+  }
+  if (equipment.nominalCurrent !== undefined) {
+    data.nominal_current = equipment.nominalCurrent ? String(equipment.nominalCurrent) : null;
+  }
+  if (equipment.powerFactor !== undefined) {
+    data.power_factor = equipment.powerFactor ? String(equipment.powerFactor) : null;
+  }
+  if (equipment.capacity !== undefined) {
+    data.capacity = equipment.capacity ? String(equipment.capacity) : null;
+  }
+  if (equipment.capacityUnit !== undefined) {
+    data.capacity_unit = equipment.capacityUnit || null;
+  }
+  if (equipment.refrigerant !== undefined) {
+    data.refrigerant = equipment.refrigerant || null;
+  }
+  if (equipment.activePower !== undefined) {
+    data.active_power_kw = equipment.activePower ? String(equipment.activePower) : null;
+  }
+  if (equipment.apparentPower !== undefined) {
+    data.apparent_power_kva = equipment.apparentPower ? String(equipment.apparentPower) : null;
+  }
+  if (equipment.reactivePower !== undefined) {
+    data.reactive_power_kvar = equipment.reactivePower ? String(equipment.reactivePower) : null;
+  }
+  
   // Incluir specifications se fornecido, mesclando com criticidade
   const specs: Record<string, unknown> = equipment.specifications ? { ...equipment.specifications } : {};
   
-  // Adicionar criticidade às specifications
+  // Adicionar criticidade às specifications (legado)
   if (equipment.criticidade !== undefined) {
     specs.criticidade = equipment.criticidade;
   }
@@ -307,6 +398,72 @@ export const equipmentService = {
   async update(id: string, data: Partial<Equipment>): Promise<Equipment> {
     const apiData = equipmentToApiAsset(data);
     const response = await api.patch<ApiAsset>(`/assets/${id}/`, apiData);
+    return apiAssetToEquipment(response.data);
+  },
+
+  /**
+   * Cria um novo equipamento/ativo
+   */
+  async create(data: {
+    tag: string;
+    name: string;
+    site: number;
+    assetType: string;
+    manufacturer?: string;
+    model?: string;
+    serialNumber?: string;
+    patrimonio?: string;
+    criticidade?: string;
+    warrantyExpiry?: string;
+    installDate?: string;
+    sectorId?: string;
+    subSectionId?: string;
+    location?: string;
+    capacity?: number;
+    capacityUnit?: string;
+    nominalVoltage?: number;
+    phases?: number;
+    nominalCurrent?: number;
+    powerFactor?: number;
+    refrigerant?: string;
+    activePower?: number;
+    apparentPower?: number;
+    reactivePower?: number;
+  }): Promise<Equipment> {
+    const apiData: Partial<ApiAsset> & { site: number; tag: string; name: string; asset_type: string } = {
+      tag: data.tag,
+      name: data.name,
+      site: data.site,
+      asset_type: data.assetType,
+    };
+    
+    // Campos opcionais
+    if (data.manufacturer) apiData.manufacturer = data.manufacturer;
+    if (data.model) apiData.model = data.model;
+    if (data.serialNumber) apiData.serial_number = data.serialNumber;
+    if (data.patrimonio) apiData.patrimony_number = data.patrimonio;
+    if (data.criticidade) apiData.criticality = data.criticidade;
+    if (data.warrantyExpiry) apiData.warranty_expiry = data.warrantyExpiry;
+    if (data.installDate) apiData.installation_date = data.installDate;
+    if (data.location) apiData.location_description = data.location;
+    
+    // Localização
+    if (data.sectorId) apiData.sector = parseInt(data.sectorId, 10);
+    if (data.subSectionId) apiData.subsection = parseInt(data.subSectionId, 10);
+    
+    // Especificações elétricas
+    if (data.capacity) apiData.capacity = String(data.capacity);
+    if (data.capacityUnit) apiData.capacity_unit = data.capacityUnit;
+    if (data.nominalVoltage) apiData.nominal_voltage = String(data.nominalVoltage);
+    if (data.phases) apiData.phases = data.phases;
+    if (data.nominalCurrent) apiData.nominal_current = String(data.nominalCurrent);
+    if (data.powerFactor) apiData.power_factor = String(data.powerFactor);
+    if (data.refrigerant) apiData.refrigerant = data.refrigerant;
+    if (data.activePower) apiData.active_power_kw = String(data.activePower);
+    if (data.apparentPower) apiData.apparent_power_kva = String(data.apparentPower);
+    if (data.reactivePower) apiData.reactive_power_kvar = String(data.reactivePower);
+    
+    const response = await api.post<ApiAsset>('/assets/', apiData);
     return apiAssetToEquipment(response.data);
   },
 
