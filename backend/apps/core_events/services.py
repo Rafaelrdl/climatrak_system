@@ -71,14 +71,24 @@ class EventPublisher:
         Raises:
             IntegrityError: Se idempotency_key já existe para o tenant
         """
-        # Normalizar UUIDs
+        # Normalizar tenant_id
+        # Aceita: UUID object, string UUID, ou schema_name (converte para UUID determinístico)
         if isinstance(tenant_id, str):
-            tenant_id = uuid.UUID(tenant_id)
+            try:
+                tenant_id = uuid.UUID(tenant_id)
+            except ValueError:
+                # Se não for UUID válido, assumir que é schema_name
+                # Converter para UUID determinístico usando namespace
+                tenant_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"tenant:{tenant_id}")
         
         # Converter aggregate_id para UUID
         # Suporta: UUID, string UUID, ou integer (converte para UUID namespace)
         if isinstance(aggregate_id, str):
-            aggregate_id = uuid.UUID(aggregate_id)
+            try:
+                aggregate_id = uuid.UUID(aggregate_id)
+            except ValueError:
+                # Se não for UUID, converter string para UUID determinístico
+                aggregate_id = uuid.uuid5(uuid.NAMESPACE_OID, aggregate_id)
         elif isinstance(aggregate_id, int):
             # Converter integer para UUID usando namespace determinístico
             # Isso garante que o mesmo ID sempre gere o mesmo UUID

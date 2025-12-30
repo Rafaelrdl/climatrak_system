@@ -222,11 +222,17 @@ export function useCompleteWorkOrder() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: CompleteWorkOrderData }) =>
       workOrdersService.complete(id, data),
-    onSuccess: (updatedWO, { id }) => {
+    onSuccess: async (updatedWO, { id }) => {
       queryClient.setQueryData(workOrderKeys.detail(id), updatedWO);
       queryClient.invalidateQueries({ queryKey: workOrderKeys.lists() });
       queryClient.invalidateQueries({ queryKey: workOrderKeys.stats() });
       queryClient.invalidateQueries({ queryKey: workOrderKeys.overdue() });
+      
+      // Aguardar um pouco para garantir que os custos foram processados no backend
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Invalidar queries de finance para buscar custos processados automaticamente
+      queryClient.invalidateQueries({ queryKey: ['finance', 'ledger'] });
     },
   });
 }

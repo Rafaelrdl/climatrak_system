@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useQueryClient } from '@tanstack/react-query';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -76,6 +77,7 @@ export function WorkOrderViewModal({
   onClose
 }: WorkOrderViewModalProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [isProcessingCosts, setIsProcessingCosts] = useState(false);
   
   // Buscar dados completos da ordem de serviço (inclui fotos, materiais, etc.)
   const { data: workOrderDetails, isLoading: isLoadingDetails } = useWorkOrder(
@@ -83,6 +85,7 @@ export function WorkOrderViewModal({
   );
   
   // Usar dados completos se disponíveis, senão usar os dados passados como prop
+  const queryClient = useQueryClient();
   const currentWorkOrder = workOrderDetails || workOrder;
   
   // Buscar custos da ordem de serviço
@@ -91,7 +94,7 @@ export function WorkOrderViewModal({
     transactions: costTransactions,
     isLoading: isLoadingCosts,
     refetch: refetchCosts
-  } = useWorkOrderCosts(isOpen && currentWorkOrder?.id ? currentWorkOrder.id : undefined);
+  } = useWorkOrderCosts(isOpen && currentWorkOrder?.id ? String(currentWorkOrder.id) : undefined);
   
   const { data: equipment = [] } = useEquipments();
   const { data: sectors = [] } = useSectors();
@@ -104,7 +107,7 @@ export function WorkOrderViewModal({
   // Verificar se a OS está completa mas não tem custos postados
   const isCompleted = currentWorkOrder?.status === 'COMPLETED';
   const hasCosts = costsSummary.total > 0;
-  const needsPostCosts = isCompleted && !hasCosts && !isLoadingCosts;
+  const needsPostCosts = isCompleted && !hasCosts && !isLoadingCosts && !isProcessingCosts;
 
   // Função para formatar valores monetários
   const formatCurrency = (value: number) => {
@@ -216,7 +219,7 @@ export function WorkOrderViewModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] p-0 gap-0 overflow-hidden" aria-describedby="work-order-description">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] p-0 gap-0 overflow-hidden">
           {/* Header com gradiente sutil */}
           <DialogHeader className="px-6 pt-6 pb-4 bg-gradient-to-b from-muted/50 to-transparent">
             <div className="flex items-start justify-between gap-4 pr-10">
@@ -232,9 +235,9 @@ export function WorkOrderViewModal({
                     <DialogTitle className="text-lg font-semibold">
                       OS #{currentWorkOrder.number}
                     </DialogTitle>
-                    <p id="work-order-description" className="text-sm text-muted-foreground">
+                    <DialogDescription className="text-sm text-muted-foreground">
                       Criada em {formatDateTime(currentWorkOrder.createdAt)}
-                    </p>
+                    </DialogDescription>
                   </div>
                 </div>
               </div>
@@ -532,18 +535,30 @@ export function WorkOrderViewModal({
                             variant="default"
                             size="sm"
                             className="gap-2"
+                            disabled={isProcessingCosts}
                             onClick={async () => {
+                              setIsProcessingCosts(true);
                               try {
                                 const result = await workOrdersService.postCosts(String(currentWorkOrder.id));
                                 toast.success(`Custos processados! ${result.transactions_created} transação(ões) criada(s)`);
-                                refetchCosts();
+                                
+                                // Invalidar cache e refetch
+                                await queryClient.invalidateQueries({ queryKey: ['finance', 'ledger'] });
+                                await refetchCosts();
                               } catch (error: any) {
                                 toast.error(error.message || 'Erro ao processar custos');
+                              } finally {
+                                // Aguardar um pouco antes de remover o loading para garantir que a UI atualize
+                                setTimeout(() => setIsProcessingCosts(false), 500);
                               }
                             }}
                           >
-                            <DollarSign className="h-4 w-4" />
-                            Processar Custos Agora
+                            {isProcessingCosts ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <DollarSign className="h-4 w-4" />
+                            )}
+                            {isProcessingCosts ? 'Processando...' : 'Processar Custos Agora'}
                           </Button>
                         </div>
                       </div>

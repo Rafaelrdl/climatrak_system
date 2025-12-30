@@ -44,7 +44,8 @@ export function useWorkOrderCosts(workOrderId: string | undefined): UseWorkOrder
       page_size: 100, // Buscar todos os custos da OS
     }),
     enabled: !!workOrderId,
-    staleTime: 30_000, // 30 segundos
+    staleTime: 0, // Sempre buscar dados frescos
+    gcTime: 0, // Não manter em cache
   });
 
   const transactions = useMemo(() => 
@@ -63,8 +64,9 @@ export function useWorkOrderCosts(workOrderId: string | undefined): UseWorkOrder
 
     if (!transactions.length) return initial;
 
-    return transactions.reduce((acc, tx) => {
-      const amount = tx.amount;
+    const result = transactions.reduce((acc, tx) => {
+      // Converter string para número (backend retorna como string)
+      const amount = parseFloat(tx.amount) || 0;
       const type = tx.transaction_type;
       
       // Mapear tipos de transação para as chaves corretas
@@ -81,6 +83,8 @@ export function useWorkOrderCosts(workOrderId: string | undefined): UseWorkOrder
       acc.total += amount;
       return acc;
     }, initial);
+
+    return result;
   }, [transactions]);
 
   return {

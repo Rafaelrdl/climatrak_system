@@ -10,6 +10,11 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Count, Q
 from django.utils import timezone
+from django.conf import settings
+from decimal import Decimal
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .models import (
     ChecklistCategory, ChecklistTemplate, WorkOrder, WorkOrderPhoto, 
@@ -204,7 +209,7 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
-        """Conclui uma OS."""
+        """Conclui uma OS e processa custos automaticamente."""
         work_order = self.get_object()
         
         if work_order.status not in [WorkOrder.Status.OPEN, WorkOrder.Status.IN_PROGRESS]:
@@ -226,6 +231,58 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
         if checklist_responses:
             work_order.checklist_responses = checklist_responses
             work_order.save(update_fields=['checklist_responses'])
+        
+        # Processar custos automaticamente
+        try:
+            from django.db import connection
+            from apps.cmms.models import TimeEntry, PartUsage
+            from apps.finance.services import CostEngineService
+            
+            logger.info(f"🤖 Processamento automático de custos para OS {work_order.number}...")
+            
+            # Auto-criar TimeEntry se não existir
+            time_entries_count = work_order.time_entries.count()
+            if time_entries_count == 0:
+                # Usar actual_hours ou criar entrada padrão de 1h
+                hours = actual_hours if actual_hours else 1.0
+                TimeEntry.objects.create(
+                    work_order=work_order,
+                    role='Técnico',
+                    hours=hours,
+                    hourly_rate=Decimal('75.00'),
+                    work_date=timezone.now().date(),
+                )
+                logger.info(f"✅ TimeEntry auto-criado: {hours}h de Técnico")
+            
+            # Auto-criar PartUsage de WorkOrderItem se não existir
+            part_usages_count = work_order.part_usages.count()
+            if part_usages_count == 0:
+                items_converted = 0
+                for wo_item in work_order.items.all():
+                    if wo_item.inventory_item:
+                        PartUsage.objects.create(
+                            work_order=work_order,
+                            inventory_item=wo_item.inventory_item,
+                            part_number=wo_item.inventory_item.part_number,
+                            part_name=wo_item.inventory_item.name,
+                            quantity=wo_item.quantity,
+                            unit=wo_item.inventory_item.unit,
+                            unit_cost=wo_item.inventory_item.unit_cost,
+                        )
+                        items_converted += 1
+                if items_converted > 0:
+                    logger.info(f"✅ {items_converted} PartUsage auto-criados de WorkOrderItem")
+            
+            # Processar custos
+            result = CostEngineService.process_work_order_closed(
+                work_order_id=work_order.id,
+                tenant_id=connection.schema_name,
+            )
+            
+            logger.info(f"✅ Processamento automático concluído: {result.get('transactions_created', 0)} transação(ões) criada(s)")
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao processar custos automaticamente para OS {work_order.number}: {str(e)}", exc_info=True)
         
         serializer = self.get_serializer(work_order)
         return Response(serializer.data)
@@ -450,12 +507,27 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
         Processa e posta custos da OS manualmente no Finance.
         
         Dispara o Cost Engine para processar os custos desta OS.
+        Se a OS não tiver TimeEntry/PartUsage, cria automaticamente
+        a partir dos dados disponíveis (técnico alocado + WorkOrderItem).
         """
+        import logging
+        import traceback
         from django.db import connection
         from apps.finance.cost_engine import CostEngineService
         from .services import WorkOrderService
+        from .models import TimeEntry, PartUsage
+        from decimal import Decimal
         
-        work_order = self.get_object()
+        logger = logging.getLogger(__name__)
+        
+        try:
+            work_order = self.get_object()
+        except Exception as e:
+            logger.error(f'Erro ao obter WorkOrder: {e}')
+            return Response(
+                {'error': f'Erro ao obter OS: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
         # Verificar se OS está concluída
         if work_order.status != WorkOrder.Status.COMPLETED:
@@ -464,8 +536,78 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        created_entries = []
+        
+        # 1) Criar TimeEntry se houver técnico mas não houver apontamento
+        if work_order.assigned_to and not work_order.time_entries.exists():
+            try:
+                # Calcular horas trabalhadas (se houver started_at e completed_at)
+                hours = Decimal('0.00')
+                if work_order.started_at and work_order.completed_at:
+                    duration = work_order.completed_at - work_order.started_at
+                    hours = Decimal(str(round(duration.total_seconds() / 3600, 2)))
+                
+                # Usar 1 hora como fallback se não tiver duração
+                if hours == 0:
+                    hours = Decimal('1.00')
+                
+                # Obter função do técnico (position field)
+                role = getattr(work_order.assigned_to, 'position', None) or 'Técnico'
+                
+                time_entry = TimeEntry.objects.create(
+                    work_order=work_order,
+                    technician=work_order.assigned_to,
+                    role=role,
+                    hours=hours,
+                    work_date=work_order.completed_at.date() if work_order.completed_at else timezone.now().date(),
+                    description=f'Mão de obra registrada automaticamente (OS {work_order.number})',
+                    created_by=request.user
+                )
+                created_entries.append(f'TimeEntry: {hours}h de {role}')
+                logger.info(f'TimeEntry criado: {hours}h de {role} para OS {work_order.number}')
+            except Exception as e:
+                logger.error(f'Erro ao criar TimeEntry: {e}')
+                logger.error(traceback.format_exc())
+        
+        # 2) Converter WorkOrderItem → PartUsage se não houver part_usages
+        if not work_order.part_usages.exists():
+            try:
+                for item in work_order.items.select_related('inventory_item').all():
+                    # Obter unit_cost do InventoryItem se disponível
+                    unit_cost = None
+                    if item.inventory_item and hasattr(item.inventory_item, 'unit_cost'):
+                        unit_cost = item.inventory_item.unit_cost
+                    
+                    part_usage = PartUsage.objects.create(
+                        work_order=work_order,
+                        inventory_item=item.inventory_item,
+                        part_name=item.inventory_item.name if item.inventory_item else 'Item desconhecido',
+                        part_number=item.inventory_item.code if item.inventory_item else '',
+                        quantity=item.quantity,
+                        unit=item.inventory_item.unit if item.inventory_item else 'UN',
+                        unit_cost=unit_cost,
+                        description=f'Material registrado automaticamente (OS {work_order.number})',
+                        created_by=request.user
+                    )
+                    created_entries.append(
+                        f'PartUsage: {item.quantity} {part_usage.unit} de {part_usage.part_name}'
+                        + (f' @ R$ {unit_cost}' if unit_cost else ' (sem custo)')
+                    )
+                    logger.info(f'PartUsage criado: {item.quantity}x {part_usage.part_name} para OS {work_order.number}')
+            except Exception as e:
+                logger.error(f'Erro ao criar PartUsage: {e}')
+                logger.error(traceback.format_exc())
+        
         # Montar dados do evento work_order.closed
-        event_data = WorkOrderService._build_work_order_closed_payload(work_order)
+        try:
+            event_data = WorkOrderService._build_work_order_closed_payload(work_order)
+        except Exception as e:
+            logger.error(f'Erro ao construir event payload: {e}')
+            logger.error(traceback.format_exc())
+            return Response(
+                {'error': f'Erro ao construir dados do evento: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
         try:
             # Processar custos via Cost Engine
@@ -474,15 +616,24 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                 tenant_id=connection.schema_name
             )
             
+            logger.info(f'Custos processados para OS {work_order.number}: {result["transactions_created"]} transação(ões) criada(s)')
+            
             return Response({
                 'success': True,
                 'work_order_id': work_order.id,
                 'work_order_number': work_order.number,
+                'auto_created_entries': created_entries,
                 **result
             })
         except Exception as e:
+            logger.error(f'Erro ao processar custos da OS {work_order.number}: {str(e)}')
+            logger.error(traceback.format_exc())
+            
             return Response(
-                {'error': f'Erro ao processar custos: {str(e)}'},
+                {
+                    'error': f'Erro ao processar custos: {str(e)}',
+                    'detail': traceback.format_exc() if settings.DEBUG else None
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
