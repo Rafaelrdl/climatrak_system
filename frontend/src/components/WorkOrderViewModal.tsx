@@ -13,7 +13,10 @@ import {
   FileText,
   AlertCircle,
   Wrench,
-  Clock
+  Clock,
+  Camera,
+  Timer,
+  Circle
 } from 'lucide-react';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useSectors, useCompanies } from '@/hooks/useLocationsQuery';
@@ -222,8 +225,8 @@ export function WorkOrderViewModal({
               </div>
             </div>
 
-            {/* Datas de Execução */}
-            {(workOrder.startedAt || workOrder.completedAt) && (
+            {/* Seção de Execução - Sempre visível quando há dados */}
+            {(workOrder.status === 'COMPLETED' || workOrder.startedAt || workOrder.completedAt || workOrder.executionDescription || (workOrder.stockItems && workOrder.stockItems.length > 0) || (workOrder.photos && workOrder.photos.length > 0)) && (
               <>
                 <Separator />
                 <div className="space-y-4">
@@ -231,7 +234,18 @@ export function WorkOrderViewModal({
                     <Clock className="h-4 w-4" />
                     Execução
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6">
+                  
+                  {/* Status e Datas */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pl-6">
+                    <div className="space-y-1">
+                      <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                        <Circle className="h-3 w-3" />
+                        Status
+                      </Label>
+                      <Badge variant="outline" className={cn(getStatusColor(workOrder.status), "w-fit")}>
+                        {getStatusLabel(workOrder.status)}
+                      </Badge>
+                    </div>
                     {workOrder.startedAt && (
                       <div className="space-y-1">
                         <Label className="text-muted-foreground text-xs">Iniciada em</Label>
@@ -245,22 +259,100 @@ export function WorkOrderViewModal({
                       </div>
                     )}
                   </div>
-                </div>
-              </>
-            )}
 
-            {/* Observações de Conclusão */}
-            {workOrder.executionDescription && (
-              <>
-                <Separator />
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Observações de Conclusão
-                  </Label>
-                  <div className="p-3 bg-muted rounded-lg">
-                    <p className="text-sm whitespace-pre-wrap">{workOrder.executionDescription}</p>
-                  </div>
+                  {/* Tempo de Execução */}
+                  {workOrder.completedAt && workOrder.scheduledDate && (
+                    <div className="pl-6">
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                          <Timer className="h-3 w-3" />
+                          Tempo de Execução
+                        </Label>
+                        <p className="font-medium text-sm">
+                          {(() => {
+                            const days = Math.ceil(
+                              (new Date(workOrder.completedAt).getTime() - new Date(workOrder.scheduledDate).getTime()) 
+                              / (1000 * 60 * 60 * 24)
+                            );
+                            if (days === 0) return 'No mesmo dia';
+                            if (days === 1) return '1 dia';
+                            if (days < 0) return `${Math.abs(days)} dias antes do previsto`;
+                            return `${days} dias`;
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Descrição da Execução */}
+                  {workOrder.executionDescription && (
+                    <div className="pl-6 space-y-2">
+                      <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                        <FileText className="h-3 w-3" />
+                        Descrição da Execução
+                      </Label>
+                      <div className="p-3 bg-muted rounded-lg">
+                        <p className="text-sm whitespace-pre-wrap">{workOrder.executionDescription}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Materiais e Peças Utilizados */}
+                  {workOrder.stockItems && workOrder.stockItems.length > 0 && (
+                    <div className="pl-6 space-y-2">
+                      <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                        <Package className="h-3 w-3" />
+                        Materiais e Peças Utilizados
+                      </Label>
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted/50">
+                            <tr>
+                              <th className="text-left px-3 py-2 font-medium">Item</th>
+                              <th className="text-center px-3 py-2 font-medium w-24">Qtd</th>
+                              <th className="text-center px-3 py-2 font-medium w-20">Unid</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {workOrder.stockItems.map((item, index) => (
+                              <tr key={item.id} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
+                                <td className="px-3 py-2">{item.itemName || item.stockItem?.description || `Item ${item.stockItemId}`}</td>
+                                <td className="px-3 py-2 text-center">{item.quantity}</td>
+                                <td className="px-3 py-2 text-center">{item.unit || item.stockItem?.unit || 'un'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Fotos da Execução */}
+                  {workOrder.photos && workOrder.photos.length > 0 && (
+                    <div className="pl-6 space-y-2">
+                      <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                        <Camera className="h-3 w-3" />
+                        Fotos da Execução
+                      </Label>
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {workOrder.photos.map((photo) => (
+                          <div key={photo.id} className="relative group">
+                            <div className="aspect-square rounded-lg overflow-hidden border bg-muted">
+                              <img
+                                src={photo.url}
+                                alt={photo.name}
+                                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                                onClick={() => window.open(photo.url, '_blank')}
+                              />
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-xs truncate rounded-b-lg">
+                              {photo.name}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}
