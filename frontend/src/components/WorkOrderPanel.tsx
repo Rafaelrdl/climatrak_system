@@ -69,7 +69,6 @@ function WorkOrderPanelComponent({
   }, [selectedWorkOrder?.id, setSelectedWorkOrder]);
 
   // Auto-select first work order if none selected and list is not empty
-  // Fixed version with proper dependency handling
   useEffect(() => {
     // Check if workOrders count has changed (new filter/search)
     if (workOrdersCountRef.current !== workOrders.length) {
@@ -91,8 +90,7 @@ function WorkOrderPanelComponent({
     if (workOrders.length === 0) {
       hasAutoSelectedRef.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedWorkOrderId, workOrders.length]); // Note: using length instead of full array
+  }, [selectedWorkOrderId, workOrders]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((event: KeyboardEvent) => {

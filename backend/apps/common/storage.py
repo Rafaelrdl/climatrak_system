@@ -2,8 +2,12 @@
 Storage utilities for MinIO/S3 integration.
 """
 
+import logging
+
 from django.conf import settings
 from minio import Minio
+
+logger = logging.getLogger(__name__)
 
 
 def get_minio_client():
@@ -35,6 +39,7 @@ def ensure_bucket_exists(bucket_name=None):
     
     if not client.bucket_exists(bucket_name):
         client.make_bucket(bucket_name)
-        print(f"✅ Created MinIO bucket: {bucket_name}")
+        if settings.DEBUG:
+            logger.info("Created MinIO bucket: %s", bucket_name)
     
     return bucket_name

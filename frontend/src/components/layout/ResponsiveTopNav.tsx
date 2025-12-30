@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 type NavItem = { id: string; label: string; icon?: React.ReactNode; to: string };
@@ -12,7 +12,7 @@ export default function ResponsiveTopNav({ items }: { items: NavItem[] }) {
   const [compact, setCompact] = useState(false); // false = label+ícone; true = ícone-apenas
   const [menuOpen, setMenuOpen] = useState(false);
 
-  function fitCount(available: number, mode: "labels" | "icons") {
+  const fitCount = useCallback((available: number, mode: "labels" | "icons") => {
     const list = listRef.current!;
     const children = Array.from(list.children) as HTMLLIElement[];
     let acc = 0;
@@ -38,9 +38,9 @@ export default function ResponsiveTopNav({ items }: { items: NavItem[] }) {
       } else break;
     }
     return vis;
-  }
+  }, []);
 
-  const measure = () => {
+  const measure = useCallback(() => {
     const cont = containerRef.current;
     const list = listRef.current;
     const moreBtn = moreBtnRef.current;
@@ -70,17 +70,15 @@ export default function ResponsiveTopNav({ items }: { items: NavItem[] }) {
     const chooseCompact = visIcons > visLabels;
     setCompact(chooseCompact);
     setVisibleCount(chooseCompact ? visIcons : visLabels);
-  };
+  }, [fitCount, items.length]);
 
   useLayoutEffect(() => {
     const ro = new ResizeObserver(() => measure());
     if (containerRef.current) ro.observe(containerRef.current);
     return () => ro.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.length]);
+  }, [measure]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { measure(); }, []); // 1ª medição
+  useEffect(() => { measure(); }, [measure]); // 1ª medição
 
   const visible = items.slice(0, visibleCount);
   const overflow = items.slice(visibleCount);

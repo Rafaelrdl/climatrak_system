@@ -1,3 +1,4 @@
+import hmac
 import logging
 from datetime import datetime, timezone as dt_timezone
 import pytz
@@ -73,13 +74,16 @@ class IngestView(APIView):
         
         # SECURITY: Check if token matches INGESTION_SECRET (global token for EMQX)
         ingestion_secret = getattr(settings, 'INGESTION_SECRET', None)
-        if ingestion_secret and device_token == ingestion_secret:
+        if ingestion_secret and hmac.compare_digest(device_token, ingestion_secret):
             logger.info(f"✅ Authenticated via INGESTION_SECRET from {request.META.get('REMOTE_ADDR')}")
         else:
             # Token inválido
-            logger.error(f"🚨 SECURITY: Invalid device token from {request.META.get('REMOTE_ADDR')}")
-            logger.error(f"   Received: {device_token[:20]}...")
-            logger.error(f"   Expected: {ingestion_secret[:20] if ingestion_secret else 'NOT_CONFIGURED'}...")
+            request_id = request.headers.get('X-Request-ID') or request.headers.get('X-Request-Id')
+            logger.error(
+                "🚨 SECURITY: Invalid device token from %s (request_id=%s)",
+                request.META.get('REMOTE_ADDR'),
+                request_id or 'n/a',
+            )
             return Response(
                 {"error": "Invalid device token"},
                 status=status.HTTP_401_UNAUTHORIZED

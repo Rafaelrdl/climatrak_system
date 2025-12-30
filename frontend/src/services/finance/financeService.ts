@@ -22,7 +22,7 @@ import type {
   LedgerFilters,
   CommitmentFilters,
   SavingsFilters,
-  PaginatedResponse,
+  FinancePaginatedResponse,
   ApiResponse,
 } from '@/types/finance';
 
@@ -72,13 +72,13 @@ function extractArray<T>(response: unknown): T[] {
 function normalizePaginatedResponse<T>(
   response: unknown,
   pageSize: number = 50
-): PaginatedResponse<T> {
+): FinancePaginatedResponse<T> {
   if (response && typeof response === 'object') {
     const obj = response as Record<string, unknown>;
     
     // Se já está no formato esperado
     if ('data' in obj && 'meta' in obj) {
-      return response as PaginatedResponse<T>;
+      return response as FinancePaginatedResponse<T>;
     }
     
     // Django paginated response
@@ -215,7 +215,7 @@ export async function updateEnvelopeMonths(
 
 export async function getTransactions(
   filters: LedgerFilters
-): Promise<PaginatedResponse<CostTransaction>> {
+): Promise<FinancePaginatedResponse<CostTransaction>> {
   const { data } = await api.get(
     `${BASE_URL}/transactions/`,
     { params: filters }
@@ -259,7 +259,7 @@ export async function createManualTransaction(
 
 export async function getCommitments(
   filters: CommitmentFilters
-): Promise<PaginatedResponse<Commitment>> {
+): Promise<FinancePaginatedResponse<Commitment>> {
   const { data } = await api.get(
     `${BASE_URL}/commitments/`,
     { params: filters }
@@ -312,7 +312,7 @@ export async function cancelCommitment(id: string): Promise<Commitment> {
 
 export async function getSavingsEvents(
   filters: SavingsFilters
-): Promise<PaginatedResponse<SavingsEvent>> {
+): Promise<FinancePaginatedResponse<SavingsEvent>> {
   const { data } = await api.get(
     `${BASE_URL}/savings-events/`,
     { params: filters }

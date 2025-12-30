@@ -14,6 +14,7 @@
 
 import { api } from '@/lib/api';
 import type { Equipment } from '@/types';
+import type { PaginatedResponse } from '@/types/api';
 
 // ============================================
 // Tipos do Backend (API Django)
@@ -65,13 +66,6 @@ interface ApiAsset {
   active_power_kw?: number | string | null;
   apparent_power_kva?: number | string | null;
   reactive_power_kvar?: number | string | null;
-}
-
-interface PaginatedResponse<T> {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: T[];
 }
 
 // ============================================

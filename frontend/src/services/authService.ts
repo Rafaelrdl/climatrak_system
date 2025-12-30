@@ -31,7 +31,7 @@ const mapApiRoleToAppRole = (role?: string | null): UserRole => {
 
 const mapApiUserToUser = (apiUser: ApiUser): User => {
   const fullName =
-    (apiUser as any).full_name ||
+    apiUser.full_name ||
     `${apiUser.first_name || ''} ${apiUser.last_name || ''}`.trim() ||
     apiUser.email;
 
@@ -41,7 +41,7 @@ const mapApiUserToUser = (apiUser: ApiUser): User => {
     email: apiUser.email,
     role: mapApiRoleToAppRole(apiUser.role),
     status: apiUser.is_active ? 'active' : 'disabled',
-    avatar_url: (apiUser as any).avatar || apiUser.avatar_url || undefined,
+    avatar_url: apiUser.avatar ?? apiUser.avatar_url ?? undefined,
     phone: apiUser.phone || undefined,
     created_at: apiUser.created_at || new Date().toISOString(),
     updated_at: apiUser.updated_at || undefined,
@@ -75,15 +75,19 @@ export async function login(email: string, password: string): Promise<LoginResul
     password,
   });
 
-  console.log('🔐 Login response:', {
-    tenants: data.tenants,
-    user: data.user.email,
-  });
+  if (import.meta.env.DEV) {
+    console.log('🔐 Login response:', {
+      tenants: data.tenants,
+      user: data.user.email,
+    });
+  }
 
   // Select default tenant or first available (needed to get correct role)
   const defaultTenant = data.tenants.find(t => t.is_default) || data.tenants[0] || null;
 
-  console.log('🏢 Selected tenant:', defaultTenant);
+  if (import.meta.env.DEV) {
+    console.log('🏢 Selected tenant:', defaultTenant);
+  }
 
   // Map user data - use role from selected tenant (not from user object)
   // The backend returns the correct role per tenant in data.tenants[].role
@@ -114,7 +118,9 @@ export async function login(email: string, password: string): Promise<LoginResul
 
     // Store selected tenant schema for X-Tenant header
     localStorage.setItem('auth:tenant_schema', defaultTenant.schema_name);
-    console.log('💾 Saved tenant_schema:', defaultTenant.schema_name);
+    if (import.meta.env.DEV) {
+      console.log('💾 Saved tenant_schema:', defaultTenant.schema_name);
+    }
   }
 
   return { 
@@ -178,7 +184,9 @@ export async function tenantLogin(email: string, password: string): Promise<{
     password,
   });
 
-  console.log('🔐 Tenant login response:', data);
+  if (import.meta.env.DEV) {
+    console.log('🔐 Tenant login response:', data);
+  }
 
   // Map user data
   const user = mapApiUserToUser(data.user);

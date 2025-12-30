@@ -27,11 +27,29 @@ export interface TenantBranding {
   favicon?: string;
 }
 
+type TenantJwtPayload = {
+  tenant_id?: string;
+  tenant_slug?: string;
+  tenant_name?: string;
+  api_base_url?: string;
+};
+
+const isTenantJwtPayload = (payload: unknown): payload is TenantJwtPayload => {
+  if (!payload || typeof payload !== 'object') return false;
+  const record = payload as Record<string, unknown>;
+  return (
+    typeof record.tenant_id === 'string' ||
+    typeof record.tenant_slug === 'string' ||
+    typeof record.tenant_name === 'string' ||
+    typeof record.api_base_url === 'string'
+  );
+};
+
 /**
  * Decodifica JWT sem validação (apenas leitura do payload)
  * Suporta base64url (usado por muitos JWTs) convertendo para base64 padrão
  */
-const decodeJWT = (token: string): any => {
+const decodeJWT = (token: string): unknown => {
   try {
     const payload = token.split('.')[1];
     // Normalizar base64url para base64: substituir - por + e _ por /
@@ -153,7 +171,7 @@ export const getTenantConfig = (): TenantConfig => {
   const token = tenantStorage.get<string>('access_token') || localStorage.getItem('access_token');
   if (token) {
     const payload = decodeJWT(token);
-    if (payload?.tenant_id) {
+    if (isTenantJwtPayload(payload) && payload.tenant_id) {
       const tenantSlug = payload.tenant_slug || payload.tenant_id;
       // Usar URL do backend se disponível, senão construir baseado no ambiente
       const apiBaseUrl = payload.api_base_url || buildApiUrlForTenant(tenantSlug);

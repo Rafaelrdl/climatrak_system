@@ -32,6 +32,7 @@ import { ptBR } from 'date-fns/locale';
 import type { ApiInventoryMovement } from '@/types/api';
 import { useInventoryMovements, useInventoryMovementsSummary } from '@/hooks/useInventoryQuery';
 import type { InventoryMovementParams } from '@/services/inventoryService';
+import { parsePaginatedResponse } from '@/shared/api';
 
 interface InventoryHistoryProps {
   className?: string;
@@ -99,33 +100,23 @@ export function InventoryHistory({ className }: InventoryHistoryProps) {
   const { data: summaryData } = useInventoryMovementsSummary(parseInt(dateRange));
   
   // Processar dados
-  const movements = useMemo(() => {
-    if (Array.isArray(movementsData)) {
-      return movementsData;
-    }
-    // Handle paginated response
-    return (movementsData as any)?.results || [];
-  }, [movementsData]);
+  const parsedMovements = useMemo(
+    () => parsePaginatedResponse<ApiInventoryMovement>(movementsData),
+    [movementsData]
+  );
+  const movements = parsedMovements.items;
 
   // Informações de paginação
   const paginationInfo = useMemo(() => {
-    if (Array.isArray(movementsData)) {
-      return {
-        count: movementsData.length,
-        totalPages: 1,
-        hasNext: false,
-        hasPrevious: false,
-      };
-    }
-    
-    const data = movementsData as any;
+    const isArrayResponse = Array.isArray(movementsData);
+    const total = parsedMovements.meta.total;
     return {
-      count: data?.count || 0,
-      totalPages: Math.ceil((data?.count || 0) / pageSize),
-      hasNext: !!data?.next,
-      hasPrevious: !!data?.previous,
+      count: total,
+      totalPages: isArrayResponse ? 1 : Math.ceil(total / pageSize),
+      hasNext: Boolean(parsedMovements.meta.next),
+      hasPrevious: Boolean(parsedMovements.meta.prev),
     };
-  }, [movementsData]);
+  }, [movementsData, parsedMovements, pageSize]);
 
   // Estatísticas rápidas baseadas nos dados filtrados
   const quickStats = useMemo(() => {

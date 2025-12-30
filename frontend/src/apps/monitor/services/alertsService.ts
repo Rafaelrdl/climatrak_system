@@ -13,6 +13,7 @@
  */
 
 import { api } from '@/lib/api';
+import type { PaginatedResponse } from '@/types/api';
 import type { 
   Alert, 
   AlertFilters, 
@@ -20,11 +21,6 @@ import type {
   AcknowledgeAlertRequest,
   ResolveAlertRequest
 } from '../types/alert';
-
-interface PaginatedResponse<T> {
-  results: T[];
-  count: number;
-}
 
 interface LinkWorkOrderResponse {
   status: string;

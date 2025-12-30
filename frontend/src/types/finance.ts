@@ -251,7 +251,7 @@ export interface SavingsFilters {
 
 // ==================== Pagination ====================
 
-export interface PaginatedResponse<T> {
+export interface FinancePaginatedResponse<T> {
   data: T[];
   meta: {
     page: number;

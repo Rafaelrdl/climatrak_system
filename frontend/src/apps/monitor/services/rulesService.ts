@@ -7,6 +7,7 @@
  */
 
 import { api } from '@/lib/api';
+import type { PaginatedResponse } from '@/types/api';
 import type { 
   Rule, 
   RuleFilters, 
@@ -14,11 +15,6 @@ import type {
   UpdateRuleRequest,
   RuleStatistics 
 } from '../types/rule';
-
-interface PaginatedResponse<T> {
-  results: T[];
-  count: number;
-}
 
 export const rulesService = {
   /**

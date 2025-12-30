@@ -86,52 +86,63 @@ def process_outbox_event(self, event_id: str):
     Args:
         event_id: UUID do evento a processar
     """
+    error_to_raise = None
+    can_retry = False
+
     try:
-        event = OutboxEvent.objects.get(id=event_id)
+        with transaction.atomic():
+            event = OutboxEvent.objects.select_for_update().get(id=event_id)
+
+            # Verificar se ainda está pendente
+            if event.status != OutboxEventStatus.PENDING:
+                logger.info(f"Event {event_id} already processed/failed, skipping")
+                return
+
+            # Buscar handler
+            handler = get_event_handler(event.event_name)
+
+            if not handler:
+                error_msg = f"No handler registered for event: {event.event_name}"
+                logger.warning(error_msg)
+                # Marcar como failed se não há handler
+                event.mark_failed(error_msg)
+                return
+
+            # Tentar processar
+            try:
+                logger.info(f"Processing event {event_id}: {event.event_name}")
+
+                # Executar handler
+                handler(event)
+
+                # Marcar como processado
+                worker_id = f"celery-{self.request.id}" if self.request.id else "unknown"
+                event.mark_processed(processed_by=worker_id)
+
+                logger.info(f"Event {event_id} processed successfully")
+                return
+
+            except Exception as e:
+                error_msg = f"{type(e).__name__}: {str(e)}"
+                logger.error(f"Error processing event {event_id}: {error_msg}")
+
+                # Incrementar tentativas
+                can_retry = event.increment_attempt(error_msg)
+
+                if not can_retry:
+                    logger.error(
+                        f"Event {event_id} marked as failed after {event.attempts} attempts"
+                    )
+
+                error_to_raise = e
+
     except OutboxEvent.DoesNotExist:
         logger.error(f"Event not found: {event_id}")
         return
-    
-    # Verificar se ainda está pendente
-    if event.status != OutboxEventStatus.PENDING:
-        logger.info(f"Event {event_id} already processed/failed, skipping")
-        return
-    
-    # Buscar handler
-    handler = get_event_handler(event.event_name)
-    
-    if not handler:
-        error_msg = f"No handler registered for event: {event.event_name}"
-        logger.warning(error_msg)
-        # Marcar como failed se não há handler
-        event.mark_failed(error_msg)
-        return
-    
-    # Tentar processar
-    try:
-        logger.info(f"Processing event {event_id}: {event.event_name}")
-        
-        # Executar handler
-        handler(event)
-        
-        # Marcar como processado
-        worker_id = f"celery-{self.request.id}" if self.request.id else "unknown"
-        event.mark_processed(processed_by=worker_id)
-        
-        logger.info(f"Event {event_id} processed successfully")
-        
-    except Exception as e:
-        error_msg = f"{type(e).__name__}: {str(e)}"
-        logger.error(f"Error processing event {event_id}: {error_msg}")
-        
-        # Incrementar tentativas
-        can_retry = event.increment_attempt(error_msg)
-        
-        if can_retry:
-            # Re-raise para Celery fazer retry
-            raise
-        else:
-            logger.error(f"Event {event_id} marked as failed after {event.attempts} attempts")
+
+    if error_to_raise and can_retry:
+        # Re-raise para Celery fazer retry após persistir o estado
+        raise error_to_raise
 
 
 @shared_task(

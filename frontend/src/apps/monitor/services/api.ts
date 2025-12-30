@@ -47,12 +47,25 @@ class MonitorApiClient {
     const { params, ...fetchOptions } = options;
     const url = this.buildUrl(path, params);
 
+    const headers = new Headers(fetchOptions.headers);
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+
+    const tenantSchema =
+      typeof window !== 'undefined' ? localStorage.getItem('auth:tenant_schema') : null;
+    if (tenantSchema && typeof window !== 'undefined') {
+      const hostParts = window.location.hostname.split('.');
+      const hasSubdomain =
+        hostParts.length > 1 && hostParts[0] !== 'www' && hostParts[0] !== 'localhost';
+      if (!hasSubdomain) {
+        headers.set('X-Tenant', tenantSchema);
+      }
+    }
+
     const response = await fetch(url, {
       ...fetchOptions,
-      headers: {
-        'Content-Type': 'application/json',
-        ...fetchOptions.headers,
-      },
+      headers,
       credentials: 'include', // Para cookies de autenticação
     });
 

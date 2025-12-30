@@ -88,8 +88,7 @@ export function WorkOrderDetailView({
       setIsDirty(false);
       setActiveTab('details');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workOrder?.id]); // Apenas quando o ID mudar, evitando re-renders desnecessários
+  }, [workOrder]);
 
   // Handlers memoizados (devem estar antes do return condicional)
   const handleSave = useCallback(() => {

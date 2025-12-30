@@ -7,6 +7,9 @@ Responsável por:
 - Invalidar cache de timezone quando Site é atualizado
 """
 
+import logging
+
+from django.conf import settings
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
@@ -14,6 +17,8 @@ from django.core.cache import cache
 from django.db import connection
 
 from apps.assets.models import Site
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(post_save, sender=Site)
@@ -29,8 +34,12 @@ def invalidate_site_timezone_cache_on_save(sender, instance, **kwargs):
     cache_key = f"site_timezone:{schema_name}:{instance.name}"
     deleted = cache.delete(cache_key)
     
-    if deleted:
-        print(f"✅ Cache do timezone invalidado para Site '{instance.name}' (tenant: {schema_name})")
+    if deleted and settings.DEBUG:
+        logger.info(
+            "Cache do timezone invalidado para Site '%s' (tenant: %s)",
+            instance.name,
+            schema_name,
+        )
 
 
 @receiver(post_delete, sender=Site)
@@ -42,7 +51,12 @@ def invalidate_site_timezone_cache_on_delete(sender, instance, **kwargs):
     cache_key = f"site_timezone:{schema_name}:{instance.name}"
     cache.delete(cache_key)
     
-    print(f"✅ Cache do timezone invalidado para Site deletado '{instance.name}' (tenant: {schema_name})")
+    if settings.DEBUG:
+        logger.info(
+            "Cache do timezone invalidado para Site deletado '%s' (tenant: %s)",
+            instance.name,
+            schema_name,
+        )
 
 
 # Signal será conectado quando integrarmos com apps.ingest

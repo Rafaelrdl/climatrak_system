@@ -29,6 +29,7 @@ import {
   useDeleteInventoryItem
 } from '@/hooks/useInventoryQuery';
 import type { ApiInventoryItem, ApiInventoryCategory } from '@/types/api';
+import { parsePaginatedResponse } from '@/shared/api';
 
 // Mappers
 const mapApiItemToInventoryItem = (item: ApiInventoryItem): InventoryItem => {
@@ -90,18 +91,12 @@ export function InventoryPage() {
   
   // Map API data to frontend types
   const items = useMemo(() => {
-    // Handle both array and paginated response formats
-    const itemsArray = Array.isArray(itemsData) 
-      ? itemsData 
-      : (itemsData as any)?.results || [];
-    return itemsArray.map(mapApiItemToInventoryItem);
+    const parsed = parsePaginatedResponse<ApiInventoryItem>(itemsData);
+    return parsed.items.map(mapApiItemToInventoryItem);
   }, [itemsData]);
   const categories = useMemo(() => {
-    // Handle both array and paginated response formats
-    const categoryArray = Array.isArray(categoriesData) 
-      ? categoriesData 
-      : (categoriesData as any)?.results || [];
-    return categoryArray.map(mapApiCategoryToCategory);
+    const parsed = parsePaginatedResponse<ApiInventoryCategory>(categoriesData);
+    return parsed.items.map(mapApiCategoryToCategory);
   }, [categoriesData]);
   
   // Local state
