@@ -209,6 +209,26 @@ class AssetSerializer(serializers.ModelSerializer):
             'sensor_count', 'health_score', 'created_at', 'updated_at',
             'company_id', 'sector_name', 'subsection_name'
         ]
+        extra_kwargs = {
+            'installation_date': {'required': False, 'allow_null': True},
+            'warranty_expiry': {'required': False, 'allow_null': True},
+            'manufacturer': {'required': False, 'allow_blank': True},
+            'model': {'required': False, 'allow_blank': True},
+            'serial_number': {'required': False, 'allow_blank': True},
+            'patrimony_number': {'required': False, 'allow_blank': True},
+            'criticality': {'required': False, 'allow_blank': True},
+            'location_description': {'required': False, 'allow_blank': True},
+            'name': {'required': False, 'allow_blank': True},
+        }
+    
+    def to_internal_value(self, data):
+        """Converte strings vazias em None para campos de data."""
+        # Campos de data que devem aceitar string vazia como None
+        date_fields = ['installation_date', 'warranty_expiry']
+        for field in date_fields:
+            if field in data and data[field] == '':
+                data[field] = None
+        return super().to_internal_value(data)
     
     def get_company_id(self, obj):
         """Retorna o ID da empresa via setor."""

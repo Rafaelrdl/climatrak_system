@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Building2, MapPin, Users, Search, BarChart3, Activity, Info, Calendar, FileText } from 'lucide-react';
 import { useEquipments, equipmentKeys } from '@/hooks/useEquipmentQuery';
 import { useSectors, useSubsections, useCompanies } from '@/hooks/useLocationsQuery';
+import { useSitesQuery } from '@/apps/monitor/hooks/useSitesQuery';
 import { LocationProvider, useLocation as useLocationContext } from '@/contexts/LocationContext';
 import { IfCan } from '@/components/auth/IfCan';
 import { useRoleBasedData, DataFilterInfo } from '@/components/data/FilteredDataProvider';
@@ -53,6 +54,7 @@ function AssetsContent() {
   const { data: sectors = [] } = useSectors();
   const { data: subSections = [] } = useSubsections();
   const { data: companies = [] } = useCompanies();
+  const { data: sites = [] } = useSitesQuery();
   
   // Debug: log equipment data to check if location fields are present
   useEffect(() => {
@@ -266,19 +268,26 @@ function AssetsContent() {
       'SPLIT': 'FAN_COIL',
     };
 
+    // Obter o primeiro site disponível
+    const defaultSiteId = sites.length > 0 ? sites[0].id : null;
+    if (!defaultSiteId) {
+      console.error('Nenhum site disponível para criar o ativo');
+      return;
+    }
+
     try {
       await equipmentService.create({
         tag: newEquipment.tag,
         name: newEquipment.notes || newEquipment.tag, // Usa tag como nome se não tiver notas
-        site: 1, // TODO: Obter do contexto do site atual
+        site: defaultSiteId,
         assetType: typeMapping[newEquipment.type] || newEquipment.type,
         manufacturer: newEquipment.brand,
         model: newEquipment.model,
         serialNumber: newEquipment.serialNumber,
         patrimonio: newEquipment.patrimonio,
         criticidade: newEquipment.criticidade,
-        warrantyExpiry: newEquipment.warrantyExpiry,
-        installDate: newEquipment.installDate,
+        warrantyExpiry: newEquipment.warrantyExpiry || undefined,
+        installDate: newEquipment.installDate || undefined,
         sectorId: sectorId || undefined,
         subSectionId: subSectionId || undefined,
         location: newEquipment.location,
@@ -779,13 +788,15 @@ function AssetsContent() {
 
                 {/* Data de instalação */}
                 <div>
-                  <Label htmlFor="installDate" className="mb-2 block">Data de Instalação *</Label>
+                  <Label htmlFor="installDate" className="mb-2 block">
+                    Data de Instalação
+                    <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
+                  </Label>
                   <Input 
                     id="installDate"
                     type="date"
                     value={newEquipment.installDate}
                     onChange={(e) => setNewEquipment(prev => ({ ...prev, installDate: e.target.value }))}
-                    required
                     className="h-10"
                   />
                 </div>

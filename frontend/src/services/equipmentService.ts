@@ -443,8 +443,8 @@ export const equipmentService = {
     if (data.serialNumber) apiData.serial_number = data.serialNumber;
     if (data.patrimonio) apiData.patrimony_number = data.patrimonio;
     if (data.criticidade) apiData.criticality = data.criticidade;
-    if (data.warrantyExpiry) apiData.warranty_expiry = data.warrantyExpiry;
-    if (data.installDate) apiData.installation_date = data.installDate;
+    if (data.warrantyExpiry && data.warrantyExpiry.trim() !== '') apiData.warranty_expiry = data.warrantyExpiry;
+    if (data.installDate && data.installDate.trim() !== '') apiData.installation_date = data.installDate;
     if (data.location) apiData.location_description = data.location;
     
     // Localização
