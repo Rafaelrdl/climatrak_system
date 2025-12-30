@@ -24,7 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Play, Edit, ClipboardList, AlertTriangle, User, FileText, UserPlus, Eye, Trash2, Calendar } from 'lucide-react';
+import { Play, Edit, ClipboardList, AlertTriangle, User, FileText, UserPlus, Eye, Trash2, Calendar, Loader2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +43,8 @@ import { useSLAStore, calculateSLAStatus } from '@/store/useSLAStore';
 import { useUsers } from '@/data/usersStore';
 import { SLABadge } from '@/components/SLABadge';
 import { printWorkOrder } from '@/utils/printWorkOrder';
+import { workOrdersService } from '@/services/workOrdersService';
+import { toast } from 'sonner';
 import type { WorkOrder } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -79,16 +81,31 @@ export function WorkOrderList({
   // Estado para modal de confirmação de exclusão
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [workOrderToDelete, setWorkOrderToDelete] = useState<WorkOrder | null>(null);
+  
+  // Estado para loading de impressão
+  const [printingOrderId, setPrintingOrderId] = useState<number | null>(null);
 
   const currentUser = getCurrentUser();
 
-  const handlePrintWorkOrder = (workOrder: WorkOrder) => {
-    printWorkOrder({
-      workOrder,
-      equipment,
-      sectors,
-      companies
-    });
+  const handlePrintWorkOrder = async (workOrder: WorkOrder) => {
+    try {
+      setPrintingOrderId(workOrder.id);
+      
+      // Buscar dados completos da OS (inclui stockItems, photos, executionDescription)
+      const fullWorkOrder = await workOrdersService.getById(String(workOrder.id));
+      
+      printWorkOrder({
+        workOrder: fullWorkOrder,
+        equipment,
+        sectors,
+        companies
+      });
+    } catch (error) {
+      console.error('Erro ao imprimir OS:', error);
+      toast.error('Erro ao carregar dados para impressão');
+    } finally {
+      setPrintingOrderId(null);
+    }
   };
 
   // Handler para abrir modal de seleção de técnico
@@ -494,13 +511,18 @@ export function WorkOrderList({
                           variant="ghost" 
                           size="sm"
                           onClick={() => handlePrintWorkOrder(wo)}
+                          disabled={printingOrderId === wo.id}
                           aria-label={`Imprimir ordem de serviço ${wo.number}`}
                         >
-                          <FileText className="h-4 w-4" />
+                          {printingOrderId === wo.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileText className="h-4 w-4" />
+                          )}
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Imprimir OS</p>
+                        <p>{printingOrderId === wo.id ? 'Carregando...' : 'Imprimir OS'}</p>
                       </TooltipContent>
                     </Tooltip>
                     {onDeleteWorkOrder && (

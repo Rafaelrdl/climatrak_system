@@ -5,46 +5,97 @@ export interface PrintWorkOrderOptions {
   equipment?: any[];
   sectors?: any[];
   companies?: any[];
+  costs?: {
+    labor: number;
+    parts: number;
+    third_party: number;
+    adjustment: number;
+    total: number;
+  };
 }
 
 export function generateWorkOrderPrintContent({ 
   workOrder, 
   equipment = [], 
   sectors = [], 
-  companies = [] 
+  companies = [],
+  costs
 }: PrintWorkOrderOptions): string {
   // Buscar dados do equipamento
   const eq = equipment.find(e => e.id === workOrder.equipmentId);
   const sector = eq ? sectors.find(s => s.id === eq.sectorId) : null;
   const company = sector ? companies.find(c => c.id === sector.companyId) : null;
 
-  // Mapear status para português
-  const getStatusLabel = (status: string) => {
+  // Mapear status para português e cores
+  const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'OPEN': return 'Aberta';
-      case 'IN_PROGRESS': return 'Em Progresso';
-      case 'COMPLETED': return 'Concluída';
-      default: return status;
+      case 'OPEN': return { label: 'Aberta', bgColor: '#dbeafe', textColor: '#1d4ed8', borderColor: '#93c5fd' };
+      case 'IN_PROGRESS': return { label: 'Em Andamento', bgColor: '#fef3c7', textColor: '#d97706', borderColor: '#fcd34d' };
+      case 'COMPLETED': return { label: 'Concluída', bgColor: '#d1fae5', textColor: '#059669', borderColor: '#6ee7b7' };
+      default: return { label: status, bgColor: '#f3f4f6', textColor: '#6b7280', borderColor: '#d1d5db' };
     }
   };
 
-  const getTypeLabel = (type: string) => {
+  const getTypeConfig = (type: string) => {
     switch (type) {
-      case 'PREVENTIVE': return 'Preventiva';
-      case 'CORRECTIVE': return 'Corretiva';
-      case 'REQUEST': return 'Solicitação';
-      default: return type;
+      case 'PREVENTIVE': return { label: 'Preventiva', bgColor: '#dbeafe', textColor: '#1d4ed8', borderColor: '#93c5fd' };
+      case 'CORRECTIVE': return { label: 'Corretiva', bgColor: '#fef3c7', textColor: '#d97706', borderColor: '#fcd34d' };
+      case 'REQUEST': return { label: 'Solicitação', bgColor: '#f3e8ff', textColor: '#7c3aed', borderColor: '#c4b5fd' };
+      default: return { label: type, bgColor: '#f3f4f6', textColor: '#6b7280', borderColor: '#d1d5db' };
     }
   };
 
-  const getPriorityLabel = (priority: string) => {
+  const getPriorityConfig = (priority: string) => {
     switch (priority) {
-      case 'LOW': return 'Baixa';
-      case 'MEDIUM': return 'Média';
-      case 'HIGH': return 'Alta';
-      case 'CRITICAL': return 'Crítica';
-      default: return priority;
+      case 'LOW': return { label: 'Baixa', bgColor: '#f1f5f9', textColor: '#475569', borderColor: '#cbd5e1' };
+      case 'MEDIUM': return { label: 'Média', bgColor: '#dbeafe', textColor: '#1d4ed8', borderColor: '#93c5fd' };
+      case 'HIGH': return { label: 'Alta', bgColor: '#ffedd5', textColor: '#ea580c', borderColor: '#fdba74' };
+      case 'CRITICAL': return { label: 'Crítica', bgColor: '#fee2e2', textColor: '#dc2626', borderColor: '#fca5a5' };
+      default: return { label: priority, bgColor: '#f3f4f6', textColor: '#6b7280', borderColor: '#d1d5db' };
     }
+  };
+
+  const statusConfig = getStatusConfig(workOrder.status);
+  const typeConfig = getTypeConfig(workOrder.type);
+  const priorityConfig = getPriorityConfig(workOrder.priority);
+
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const formatDateTime = (dateString: string | undefined) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
+  const calculateExecutionTime = () => {
+    if (!workOrder.completedAt || !workOrder.scheduledDate) return null;
+    const days = Math.ceil(
+      (new Date(workOrder.completedAt).getTime() - new Date(workOrder.scheduledDate).getTime()) 
+      / (1000 * 60 * 60 * 24)
+    );
+    if (days === 0) return 'No mesmo dia';
+    if (days === 1) return '1 dia';
+    if (days < 0) return `${Math.abs(days)} dias antes`;
+    return `${days} dias`;
   };
 
   return `
@@ -63,317 +114,411 @@ export function generateWorkOrderPrintContent({
         }
         
         body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          font-size: 11pt;
-          line-height: 1.6;
-          color: #2d3748;
-          background-color: white;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          font-size: 10pt;
+          line-height: 1.5;
+          color: #1f2937;
+          background-color: #f0fdfa;
         }
         
-        /* Container principal */
+        /* Container principal - estilo modal */
         .page-container {
           max-width: 210mm;
           margin: 0 auto;
           background-color: white;
+          border-radius: 12px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+          overflow: hidden;
         }
         
-        /* Cabeçalho melhorado */
+        /* Cabeçalho estilo modal */
         .header-container {
-          background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
-          padding: 0;
-          margin-bottom: 30px;
+          background: linear-gradient(to bottom, #f8fafc, transparent);
+          padding: 24px;
+          border-bottom: 1px solid #e5e7eb;
         }
         
-        .header-content {
-          padding: 30px 35px;
+        .header-main {
           display: flex;
-          justify-content: space-between;
           align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
         }
         
         .header-left {
-          flex: 1;
-        }
-        
-        .logo-row {
           display: flex;
           align-items: center;
-          gap: 15px;
-          margin-bottom: 15px;
+          gap: 12px;
         }
         
-        .logo-circle {
-          width: 55px;
-          height: 55px;
-          background-color: white;
-          border-radius: 50%;
+        .status-icon-container {
+          width: 44px;
+          height: 44px;
+          border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-weight: 900;
-          font-size: 20px;
-          color: #0369a1;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          border: 1px solid;
         }
         
-        .company-info {
-          color: white;
+        .status-icon {
+          width: 24px;
+          height: 24px;
         }
         
-        .company-name {
-          font-size: 26px;
-          font-weight: 700;
-          letter-spacing: -0.5px;
-          margin-bottom: 2px;
-        }
-        
-        .company-tagline {
-          font-size: 13px;
-          opacity: 0.95;
-          letter-spacing: 0.3px;
-        }
-        
-        .header-right {
-          text-align: right;
-          color: white;
-        }
-        
-        .os-label {
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 1.5px;
-          opacity: 0.9;
-          margin-bottom: 5px;
+        .header-text {
+          display: flex;
+          flex-direction: column;
         }
         
         .os-number {
-          font-size: 34px;
-          font-weight: 800;
-          letter-spacing: -1px;
-          text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .header-meta {
-          background-color: rgba(255,255,255,0.15);
-          padding: 12px 35px;
-          border-top: 1px solid rgba(255,255,255,0.2);
-          color: white;
-          font-size: 12px;
-          display: flex;
-          justify-content: space-between;
-        }
-        
-        .meta-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        
-        .meta-label {
-          opacity: 0.9;
-        }
-        
-        .meta-value {
+          font-size: 18pt;
           font-weight: 600;
+          color: #111827;
+          margin-bottom: 2px;
+        }
+        
+        .os-created {
+          font-size: 9pt;
+          color: #6b7280;
+        }
+        
+        .badges-container {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        
+        .badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 4px 10px;
+          border-radius: 9999px;
+          font-size: 8pt;
+          font-weight: 500;
+          border: 1px solid;
         }
         
         /* Conteúdo principal */
         .content-container {
-          padding: 0 35px 35px;
+          padding: 16px 24px 24px;
         }
         
-        /* Seções aprimoradas */
-        .section {
-          margin-bottom: 35px;
+        /* Cards estilo modal */
+        .card {
+          background-color: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          margin-bottom: 16px;
           page-break-inside: avoid;
         }
         
-        .section-header {
-          background: linear-gradient(to right, #f7fafc, transparent);
-          border-left: 4px solid #0369a1;
-          padding: 10px 15px;
-          margin-bottom: 20px;
+        .card-content {
+          padding: 16px;
         }
         
-        .section-number {
-          display: inline-block;
-          background-color: #0369a1;
-          color: white;
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          text-align: center;
-          line-height: 24px;
-          font-size: 12px;
-          font-weight: 700;
-          margin-right: 10px;
+        .card-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 16px;
         }
         
-        .section-title {
-          display: inline;
-          font-size: 14pt;
-          font-weight: 600;
-          color: #1a202c;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
+        .card-header-icon {
+          width: 16px;
+          height: 16px;
+          color: #0ea5e9;
         }
         
-        /* Grid de informações aprimorado */
+        .card-title {
+          font-size: 10pt;
+          font-weight: 500;
+          color: #111827;
+        }
+        
+        .card-badge {
+          margin-left: auto;
+          background-color: #f3f4f6;
+          color: #6b7280;
+          padding: 2px 8px;
+          border-radius: 9999px;
+          font-size: 8pt;
+          font-weight: 500;
+        }
+        
+        /* Breadcrumb de localização */
+        .breadcrumb {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+          font-size: 9pt;
+          margin-bottom: 12px;
+        }
+        
+        .breadcrumb-item {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          color: #6b7280;
+        }
+        
+        .breadcrumb-item.active {
+          color: #111827;
+          font-weight: 500;
+        }
+        
+        .breadcrumb-separator {
+          color: #d1d5db;
+          font-size: 10pt;
+        }
+        
+        .breadcrumb-icon {
+          width: 14px;
+          height: 14px;
+        }
+        
+        /* Equipamento destacado */
+        .equipment-box {
+          background-color: #f9fafb;
+          border-radius: 8px;
+          padding: 12px;
+        }
+        
+        .equipment-tag {
+          font-size: 10pt;
+          font-weight: 500;
+          color: #111827;
+          margin-bottom: 2px;
+        }
+        
+        .equipment-details {
+          font-size: 8pt;
+          color: #6b7280;
+        }
+        
+        /* Grid de informações */
         .info-grid {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 18px 25px;
-          background-color: #fafbfc;
-          padding: 20px;
-          border-radius: 8px;
-          margin-bottom: 25px;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
         }
         
         .info-item {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 4px;
         }
         
         .info-label {
-          font-size: 10pt;
-          font-weight: 700;
-          text-transform: uppercase;
-          color: #4a5568;
-          letter-spacing: 0.5px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 8pt;
+          color: #6b7280;
+        }
+        
+        .info-label-icon {
+          width: 12px;
+          height: 12px;
         }
         
         .info-value {
-          font-size: 11pt;
-          font-weight: 400;
-          color: #1a202c;
-          line-height: 1.5;
+          font-size: 10pt;
+          font-weight: 500;
+          color: #111827;
         }
         
-        /* Caixas de texto aprimoradas */
-        .text-box {
-          background-color: #ffffff;
-          border: 1px solid #cbd5e0;
-          border-radius: 6px;
-          padding: 15px;
-          min-height: 80px;
-          margin-top: 10px;
-          white-space: pre-wrap;
-          word-wrap: break-word;
+        /* Descrição */
+        .description-section {
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid #e5e7eb;
+        }
+        
+        .description-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 8pt;
+          color: #6b7280;
+          margin-bottom: 8px;
+        }
+        
+        .description-text {
+          font-size: 10pt;
+          color: #374151;
           line-height: 1.6;
-          color: #2d3748;
+          white-space: pre-wrap;
         }
         
-
-        
-        /* Tabelas modernas */
-        .data-table {
-          width: 100%;
-          border-collapse: separate;
-          border-spacing: 0;
-          margin-top: 15px;
-          border: 1px solid #e2e8f0;
+        /* Materiais */
+        .material-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 12px;
+          background-color: #f9fafb;
           border-radius: 8px;
-          overflow: hidden;
+          margin-bottom: 8px;
         }
         
-        .data-table th,
-        .data-table td {
-          padding: 12px 15px;
-          text-align: left;
-          border-bottom: 1px solid #e2e8f0;
+        .material-item:last-child {
+          margin-bottom: 0;
         }
         
-        .data-table th {
-          background-color: #f7fafc;
-          font-weight: 700;
-          text-transform: uppercase;
-          font-size: 10pt;
-          color: #4a5568;
-          letter-spacing: 0.5px;
+        .material-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
         }
         
-        .data-table td {
-          font-size: 10pt;
-          color: #2d3748;
-        }
-        
-        .data-table tbody tr:hover {
-          background-color: #f7fafc;
-        }
-        
-        .data-table tbody tr:last-child td {
-          border-bottom: none;
-        }
-        
-        .data-table .task-number {
-          width: 50px;
-          text-align: center;
-          font-weight: 600;
-          color: #0369a1;
-        }
-        
-        .data-table .task-status {
-          width: 100px;
-          text-align: center;
-          font-weight: 600;
-        }
-        
-        .status-complete {
-          color: #059669;
-        }
-        
-        .status-pending {
-          color: #d97706;
-        }
-        
-        /* Galeria de fotos moderna */
-        .photos-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 20px;
-          margin-top: 20px;
-        }
-        
-        .photo-card {
-          background-color: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          padding: 10px;
-          text-align: center;
-          page-break-inside: avoid;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        
-        .photo-card img {
-          max-width: 100%;
-          max-height: 150px;
-          width: auto;
-          height: auto;
-          object-fit: contain;
-          display: block;
-          margin: 0 auto;
+        .material-icon-box {
+          padding: 6px;
+          background-color: white;
+          border: 1px solid #e5e7eb;
           border-radius: 4px;
         }
         
-        .photo-caption {
-          margin-top: 8px;
-          font-size: 9pt;
-          color: #718096;
+        .material-icon {
+          width: 14px;
+          height: 14px;
+          color: #6b7280;
+        }
+        
+        .material-name {
+          font-size: 10pt;
           font-weight: 500;
+          color: #111827;
         }
         
-        /* Assinaturas modernas */
-        .signatures-section {
-          margin-top: 60px;
-          page-break-inside: avoid;
+        .material-quantity {
+          font-size: 10pt;
         }
         
-        .signature-grid {
+        .material-quantity-value {
+          font-weight: 600;
+          color: #059669;
+        }
+        
+        .material-quantity-unit {
+          color: #6b7280;
+          margin-left: 4px;
+        }
+        
+        /* Fotos */
+        .photos-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 8px;
+        }
+        
+        .photo-item {
+          aspect-ratio: 1;
+          border-radius: 8px;
+          overflow: hidden;
+          border: 2px solid #e5e7eb;
+          background-color: #f3f4f6;
+        }
+        
+        .photo-item img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        
+        /* Custos */
+        .costs-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        
+        .cost-item {
+          padding: 12px;
+          background-color: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+        }
+        
+        .cost-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 8pt;
+          color: #6b7280;
+          margin-bottom: 6px;
+        }
+        
+        .cost-icon {
+          width: 12px;
+          height: 12px;
+        }
+        
+        .cost-value {
+          font-size: 10pt;
+          font-weight: 600;
+          color: #111827;
+        }
+        
+        .cost-total {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px;
+          background-color: rgba(14, 165, 233, 0.05);
+          border: 1px solid rgba(14, 165, 233, 0.2);
+          border-radius: 8px;
+        }
+        
+        .cost-total-label {
+          font-size: 10pt;
+          font-weight: 500;
+          color: #111827;
+        }
+        
+        .cost-total-value {
+          font-size: 14pt;
+          font-weight: 700;
+          color: #0ea5e9;
+        }
+        
+        /* Rodapé */
+        .footer-container {
+          margin-top: 24px;
+          padding: 16px 24px;
+          background-color: #f9fafb;
+          border-top: 1px solid #e5e7eb;
+          text-align: center;
+        }
+        
+        .footer-brand {
+          font-size: 9pt;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 4px;
+        }
+        
+        .footer-text {
+          font-size: 8pt;
+          color: #6b7280;
+          line-height: 1.5;
+        }
+        
+        .footer-date {
+          font-size: 8pt;
+          color: #9ca3af;
+          margin-top: 8px;
+        }
+        
+        /* Assinaturas */
+        .signatures-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 60px;
-          margin-top: 40px;
+          gap: 48px;
+          margin-top: 24px;
+          padding-top: 24px;
         }
         
         .signature-block {
@@ -381,62 +526,33 @@ export function generateWorkOrderPrintContent({
         }
         
         .signature-line {
-          border-bottom: 2px solid #2d3748;
-          margin-bottom: 10px;
-          height: 50px;
+          border-bottom: 2px solid #1f2937;
+          margin-bottom: 8px;
+          height: 40px;
         }
         
         .signature-name {
-          font-size: 11pt;
-          font-weight: 700;
+          font-size: 10pt;
+          font-weight: 600;
           text-transform: uppercase;
-          color: #1a202c;
-          margin-bottom: 4px;
+          color: #111827;
+          margin-bottom: 2px;
         }
         
         .signature-title {
-          font-size: 9pt;
-          color: #718096;
-          font-weight: 500;
-        }
-        
-        .signature-cpf {
-          font-size: 9pt;
-          color: #4a5568;
-          margin-top: 4px;
-        }
-        
-        /* Rodapé corporativo */
-        .footer-container {
-          margin-top: 50px;
-          padding: 25px 35px;
-          background-color: #f7fafc;
-          border-top: 3px solid #0369a1;
-          text-align: center;
-        }
-        
-        .footer-legal {
-          font-size: 9pt;
-          color: #4a5568;
-          font-style: italic;
-          line-height: 1.5;
-          margin-bottom: 8px;
-        }
-        
-        .footer-date {
           font-size: 8pt;
-          color: #718096;
-          margin-top: 10px;
+          color: #6b7280;
         }
         
         /* Otimizações para impressão */
         @media print {
           @page {
             size: A4;
-            margin: 12mm;
+            margin: 10mm;
           }
           
           body {
+            background-color: white;
             padding: 0;
             margin: 0;
           }
@@ -445,46 +561,30 @@ export function generateWorkOrderPrintContent({
             margin: 0;
             max-width: 100%;
             box-shadow: none;
+            border-radius: 0;
           }
           
-          .header-container,
-          .section-header,
-          .section-number,
-          .info-grid {
+          .card,
+          .equipment-box,
+          .material-item,
+          .cost-item,
+          .cost-total,
+          .badge,
+          .status-icon-container {
             -webkit-print-color-adjust: exact !important;
             color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
           
-          .section,
-          .photo-card,
-          .signature-block {
+          .card {
             page-break-inside: avoid;
           }
           
           .photos-grid {
-            page-break-before: avoid;
-          }
-          
-          .photos-grid {
             page-break-inside: avoid;
           }
           
-          .photo-container {
-            page-break-inside: avoid;
-          }
-          
-          .signatures-section {
-            page-break-inside: avoid;
-          }
-          
-          .checklist-table,
-          .materials-table {
-            page-break-inside: auto;
-          }
-          
-          .checklist-table tr,
-          .materials-table tr {
+          .signatures-grid {
             page-break-inside: avoid;
           }
         }
@@ -492,263 +592,338 @@ export function generateWorkOrderPrintContent({
     </head>
     <body>
       <div class="page-container">
-        <!-- Cabeçalho Moderno -->
+        <!-- Cabeçalho estilo modal -->
         <div class="header-container">
-          <div class="header-content">
-            <div class="logo-circle">TN</div>
-            <div class="header-text">
-              <div class="company-name">TrakNor CMMS</div>
-              <div class="document-type">ORDEM DE SERVIÇO</div>
+          <div class="header-main">
+            <div class="header-left">
+              <div class="status-icon-container" style="background-color: ${statusConfig.bgColor}; border-color: ${statusConfig.borderColor};">
+                <svg class="status-icon" style="color: ${statusConfig.textColor};" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  ${workOrder.status === 'COMPLETED' 
+                    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />'
+                    : workOrder.status === 'IN_PROGRESS'
+                    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />'
+                    : '<circle cx="12" cy="12" r="10" stroke-width="2" />'
+                  }
+                </svg>
+              </div>
+              <div class="header-text">
+                <div class="os-number">OS #${workOrder.number}</div>
+                <div class="os-created">Criada em ${formatDateTime(workOrder.createdAt)}</div>
+              </div>
             </div>
-            <div class="os-number">#${workOrder.number}</div>
-          </div>
-          <div class="header-meta">
-            <span class="meta-item">Emitido em: ${new Date().toLocaleDateString('pt-BR', { 
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric'
-            })}</span>
-            <span class="meta-separator">•</span>
-            <span class="meta-item">${new Date().toLocaleTimeString('pt-BR', { 
-              hour: '2-digit',
-              minute: '2-digit'
-            })}</span>
+            
+            <div class="badges-container">
+              <span class="badge" style="background-color: ${statusConfig.bgColor}; color: ${statusConfig.textColor}; border-color: ${statusConfig.borderColor};">
+                ${statusConfig.label}
+              </span>
+              <span class="badge" style="background-color: ${typeConfig.bgColor}; color: ${typeConfig.textColor}; border-color: ${typeConfig.borderColor};">
+                ${typeConfig.label}
+              </span>
+              <span class="badge" style="background-color: ${priorityConfig.bgColor}; color: ${priorityConfig.textColor}; border-color: ${priorityConfig.borderColor};">
+                ${priorityConfig.label}
+              </span>
+            </div>
           </div>
         </div>
         
         <div class="content-container">
-          <!-- Seção 1: Informações Gerais -->
-          <div class="section">
-            <div class="section-header">
-              <span class="section-number">1</span>
-              <h2 class="section-title">Informações Gerais</h2>
-            </div>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Tipo de Serviço</span>
-                <span class="info-value">${getTypeLabel(workOrder.type)}</span>
+          <!-- Card: Localização e Equipamento -->
+          <div class="card">
+            <div class="card-content">
+              <div class="card-header">
+                <svg class="card-header-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span class="card-title">Localização e Equipamento</span>
               </div>
-              <div class="info-item">
-                <span class="info-label">Status</span>
-                <span class="info-value">${getStatusLabel(workOrder.status)}</span>
+              
+              <!-- Breadcrumb -->
+              <div class="breadcrumb">
+                <span class="breadcrumb-item">
+                  <svg class="breadcrumb-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  ${company?.name || '-'}
+                </span>
+                <span class="breadcrumb-separator">›</span>
+                <span class="breadcrumb-item">
+                  <svg class="breadcrumb-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  ${sector?.name || '-'}
+                </span>
+                <span class="breadcrumb-separator">›</span>
+                <span class="breadcrumb-item active">
+                  <svg class="breadcrumb-icon" style="color: #0ea5e9;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  ${eq?.tag || '-'}
+                </span>
               </div>
-              <div class="info-item">
-                <span class="info-label">Prioridade</span>
-                <span class="info-value">${getPriorityLabel(workOrder.priority)}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Data Programada</span>
-                <span class="info-value">${new Date(workOrder.scheduledDate).toLocaleDateString('pt-BR')}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Técnico Responsável</span>
-                <span class="info-value">${workOrder.assignedToName || workOrder.assignedTo || 'Não atribuído'}</span>
-              </div>
-              ${workOrder.completedAt ? `
-              <div class="info-item">
-                <span class="info-label">Data de Conclusão</span>
-                <span class="info-value">${new Date(workOrder.completedAt).toLocaleDateString('pt-BR')}</span>
+              
+              ${eq ? `
+              <div class="equipment-box">
+                <div class="equipment-tag">${eq.tag}</div>
+                <div class="equipment-details">${eq.model || ''}${eq.brand ? ` • ${eq.brand}` : ''}${eq.manufacturer ? ` • ${eq.manufacturer}` : ''}</div>
               </div>
               ` : ''}
             </div>
           </div>
-        </div>
           
-          <!-- Seção 2: Equipamento e Localização -->
-          <div class="section">
-            <div class="section-header">
-              <span class="section-number">2</span>
-              <h2 class="section-title">Equipamento e Localização</h2>
-            </div>
-            ${eq ? `
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Tag do Equipamento</span>
-                <span class="info-value">${eq.tag}</span>
+          <!-- Card: Informações Gerais -->
+          <div class="card">
+            <div class="card-content">
+              <div class="card-header">
+                <svg class="card-header-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                <span class="card-title">Informações Gerais</span>
               </div>
-              <div class="info-item">
-                <span class="info-label">Tipo</span>
-                <span class="info-value">${eq.type}</span>
+              
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="info-label">
+                    <svg class="info-label-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Data Agendada
+                  </div>
+                  <div class="info-value">${formatDate(workOrder.scheduledDate)}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">
+                    <svg class="info-label-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Técnico Responsável
+                  </div>
+                  <div class="info-value">${workOrder.assignedToName || 'Não atribuído'}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">
+                    <svg class="info-label-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Criada em
+                  </div>
+                  <div class="info-value">${formatDateTime(workOrder.createdAt)}</div>
+                </div>
               </div>
-              <div class="info-item">
-                <span class="info-label">Marca</span>
-                <span class="info-value">${eq.brand}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Modelo</span>
-                <span class="info-value">${eq.model}</span>
-              </div>
-              ${eq.capacity ? `
-              <div class="info-item">
-                <span class="info-label">Capacidade</span>
-                <span class="info-value">${eq.capacity.toLocaleString('pt-BR')} BTUs</span>
+              
+              ${workOrder.description ? `
+              <div class="description-section">
+                <div class="description-label">
+                  <svg class="info-label-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Descrição
+                </div>
+                <div class="description-text">${workOrder.description}</div>
               </div>
               ` : ''}
-              ${company ? `
-              <div class="info-item">
-                <span class="info-label">Empresa</span>
-                <span class="info-value">${company.name}</span>
-              </div>
-              ` : ''}
-              ${sector ? `
-              <div class="info-item">
-                <span class="info-label">Setor</span>
-                <span class="info-value">${sector.name}</span>
-              </div>
-              ` : ''}
             </div>
-            ` : `
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Equipamento</span>
-                <span class="info-value">Não especificado</span>
-              </div>
-            </div>
-            `}
           </div>
           
-          <!-- Seção 3: Descrição do Serviço -->
-          <div class="section">
-            <div class="section-header">
-              <span class="section-number">3</span>
-              <h2 class="section-title">Descrição do Serviço</h2>
+          <!-- Card: Execução (se houver dados) -->
+          ${(workOrder.startedAt || workOrder.completedAt || workOrder.executionDescription) ? `
+          <div class="card">
+            <div class="card-content">
+              <div class="card-header">
+                <svg class="card-header-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="card-title">Execução</span>
+              </div>
+              
+              <div class="info-grid">
+                ${workOrder.completedAt ? `
+                <div class="info-item">
+                  <div class="info-label">
+                    <svg class="info-label-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Concluída em
+                  </div>
+                  <div class="info-value">${formatDateTime(workOrder.completedAt)}</div>
+                </div>
+                ` : ''}
+                ${calculateExecutionTime() ? `
+                <div class="info-item">
+                  <div class="info-label">
+                    <svg class="info-label-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Tempo Total
+                  </div>
+                  <div class="info-value">${calculateExecutionTime()}</div>
+                </div>
+                ` : ''}
+              </div>
+              
+              ${workOrder.executionDescription ? `
+              <div class="description-section">
+                <div class="description-label">
+                  <svg class="info-label-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Descrição da Execução
+                </div>
+                <div class="description-text">${workOrder.executionDescription}</div>
+              </div>
+              ` : ''}
             </div>
-            <div class="text-box">${workOrder.description || 'Não informado'}</div>
           </div>
+          ` : ''}
           
-          <!-- Seção 4: Checklist (Apenas para Preventivas) -->
-          ${workOrder.type === 'PREVENTIVE' && workOrder.checklistResponses && workOrder.checklistResponses.length > 0 ? `
-          <div class="section">
-            <div class="section-header">
-              <span class="section-number">4</span>
-              <h2 class="section-title">Checklist de Manutenção Preventiva</h2>
-            </div>
-            <table class="data-table">
-            <thead>
-              <tr>
-                <th class="task-number">Nº</th>
-                <th>Tarefa</th>
-                <th class="task-status">Status</th>
-                <th>Observações</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${workOrder.checklistResponses.map((item, index) => `
-              <tr>
-                <td class="task-number">${index + 1}</td>
-                <td>${item.taskName}</td>
-                <td class="task-status ${item.completed ? 'status-complete' : 'status-pending'}">
-                  ${item.completed ? 'CONCLUÍDO' : 'PENDENTE'}
-                </td>
-                <td>${item.observations || '-'}</td>
-              </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-        ` : ''}
-          
-          <!-- Seção 5: Materiais Utilizados -->
+          <!-- Card: Materiais Utilizados -->
           ${workOrder.stockItems && workOrder.stockItems.length > 0 ? `
-          <div class="section">
-            <div class="section-header">
-              <span class="section-number">${workOrder.type === 'PREVENTIVE' && workOrder.checklistResponses?.length ? '5' : '4'}</span>
-              <h2 class="section-title">Materiais Utilizados</h2>
+          <div class="card">
+            <div class="card-content">
+              <div class="card-header">
+                <svg class="card-header-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span class="card-title">Materiais Utilizados</span>
+                <span class="card-badge">${workOrder.stockItems.length} ${workOrder.stockItems.length === 1 ? 'item' : 'itens'}</span>
+              </div>
+              
+              <div>
+                ${workOrder.stockItems.map(item => `
+                <div class="material-item">
+                  <div class="material-left">
+                    <div class="material-icon-box">
+                      <svg class="material-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                    </div>
+                    <span class="material-name">${item.itemName || item.stockItem?.description || `Item ${item.stockItemId}`}</span>
+                  </div>
+                  <div class="material-quantity">
+                    <span class="material-quantity-value">${item.quantity}</span>
+                    <span class="material-quantity-unit">${item.unit || item.stockItem?.unit || 'UN'}</span>
+                  </div>
+                </div>
+                `).join('')}
+              </div>
             </div>
-            <table class="data-table">
-            <thead>
-              <tr>
-                <th>Descrição do Item</th>
-                <th>Quantidade</th>
-                <th>Unidade</th>
-                <th>Código SKU</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${workOrder.stockItems.map(item => `
-              <tr>
-                <td>${item.stockItem?.description || `Item ${item.stockItemId}`}</td>
-                <td>${item.quantity}</td>
-                <td>${item.stockItem?.unit || 'UN'}</td>
-                <td>${item.stockItemId || '-'}</td>
-              </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-        ` : ''}
-          
-          <!-- Seção 6: Detalhes da Execução -->
-          <div class="section">
-            <div class="section-header">
-              <span class="section-number">${
-                workOrder.type === 'PREVENTIVE' && workOrder.checklistResponses?.length ? 
-                  (workOrder.stockItems?.length ? '6' : '5') : 
-                  (workOrder.stockItems?.length ? '5' : '4')
-              }</span>
-              <h2 class="section-title">Detalhes da Execução</h2>
-            </div>
-            <div class="text-box">${workOrder.executionDescription || ' '}</div>
           </div>
+          ` : ''}
           
-          <!-- Seção 7: Evidências Fotográficas -->
+          <!-- Card: Fotos da Execução -->
           ${workOrder.photos && workOrder.photos.length > 0 ? `
-          <div class="section">
-            <div class="section-header">
-              <span class="section-number">${
-                workOrder.type === 'PREVENTIVE' && workOrder.checklistResponses?.length ? 
-                  (workOrder.stockItems?.length ? '7' : '6') : 
-                  (workOrder.stockItems?.length ? '6' : '5')
-              }</span>
-              <h2 class="section-title">Evidências Fotográficas</h2>
-            </div>
-            <div class="photos-grid">
-              ${workOrder.photos.map((photo, index) => `
-              <div class="photo-card">
-                <img src="${photo.url}" alt="Evidência ${index + 1}" onerror="this.style.display='none'"/>
-                <div class="photo-caption">Evidência ${index + 1}${photo.name ? `: ${photo.name}` : ''}</div>
+          <div class="card">
+            <div class="card-content">
+              <div class="card-header">
+                <svg class="card-header-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span class="card-title">Fotos da Execução</span>
+                <span class="card-badge">${workOrder.photos.length} ${workOrder.photos.length === 1 ? 'foto' : 'fotos'}</span>
               </div>
-            `).join('')}
+              
+              <div class="photos-grid">
+                ${workOrder.photos.map(photo => `
+                <div class="photo-item">
+                  <img src="${photo.url}" alt="${photo.name || 'Foto'}" onerror="this.parentElement.style.display='none'" />
+                </div>
+                `).join('')}
+              </div>
+            </div>
           </div>
-        </div>
-        ` : ''}
+          ` : ''}
           
-          <!-- Seção de Assinaturas -->
-          <div class="section signatures-section">
-            <div class="section-header">
-              <span class="section-number">${
-                workOrder.type === 'PREVENTIVE' && workOrder.checklistResponses?.length ? 
-                  (workOrder.stockItems?.length ? (workOrder.photos?.length ? '8' : '7') : (workOrder.photos?.length ? '7' : '6')) : 
-                  (workOrder.stockItems?.length ? (workOrder.photos?.length ? '7' : '6') : (workOrder.photos?.length ? '6' : '5'))
-              }</span>
-              <h2 class="section-title">Assinaturas e Aprovações</h2>
-            </div>
-            <div class="signature-grid">
-              <div class="signature-block">
-                <div class="signature-line"></div>
-                <div class="signature-name">Técnico Responsável</div>
-                ${(workOrder.assignedToName || workOrder.assignedTo) ? `<div class="signature-title">${workOrder.assignedToName || workOrder.assignedTo}</div>` : ''}
-                <div class="signature-cpf">CPF: ___ . ___ . ___ - __</div>
+          <!-- Card: Custos -->
+          ${costs ? `
+          <div class="card">
+            <div class="card-content">
+              <div class="card-header">
+                <svg class="card-header-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="card-title">Custos</span>
               </div>
-              <div class="signature-block">
-                <div class="signature-line"></div>
-                <div class="signature-name">Cliente/Responsável</div>
-                <div class="signature-title">Nome Completo</div>
-                <div class="signature-cpf">CPF: ___ . ___ . ___ - __</div>
+              
+              <div class="costs-grid">
+                <div class="cost-item">
+                  <div class="cost-label">
+                    <svg class="cost-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Mão de Obra
+                  </div>
+                  <div class="cost-value">${formatCurrency(costs.labor)}</div>
+                </div>
+                <div class="cost-item">
+                  <div class="cost-label">
+                    <svg class="cost-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    Peças
+                  </div>
+                  <div class="cost-value">${formatCurrency(costs.parts)}</div>
+                </div>
+                <div class="cost-item">
+                  <div class="cost-label">
+                    <svg class="cost-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    Terceiros
+                  </div>
+                  <div class="cost-value">${formatCurrency(costs.third_party)}</div>
+                </div>
+                <div class="cost-item">
+                  <div class="cost-label">
+                    <svg class="cost-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Ajustes
+                  </div>
+                  <div class="cost-value">${formatCurrency(costs.adjustment)}</div>
+                </div>
+              </div>
+              
+              <div class="cost-total">
+                <span class="cost-total-label">Total Geral</span>
+                <span class="cost-total-value">${formatCurrency(costs.total)}</span>
+              </div>
+            </div>
+          </div>
+          ` : ''}
+          
+          <!-- Assinaturas -->
+          <div class="card">
+            <div class="card-content">
+              <div class="card-header">
+                <svg class="card-header-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                <span class="card-title">Assinaturas</span>
+              </div>
+              
+              <div class="signatures-grid">
+                <div class="signature-block">
+                  <div class="signature-line"></div>
+                  <div class="signature-name">Técnico Responsável</div>
+                  ${workOrder.assignedToName ? `<div class="signature-title">${workOrder.assignedToName}</div>` : ''}
+                </div>
+                <div class="signature-block">
+                  <div class="signature-line"></div>
+                  <div class="signature-name">Cliente/Responsável</div>
+                  <div class="signature-title">Nome Completo</div>
+                </div>
               </div>
             </div>
           </div>
         </div>
         
-        <!-- Rodapé Corporativo -->
+        <!-- Rodapé -->
         <div class="footer-container">
-          <div class="footer-legal">
-            <strong>Documento gerado eletronicamente por TrakNor CMMS</strong>
-          </div>
-          <div class="footer-legal">
-            Este documento é parte integrante do sistema de gestão de manutenção e deve ser 
-            arquivado conforme os procedimentos da empresa. A assinatura acima confirma a 
-            execução dos serviços descritos nesta ordem.
+          <div class="footer-brand">TrakNor CMMS</div>
+          <div class="footer-text">
+            Documento gerado eletronicamente. Este documento é parte integrante do sistema de gestão de manutenção.
           </div>
           <div class="footer-date">
             Emitido em: ${new Date().toLocaleString('pt-BR', { 
@@ -766,177 +941,8 @@ export function generateWorkOrderPrintContent({
   `;
 }
 
-// Função auxiliar para extrair apenas os estilos CSS do documento
-function getBaseStyles(): string {
-  return `
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-      font-size: 14px;
-      line-height: 1.5;
-      color: #374151;
-      background-color: #f8fafc;
-    }
-    
-    .document-container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: white;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      border-radius: 8px;
-    }
-    
-    .header {
-      display: flex;
-      align-items: center;
-      border-bottom: 2px solid #e5e7eb;
-      padding-bottom: 20px;
-      margin-bottom: 30px;
-    }
-    
-    .logo-section {
-      flex: 1;
-    }
-    
-    .company-name {
-      font-size: 24px;
-      font-weight: bold;
-      color: #1f2937;
-      margin-bottom: 4px;
-    }
-    
-    .document-title {
-      font-size: 18px;
-      color: #6b7280;
-    }
-    
-    .wo-number {
-      text-align: right;
-      font-size: 28px;
-      font-weight: bold;
-      color: #059669;
-    }
-    
-    .section {
-      margin-bottom: 30px;
-    }
-    
-    .section-title {
-      font-size: 18px;
-      font-weight: bold;
-      color: #1f2937;
-      margin-bottom: 15px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    
-    .info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin-bottom: 20px;
-    }
-    
-    .info-item {
-      margin-bottom: 12px;
-    }
-    
-    .info-label {
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 4px;
-    }
-    
-    .info-value {
-      color: #000000;
-    }
-    
-    .description-box, .execution-box {
-      background-color: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 16px;
-      min-height: 80px;
-      white-space: pre-wrap;
-    }
-    
-
-    
-    .materials-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-    }
-    
-    .materials-table th,
-    .materials-table td {
-      padding: 12px;
-      text-align: left;
-      border: 1px solid #e5e7eb;
-    }
-    
-    .materials-table th {
-      background-color: #f3f4f6;
-      font-weight: 600;
-      color: #374151;
-    }
-    
-    .materials-table tbody tr:nth-child(even) {
-      background-color: #f9fafb;
-    }
-    
-    .signatures {
-      margin-top: 60px;
-      padding-top: 30px;
-      border-top: 1px solid #e5e7eb;
-    }
-    
-    .signature-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 60px;
-      margin-top: 40px;
-    }
-    
-    .signature-field {
-      text-align: center;
-    }
-    
-    .signature-line {
-      border-bottom: 1px solid #374151;
-      height: 1px;
-      margin-bottom: 60px;
-    }
-    
-    .signature-label {
-      font-weight: 600;
-      color: #374151;
-    }
-    
-    .footer {
-      margin-top: 40px;
-      text-align: center;
-      font-size: 12px;
-      color: #9ca3af;
-      border-top: 1px solid #e5e7eb;
-      padding-top: 20px;
-    }
-  `;
-}
-
 export function printWorkOrder(options: PrintWorkOrderOptions): void {
-  const baseStyles = getBaseStyles();
   const documentHTML = generateWorkOrderPrintContent(options);
-  
-  // Extrair apenas o conteúdo do body do documento original
-  const bodyMatch = documentHTML.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-  const documentBody = bodyMatch ? bodyMatch[1] : documentHTML;
   
   // Criar uma nova guia com interface melhorada
   const printWindow = window.open('', '_blank');
@@ -955,9 +961,19 @@ export function printWorkOrder(options: PrintWorkOrderOptions): void {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Ordem de Serviço ${options.workOrder.number} - TrakNor CMMS</title>
       <style>
-        ${baseStyles}
+        /* Reset */
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
         
-        /* Estilos para a barra de ferramentas */
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          background-color: #f0fdfa;
+        }
+        
+        /* Barra de ferramentas */
         .toolbar {
           position: fixed;
           top: 0;
@@ -1093,14 +1109,8 @@ export function printWorkOrder(options: PrintWorkOrderOptions): void {
             background-color: white !important;
           }
           
-          .document-container {
-            box-shadow: none !important;
-            border-radius: 0 !important;
-            padding: 0 !important;
-          }
-          
           @page {
-            margin: 15mm;
+            margin: 10mm;
             size: A4;
           }
         }
@@ -1146,40 +1156,28 @@ export function printWorkOrder(options: PrintWorkOrderOptions): void {
       
       <!-- Conteúdo do documento -->
       <div class="content-wrapper" id="document-content">
-        <div class="document-container">
-          ${documentBody}
-        </div>
+        ${documentHTML}
       </div>
       
       <script>
         let currentZoom = 1.0;
         
-        // Função para controlar o zoom do documento
         function changeZoom(delta) {
           const content = document.getElementById('document-content');
           const zoomDisplay = document.getElementById('zoom-display');
           
-          // Calcular novo zoom
           currentZoom += (delta / 100);
-          currentZoom = Math.max(0.5, Math.min(2.0, currentZoom)); // Limitar entre 50% e 200%
+          currentZoom = Math.max(0.5, Math.min(2.0, currentZoom));
           
-          // Aplicar novo zoom
           content.style.transform = \`scale(\${currentZoom})\`;
-          
-          // Atualizar texto de zoom
           zoomDisplay.textContent = \`\${Math.round(currentZoom * 100)}%\`;
         }
         
-        // Função para download como PDF
         function downloadPDF() {
-          // Configurar título do arquivo
           document.title = 'OS_${options.workOrder.number}_' + new Date().toISOString().split('T')[0];
-          
-          // Abrir diálogo de impressão (usuário pode escolher "Salvar como PDF")
           window.print();
         }
         
-        // Atalhos de teclado
         document.addEventListener('keydown', function(e) {
           if (e.ctrlKey || e.metaKey) {
             switch(e.key) {
@@ -1205,17 +1203,12 @@ export function printWorkOrder(options: PrintWorkOrderOptions): void {
             }
           }
         });
-        
-        // Keyboard shortcuts are available but console messages removed
       </script>
     </body>
     </html>
   `;
   
-  // Escrever o conteúdo na nova guia
   printWindow.document.write(enhancedContent);
   printWindow.document.close();
-  
-  // Focar na nova janela
   printWindow.focus();
 }

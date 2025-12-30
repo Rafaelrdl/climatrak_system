@@ -29,7 +29,8 @@ import {
   DollarSign,
   Truck,
   ExternalLink,
-  AlertCircle
+  AlertCircle,
+  Printer
 } from 'lucide-react';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useSectors, useCompanies } from '@/hooks/useLocationsQuery';
@@ -38,6 +39,7 @@ import { useWorkOrder } from '@/hooks/useWorkOrdersQuery';
 import { useWorkOrderCosts } from '@/hooks/finance/useWorkOrderCosts';
 import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
 import { workOrdersService } from '@/services/workOrdersService';
+import { printWorkOrder } from '@/utils/printWorkOrder';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { WorkOrder } from '@/types';
@@ -115,6 +117,25 @@ export function WorkOrderViewModal({
       style: 'currency',
       currency: 'BRL'
     }).format(value);
+  };
+
+  // Função para imprimir a ordem de serviço
+  const handlePrintWorkOrder = () => {
+    if (!currentWorkOrder) return;
+    
+    printWorkOrder({
+      workOrder: currentWorkOrder,
+      equipment,
+      sectors,
+      companies,
+      costs: hasCosts ? {
+        labor: costsSummary.labor,
+        parts: costsSummary.parts,
+        third_party: costsSummary.third_party,
+        adjustment: costsSummary.adjustment,
+        total: costsSummary.total
+      } : undefined
+    });
   };
 
   if (!currentWorkOrder) {
@@ -657,7 +678,15 @@ export function WorkOrderViewModal({
           )}
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t bg-muted/30 flex justify-end">
+          <div className="px-6 py-4 border-t bg-muted/30 flex justify-between">
+            <Button 
+              variant="outline" 
+              onClick={handlePrintWorkOrder}
+              className="gap-2"
+            >
+              <Printer className="h-4 w-4" />
+              Imprimir
+            </Button>
             <Button variant="outline" onClick={onClose}>
               Fechar
             </Button>
