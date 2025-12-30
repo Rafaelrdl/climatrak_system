@@ -128,6 +128,7 @@ export function WorkOrderViewModal({
       equipment,
       sectors,
       companies,
+      settings,
       costs: hasCosts ? {
         labor: costsSummary.labor,
         parts: costsSummary.parts,

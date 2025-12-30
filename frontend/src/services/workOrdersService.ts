@@ -184,19 +184,29 @@ const mapToApi = (data: Partial<WorkOrder>): Record<string, unknown> => {
   
   if (data.equipmentId) payload.asset = Number(data.equipmentId);
   if (data.type) payload.type = data.type;
-  if (data.status) payload.status = data.status;
+  if ('status' in data) payload.status = data.status;
   if (data.priority) payload.priority = data.priority;
   if (data.description) payload.description = data.description;
-  if (data.scheduledDate) payload.scheduled_date = formatDateForApi(data.scheduledDate);
-  if (data.assignedTo) payload.assigned_to = Number(data.assignedTo);
-  if (data.executionDescription !== undefined) payload.execution_description = data.executionDescription;
+  if ('scheduledDate' in data) {
+    // Se for undefined, envia null para limpar o campo
+    payload.scheduled_date = data.scheduledDate ? formatDateForApi(data.scheduledDate) : null;
+  }
+  if ('assignedTo' in data) {
+    // Se for undefined, envia null para limpar o campo
+    payload.assigned_to = data.assignedTo ? Number(data.assignedTo) : null;
+  }
+  if ('assignedToName' in data) {
+    // Remover o nome do técnico quando for undefined
+    payload.assigned_to_name = data.assignedToName || null;
+  }
+  if ('executionDescription' in data) payload.execution_description = data.executionDescription;
   if (data.startedAt) payload.started_at = data.startedAt;
   if (data.completedAt) payload.completed_at = data.completedAt;
   
   // Campos de assinatura
-  if (data.signature !== undefined) payload.signature = data.signature;
-  if (data.signedBy !== undefined) payload.signed_by = data.signedBy;
-  if (data.signedAt !== undefined) payload.signed_at = data.signedAt;
+  if ('signature' in data) payload.signature = data.signature;
+  if ('signedBy' in data) payload.signed_by = data.signedBy;
+  if ('signedAt' in data) payload.signed_at = data.signedAt;
   
   return payload;
 };

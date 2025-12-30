@@ -47,11 +47,15 @@ import {
   User,
   Calendar,
   GripVertical,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  Pencil
 } from 'lucide-react';
 import { useWorkOrders, useUpdateWorkOrder } from '@/hooks/useWorkOrdersQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
+import { WorkOrderViewModal } from '@/components/WorkOrderViewModal';
+import { WorkOrderEditModal } from '@/components/WorkOrderEditModal';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { WorkOrder } from '@/types';
@@ -73,6 +77,15 @@ const priorityDotColors = {
   LOW: 'bg-blue-500',
 };
 
+/**
+ * Parseia data YYYY-MM-DD como data local (não UTC)
+ * Evita problema de timezone onde "2026-01-01" vira "2025-12-31"
+ */
+const parseLocalDate = (dateString: string): Date => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 // ============================================
 // Componente de OS Arrastável
 // ============================================
@@ -80,9 +93,11 @@ interface DraggableWorkOrderProps {
   workOrder: WorkOrder;
   equipmentName: string;
   isCompact?: boolean;
+  onView?: (workOrder: WorkOrder) => void;
+  onEdit?: (workOrder: WorkOrder) => void;
 }
 
-function DraggableWorkOrder({ workOrder, equipmentName, isCompact = false }: DraggableWorkOrderProps) {
+function DraggableWorkOrder({ workOrder, equipmentName, isCompact = false, onView, onEdit }: DraggableWorkOrderProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: workOrder.id,
     data: { workOrder },
@@ -97,17 +112,43 @@ function DraggableWorkOrder({ workOrder, equipmentName, isCompact = false }: Dra
       <div
         ref={setNodeRef}
         style={style}
-        {...listeners}
-        {...attributes}
         className={cn(
-          "p-2 rounded border cursor-grab active:cursor-grabbing transition-all text-xs",
+          "p-2 rounded border transition-all text-xs group relative",
           priorityColors[workOrder.priority as keyof typeof priorityColors],
           isDragging && "opacity-50 shadow-lg scale-105"
         )}
       >
         <div className="flex items-center gap-1">
-          <GripVertical className="h-3 w-3 opacity-50" />
-          <span className="font-medium truncate">{workOrder.number}</span>
+          <div {...listeners} {...attributes} className="flex items-center gap-1 flex-1 cursor-grab active:cursor-grabbing">
+            <GripVertical className="h-3 w-3 opacity-50" />
+            <span className="font-medium truncate">{workOrder.number}</span>
+          </div>
+          <div className="flex items-center gap-0.5">
+            {onEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(workOrder);
+                }}
+                className="p-0.5 hover:bg-black/10 rounded transition-colors"
+                title="Editar OS"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+            )}
+            {onView && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onView(workOrder);
+                }}
+                className="p-0.5 hover:bg-black/10 rounded transition-colors"
+                title="Visualizar OS"
+              >
+                <Eye className="h-3 w-3" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -117,15 +158,39 @@ function DraggableWorkOrder({ workOrder, equipmentName, isCompact = false }: Dra
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
       className={cn(
-        "p-3 rounded-lg border cursor-grab active:cursor-grabbing transition-all",
+        "p-3 rounded-lg border transition-all group relative",
         priorityColors[workOrder.priority as keyof typeof priorityColors],
         isDragging && "opacity-50 shadow-lg scale-105"
       )}
     >
-      <div className="flex items-start gap-2">
+      <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
+        {onEdit && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(workOrder);
+            }}
+            className="p-1 hover:bg-black/10 rounded transition-colors"
+            title="Editar OS"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+        )}
+        {onView && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onView(workOrder);
+            }}
+            className="p-1 hover:bg-black/10 rounded transition-colors"
+            title="Visualizar OS"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+      <div className="flex items-start gap-2" {...listeners} {...attributes} style={{ cursor: 'grab' }}>
         <GripVertical className="h-4 w-4 mt-0.5 opacity-50 flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
@@ -181,11 +246,25 @@ export function WorkOrderSchedulingPage() {
   const navigate = useNavigate();
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { locale: ptBR }));
   const [activeWorkOrder, setActiveWorkOrder] = useState<WorkOrder | null>(null);
+  const [viewWorkOrder, setViewWorkOrder] = useState<WorkOrder | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [editWorkOrder, setEditWorkOrder] = useState<WorkOrder | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
   const { data: workOrders = [], isLoading: isLoadingWO } = useWorkOrders();
   const { data: technicians = [], isLoading: isLoadingTech } = useTechnicians();
   const { data: equipment = [] } = useEquipments();
   const updateMutation = useUpdateWorkOrder();
+
+  const handleViewWorkOrder = (workOrder: WorkOrder) => {
+    setViewWorkOrder(workOrder);
+    setIsViewModalOpen(true);
+  };
+
+  const handleEditWorkOrder = (workOrder: WorkOrder) => {
+    setEditWorkOrder(workOrder);
+    setIsEditModalOpen(true);
+  };
 
   // Sensores para drag and drop
   const sensors = useSensors(
@@ -217,7 +296,10 @@ export function WorkOrderSchedulingPage() {
       .filter(wo => wo.assignedTo && wo.scheduledDate)
       .forEach(wo => {
         const techId = String(wo.assignedTo);
-        const dateKey = format(parseISO(wo.scheduledDate), 'yyyy-MM-dd');
+        // Parsear como data local para evitar shift de timezone
+        const dateKey = wo.scheduledDate.includes('T') 
+          ? format(parseISO(wo.scheduledDate), 'yyyy-MM-dd')
+          : wo.scheduledDate;
         
         if (!scheduled[techId]) {
           scheduled[techId] = {};
@@ -265,8 +347,10 @@ export function WorkOrderSchedulingPage() {
         { 
           id: workOrderId, 
           data: { 
+            status: 'OPEN',
             assignedTo: undefined,
-            assignedToName: undefined
+            assignedToName: undefined,
+            scheduledDate: undefined
           } 
         },
         {
@@ -293,14 +377,14 @@ export function WorkOrderSchedulingPage() {
         { 
           id: workOrderId, 
           data: { 
-            assignedTo: techId,
+            assignedTo: Number(techId),
             assignedToName: technician.user.full_name,
             scheduledDate: dateKey
           } 
         },
         {
           onSuccess: () => {
-            toast.success(`OS atribuída para ${technician.user.full_name} em ${format(parseISO(dateKey), "dd/MM", { locale: ptBR })}`);
+            toast.success(`OS atribuída para ${technician.user.full_name} em ${format(parseLocalDate(dateKey), "dd/MM", { locale: ptBR })}`);
           },
           onError: () => {
             toast.error('Erro ao atribuir OS');
@@ -360,6 +444,8 @@ export function WorkOrderSchedulingPage() {
                         key={wo.id}
                         workOrder={wo}
                         equipmentName={getEquipmentName(wo.equipmentId)}
+                        onView={handleViewWorkOrder}
+                        onEdit={handleEditWorkOrder}
                       />
                     ))
                   )}
@@ -483,6 +569,8 @@ export function WorkOrderSchedulingPage() {
                                     workOrder={wo}
                                     equipmentName={getEquipmentName(wo.equipmentId)}
                                     isCompact
+                                    onView={handleViewWorkOrder}
+                                    onEdit={handleEditWorkOrder}
                                   />
                                 ))}
                               </div>
@@ -545,6 +633,30 @@ export function WorkOrderSchedulingPage() {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {/* Modal de visualização */}
+      {viewWorkOrder && (
+        <WorkOrderViewModal
+          workOrder={viewWorkOrder}
+          isOpen={isViewModalOpen}
+          onClose={() => {
+            setIsViewModalOpen(false);
+            setViewWorkOrder(null);
+          }}
+        />
+      )}
+
+      {/* Modal de edição */}
+      {editWorkOrder && (
+        <WorkOrderEditModal
+          workOrder={editWorkOrder}
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditWorkOrder(null);
+          }}
+        />
+      )}
     </div>
   );
 }

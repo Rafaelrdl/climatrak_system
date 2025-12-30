@@ -1,10 +1,16 @@
 import type { WorkOrder } from '@/types';
 
+export interface WorkOrderSettings {
+  statuses: Array<{ id: string; label: string; color: string }>;
+  types: Array<{ id: string; label: string; color: string }>;
+}
+
 export interface PrintWorkOrderOptions {
   workOrder: WorkOrder;
   equipment?: any[];
   sectors?: any[];
   companies?: any[];
+  settings?: WorkOrderSettings;
   costs?: {
     labor: number;
     parts: number;
@@ -19,6 +25,7 @@ export function generateWorkOrderPrintContent({
   equipment = [], 
   sectors = [], 
   companies = [],
+  settings,
   costs
 }: PrintWorkOrderOptions): string {
   // Buscar dados do equipamento
@@ -26,22 +33,52 @@ export function generateWorkOrderPrintContent({
   const sector = eq ? sectors.find(s => s.id === eq.sectorId) : null;
   const company = sector ? companies.find(c => c.id === sector.companyId) : null;
 
-  // Mapear status para português e cores
+  // Helper para converter hex em rgba
+  const hexToRgba = (hex: string, alpha: number): string => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!result) return `rgba(107, 114, 128, ${alpha})`;
+    const r = parseInt(result[1], 16);
+    const g = parseInt(result[2], 16);
+    const b = parseInt(result[3], 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
+  // Mapear status para português e cores usando configurações
   const getStatusConfig = (status: string) => {
+    const config = settings?.statuses.find(s => s.id === status);
+    if (config) {
+      return {
+        label: config.label,
+        bgColor: hexToRgba(config.color, 0.15),
+        textColor: config.color,
+        borderColor: hexToRgba(config.color, 0.3)
+      };
+    }
+    // Fallback se não encontrar
     switch (status) {
-      case 'OPEN': return { label: 'Aberta', bgColor: '#dbeafe', textColor: '#1d4ed8', borderColor: '#93c5fd' };
-      case 'IN_PROGRESS': return { label: 'Em Andamento', bgColor: '#fef3c7', textColor: '#d97706', borderColor: '#fcd34d' };
-      case 'COMPLETED': return { label: 'Concluída', bgColor: '#d1fae5', textColor: '#059669', borderColor: '#6ee7b7' };
-      default: return { label: status, bgColor: '#f3f4f6', textColor: '#6b7280', borderColor: '#d1d5db' };
+      case 'OPEN': return { label: 'Aberta', bgColor: 'rgba(59, 130, 246, 0.15)', textColor: '#3b82f6', borderColor: 'rgba(59, 130, 246, 0.3)' };
+      case 'IN_PROGRESS': return { label: 'Em Execução', bgColor: 'rgba(245, 158, 11, 0.15)', textColor: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.3)' };
+      case 'COMPLETED': return { label: 'Concluída', bgColor: 'rgba(34, 197, 94, 0.15)', textColor: '#22c55e', borderColor: 'rgba(34, 197, 94, 0.3)' };
+      default: return { label: status, bgColor: 'rgba(107, 114, 128, 0.15)', textColor: '#6b7280', borderColor: 'rgba(107, 114, 128, 0.3)' };
     }
   };
 
   const getTypeConfig = (type: string) => {
+    const config = settings?.types.find(t => t.id === type);
+    if (config) {
+      return {
+        label: config.label,
+        bgColor: hexToRgba(config.color, 0.15),
+        textColor: config.color,
+        borderColor: hexToRgba(config.color, 0.3)
+      };
+    }
+    // Fallback se não encontrar
     switch (type) {
-      case 'PREVENTIVE': return { label: 'Preventiva', bgColor: '#dbeafe', textColor: '#1d4ed8', borderColor: '#93c5fd' };
-      case 'CORRECTIVE': return { label: 'Corretiva', bgColor: '#fef3c7', textColor: '#d97706', borderColor: '#fcd34d' };
-      case 'REQUEST': return { label: 'Solicitação', bgColor: '#f3e8ff', textColor: '#7c3aed', borderColor: '#c4b5fd' };
-      default: return { label: type, bgColor: '#f3f4f6', textColor: '#6b7280', borderColor: '#d1d5db' };
+      case 'PREVENTIVE': return { label: 'Preventiva', bgColor: 'rgba(59, 130, 246, 0.15)', textColor: '#3b82f6', borderColor: 'rgba(59, 130, 246, 0.3)' };
+      case 'CORRECTIVE': return { label: 'Corretiva', bgColor: 'rgba(239, 68, 68, 0.15)', textColor: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' };
+      case 'REQUEST': return { label: 'Solicitação', bgColor: 'rgba(139, 92, 246, 0.15)', textColor: '#8b5cf6', borderColor: 'rgba(139, 92, 246, 0.3)' };
+      default: return { label: type, bgColor: 'rgba(107, 114, 128, 0.15)', textColor: '#6b7280', borderColor: 'rgba(107, 114, 128, 0.3)' };
     }
   };
 

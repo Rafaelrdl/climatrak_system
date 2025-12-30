@@ -46,6 +46,17 @@ import type { WorkOrder, WorkOrderStockItem, ChecklistResponse, UploadedPhoto, S
 import type { ApiInventoryItem } from '@/types/api';
 import { cn } from '@/lib/utils';
 
+/**
+ * Converte Date para string YYYY-MM-DD no timezone local
+ * Evita problemas de timezone ao usar toISOString()
+ */
+const formatDateToLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Mapper
 const mapToStockItem = (item: ApiInventoryItem): StockItem => ({
   id: String(item.id),
@@ -157,6 +168,40 @@ export function WorkOrderEditModal({
   const user = { name: 'Usuário Atual', role: 'ADMIN' }; // Placeholder
   const canEditDetails = user.role === 'ADMIN';
   const canEditExecution = true; // Tanto admin quanto técnico podem editar execução
+  
+  // Helper para obter configuração de status
+  const getStatusConfig = (status: WorkOrder['status']) => {
+    const config = settings.statuses.find(s => s.id === status);
+    return config || { id: status, label: status, color: '#6b7280' };
+  };
+  
+  // Helper para obter estilo de badge de status
+  const getStatusBadgeStyle = (status: WorkOrder['status']) => {
+    const config = getStatusConfig(status);
+    const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : null;
+    };
+    
+    const rgb = hexToRgb(config.color);
+    if (!rgb) {
+      return {
+        backgroundColor: '#f3f4f6',
+        color: '#374151',
+        dotColor: '#6b7280'
+      };
+    }
+    
+    return {
+      backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`,
+      color: config.color,
+      dotColor: config.color
+    };
+  };
 
   // Função para imprimir a ordem de serviço
   const handlePrintWorkOrder = () => {
@@ -166,7 +211,8 @@ export function WorkOrderEditModal({
       workOrder: { ...currentWorkOrder, ...formData } as WorkOrder,
       equipment,
       sectors,
-      companies
+      companies,
+      settings
     });
   };
   
@@ -512,22 +558,21 @@ export function WorkOrderEditModal({
                   <ClipboardList className="h-5 w-5 text-primary" />
                   Editar Ordem de Serviço
                 </DialogTitle>
-                <div className={cn(
-                  "px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5",
-                  formData.status === 'OPEN' && "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
-                  formData.status === 'IN_PROGRESS' && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400",
-                  formData.status === 'COMPLETED' && "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                )}>
-                  <div className={cn(
-                    "w-2 h-2 rounded-full",
-                    formData.status === 'OPEN' && "bg-blue-500",
-                    formData.status === 'IN_PROGRESS' && "bg-yellow-500",
-                    formData.status === 'COMPLETED' && "bg-green-500"
-                  )} />
-                  {formData.status === 'OPEN' && 'Aberta'}
-                  {formData.status === 'IN_PROGRESS' && 'Em Andamento'}
-                  {formData.status === 'COMPLETED' && 'Concluída'}
-                </div>
+                {formData.status && (
+                  <div 
+                    className="px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5"
+                    style={{
+                      backgroundColor: getStatusBadgeStyle(formData.status).backgroundColor,
+                      color: getStatusBadgeStyle(formData.status).color
+                    }}
+                  >
+                    <div 
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: getStatusBadgeStyle(formData.status).dotColor }}
+                    />
+                    {getStatusConfig(formData.status).label}
+                  </div>
+                )}
               </div>
               
               {/* Botão de Impressão reposicionado */}
@@ -787,7 +832,7 @@ export function WorkOrderEditModal({
                                 <DatePicker
                                   date={formData.scheduledDate ? new Date(formData.scheduledDate) : undefined}
                                   setDate={(date) => {
-                                    setFormData(prev => ({ ...prev, scheduledDate: date?.toISOString() }));
+                                    setFormData(prev => ({ ...prev, scheduledDate: date ? formatDateToLocal(date) : undefined }));
                                     if (errors.scheduledDate) setErrors(prev => ({ ...prev, scheduledDate: '' }));
                                   }}
                                   className={cn(

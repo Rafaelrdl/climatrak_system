@@ -39,6 +39,7 @@ import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useSectors, useCompanies } from '@/hooks/useLocationsQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';
 import { useWorkOrderStore } from '@/store/useWorkOrderStore';
+import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
 import { useSLAStore, calculateSLAStatus } from '@/store/useSLAStore';
 import { useUsers } from '@/data/usersStore';
 import { SLABadge } from '@/components/SLABadge';
@@ -47,6 +48,15 @@ import { workOrdersService } from '@/services/workOrdersService';
 import { toast } from 'sonner';
 import type { WorkOrder } from '@/types';
 import { cn } from '@/lib/utils';
+
+/**
+ * Parseia data YYYY-MM-DD como data local (não UTC)
+ * Evita problema de timezone onde "2026-01-01" vira "2025-12-31"
+ */
+const parseLocalDate = (dateString: string): Date => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
 
 interface WorkOrderListProps {
   workOrders: WorkOrder[];
@@ -70,6 +80,7 @@ export function WorkOrderList({
   const { data: companies = [] } = useCompanies();
   const { data: technicians = [] } = useTechnicians();
   const { selectedWorkOrderId, setSelectedWorkOrder } = useWorkOrderStore();
+  const { settings: workOrderSettings } = useWorkOrderSettingsStore();
   const { settings: slaSettings } = useSLAStore();
   const { getCurrentUser } = useUsers();
   
@@ -86,6 +97,54 @@ export function WorkOrderList({
   const [printingOrderId, setPrintingOrderId] = useState<number | null>(null);
 
   const currentUser = getCurrentUser();
+  
+  // Helper para obter cor do tipo de OS das configurações
+  const getTypeColor = (type: WorkOrder['type']): string => {
+    const typeConfig = workOrderSettings.types.find(t => t.id === type);
+    return typeConfig?.color || '#6b7280'; // fallback gray
+  };
+  
+  // Helper para converter hex em RGB
+  const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  };
+  
+  // Helper para obter estilos de badge do tipo
+  const getTypeBadgeStyle = (type: WorkOrder['type'], isSelected: boolean): React.CSSProperties => {
+    if (isSelected) {
+      return {
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        color: 'white',
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+      };
+    }
+    
+    const color = getTypeColor(type);
+    const rgb = hexToRgb(color);
+    
+    if (!rgb) {
+      return {
+        backgroundColor: '#f3f4f6',
+        color: '#374151',
+      };
+    }
+    
+    // Fundo: cor com 15% de opacidade
+    const backgroundColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`;
+    // Texto: cor original (mais escura/saturada)
+    const textColor = color;
+    
+    return {
+      backgroundColor,
+      color: textColor,
+      border: 'none',
+    };
+  };
 
   const handlePrintWorkOrder = async (workOrder: WorkOrder) => {
     try {
@@ -98,7 +157,8 @@ export function WorkOrderList({
         workOrder: fullWorkOrder,
         equipment,
         sectors,
-        companies
+        companies,
+        settings: workOrderSettings
       });
     } catch (error) {
       console.error('Erro ao imprimir OS:', error);
@@ -176,12 +236,14 @@ export function WorkOrderList({
             const eq = equipment.find(e => e.id === wo.equipmentId);
 
             const isSelected = selectedWorkOrderId === wo.id;
-            const isOverdue = wo.scheduledDate && new Date(wo.scheduledDate) < new Date() && wo.status !== 'COMPLETED';
-            const isToday = wo.scheduledDate && new Date(wo.scheduledDate).toDateString() === new Date().toDateString();
+            const scheduledDateObj = wo.scheduledDate ? (wo.scheduledDate.includes('T') ? new Date(wo.scheduledDate) : parseLocalDate(wo.scheduledDate)) : null;
+            const isOverdue = scheduledDateObj && scheduledDateObj < new Date() && wo.status !== 'COMPLETED';
+            const isToday = scheduledDateObj && scheduledDateObj.toDateString() === new Date().toDateString();
             
             // Format date Gmail style (show time if today, date if not)
             const formatDate = (dateString: string) => {
-              const date = new Date(dateString);
+              // Se contém hora (datetime), usar new Date diretamente
+              const date = dateString.includes('T') ? new Date(dateString) : parseLocalDate(dateString);
               if (isToday) {
                 return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
               } else {
@@ -297,16 +359,8 @@ export function WorkOrderList({
                         {wo.type && (
                           <Badge 
                             variant="outline" 
-                            className={cn(
-                              "text-[10px] px-1.5 py-0.5",
-                              isSelected 
-                                ? "border-white/30 text-white bg-white/10" 
-                                : wo.type === 'PREVENTIVE' 
-                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0" 
-                                  : wo.type === 'REQUEST'
-                                    ? "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 border-0"
-                                    : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border-0"
-                            )}
+                            className="text-[10px] px-1.5 py-0.5 font-medium"
+                            style={getTypeBadgeStyle(wo.type, isSelected)}
                           >
                             {wo.type === 'PREVENTIVE' ? 'Prev' : wo.type === 'REQUEST' ? 'Solic' : 'Corr'}
                           </Badge>
@@ -395,7 +449,13 @@ export function WorkOrderList({
                 </div>
               </TableCell>
               <TableCell>
-                <StatusBadge status={wo.type} />
+                <Badge 
+                  variant="outline" 
+                  className="text-xs px-2 py-0.5 font-medium"
+                  style={getTypeBadgeStyle(wo.type, false)}
+                >
+                  {wo.type === 'PREVENTIVE' ? 'Preventiva' : wo.type === 'REQUEST' ? 'Solicitação' : 'Corretiva'}
+                </Badge>
               </TableCell>
               <TableCell>
                 {wo.maintenancePlanId ? (
@@ -417,7 +477,7 @@ export function WorkOrderList({
                 <StatusBadge status={wo.priority} />
               </TableCell>
               <TableCell>
-                {new Date(wo.scheduledDate).toLocaleDateString('pt-BR')}
+                {(wo.scheduledDate.includes('T') ? new Date(wo.scheduledDate) : parseLocalDate(wo.scheduledDate)).toLocaleDateString('pt-BR')}
               </TableCell>
               <TableCell>{wo.assignedToName || wo.assignedTo || '-'}</TableCell>
               <TableCell>
