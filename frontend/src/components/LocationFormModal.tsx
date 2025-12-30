@@ -66,9 +66,9 @@ export function LocationFormModal({
       state: '',       // Estado
       fullAddress: ''  // Endereço completo
     },
-    totalArea: 0,     // Área total em m²
-    occupants: 0,     // Número de ocupantes
-    hvacUnits: 0,     // Unidades HVAC
+    totalArea: undefined,     // Área total em m²
+    occupants: undefined,     // Número de ocupantes
+    hvacUnits: undefined,     // Unidades HVAC
     notes: ''         // Observações
   });
 
@@ -79,9 +79,9 @@ export function LocationFormModal({
     responsible: '',             // Responsável
     phone: '',                   // Telefone do responsável
     email: '',                   // Email do responsável
-    area: 0,                     // Área em m²
-    occupants: 0,               // Número de ocupantes
-    hvacUnits: 0,               // Unidades HVAC
+    area: undefined,                     // Área em m²
+    occupants: undefined,               // Número de ocupantes
+    hvacUnits: undefined,               // Unidades HVAC
     notes: ''                   // Observações
   });
 
@@ -143,9 +143,9 @@ export function LocationFormModal({
           segment: '',
           cnpj: '',
           address: { zip: '', city: '', state: '', fullAddress: '' },
-          totalArea: 0,
-          occupants: 0,
-          hvacUnits: 0,
+          totalArea: undefined,
+          occupants: undefined,
+          hvacUnits: undefined,
           notes: ''
         });
         setSectorForm({
@@ -154,9 +154,9 @@ export function LocationFormModal({
           responsible: '',
           phone: '',
           email: '',
-          area: 0,
-          occupants: 0,
-          hvacUnits: 0,
+          area: undefined,
+          occupants: undefined,
+          hvacUnits: undefined,
           notes: ''
         });
         setSubSectionForm({
@@ -393,8 +393,8 @@ export function LocationFormModal({
             <Input
               id="totalArea"
               type="number"
-              value={companyForm.totalArea}
-              onChange={(e) => setCompanyForm(prev => ({ ...prev, totalArea: Number(e.target.value) }))}
+              value={companyForm.totalArea ?? ''}
+              onChange={(e) => setCompanyForm(prev => ({ ...prev, totalArea: e.target.value ? Number(e.target.value) : undefined }))}
               placeholder="0"
               className="h-10"
               min="0"
@@ -411,8 +411,8 @@ export function LocationFormModal({
             <Input
               id="occupants"
               type="number"
-              value={companyForm.occupants}
-              onChange={(e) => setCompanyForm(prev => ({ ...prev, occupants: Number(e.target.value) }))}
+              value={companyForm.occupants ?? ''}
+              onChange={(e) => setCompanyForm(prev => ({ ...prev, occupants: e.target.value ? Number(e.target.value) : undefined }))}
               placeholder="0"
               className="h-10"
               min="0"
@@ -429,8 +429,8 @@ export function LocationFormModal({
             <Input
               id="hvacUnits"
               type="number"
-              value={companyForm.hvacUnits}
-              onChange={(e) => setCompanyForm(prev => ({ ...prev, hvacUnits: Number(e.target.value) }))}
+              value={companyForm.hvacUnits ?? ''}
+              onChange={(e) => setCompanyForm(prev => ({ ...prev, hvacUnits: e.target.value ? Number(e.target.value) : undefined }))}
               placeholder="0"
               className="h-10"
               min="0"
@@ -560,8 +560,8 @@ export function LocationFormModal({
             <Input
               id="sectorArea"
               type="number"
-              value={sectorForm.area ?? 0}
-              onChange={(e) => setSectorForm(prev => ({ ...prev, area: Number(e.target.value) }))}
+              value={sectorForm.area ?? ''}
+              onChange={(e) => setSectorForm(prev => ({ ...prev, area: e.target.value ? Number(e.target.value) : undefined }))}
               placeholder="0"
               className="h-10"
               min="0"
@@ -574,8 +574,8 @@ export function LocationFormModal({
             <Input
               id="sectorOccupants"
               type="number"
-              value={sectorForm.occupants ?? 0}
-              onChange={(e) => setSectorForm(prev => ({ ...prev, occupants: Number(e.target.value) }))}
+              value={sectorForm.occupants ?? ''}
+              onChange={(e) => setSectorForm(prev => ({ ...prev, occupants: e.target.value ? Number(e.target.value) : undefined }))}
               placeholder="0"
               className="h-10"
               min="0"
@@ -588,8 +588,8 @@ export function LocationFormModal({
             <Input
               id="sectorHvacUnits"
               type="number"
-              value={sectorForm.hvacUnits ?? 0}
-              onChange={(e) => setSectorForm(prev => ({ ...prev, hvacUnits: Number(e.target.value) }))}
+              value={sectorForm.hvacUnits ?? ''}
+              onChange={(e) => setSectorForm(prev => ({ ...prev, hvacUnits: e.target.value ? Number(e.target.value) : undefined }))}
               placeholder="0"
               className="h-10"
               min="0"
