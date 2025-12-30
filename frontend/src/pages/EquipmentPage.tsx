@@ -1160,7 +1160,7 @@ function AssetsContent() {
             </Button>
             <Button 
               onClick={handleAddEquipment} 
-              disabled={!newEquipment.tag || !newEquipment.brand || !newEquipment.model || !newEquipment.capacity || !newEquipment.criticidade || !newEquipment.installDate}
+              disabled={!newEquipment.tag || !newEquipment.brand || !newEquipment.model || !newEquipment.capacity || !newEquipment.criticidade}
             >
               Adicionar Ativo
             </Button>

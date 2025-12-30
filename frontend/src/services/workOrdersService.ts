@@ -160,6 +160,19 @@ const mapWorkOrder = (wo: ApiWorkOrder): WorkOrder => ({
 });
 
 /**
+ * Converte data ISO para formato YYYY-MM-DD
+ */
+const formatDateForApi = (dateString: string): string => {
+  // Se já está no formato YYYY-MM-DD, retornar como está
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return dateString;
+  }
+  // Se for ISO datetime, extrair apenas a parte da data
+  const date = new Date(dateString);
+  return date.toISOString().split('T')[0];
+};
+
+/**
  * Mapeia dados do frontend para payload da API
  */
 const mapToApi = (data: Partial<WorkOrder>): Record<string, unknown> => {
@@ -170,7 +183,7 @@ const mapToApi = (data: Partial<WorkOrder>): Record<string, unknown> => {
   if (data.status) payload.status = data.status;
   if (data.priority) payload.priority = data.priority;
   if (data.description) payload.description = data.description;
-  if (data.scheduledDate) payload.scheduled_date = data.scheduledDate;
+  if (data.scheduledDate) payload.scheduled_date = formatDateForApi(data.scheduledDate);
   if (data.assignedTo) payload.assigned_to = Number(data.assignedTo);
   if (data.executionDescription !== undefined) payload.execution_description = data.executionDescription;
   if (data.startedAt) payload.started_at = data.startedAt;

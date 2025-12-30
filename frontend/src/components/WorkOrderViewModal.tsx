@@ -173,6 +173,14 @@ export function WorkOrderViewModal({
                 </Label>
                 <p className="font-medium">{assignedTechnician?.user.full_name || workOrder.assignedToName || '-'}</p>
               </div>
+
+              <div className="space-y-1">
+                <Label className="text-muted-foreground flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Criada em
+                </Label>
+                <p className="font-medium">{formatDateTime(workOrder.createdAt)}</p>
+              </div>
             </div>
 
             <Separator />

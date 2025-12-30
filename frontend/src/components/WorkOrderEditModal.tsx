@@ -54,6 +54,19 @@ const mapToStockItem = (item: ApiInventoryItem): StockItem => ({
   maximum: item.max_quantity ?? 0
 });
 
+/**
+ * Formata uma data para o formato do input datetime-local (YYYY-MM-DDTHH:MM)
+ * usando o horário LOCAL do usuário, não UTC
+ */
+const formatDateTimeLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 interface WorkOrderEditModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -783,51 +796,6 @@ export function WorkOrderEditModal({
                               </div>
                             </div>
 
-                            {/* Data de Conclusão - Aparece apenas quando status é COMPLETED */}
-                            {formData.status === 'COMPLETED' && (
-                              <div className="mt-4 pt-4 border-t">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div className="space-y-2">
-                                    <Label htmlFor="completedAt" className="text-xs font-medium flex items-center gap-1">
-                                      <CalendarClock className="h-3 w-3" />
-                                      Data de Conclusão <span className="text-destructive">*</span>
-                                    </Label>
-                                    <DatePicker
-                                      date={formData.completedAt ? new Date(formData.completedAt) : undefined}
-                                      setDate={(date) => {
-                                        setFormData(prev => ({ ...prev, completedAt: date?.toISOString() }));
-                                        if (errors.completedAt) setErrors(prev => ({ ...prev, completedAt: '' }));
-                                      }}
-                                      placeholder="Quando foi concluída"
-                                      className={cn(
-                                        "h-9",
-                                        errors.completedAt && "border-destructive"
-                                      )}
-                                    />
-                                    {errors.completedAt && (
-                                      <p className="text-xs text-destructive mt-1">{errors.completedAt}</p>
-                                    )}
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label className="text-xs font-medium text-muted-foreground">
-                                      Tempo de Execução
-                                    </Label>
-                                    <div className="h-9 px-3 py-2 bg-muted/50 rounded-md text-sm">
-                                      {formData.completedAt && formData.scheduledDate ? (
-                                        <span className="text-muted-foreground">
-                                          {Math.ceil(
-                                            (new Date(formData.completedAt).getTime() - new Date(formData.scheduledDate).getTime()) 
-                                            / (1000 * 60 * 60 * 24)
-                                          )} dias
-                                        </span>
-                                      ) : (
-                                        <span className="text-muted-foreground/50">-</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         </div>
                         
@@ -1116,12 +1084,22 @@ export function WorkOrderEditModal({
                           Status da Ordem
                         </h3>
                       </div>
-                      <div className="p-4">
+                      <div className="p-4 space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="status">Status *</Label>
                           <Select
                             value={formData.status}
-                            onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as WorkOrder['status'] }))}
+                            onValueChange={(value) => {
+                              const newStatus = value as WorkOrder['status'];
+                              setFormData(prev => ({
+                                ...prev,
+                                status: newStatus,
+                                // Preencher automaticamente a data/hora de conclusão ao mudar para COMPLETED
+                                completedAt: newStatus === 'COMPLETED' && !prev.completedAt
+                                  ? new Date().toISOString()
+                                  : prev.completedAt
+                              }));
+                            }}
                           >
                             <SelectTrigger className={cn(errors.status && "border-destructive")}>
                               <SelectValue placeholder="Selecione o status" />
@@ -1134,6 +1112,53 @@ export function WorkOrderEditModal({
                           </Select>
                           {errors.status && <p className="text-sm text-destructive">{errors.status}</p>}
                         </div>
+
+                        {/* Data e Hora de Conclusão - Aparece apenas quando status é COMPLETED */}
+                        {formData.status === 'COMPLETED' && (
+                          <div className="pt-4 border-t">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="completedAt" className="text-sm font-medium flex items-center gap-1">
+                                  <CalendarClock className="h-4 w-4" />
+                                  Data e Hora de Conclusão <span className="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                  id="completedAt"
+                                  type="datetime-local"
+                                  value={formData.completedAt ? formatDateTimeLocal(new Date(formData.completedAt)) : ''}
+                                  onChange={(e) => {
+                                    const dateValue = e.target.value ? new Date(e.target.value).toISOString() : undefined;
+                                    setFormData(prev => ({ ...prev, completedAt: dateValue }));
+                                    if (errors.completedAt) setErrors(prev => ({ ...prev, completedAt: '' }));
+                                  }}
+                                  className={cn(
+                                    errors.completedAt && "border-destructive"
+                                  )}
+                                />
+                                {errors.completedAt && (
+                                  <p className="text-xs text-destructive mt-1">{errors.completedAt}</p>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium text-muted-foreground">
+                                  Tempo de Execução
+                                </Label>
+                                <div className="h-10 px-3 py-2 bg-muted/50 rounded-md text-sm flex items-center">
+                                  {formData.completedAt && formData.scheduledDate ? (
+                                    <span className="text-muted-foreground">
+                                      {Math.ceil(
+                                        (new Date(formData.completedAt).getTime() - new Date(formData.scheduledDate).getTime()) 
+                                        / (1000 * 60 * 60 * 24)
+                                      )} dias
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground/50">-</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1299,29 +1324,6 @@ export function WorkOrderEditModal({
                         )}
                       </div>
                     </div>
-
-                    {/* Data de Conclusão */}
-                    {formData.status === 'COMPLETED' && (
-                      <div className="rounded-lg border bg-card">
-                        <div className="px-4 py-3 border-b bg-muted/50">
-                          <h3 className="text-sm font-medium flex items-center gap-2">
-                            <CalendarClock className="h-4 w-4 text-muted-foreground" />
-                            Data de Conclusão
-                          </h3>
-                        </div>
-                        <div className="p-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="completedAt">Data de Conclusão *</Label>
-                            <DatePicker
-                              date={formData.completedAt ? new Date(formData.completedAt) : undefined}
-                              setDate={(date) => setFormData(prev => ({ ...prev, completedAt: date?.toISOString() }))}
-                              placeholder="Selecione quando foi concluída"
-                            />
-                            {errors.completedAt && <p className="text-sm text-destructive">{errors.completedAt}</p>}
-                          </div>
-                        </div>
-                      </div>
-                    )}
                     </div>
                     </ScrollArea>
                   </TabsContent>
