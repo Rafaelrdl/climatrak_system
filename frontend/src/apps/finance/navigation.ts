@@ -28,7 +28,7 @@ export interface NavItem {
 export const financeNavigation: NavItem[] = [
   { name: 'Painel', href: '/finance', icon: LayoutDashboard, exact: true },
   { name: 'Orçamentos', href: '/finance/budgets', icon: Wallet },
-  { name: 'Ledger', href: '/finance/ledger', icon: FileText },
+  { name: 'Lançamentos', href: '/finance/ledger', icon: FileText },
   { name: 'Compromissos', href: '/finance/commitments', icon: CheckSquare },
   { name: 'Economia', href: '/finance/savings', icon: TrendingUp },
   { name: 'Cadastros', href: '/finance/settings', icon: Settings },

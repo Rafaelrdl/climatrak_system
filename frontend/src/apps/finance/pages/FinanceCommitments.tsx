@@ -53,13 +53,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -97,7 +90,7 @@ import type {
 
 const STATUS_CONFIG: Record<CommitmentStatus, { label: string; color: string; icon: typeof Clock }> = {
   draft: { label: 'Rascunho', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', icon: FileText },
-  submitted: { label: 'Submetido', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300', icon: Send },
+  submitted: { label: 'Submetido', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300', icon: Send },
   approved: { label: 'Aprovado', color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300', icon: CheckCircle2 },
   cancelled: { label: 'Cancelado', color: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300', icon: XCircle },
   converted: { label: 'Convertido', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300', icon: TrendingUp },
@@ -462,8 +455,8 @@ function CreateCommitmentDialog({ open, onOpenChange }: CreateCommitmentDialogPr
             <Textarea
               placeholder="Descreva o compromisso..."
               rows={3}
-              value={formData.notes ?? ''}
-              onChange={(e) => handleFieldChange('notes', e.target.value)}
+              value={formData.description ?? ''}
+              onChange={(e) => handleFieldChange('description', e.target.value)}
             />
           </div>
         </div>
@@ -507,9 +500,9 @@ function CreateCommitmentDialog({ open, onOpenChange }: CreateCommitmentDialogPr
   );
 }
 
-// ==================== Commitment Detail Sheet ====================
+// ==================== Commitment Detail Dialog ====================
 
-interface CommitmentDetailSheetProps {
+interface CommitmentDetailDialogProps {
   commitment: Commitment | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -517,13 +510,13 @@ interface CommitmentDetailSheetProps {
   onCancel: (id: string) => void;
 }
 
-function CommitmentDetailSheet({ 
+function CommitmentDetailDialog({ 
   commitment, 
   open, 
   onOpenChange,
   onApprove,
   onCancel,
-}: CommitmentDetailSheetProps) {
+}: CommitmentDetailDialogProps) {
   const { can } = useAbility();
   const canApprove = can('edit', 'finance_commitment');
 
@@ -532,84 +525,103 @@ function CommitmentDetailSheet({
   const canPerformActions = commitment.status === 'submitted' || commitment.status === 'draft';
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Detalhes do Compromisso
-          </SheetTitle>
-          <SheetDescription>
-            Criado em {formatDate(commitment.created_at)}
-          </SheetDescription>
-        </SheetHeader>
-
-        <div className="mt-6 space-y-6">
-          {/* Status */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Status</span>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="space-y-3">
+          <div className="flex items-start justify-between gap-4 pr-8">
+            <DialogTitle className="text-xl font-semibold">Detalhes do Compromisso</DialogTitle>
             <StatusBadge status={commitment.status} />
           </div>
+          <DialogDescription>
+            Criado em {formatDate(commitment.created_at)}
+          </DialogDescription>
+        </DialogHeader>
 
-          <Separator />
-
-          {/* Valor */}
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Valor</p>
-            <MoneyCell value={commitment.amount} size="lg" />
+        <div className="space-y-6 py-4">
+          {/* Valor em Destaque */}
+          <div className="py-6 px-4 rounded-lg bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20">
+            <div className="text-center space-y-2">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Valor do Compromisso</p>
+              <div className="text-4xl font-bold text-primary">
+                <MoneyCell value={commitment.amount} size="lg" />
+              </div>
+            </div>
           </div>
 
-          {/* Detalhes */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Centro de Custo</p>
-              <p className="font-medium">{commitment.cost_center_name ?? '-'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Categoria</p>
-              <p className="font-medium">{getCategoryLabel(commitment.category)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Mês do Budget</p>
-              <p className="font-medium">{formatMonth(commitment.budget_month)}</p>
-            </div>
-            {commitment.due_date && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Vencimento</p>
-                <p className="font-medium">{formatDate(commitment.due_date)}</p>
+          {/* Informações Principais */}
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+              Informações Gerais
+            </h3>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Centro de Custo</p>
+                <p className="font-medium">{commitment.cost_center_name ?? '-'}</p>
               </div>
-            )}
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Categoria</p>
+                <p className="font-medium">{getCategoryLabel(commitment.category)}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Mês do Budget</p>
+                <p className="font-medium">{formatMonth(commitment.budget_month)}</p>
+              </div>
+              {commitment.due_date && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Data de Vencimento</p>
+                  <p className="font-medium">{formatDate(commitment.due_date)}</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Vínculos */}
           {(commitment.vendor_name || commitment.work_order_number) && (
             <>
               <Separator />
-              <div className="space-y-3">
-                <p className="text-sm font-medium">Vínculos</p>
-                {commitment.vendor_name && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span>{commitment.vendor_name}</span>
-                  </div>
-                )}
-                {commitment.work_order_number && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span>OS #{commitment.work_order_number}</span>
-                  </div>
-                )}
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+                  Vínculos
+                </h3>
+                <div className="space-y-3">
+                  {commitment.vendor_name && (
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Fornecedor</p>
+                        <p className="font-medium">{commitment.vendor_name}</p>
+                      </div>
+                    </div>
+                  )}
+                  {commitment.work_order_number && (
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Ordem de Serviço</p>
+                        <p className="font-medium">OS #{commitment.work_order_number}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           )}
 
-          {/* Notas */}
-          {commitment.notes && (
+          {/* Observações */}
+          {(commitment.description || commitment.notes) && (
             <>
               <Separator />
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Observações</p>
-                <p className="text-sm whitespace-pre-wrap">{commitment.notes}</p>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  Observações
+                </h3>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
+                  {commitment.description || commitment.notes}
+                </p>
               </div>
             </>
           )}
@@ -619,7 +631,9 @@ function CommitmentDetailSheet({
             <>
               <Separator />
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Anexos</p>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  Anexos ({commitment.attachments.length})
+                </h3>
                 <div className="space-y-2">
                   {commitment.attachments.map((url, i) => (
                     <a
@@ -627,54 +641,53 @@ function CommitmentDetailSheet({
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-primary hover:underline"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-md border hover:bg-muted/50 hover:border-primary/30 transition-colors group"
                     >
-                      <Paperclip className="h-4 w-4" />
-                      Anexo {i + 1}
-                      <ExternalLink className="h-3 w-3" />
+                      <Paperclip className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                      <span className="flex-1 text-sm font-medium group-hover:text-primary">
+                        Anexo {i + 1}
+                      </span>
+                      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary" />
                     </a>
                   ))}
                 </div>
               </div>
             </>
           )}
-
-          {/* Ações */}
-          {canApprove && canPerformActions && (
-            <>
-              <Separator />
-              <div className="flex gap-2">
-                {commitment.status === 'submitted' && (
-                  <Button 
-                    className="flex-1"
-                    onClick={() => onApprove(commitment.id)}
-                  >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Aprovar
-                  </Button>
-                )}
-                {commitment.status === 'draft' && (
-                  <Button 
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    <Send className="h-4 w-4 mr-2" />
-                    Submeter
-                  </Button>
-                )}
-                <Button 
-                  variant="destructive"
-                  onClick={() => onCancel(commitment.id)}
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Cancelar
-                </Button>
-              </div>
-            </>
-          )}
         </div>
-      </SheetContent>
-    </Sheet>
+
+        {/* Ações */}
+        {canApprove && canPerformActions && (
+          <DialogFooter className="gap-2 pt-4 border-t">
+            {commitment.status === 'submitted' && (
+              <Button 
+                className="flex-1"
+                onClick={() => onApprove(commitment.id)}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Aprovar
+              </Button>
+            )}
+            {commitment.status === 'draft' && (
+              <Button 
+                variant="outline"
+                className="flex-1"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Submeter
+              </Button>
+            )}
+            <Button 
+              variant="destructive"
+              onClick={() => onCancel(commitment.id)}
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Cancelar
+            </Button>
+          </DialogFooter>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -763,19 +776,20 @@ export function FinanceCommitments() {
     {
       id: 'status',
       header: 'Status',
-      width: 140,
+      width: 130,
       cell: (row) => <StatusBadge status={row.status} />,
     },
     {
       id: 'amount',
       header: 'Valor',
-      width: 140,
+      width: 130,
       align: 'right',
       cell: (row) => <MoneyCell value={row.amount} />,
     },
     {
       id: 'cost_center',
       header: 'Centro de Custo',
+      width: 180,
       cell: (row) => (
         <span className="truncate">{row.cost_center_name ?? '-'}</span>
       ),
@@ -783,19 +797,29 @@ export function FinanceCommitments() {
     {
       id: 'category',
       header: 'Categoria',
-      width: 120,
+      width: 110,
       cell: (row) => getCategoryLabel(row.category),
     },
     {
       id: 'budget_month',
       header: 'Mês Budget',
-      width: 140,
+      width: 130,
       cell: (row) => formatMonth(row.budget_month),
+    },
+    {
+      id: 'description',
+      header: 'Observações',
+      width: 200,
+      cell: (row) => (
+        <span className="truncate text-sm text-muted-foreground">
+          {row.description || row.notes || '-'}
+        </span>
+      ),
     },
     {
       id: 'due_date',
       header: 'Vencimento',
-      width: 120,
+      width: 110,
       cell: (row) => row.due_date ? formatDate(row.due_date) : '-',
     },
     {
@@ -877,8 +901,8 @@ export function FinanceCommitments() {
         onOpenChange={setShowCreateDialog}
       />
 
-      {/* Detail Sheet */}
-      <CommitmentDetailSheet
+      {/* Detail Dialog */}
+      <CommitmentDetailDialog
         commitment={selectedCommitment}
         open={showDetail}
         onOpenChange={setShowDetail}

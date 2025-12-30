@@ -139,7 +139,8 @@ export interface Commitment {
   status: CommitmentStatus;
   budget_month: string; // YYYY-MM-DD (first day of month)
   due_date?: string;
-  notes?: string;
+  description?: string;
+  notes?: string; // Deprecated: use description
   attachments?: string[];
   created_at: string;
   updated_at: string;

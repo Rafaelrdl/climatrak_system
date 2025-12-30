@@ -170,14 +170,14 @@ function FilterPanel({ filters, onFiltersChange, onClear }: FilterPanelProps) {
             <div className="grid gap-2">
               <Label>Centro de Custo</Label>
               <Select
-                value={filters.cost_center_id ?? ''}
-                onValueChange={(v) => onFiltersChange({ ...filters, cost_center_id: v || undefined })}
+                value={filters.cost_center_id ?? 'all'}
+                onValueChange={(v) => onFiltersChange({ ...filters, cost_center_id: v === 'all' ? undefined : v })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   {costCenters?.map((cc) => (
                     <SelectItem key={cc.id} value={cc.id}>
                       {cc.name}
@@ -190,14 +190,14 @@ function FilterPanel({ filters, onFiltersChange, onClear }: FilterPanelProps) {
             <div className="grid gap-2">
               <Label>Categoria</Label>
               <Select
-                value={filters.category ?? ''}
-                onValueChange={(v) => onFiltersChange({ ...filters, category: v as TransactionCategory || undefined })}
+                value={filters.category ?? 'all'}
+                onValueChange={(v) => onFiltersChange({ ...filters, category: v === 'all' ? undefined : v as TransactionCategory })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
                   {CATEGORIES.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
                       {cat.label}
@@ -210,14 +210,14 @@ function FilterPanel({ filters, onFiltersChange, onClear }: FilterPanelProps) {
             <div className="grid gap-2">
               <Label>Tipo</Label>
               <Select
-                value={filters.type ?? ''}
-                onValueChange={(v) => onFiltersChange({ ...filters, type: v as TransactionType || undefined })}
+                value={filters.type ?? 'all'}
+                onValueChange={(v) => onFiltersChange({ ...filters, type: v === 'all' ? undefined : v as TransactionType })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   {TRANSACTION_TYPES.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
@@ -797,7 +797,7 @@ export function FinanceLedger() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Ledger</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Lançamentos</h1>
           <p className="text-muted-foreground">
             Registro de todas as transações de custo
           </p>

@@ -226,9 +226,23 @@ export async function getTransactions(
 export async function createManualTransaction(
   input: ManualTransactionInput
 ): Promise<CostTransaction> {
+  // Converter campos do frontend para o formato do backend
+  const payload = {
+    transaction_type: input.transaction_type,
+    category: input.category,
+    amount: input.amount,
+    currency: input.currency,
+    occurred_at: input.occurred_at,
+    cost_center: input.cost_center_id,
+    asset: input.asset_id,
+    work_order: input.work_order_id,
+    meta: input.meta,
+    description: input.meta?.reason || 'Ajuste manual',
+  };
+  
   const { data } = await api.post<ApiResponse<CostTransaction>>(
-    `${BASE_URL}/transactions/manual/`,
-    input
+    `${BASE_URL}/transactions/`,
+    payload
   );
   return data.data ?? data as unknown as CostTransaction;
 }
@@ -251,7 +265,20 @@ export async function getCommitment(id: string): Promise<Commitment> {
 }
 
 export async function createCommitment(input: CommitmentInput): Promise<Commitment> {
-  const { data } = await api.post<ApiResponse<Commitment>>(`${BASE_URL}/commitments/`, input);
+  // Converter campos do frontend para o formato do backend
+  const payload = {
+    cost_center: input.cost_center_id,
+    category: input.category,
+    amount: input.amount,
+    currency: input.currency,
+    budget_month: input.budget_month,
+    description: input.description,
+    vendor_name: input.vendor_id,
+    work_order: input.work_order_id,
+    submit: input.status === 'submitted',
+  };
+  
+  const { data } = await api.post<ApiResponse<Commitment>>(`${BASE_URL}/commitments/`, payload);
   return data.data ?? data as unknown as Commitment;
 }
 
