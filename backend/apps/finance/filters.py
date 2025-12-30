@@ -157,7 +157,7 @@ class CostTransactionFilter(django_filters.FilterSet):
     # Filtros de relacionamento
     cost_center = django_filters.UUIDFilter(field_name='cost_center_id')
     asset = django_filters.UUIDFilter(field_name='asset_id')
-    work_order = django_filters.UUIDFilter(field_name='work_order_id')
+    work_order = django_filters.NumberFilter(field_name='work_order_id')
     vendor_id = django_filters.UUIDFilter()
     
     # Filtros de período (occurred_at)

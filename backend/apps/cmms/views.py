@@ -444,6 +444,48 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
             **summary
         })
 
+    @action(detail=True, methods=['post'], url_path='post-costs')
+    def post_costs(self, request, pk=None):
+        """
+        Processa e posta custos da OS manualmente no Finance.
+        
+        Dispara o Cost Engine para processar os custos desta OS.
+        """
+        from django.db import connection
+        from apps.finance.cost_engine import CostEngineService
+        from .services import WorkOrderService
+        
+        work_order = self.get_object()
+        
+        # Verificar se OS está concluída
+        if work_order.status != WorkOrder.Status.COMPLETED:
+            return Response(
+                {'error': 'Somente Ordens de Serviço concluídas podem ter custos processados'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Montar dados do evento work_order.closed
+        event_data = WorkOrderService._build_work_order_closed_payload(work_order)
+        
+        try:
+            # Processar custos via Cost Engine
+            result = CostEngineService.process_work_order_closed(
+                event_data=event_data,
+                tenant_id=connection.schema_name
+            )
+            
+            return Response({
+                'success': True,
+                'work_order_id': work_order.id,
+                'work_order_number': work_order.number,
+                **result
+            })
+        except Exception as e:
+            return Response(
+                {'error': f'Erro ao processar custos: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """Retorna estatísticas das OS."""

@@ -18,7 +18,7 @@ class UserBasicSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'email', 'username', 'first_name', 'last_name', 
-                  'full_name', 'initials', 'avatar']
+                  'full_name', 'initials', 'avatar', 'position']
         read_only_fields = fields
 
 
@@ -42,11 +42,14 @@ class TenantMembershipSerializer(serializers.ModelSerializer):
 
 
 class UpdateMembershipSerializer(serializers.ModelSerializer):
-    """Serializer for updating membership role/status."""
+    """Serializer for updating membership role/status and user position."""
+    
+    position = serializers.CharField(required=False, allow_blank=True, allow_null=True, 
+                                      help_text="Cargo do usuário (ex: Eletricista, Técnico HVAC)")
     
     class Meta:
         model = TenantMembership
-        fields = ['role', 'status']
+        fields = ['role', 'status', 'position']
     
     def validate_role(self, value):
         """Ensure tenant has at least one owner."""
@@ -66,6 +69,21 @@ class UpdateMembershipSerializer(serializers.ModelSerializer):
                 )
         
         return value
+    
+    def update(self, instance, validated_data):
+        """Update membership and optionally user position."""
+        # Extract position if present (it's not a TenantMembership field)
+        position = validated_data.pop('position', None)
+        
+        # Update membership fields (role, status)
+        instance = super().update(instance, validated_data)
+        
+        # Update user position if provided
+        if position is not None:
+            instance.user.position = position
+            instance.user.save(update_fields=['position'])
+        
+        return instance
 
 
 class InviteSerializer(serializers.ModelSerializer):

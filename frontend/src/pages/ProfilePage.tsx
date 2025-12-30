@@ -6,6 +6,7 @@ import { ProfileDataForm } from '@/components/profile/forms/ProfileDataForm';
 import { PreferencesForm } from '@/components/profile/forms/PreferencesForm';
 import { SecurityForm } from '@/components/profile/forms/SecurityForm';
 import { useUsers } from '@/data/usersStore';
+import { updateProfile } from '@/services/authService';
 import { toast } from 'sonner';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 
@@ -45,10 +46,34 @@ export function ProfilePage() {
 
   const handleSaveProfile = useCallback(async (data: any) => {
     try {
-      updateCurrentUser(data);
+      // Mapear campos do frontend para o backend
+      const profileData: any = {};
+      
+      // Extrair first_name e last_name do campo 'name'
+      if (data.name) {
+        const nameParts = data.name.trim().split(' ');
+        profileData.first_name = nameParts[0] || '';
+        profileData.last_name = nameParts.slice(1).join(' ') || '';
+      }
+      
+      if (data.phone !== undefined) profileData.phone = data.phone;
+      if (data.position !== undefined) profileData.position = data.position;
+      if (data.bio !== undefined) profileData.bio = data.bio;
+      
+      // Chamar API para salvar no backend
+      const response = await updateProfile(profileData);
+      
+      // Atualizar localStorage com os dados retornados
+      updateCurrentUser({
+        name: response.user.full_name,
+        phone: response.user.phone,
+        position: response.user.position,
+        avatar_url: data.avatar_url, // Avatar é tratado separadamente
+      });
+      
       toast.success('Perfil atualizado com sucesso');
-    } catch (error) {
-      toast.error('Erro ao atualizar perfil');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao atualizar perfil');
       console.error('Error updating profile:', error);
     }
   }, [updateCurrentUser]);

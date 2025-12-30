@@ -232,3 +232,16 @@ export async function changePassword(
   });
   return data;
 }
+
+export async function updateProfile(profileData: {
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  bio?: string;
+  position?: string;
+  timezone?: string;
+  time_format?: string;
+}): Promise<{ user: any; message: string }> {
+  const { data } = await api.patch<{ user: any; message: string }>('/users/me/', profileData);
+  return data;
+}

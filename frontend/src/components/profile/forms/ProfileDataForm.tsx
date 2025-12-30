@@ -1,11 +1,13 @@
 import { useState, useRef, useCallback, useEffect, RefObject } from 'react';
-import { User, Upload, X, Camera, Check, AlertCircle } from 'lucide-react';
+import { User, Upload, X, Camera, Check, AlertCircle, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useRateCards } from '@/hooks/finance';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { User as UserType } from '@/models/user';
@@ -20,6 +22,7 @@ export function ProfileDataForm({ user, onSave, externalFileInputRef }: ProfileD
   const [formData, setFormData] = useState({
     name: user.name || '',
     phone: user.phone || '',
+    position: user.position || '',
     avatar_url: user.avatar_url || '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -30,11 +33,15 @@ export function ProfileDataForm({ user, onSave, externalFileInputRef }: ProfileD
   const internalFileInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = externalFileInputRef || internalFileInputRef;
 
+  // Buscar cargos disponíveis do Finance
+  const { data: rateCards = [], isLoading: isLoadingRateCards } = useRateCards();
+
   // Check if form has changes
   useEffect(() => {
     const hasChanges = 
       formData.name !== (user.name || '') ||
       formData.phone !== (user.phone || '') ||
+      formData.position !== (user.position || '') ||
       formData.avatar_url !== (user.avatar_url || '');
     setIsDirty(hasChanges);
   }, [formData, user]);
@@ -127,6 +134,7 @@ export function ProfileDataForm({ user, onSave, externalFileInputRef }: ProfileD
     setFormData({
       name: user.name || '',
       phone: user.phone || '',
+      position: user.position || '',
       avatar_url: user.avatar_url || '',
     });
     setAvatarPreview(user.avatar_url || '');
@@ -274,6 +282,39 @@ export function ProfileDataForm({ user, onSave, externalFileInputRef }: ProfileD
                     {errors.phone}
                   </p>
                 )}
+              </div>
+
+              {/* Cargo */}
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="position" className="text-sm font-medium flex items-center gap-1.5">
+                  <Briefcase className="h-3.5 w-3.5" />
+                  Cargo / Função
+                </Label>
+                <Select
+                  value={formData.position}
+                  onValueChange={(value) => handleInputChange('position', value)}
+                  disabled={isLoadingRateCards}
+                >
+                  <SelectTrigger id="position" className="w-full">
+                    <SelectValue placeholder={isLoadingRateCards ? "Carregando cargos..." : "Selecione seu cargo"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rateCards.length === 0 ? (
+                      <SelectItem value="_empty" disabled>
+                        Nenhum cargo cadastrado no Finance
+                      </SelectItem>
+                    ) : (
+                      rateCards.map((rateCard) => (
+                        <SelectItem key={rateCard.id} value={rateCard.role}>
+                          {rateCard.role}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Este cargo será usado para calcular custos de mão de obra em Ordens de Serviço
+                </p>
               </div>
             </div>
 

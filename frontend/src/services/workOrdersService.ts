@@ -310,6 +310,22 @@ export const workOrdersService = {
   },
 
   /**
+   * Processa e posta custos da OS no Finance
+   */
+  async postCosts(id: string): Promise<{
+    success: boolean;
+    transactions_created: number;
+    transactions: string[];
+  }> {
+    const response = await api.post<{
+      success: boolean;
+      transactions_created: number;
+      transactions: string[];
+    }>(`/cmms/work-orders/${id}/post-costs/`);
+    return response.data;
+  },
+
+  /**
    * Upload de foto para uma OS
    */
   async uploadPhoto(id: string, file: File, caption?: string): Promise<UploadedPhoto> {

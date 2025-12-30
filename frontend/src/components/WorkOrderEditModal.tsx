@@ -37,6 +37,7 @@ import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useStockItems } from '@/hooks/useInventoryQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';
 import { useWorkOrder } from '@/hooks/useWorkOrdersQuery';
+import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
 import { printWorkOrder } from '@/utils/printWorkOrder';
 import { workOrdersService } from '@/services/workOrdersService';
 import type { WorkOrder, WorkOrderStockItem, ChecklistResponse, UploadedPhoto, StockItem } from '@/types';
@@ -141,6 +142,9 @@ export function WorkOrderEditModal({
   
   // Lista de técnicos da API
   const { data: technicians = [] } = useTechnicians();
+  
+  // Configurações de status e tipos
+  const { settings } = useWorkOrderSettingsStore();
   
   // Simulação do hook de autenticação - substituir pela implementação real
   const user = { name: 'Usuário Atual', role: 'ADMIN' }; // Placeholder
@@ -601,24 +605,17 @@ export function WorkOrderEditModal({
                                     <SelectValue placeholder="Selecione" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="CORRECTIVE">
-                                      <div className="flex items-center gap-2">
-                                        <Wrench className="h-3.5 w-3.5" />
-                                        <span>Corretiva</span>
-                                      </div>
-                                    </SelectItem>
-                                    <SelectItem value="PREVENTIVE">
-                                      <div className="flex items-center gap-2">
-                                        <Calendar className="h-3.5 w-3.5" />
-                                        <span>Preventiva</span>
-                                      </div>
-                                    </SelectItem>
-                                    <SelectItem value="REQUEST">
-                                      <div className="flex items-center gap-2">
-                                        <ClipboardList className="h-3.5 w-3.5" />
-                                        <span>Solicitação</span>
-                                      </div>
-                                    </SelectItem>
+                                    {settings.types.map((type) => (
+                                      <SelectItem key={type.id} value={type.id}>
+                                        <div className="flex items-center gap-2">
+                                          <div 
+                                            className="w-2 h-2 rounded-full" 
+                                            style={{ backgroundColor: type.color }}
+                                          />
+                                          <span className="text-sm">{type.label}</span>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
                                   </SelectContent>
                                 </Select>
                                 {formData.type === 'REQUEST' && (
@@ -687,24 +684,17 @@ export function WorkOrderEditModal({
                                     <SelectValue placeholder="Selecione" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="OPEN">
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                                        <span className="text-sm">Aberta</span>
-                                      </div>
-                                    </SelectItem>
-                                    <SelectItem value="IN_PROGRESS">
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-blue-500" />
-                                        <span className="text-sm">Em Progresso</span>
-                                      </div>
-                                    </SelectItem>
-                                    <SelectItem value="COMPLETED">
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-green-500" />
-                                        <span className="text-sm">Concluída</span>
-                                      </div>
-                                    </SelectItem>
+                                    {settings.statuses.map((status) => (
+                                      <SelectItem key={status.id} value={status.id}>
+                                        <div className="flex items-center gap-2">
+                                          <div 
+                                            className="w-2 h-2 rounded-full" 
+                                            style={{ backgroundColor: status.color }}
+                                          />
+                                          <span className="text-sm">{status.label}</span>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
                                   </SelectContent>
                                 </Select>
                                 {errors.status && (
@@ -1105,9 +1095,11 @@ export function WorkOrderEditModal({
                               <SelectValue placeholder="Selecione o status" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="OPEN">Aberta</SelectItem>
-                              <SelectItem value="IN_PROGRESS">Em Andamento</SelectItem>
-                              <SelectItem value="COMPLETED">Concluída</SelectItem>
+                              {settings.statuses.map((status) => (
+                                <SelectItem key={status.id} value={status.id}>
+                                  {status.label}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                           {errors.status && <p className="text-sm text-destructive">{errors.status}</p>}

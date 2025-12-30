@@ -135,11 +135,11 @@ function FilterPanel({ filters, onFiltersChange, onClear }: FilterPanelProps) {
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (filters.cost_center_id) count++;
+    if (filters.cost_center) count++;
     if (filters.category) count++;
     if (filters.type) count++;
-    if (filters.asset_id) count++;
-    if (filters.work_order_id) count++;
+    if (filters.asset) count++;
+    if (filters.work_order) count++;
     return count;
   }, [filters]);
 
@@ -171,8 +171,8 @@ function FilterPanel({ filters, onFiltersChange, onClear }: FilterPanelProps) {
             <div className="grid gap-2">
               <Label>Centro de Custo</Label>
               <Select
-                value={filters.cost_center_id ?? 'all'}
-                onValueChange={(v) => onFiltersChange({ ...filters, cost_center_id: v === 'all' ? undefined : v })}
+                value={filters.cost_center ?? 'all'}
+                onValueChange={(v) => onFiltersChange({ ...filters, cost_center: v === 'all' ? undefined : v })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
@@ -661,9 +661,9 @@ export function FinanceLedger() {
   const filters: LedgerFilters = useMemo(() => ({
     start_date: searchParams.get('start_date') ?? getFirstDayOfMonth(),
     end_date: searchParams.get('end_date') ?? getLastDayOfMonth(),
-    cost_center_id: searchParams.get('cost_center_id') ?? undefined,
-    asset_id: searchParams.get('asset_id') ?? undefined,
-    work_order_id: searchParams.get('work_order_id') ?? undefined,
+    cost_center: searchParams.get('cost_center_id') ?? undefined,
+    asset: searchParams.get('asset_id') ?? undefined,
+    work_order: searchParams.get('work_order_id') ?? undefined,
     category: searchParams.get('category') as TransactionCategory ?? undefined,
     type: searchParams.get('type') as TransactionType ?? undefined,
     page: Number(searchParams.get('page')) || 1,

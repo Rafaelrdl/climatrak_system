@@ -38,9 +38,9 @@ interface UseWorkOrderCostsReturn {
  */
 export function useWorkOrderCosts(workOrderId: string | undefined): UseWorkOrderCostsReturn {
   const query = useQuery({
-    queryKey: financeKeys.ledger.list({ work_order_id: workOrderId }),
+    queryKey: financeKeys.ledger.list({ work_order: workOrderId }),
     queryFn: () => financeService.getTransactions({ 
-      work_order_id: workOrderId,
+      work_order: workOrderId,
       page_size: 100, // Buscar todos os custos da OS
     }),
     enabled: !!workOrderId,
@@ -65,7 +65,19 @@ export function useWorkOrderCosts(workOrderId: string | undefined): UseWorkOrder
 
     return transactions.reduce((acc, tx) => {
       const amount = tx.amount;
-      acc[tx.transaction_type as TransactionType] += amount;
+      const type = tx.transaction_type;
+      
+      // Mapear tipos de transação para as chaves corretas
+      if (type === 'labor') {
+        acc.labor += amount;
+      } else if (type === 'parts') {
+        acc.parts += amount;
+      } else if (type === 'third_party') {
+        acc.third_party += amount;
+      } else if (type === 'adjustment') {
+        acc.adjustment += amount;
+      }
+      
       acc.total += amount;
       return acc;
     }, initial);

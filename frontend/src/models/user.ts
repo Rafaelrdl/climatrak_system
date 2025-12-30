@@ -18,6 +18,7 @@ export interface User {
   status: UserStatus;
   avatar_url?: string;        // base64 ou URL local
   phone?: string;
+  position?: string;          // Cargo (ex: Eletricista, Técnico HVAC)
   created_at: string;         // ISO
   updated_at?: string;        // ISO
   last_login_at?: string;     // ISO

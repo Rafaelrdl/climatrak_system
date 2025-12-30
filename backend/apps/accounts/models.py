@@ -27,6 +27,7 @@ class User(AbstractUser):
     avatar = models.CharField('Avatar URL', max_length=500, blank=True, null=True)
     phone = models.CharField('Phone', max_length=20, blank=True, null=True)
     bio = models.TextField('Bio', blank=True, null=True)
+    position = models.CharField('Cargo/Posição', max_length=100, blank=True, null=True, help_text='Cargo do usuário (ex: Eletricista, Técnico HVAC, Supervisor). Deve corresponder a uma Taxa de Mão de Obra no Finance.')
     
     # Preferences
     timezone = models.CharField('Timezone', max_length=50, default='America/Sao_Paulo')

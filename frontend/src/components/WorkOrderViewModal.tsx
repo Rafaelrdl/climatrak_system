@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,12 +24,20 @@ import {
   PlayCircle,
   Circle,
   ChevronRight,
-  Image as ImageIcon
+  Image as ImageIcon,
+  DollarSign,
+  Truck,
+  ExternalLink,
+  AlertCircle
 } from 'lucide-react';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useSectors, useCompanies } from '@/hooks/useLocationsQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';
 import { useWorkOrder } from '@/hooks/useWorkOrdersQuery';
+import { useWorkOrderCosts } from '@/hooks/finance/useWorkOrderCosts';
+import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
+import { workOrdersService } from '@/services/workOrdersService';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { WorkOrder } from '@/types';
 
@@ -76,10 +85,34 @@ export function WorkOrderViewModal({
   // Usar dados completos se disponíveis, senão usar os dados passados como prop
   const currentWorkOrder = workOrderDetails || workOrder;
   
+  // Buscar custos da ordem de serviço
+  const { 
+    summary: costsSummary, 
+    transactions: costTransactions,
+    isLoading: isLoadingCosts,
+    refetch: refetchCosts
+  } = useWorkOrderCosts(isOpen && currentWorkOrder?.id ? currentWorkOrder.id : undefined);
+  
   const { data: equipment = [] } = useEquipments();
   const { data: sectors = [] } = useSectors();
   const { data: companies = [] } = useCompanies();
   const { data: technicians = [] } = useTechnicians();
+  
+  // Buscar configurações de status do store (ANTES do early return)
+  const { settings } = useWorkOrderSettingsStore();
+
+  // Verificar se a OS está completa mas não tem custos postados
+  const isCompleted = currentWorkOrder?.status === 'COMPLETED';
+  const hasCosts = costsSummary.total > 0;
+  const needsPostCosts = isCompleted && !hasCosts && !isLoadingCosts;
+
+  // Função para formatar valores monetários
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
 
   if (!currentWorkOrder) {
     return null;
@@ -90,26 +123,38 @@ export function WorkOrderViewModal({
   const selectedCompany = companies.find(c => c.id === selectedSector?.companyId);
   const assignedTechnician = technicians.find(t => String(t.id) === currentWorkOrder.assignedTo);
 
-  const statusConfig: Record<string, { color: string; bgColor: string; icon: React.ElementType; label: string }> = {
-    'OPEN': { 
-      color: 'text-blue-600', 
-      bgColor: 'bg-blue-50 border-blue-200', 
-      icon: Circle, 
-      label: 'Aberta' 
-    },
-    'IN_PROGRESS': { 
-      color: 'text-amber-600', 
-      bgColor: 'bg-amber-50 border-amber-200', 
-      icon: PlayCircle, 
-      label: 'Em Execução' 
-    },
-    'COMPLETED': { 
-      color: 'text-emerald-600', 
-      bgColor: 'bg-emerald-50 border-emerald-200', 
-      icon: CheckCircle2, 
-      label: 'Concluída' 
-    },
+  // Mapear ícones para cada status
+  const getStatusIcon = (statusId: string) => {
+    if (statusId === 'COMPLETED') return CheckCircle2;
+    if (statusId === 'IN_PROGRESS') return PlayCircle;
+    return Circle;
   };
+
+  // Converter hex para classes Tailwind
+  const getColorClasses = (hexColor: string) => {
+    const colorMap: Record<string, { text: string; bg: string; border: string }> = {
+      '#3b82f6': { text: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+      '#f59e0b': { text: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
+      '#22c55e': { text: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+      '#6b7280': { text: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' },
+      '#ef4444': { text: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
+      '#8b5cf6': { text: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200' },
+    };
+    return colorMap[hexColor] || { text: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' };
+  };
+
+  // Construir statusConfig dinamicamente a partir das configurações
+  const statusConfig: Record<string, { color: string; bgColor: string; icon: React.ElementType; label: string }> = 
+    settings.statuses.reduce((acc, status) => {
+      const colors = getColorClasses(status.color);
+      acc[status.id] = {
+        color: colors.text,
+        bgColor: `${colors.bg} ${colors.border}`,
+        icon: getStatusIcon(status.id),
+        label: status.label
+      };
+      return acc;
+    }, {} as Record<string, { color: string; bgColor: string; icon: React.ElementType; label: string }>);
 
   const priorityConfig: Record<string, { color: string; bgColor: string; label: string }> = {
     'LOW': { color: 'text-slate-600', bgColor: 'bg-slate-100 border-slate-300', label: 'Baixa' },
@@ -118,16 +163,23 @@ export function WorkOrderViewModal({
     'CRITICAL': { color: 'text-red-600', bgColor: 'bg-red-100 border-red-300', label: 'Crítica' },
   };
 
-  const typeConfig: Record<string, { color: string; bgColor: string; label: string }> = {
-    'PREVENTIVE': { color: 'text-violet-600', bgColor: 'bg-violet-50 border-violet-200', label: 'Preventiva' },
-    'CORRECTIVE': { color: 'text-rose-600', bgColor: 'bg-rose-50 border-rose-200', label: 'Corretiva' },
-    'REQUEST': { color: 'text-cyan-600', bgColor: 'bg-cyan-50 border-cyan-200', label: 'Solicitação' },
-  };
+  // Construir typeConfig dinamicamente a partir das configurações
+  const typeConfig: Record<string, { color: string; bgColor: string; label: string }> = 
+    settings.types.reduce((acc, type) => {
+      const colors = getColorClasses(type.color);
+      acc[type.id] = {
+        color: colors.text,
+        bgColor: `${colors.bg} ${colors.border}`,
+        label: type.label
+      };
+      return acc;
+    }, {} as Record<string, { color: string; bgColor: string; label: string }>);
 
-  const status = statusConfig[currentWorkOrder.status] || statusConfig['OPEN'];
+  // Buscar status/tipo atual ou usar primeiro disponível como fallback
+  const status = statusConfig[currentWorkOrder.status] || Object.values(statusConfig)[0];
   const priority = priorityConfig[currentWorkOrder.priority] || priorityConfig['MEDIUM'];
-  const type = typeConfig[currentWorkOrder.type] || typeConfig['CORRECTIVE'];
-  const StatusIcon = status.icon;
+  const type = typeConfig[currentWorkOrder.type] || Object.values(typeConfig)[0];
+  const StatusIcon = status?.icon || Circle;
 
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return '-';
@@ -164,7 +216,7 @@ export function WorkOrderViewModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] p-0 gap-0 overflow-hidden">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] p-0 gap-0 overflow-hidden" aria-describedby="work-order-description">
           {/* Header com gradiente sutil */}
           <DialogHeader className="px-6 pt-6 pb-4 bg-gradient-to-b from-muted/50 to-transparent">
             <div className="flex items-start justify-between gap-4 pr-10">
@@ -180,7 +232,7 @@ export function WorkOrderViewModal({
                     <DialogTitle className="text-lg font-semibold">
                       OS #{currentWorkOrder.number}
                     </DialogTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <p id="work-order-description" className="text-sm text-muted-foreground">
                       Criada em {formatDateTime(currentWorkOrder.createdAt)}
                     </p>
                   </div>
@@ -415,6 +467,146 @@ export function WorkOrderViewModal({
                     </CardContent>
                   </Card>
                 )}
+
+                {/* Card: Custos */}
+                <Card className="border-muted">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-primary" />
+                        <h3 className="font-medium text-sm">Custos</h3>
+                      </div>
+                      <Link 
+                        to={`/finance/ledger?work_order_id=${currentWorkOrder.id}`}
+                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                      >
+                        Ver no Ledger
+                        <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    </div>
+                    
+                    {isLoadingCosts ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : needsPostCosts ? (
+                      <div className="space-y-4">
+                        {/* Aviso de custos não processados */}
+                        <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                          <div className="flex gap-3">
+                            <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                              <h4 className="font-medium text-sm text-amber-900 dark:text-amber-100 mb-1">
+                                Custos ainda não processados
+                              </h4>
+                              <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
+                                Esta OS foi concluída mas os custos ainda não foram lançados no Finance. 
+                                O processamento inclui:
+                              </p>
+                              <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-1 mb-3 ml-4">
+                                <li className="flex items-center gap-2">
+                                  <Clock className="h-3 w-3" />
+                                  <span><strong>Mão de Obra:</strong> Calculada com base nas horas trabalhadas e taxa por cargo</span>
+                                </li>
+                                <li className="flex items-center gap-2">
+                                  <Package className="h-3 w-3" />
+                                  <span><strong>Peças:</strong> Materiais utilizados do estoque</span>
+                                </li>
+                                <li className="flex items-center gap-2">
+                                  <Truck className="h-3 w-3" />
+                                  <span><strong>Terceiros:</strong> Custos externos registrados</span>
+                                </li>
+                              </ul>
+                              <p className="text-xs text-amber-700 dark:text-amber-300 italic">
+                                <strong>Importante:</strong> Para o cálculo de mão de obra, certifique-se de que os técnicos 
+                                têm <strong>Cargo</strong> configurado e que há <strong>Taxas de Mão de Obra</strong> cadastradas 
+                                no módulo Finance.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Botão para processar custos */}
+                        <div className="flex justify-center">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="gap-2"
+                            onClick={async () => {
+                              try {
+                                const result = await workOrdersService.postCosts(String(currentWorkOrder.id));
+                                toast.success(`Custos processados! ${result.transactions_created} transação(ões) criada(s)`);
+                                refetchCosts();
+                              } catch (error: any) {
+                                toast.error(error.message || 'Erro ao processar custos');
+                              }
+                            }}
+                          >
+                            <DollarSign className="h-4 w-4" />
+                            Processar Custos Agora
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Breakdown por tipo */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                          {/* Mão de Obra */}
+                          <div className="p-3 bg-muted/50 border border-muted rounded-lg">
+                            <div className="flex items-center gap-1.5 text-muted-foreground mb-2">
+                              <Clock className="h-3.5 w-3.5" />
+                              <span className="text-xs font-medium">Mão de Obra</span>
+                            </div>
+                            <p className="font-semibold text-sm text-foreground">
+                              {formatCurrency(costsSummary.labor)}
+                            </p>
+                          </div>
+                          
+                          {/* Peças */}
+                          <div className="p-3 bg-muted/50 border border-muted rounded-lg">
+                            <div className="flex items-center gap-1.5 text-muted-foreground mb-2">
+                              <Package className="h-3.5 w-3.5" />
+                              <span className="text-xs font-medium">Peças</span>
+                            </div>
+                            <p className="font-semibold text-sm text-foreground">
+                              {formatCurrency(costsSummary.parts)}
+                            </p>
+                          </div>
+                          
+                          {/* Terceiros */}
+                          <div className="p-3 bg-muted/50 border border-muted rounded-lg">
+                            <div className="flex items-center gap-1.5 text-muted-foreground mb-2">
+                              <Truck className="h-3.5 w-3.5" />
+                              <span className="text-xs font-medium">Terceiros</span>
+                            </div>
+                            <p className="font-semibold text-sm text-foreground">
+                              {formatCurrency(costsSummary.third_party)}
+                            </p>
+                          </div>
+
+                          {/* Ajustes */}
+                          <div className="p-3 bg-muted/50 border border-muted rounded-lg">
+                            <div className="flex items-center gap-1.5 text-muted-foreground mb-2">
+                              <AlertCircle className="h-3.5 w-3.5" />
+                              <span className="text-xs font-medium">Ajustes</span>
+                            </div>
+                            <p className="font-semibold text-sm text-foreground">
+                              {formatCurrency(costsSummary.adjustment)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Total */}
+                        <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-center justify-between">
+                          <span className="text-sm font-medium">Total Geral</span>
+                          <span className="text-lg font-bold text-primary">
+                            {formatCurrency(costsSummary.total)}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
             </ScrollArea>
           )}

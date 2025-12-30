@@ -46,6 +46,9 @@ export function TeamPage() {
 
   // Mapear membros da API para o formato esperado pelo TeamTable
   const users: User[] = useMemo(() => {
+    // Debug: verificar dados da API
+    console.log('🔍 TeamMembers da API:', teamMembers);
+    
     return teamMembers.map(member => ({
       id: String(member.user.id),
       name: member.user.full_name || `${member.user.first_name} ${member.user.last_name}`.trim() || member.user.username,
@@ -53,6 +56,7 @@ export function TeamPage() {
       role: member.role === 'owner' ? 'admin' : member.role as 'admin' | 'technician' | 'requester',
       status: member.status === 'suspended' ? 'disabled' : member.status as 'active' | 'disabled',
       avatar: undefined,
+      position: member.user.position,
       created_at: member.joined_at,
       last_login_at: member.joined_at, // API não retorna last_login, usar joined_at
     }));
@@ -187,6 +191,25 @@ export function TeamPage() {
     }
   }, [teamMembers, updateMemberMutation]);
 
+  const handleChangeUserPosition = useCallback(async (userId: string, newPosition: string) => {
+    try {
+      // Encontrar o membro pelo user ID
+      const member = teamMembers.find(m => String(m.user.id) === userId);
+      if (!member) {
+        toast.error('Membro não encontrado');
+        return;
+      }
+      
+      await updateMemberMutation.mutateAsync({ 
+        memberId: member.id, 
+        data: { position: newPosition } 
+      });
+      toast.success('Cargo alterado com sucesso');
+    } catch (error: any) {
+      toast.error('Erro ao alterar cargo do usuário');
+    }
+  }, [teamMembers, updateMemberMutation]);
+
   // Verificar se o usuário atual é admin
   const isCurrentUserAdmin = useMemo(() => {
     if (!currentUser) return false;
@@ -301,6 +324,7 @@ export function TeamPage() {
                 onRevokeInvite={handleRevokeInvite}
                 onToggleUserStatus={handleToggleUserStatus}
                 onChangeUserRole={handleChangeUserRole}
+                onChangeUserPosition={handleChangeUserPosition}
                 currentUserId={currentUser?.id || ''}
                 isAdmin={isCurrentUserAdmin}
               />

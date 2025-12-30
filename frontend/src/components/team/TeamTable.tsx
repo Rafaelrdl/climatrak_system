@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MoreHorizontal, Mail, UserCheck, UserX, RotateCcw, Shield, Clock, Calendar } from 'lucide-react';
+import { MoreHorizontal, Mail, UserCheck, UserX, RotateCcw, Shield, Clock, Calendar, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -32,6 +32,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { IfCan } from '@/components/auth/IfCan';
+import { useRateCards } from '@/hooks/finance';
 import { cn } from '@/lib/utils';
 import type { User } from '@/models/user';
 import type { Invite } from '@/models/invite';
@@ -43,6 +44,7 @@ interface TeamTableProps {
   onRevokeInvite: (inviteId: string) => void;
   onToggleUserStatus: (userId: string, currentStatus: User['status']) => void;
   onChangeUserRole?: (userId: string, newRole: User['role']) => void;
+  onChangeUserPosition?: (userId: string, newPosition: string) => void;
   currentUserId: string;
   isAdmin?: boolean;
 }
@@ -88,10 +90,14 @@ export function TeamTable({
   onRevokeInvite,
   onToggleUserStatus,
   onChangeUserRole,
+  onChangeUserPosition,
   currentUserId,
   isAdmin = false,
 }: TeamTableProps) {
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
+
+  // Buscar cargos disponíveis do Finance
+  const { data: rateCards = [] } = useRateCards();
 
   const handleAction = async (actionId: string, action: () => Promise<void> | void) => {
     setLoadingStates(prev => ({ ...prev, [actionId]: true }));
@@ -173,8 +179,9 @@ export function TeamTable({
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent bg-muted/50">
-              <TableHead scope="col" className="w-[300px] font-medium">Membro</TableHead>
-              <TableHead scope="col" className="font-medium">Papel</TableHead>
+              <TableHead scope="col" className="w-[280px] font-medium">Membro</TableHead>
+              <TableHead scope="col" className="w-[140px] font-medium">Papel</TableHead>
+              <TableHead scope="col" className="w-[140px] font-medium">Cargo</TableHead>
               <TableHead scope="col" className="w-[100px] font-medium">Status</TableHead>
               <TableHead scope="col" className="w-[140px] font-medium">Último Acesso</TableHead>
               <TableHead scope="col" className="w-[48px]">
@@ -185,7 +192,7 @@ export function TeamTable({
           <TableBody>
             {tableData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-32 text-center">
+                <TableCell colSpan={6} className="h-32 text-center">
                   <div className="flex flex-col items-center gap-3">
                     <div className="rounded-full bg-muted p-3">
                       <Mail className="h-6 w-6 text-muted-foreground" />
@@ -320,6 +327,46 @@ export function TeamTable({
                       )}>
                         <Shield className="h-3 w-3" />
                         {roleLabels[data.role] || data.role}
+                      </div>
+                    )}
+                  </TableCell>
+
+                  {/* Cargo */}
+                  <TableCell>
+                    {isUser && isAdmin && !isCurrentUser && onChangeUserPosition ? (
+                      <Select
+                        value={(data as User).position || ''}
+                        onValueChange={(newPosition) => {
+                          handleAction(
+                            `position-${data.id}`,
+                            () => onChangeUserPosition(data.id, newPosition)
+                          );
+                        }}
+                        disabled={loadingStates[`position-${data.id}`]}
+                      >
+                        <SelectTrigger className="h-8 w-[140px] text-xs">
+                          <SelectValue placeholder="Sem cargo">
+                            <div className="flex items-center gap-2">
+                              <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span>{(data as User).position || 'Sem cargo'}</span>
+                            </div>
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">
+                            <span className="text-muted-foreground">Sem cargo</span>
+                          </SelectItem>
+                          {rateCards.map((rateCard) => (
+                            <SelectItem key={rateCard.id} value={rateCard.role}>
+                              {rateCard.role}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Briefcase className="h-3.5 w-3.5" />
+                        <span>{(data as User).position || '—'}</span>
                       </div>
                     )}
                   </TableCell>

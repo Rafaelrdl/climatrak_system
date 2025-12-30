@@ -34,6 +34,7 @@ class UserSerializer(serializers.ModelSerializer):
             'avatar',
             'phone',
             'bio',
+            'position',
             'timezone',
             'time_format',
             'email_verified',
@@ -154,6 +155,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             'last_name',
             'phone',
             'bio',
+            'position',
             'timezone',
             'time_format',
         ]

@@ -221,9 +221,9 @@ export interface FinanceSummary {
 export interface LedgerFilters {
   start_date?: string;
   end_date?: string;
-  cost_center_id?: string;
-  asset_id?: string;
-  work_order_id?: string;
+  cost_center?: string;
+  asset?: string;
+  work_order?: string;
   category?: TransactionCategory;
   type?: TransactionType;
   page?: number;

@@ -227,18 +227,26 @@ export async function createManualTransaction(
   input: ManualTransactionInput
 ): Promise<CostTransaction> {
   // Converter campos do frontend para o formato do backend
-  const payload = {
+  const payload: Record<string, any> = {
     transaction_type: input.transaction_type,
     category: input.category,
     amount: input.amount,
     currency: input.currency,
     occurred_at: input.occurred_at,
-    cost_center: input.cost_center_id,
-    asset: input.asset_id,
-    work_order: input.work_order_id,
-    meta: input.meta,
     description: input.meta?.reason || 'Ajuste manual',
+    meta: input.meta || {},
   };
+
+  // Adicionar apenas campos não-vazios (backend espera UUID ou null, não string vazia)
+  if (input.cost_center_id) {
+    payload.cost_center = input.cost_center_id;
+  }
+  if (input.asset_id) {
+    payload.asset = input.asset_id;
+  }
+  if (input.work_order_id) {
+    payload.work_order = input.work_order_id;
+  }
   
   const { data } = await api.post<ApiResponse<CostTransaction>>(
     `${BASE_URL}/transactions/`,

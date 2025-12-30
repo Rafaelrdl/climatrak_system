@@ -20,6 +20,7 @@ export interface TeamMember {
     first_name: string;
     last_name: string;
     full_name: string;
+    position?: string;
   };
   role: 'owner' | 'admin' | 'operator' | 'viewer' | 'technician';
   status: 'active' | 'inactive' | 'suspended';
@@ -64,6 +65,7 @@ export interface CreateInviteData {
 export interface UpdateMemberData {
   role?: 'admin' | 'operator' | 'viewer' | 'technician';
   status?: 'active' | 'inactive' | 'suspended';
+  position?: string;
 }
 
 // ============================================================================

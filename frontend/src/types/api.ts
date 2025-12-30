@@ -191,6 +191,7 @@ export interface ApiUser {
   avatar_url: string | null;
   avatar?: string | null;
   phone: string | null;
+  position?: string | null;
   is_active: boolean;
   last_login: string | null;
   updated_at?: string | null;
