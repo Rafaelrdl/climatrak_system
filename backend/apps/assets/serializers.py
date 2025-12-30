@@ -121,6 +121,8 @@ class AssetListSerializer(serializers.ModelSerializer):
     
     def get_device_count(self, obj):
         """Retorna o número de dispositivos conectados a este ativo."""
+        if hasattr(obj, 'total_device_count'):
+            return obj.total_device_count
         return obj.devices.count()
     
     def get_company_id(self, obj):
@@ -410,21 +412,29 @@ class AssetCompleteSerializer(serializers.ModelSerializer):
         }
         """
         from apps.ingest.models import Reading
-        from django.db.models import Max
         
         readings = {}
         
         # Buscar sensores ativos do asset
-        sensors = Sensor.objects.filter(
+        sensors = list(Sensor.objects.filter(
             device__asset=obj,
             is_active=True
-        ).select_related('device')
+        ).select_related('device'))
+        
+        if not sensors:
+            return readings
+        
+        sensor_ids = [str(sensor.id) for sensor in sensors]
+        
+        # Buscar a última leitura de cada sensor em uma única query
+        latest_readings = Reading.objects.filter(
+            sensor_id__in=sensor_ids
+        ).order_by('sensor_id', '-ts').distinct('sensor_id')
+        
+        latest_by_sensor = {str(reading.sensor_id): reading for reading in latest_readings}
         
         for sensor in sensors:
-            # Buscar última leitura (campo timestamp é 'ts', não 'time')
-            last_reading = Reading.objects.filter(
-                sensor_id=sensor.id
-            ).order_by('-ts').first()
+            last_reading = latest_by_sensor.get(str(sensor.id))
             
             if last_reading:
                 metric_key = sensor.metric_type.lower() if sensor.metric_type else f'sensor_{sensor.id}'
@@ -483,6 +493,8 @@ class DeviceListSerializer(serializers.ModelSerializer):
     
     def get_sensor_count(self, obj):
         """Retorna o número de sensores neste dispositivo."""
+        if hasattr(obj, 'sensor_count'):
+            return obj.sensor_count
         return obj.sensors.count()
     
     def get_is_online(self, obj):
@@ -552,6 +564,8 @@ class DeviceSerializer(serializers.ModelSerializer):
     
     def get_sensor_count(self, obj):
         """Retorna o número de sensores neste dispositivo."""
+        if hasattr(obj, 'sensor_count'):
+            return obj.sensor_count
         return obj.sensors.count()
     
     def get_is_online(self, obj):

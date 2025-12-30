@@ -5,7 +5,8 @@
  * diretamente de services e types específicos do Monitor.
  */
 
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { assetsService } from '../services/assetsService';
 import { telemetryService, DeviceHistoryResponse } from '../services/telemetryService';
 import type { AssetSensor } from '../types/asset';
@@ -89,146 +90,100 @@ export function useSensorData(
   assetId: number | undefined,
   refreshInterval = 30000
 ): UseSensorDataResult {
-  const [data, setData] = useState<UseSensorDataResult>({
-    value: null,
-    unit: '',
-    isOnline: false,
-    isLoading: true,
-    error: null,
-    sensor: null,
-    trend: null,
+  const sensorsQuery = useQuery({
+    queryKey: ['monitor', 'assetSensors', assetId, sensorTag],
+    queryFn: () => assetsService.getSensors(assetId!),
+    enabled: !!assetId && !!sensorTag,
+    refetchInterval: refreshInterval,
+    staleTime: refreshInterval,
   });
 
-  useEffect(() => {
-    if (!sensorTag || !assetId) {
-      // Para widgets sem sensor configurado, retornar estado vazio sem erro
-      setData({
-        value: null,
-        unit: '',
-        isOnline: false,
-        isLoading: false,
-        error: null,
-        sensor: null,
-        trend: null,
-      });
-      return;
-    }
+  const sensor = useMemo(() => {
+    if (!sensorTag) return null;
+    return sensorsQuery.data?.find(s => s.tag === sensorTag) ?? null;
+  }, [sensorTag, sensorsQuery.data]);
 
-    let isMounted = true;
+  const historyQuery = useQuery({
+    queryKey: [
+      'monitor',
+      'sensorTrend',
+      sensor?.asset_tag ?? null,
+      sensor?.device_mqtt_client_id ?? null,
+      sensorTag,
+    ],
+    queryFn: async () => {
+      if (!sensorTag || !sensor) return [];
+      const assetTag = sensor.asset_tag;
+      const deviceId = sensor.device_mqtt_client_id;
 
-    const fetchSensorData = async () => {
-      try {
-        if (!isMounted) return;
-        
-        setData(prev => ({ ...prev, isLoading: prev.value === null, error: null }));
-        
-        // Buscar todos os sensores do asset
-        const sensors = await assetsService.getSensors(assetId);
-        
-        // Encontrar sensor específico pela tag
-        const targetSensor = sensors.find(s => s.tag === sensorTag);
-        
-        if (!targetSensor) {
-          if (!isMounted) return;
-          setData({
-            value: null,
-            unit: '',
-            isOnline: false,
-            isLoading: false,
-            error: `Sensor ${sensorTag} não encontrado`,
-            sensor: null,
-            trend: null,
-          });
-          return;
-        }
-        
-        // Buscar histórico para calcular tendência (últimas 6 horas)
-        let trend: TrendData | null = null;
-        try {
-          const assetTag = targetSensor.asset_tag;
-          const deviceId = targetSensor.device_mqtt_client_id;
-          
-          let history: DeviceHistoryResponse | null = null;
-          
-          // Tentar primeiro pelo asset_tag
-          if (assetTag) {
-            history = await telemetryService.getHistoryByAsset(
-              assetTag,
-              6, // 6 horas de histórico para ter mais dados
-              [sensorTag],
-              '5m' // Intervalo de 5 minutos
-            );
-          }
-          
-          // Se não retornou dados, tentar pelo device_id
-          if ((!history || history.series.length === 0) && deviceId) {
-            history = await telemetryService.getHistoryByDevice(
-              deviceId,
-              6,
-              [sensorTag],
-              '5m'
-            );
-          }
-          
-          if (history) {
-            // Tentar encontrar série pelo sensorTag ou pelo nome do sensor
-            let sensorSeries = history.series.find(s => 
-              s.sensorId === sensorTag || 
-              s.sensorId === targetSensor.tag ||
-              s.sensorId === targetSensor.name
-            );
-            
-            // Se não encontrou, pegar a primeira série disponível
-            if (!sensorSeries && history.series.length > 0) {
-              sensorSeries = history.series[0];
-            }
-            
-            if (sensorSeries && sensorSeries.data.length >= 2) {
-              trend = calculateTrend(sensorSeries.data);
-            } else {
-              console.warn('📊 Dados insuficientes para calcular tendência:', sensorSeries?.data?.length || 0, 'pontos');
-            }
-          }
-        } catch (historyError) {
-          console.warn('Não foi possível carregar histórico para tendência:', historyError);
-        }
-        
-        if (!isMounted) return;
-        
-        setData({
-          value: targetSensor.last_value,
-          unit: targetSensor.unit || '',
-          isOnline: targetSensor.is_online,
-          isLoading: false,
-          error: null,
-          sensor: targetSensor,
-          trend,
-        });
-        
-      } catch (error: any) {
-        console.error('❌ Erro ao buscar dados do sensor:', error);
-        if (!isMounted) return;
-        
-        setData(prev => ({
-          ...prev,
-          isLoading: false,
-          error: error.message || 'Erro ao carregar dados do sensor',
-        }));
+      let history: DeviceHistoryResponse | null = null;
+
+      if (assetTag) {
+        history = await telemetryService.getHistoryByAsset(
+          assetTag,
+          6,
+          [sensorTag],
+          '5m'
+        );
       }
-    };
 
-    fetchSensorData();
-    
-    // Configurar refresh automático
-    const intervalId = setInterval(fetchSensorData, refreshInterval);
+      if ((!history || history.series.length === 0) && deviceId) {
+        history = await telemetryService.getHistoryByDevice(
+          deviceId,
+          6,
+          [sensorTag],
+          '5m'
+        );
+      }
 
-    return () => {
-      isMounted = false;
-      clearInterval(intervalId);
-    };
-  }, [sensorTag, assetId, refreshInterval]);
+      if (!history) return [];
 
-  return data;
+      let sensorSeries = history.series.find(s => 
+        s.sensorId === sensorTag || 
+        s.sensorId === sensor.tag ||
+        s.sensorId === sensor.name
+      );
+
+      if (!sensorSeries && history.series.length > 0) {
+        sensorSeries = history.series[0];
+      }
+
+      return sensorSeries?.data ?? [];
+    },
+    enabled: !!assetId && !!sensorTag && !!sensor,
+    refetchInterval: refreshInterval,
+    staleTime: refreshInterval,
+  });
+
+  const trend = useMemo(() => {
+    if (!historyQuery.data || historyQuery.data.length < 2) return null;
+    return calculateTrend(historyQuery.data);
+  }, [historyQuery.data]);
+
+  const error = useMemo(() => {
+    if (!sensorTag || !assetId) return null;
+    if (sensorsQuery.error) {
+      return sensorsQuery.error instanceof Error
+        ? sensorsQuery.error.message
+        : 'Erro ao carregar dados do sensor';
+    }
+    if (sensorsQuery.data && !sensor) {
+      return `Sensor ${sensorTag} nao encontrado`;
+    }
+    return null;
+  }, [assetId, sensorTag, sensorsQuery.error, sensorsQuery.data, sensor]);
+
+  const isLoading = !!assetId && !!sensorTag && sensorsQuery.isLoading;
+
+  return {
+    value: sensor?.last_value ?? null,
+    unit: sensor?.unit || '',
+    isOnline: sensor?.is_online ?? false,
+    isLoading,
+    error,
+    sensor,
+    trend,
+  };
 }
 
 /**
@@ -286,101 +241,59 @@ export function useMultiSensorHistory(
   hours: number = 24,
   refreshInterval: number = 60000
 ): UseMultiSensorHistoryResult {
-  const [result, setResult] = useState<UseMultiSensorHistoryResult>({
-    series: [],
-    loading: false,
-    error: null
+  const enabled = !!sensorTags && sensorTags.length > 0 && !!assetTag;
+
+  const historyQuery = useQuery({
+    queryKey: ['monitor', 'multiSensorHistory', assetTag, hours, sensorTags],
+    queryFn: async () => {
+      const response = await telemetryService.getHistoryByAsset(
+        assetTag!,
+        hours,
+        sensorTags
+      );
+
+      const colors = [
+        '#3b82f6', // blue
+        '#10b981', // green
+        '#f59e0b', // amber
+        '#ef4444', // red
+        '#8b5cf6', // violet
+        '#06b6d4', // cyan
+        '#ec4899', // pink
+        '#84cc16', // lime
+      ];
+
+      return (sensorTags || []).map((tag, index) => {
+        const sensorSeries = response.series.find(s => s.sensorId === tag);
+
+        const label = tag.includes('_') ? tag.split('_').slice(1).join('_') : tag;
+
+        const data: SensorHistoryDataPoint[] = sensorSeries?.data.map(point => ({
+          timestamp: new Date(point.timestamp),
+          value: point.value ?? point.avg_value ?? point.max_value ?? point.min_value ?? 0,
+          sensorId: tag
+        })) || [];
+
+        return {
+          sensorTag: tag,
+          label,
+          color: colors[index % colors.length],
+          data
+        };
+      });
+    },
+    enabled,
+    refetchInterval: refreshInterval,
+    staleTime: refreshInterval,
   });
 
-  useEffect(() => {
-    if (!sensorTags || sensorTags.length === 0 || !assetTag) {
-      setResult({
-        series: [],
-        loading: false,
-        error: null
-      });
-      return;
-    }
+  const error = enabled
+    ? (historyQuery.error instanceof Error ? historyQuery.error.message : historyQuery.error ? 'Erro ao carregar dados' : null)
+    : null;
 
-    let isMounted = true;
-    let hasData = false;
-
-    const fetchHistory = async () => {
-      if (!hasData) {
-        setResult(prev => ({ ...prev, loading: true, error: null }));
-      }
-
-      try {
-        // Buscar histórico usando assetTag diretamente
-        const response = await telemetryService.getHistoryByAsset(
-          assetTag,
-          hours,
-          sensorTags
-        );
-
-        if (!isMounted) return;
-
-        // Cores para as séries
-        const colors = [
-          '#3b82f6', // blue
-          '#10b981', // green
-          '#f59e0b', // amber
-          '#ef4444', // red
-          '#8b5cf6', // violet
-          '#06b6d4', // cyan
-          '#ec4899', // pink
-          '#84cc16', // lime
-        ];
-
-        // Mapear séries
-        const series: SensorHistorySeries[] = sensorTags.map((tag, index) => {
-          const sensorSeries = response.series.find(s => s.sensorId === tag);
-          
-          // Extrair nome da variável (remover MAC)
-          const label = tag.includes('_') ? tag.split('_').slice(1).join('_') : tag;
-          
-          const data: SensorHistoryDataPoint[] = sensorSeries?.data.map(point => ({
-            timestamp: new Date(point.timestamp),
-            value: point.value ?? point.avg_value ?? point.max_value ?? point.min_value ?? 0,
-            sensorId: tag
-          })) || [];
-
-          return {
-            sensorTag: tag,
-            label,
-            color: colors[index % colors.length],
-            data
-          };
-        });
-
-        hasData = series.some(s => s.data.length > 0);
-        
-        setResult({
-          series,
-          loading: false,
-          error: null
-        });
-
-      } catch (error) {
-        if (!isMounted) return;
-        console.error('❌ Erro ao buscar histórico dos sensores:', error);
-        setResult({
-          series: [],
-          loading: false,
-          error: error instanceof Error ? error.message : 'Erro ao carregar dados'
-        });
-      }
-    };
-
-    fetchHistory();
-
-    const interval = setInterval(fetchHistory, refreshInterval);
-
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, [sensorTags?.join(','), assetTag, hours, refreshInterval]);
-
-  return result;
+  return {
+    series: enabled ? (historyQuery.data ?? []) : [],
+    loading: enabled ? historyQuery.isLoading : false,
+    error,
+  };
 }

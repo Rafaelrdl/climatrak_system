@@ -44,8 +44,8 @@ export function useWorkOrderCosts(workOrderId: string | undefined): UseWorkOrder
       page_size: 100, // Buscar todos os custos da OS
     }),
     enabled: !!workOrderId,
-    staleTime: 0, // Sempre buscar dados frescos
-    gcTime: 0, // Não manter em cache
+    staleTime: 1000 * 30, // 30 segundos
+    gcTime: 1000 * 60 * 2, // 2 minutos
   });
 
   const transactions = useMemo(() => 

@@ -11,7 +11,7 @@ import { KPICard } from '@/components/KPICard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import * as echarts from 'echarts';
+import type { ECharts, EChartsOption } from 'echarts';
 import { 
   Table, 
   TableBody, 
@@ -64,22 +64,30 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
 
   // Refs para ECharts - um para cada tipo de gráfico
   const echartsContainerRef = useRef<HTMLDivElement>(null);
-  const echartsInstanceRef = useRef<echarts.ECharts | null>(null);
+  const echartsInstanceRef = useRef<ECharts | null>(null);
   const barChartContainerRef = useRef<HTMLDivElement>(null);
-  const barChartInstanceRef = useRef<echarts.ECharts | null>(null);
+  const barChartInstanceRef = useRef<ECharts | null>(null);
+  const echartsModuleRef = useRef<null | typeof import('echarts')>(null);
+
+  const ensureEcharts = async () => {
+    if (!echartsModuleRef.current) {
+      echartsModuleRef.current = await import('echarts');
+    }
+    return echartsModuleRef.current;
+  };
 
   // Dados reais do sistema
   const { data: workOrders = [] } = useWorkOrders();
   const { data: workOrderStats } = useWorkOrderStats();
   const { data: equipment = [] } = useEquipments();
-  
+
   // Dados do sensor configurado
   const sensorTag = widget.config?.sensorTag;
   const sensorTags = widget.config?.sensorTags; // Array de tags para gráficos multi-série
   const assetId = widget.config?.assetId;
   const assetTag = widget.config?.assetTag; // Tag do asset para telemetria
   const sensorData = useSensorData(sensorTag, assetId, 30000);
-  
+
   // Histórico de múltiplas variáveis para gráficos
   const chartTimeRange = chartPeriod === '1h' ? 1 
     : chartPeriod === '12h' ? 12 
@@ -87,18 +95,18 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
     : chartPeriod === '7d' ? 168 
     : chartPeriod === '30d' ? 720 
     : 24;
-  
+
   // Para heatmap-time, usar 7 dias de dados com a única variável configurada
   const heatmapTimeRange = widget.type === 'heatmap-time' ? 168 : chartTimeRange; // 7 dias = 168 horas
   const heatmapSensorTags = widget.type === 'heatmap-time' && sensorTag ? [sensorTag] : sensorTags;
-  
+
   const multiSensorHistory = useMultiSensorHistory(heatmapSensorTags || sensorTags, assetTag, heatmapTimeRange, 60000);
-  
+
   // Dados do heatmap temporal (moved to component level)
   const heatmapData = useMemo(() => {
     // Só calcular para widgets heatmap-time
     if (widget.type !== 'heatmap-time') return null;
-    
+
     if (!multiSensorHistory.series.length || !multiSensorHistory.series[0]?.data.length) {
       return null;
     }
@@ -130,16 +138,16 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
         const dayOfWeek = timestamp.getDay(); // 0 = domingo, 1 = segunda, etc.
         const dayKey = dayMapping[dayOfWeek as keyof typeof dayMapping];
         const hourKey = timestamp.getHours().toString().padStart(2, '0');
-        
+
         if (!grid[dayKey]) {
           grid[dayKey] = {};
         }
-        
+
         grid[dayKey][hourKey] = point.value;
-        
+
         if (point.value < min) min = point.value;
         if (point.value > max) max = point.value;
-        
+
         processedPoints++;
       }
     });
@@ -151,7 +159,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
 
     return { grid, min, max };
   }, [widget.type, multiSensorHistory.series, sensorTag, assetTag]);
-  
+
 
   //   seriesCount: multiSensorHistory.series.length,
   //   loading: multiSensorHistory.loading,
@@ -165,7 +173,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
   //     lastPoint: s.data[s.data.length - 1]
   //   }))
   // });
-  
+
   // Função para remover MAC address do nome da variável
   // Exemplo: "F80332010002C873_temperatura_retorno" -> "temperatura_retorno"
   const formatSensorLabel = (tag: string | undefined): string => {
@@ -183,7 +191,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
     //   seriesLength: multiSensorHistory.series?.length || 0,
     //   series: multiSensorHistory.series
     // });
-    
+
     if (!multiSensorHistory.series || multiSensorHistory.series.length === 0) {
 
       return [];
@@ -213,26 +221,27 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
           minute: '2-digit'
         })
       };
-      
+
       multiSensorHistory.series.forEach(serie => {
         const dataPoint = serie.data.find(d => d.timestamp.getTime() === ts);
         point[serie.label] = dataPoint?.value ?? null;
       });
-      
+
       return point;
     });
-    
+
 
     //   pointsCount: data.length,
     //   firstPoint: data[0],
     //   lastPoint: data[data.length - 1]
     // });
-    
+
     return data;
   }, [multiSensorHistory.series]);
-  
+
   // Effect para gerenciar ECharts (apenas para chart-line-echarts)
-  useEffect(() => {
+    useEffect(() => {
+    let isActive = true;
 
     //   widgetType: widget.type,
     //   hasContainer: !!echartsContainerRef.current,
@@ -242,166 +251,175 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
     //   chartDataLength: chartData.length
     // });
 
-    // Só executar para widgets ECharts
+    // S? executar para widgets ECharts
     if (widget.type !== 'chart-line-echarts' && widget.type !== 'chart-area') {
-      // console.log('📊 ECharts: Tipo de widget não é chart-line-echarts ou chart-area');
-      return;
-    }
-    
-    if (!echartsContainerRef.current) {
-      // console.log('📊 ECharts: Container ref não está disponível ainda');
+      // console.log('?? ECharts: Tipo de widget n?o ? chart-line-echarts ou chart-area');
       return;
     }
 
-    // Inicializar instância do ECharts
-    if (!echartsInstanceRef.current) {
-      // console.log('📊 ECharts: Inicializando instância do ECharts');
-      echartsInstanceRef.current = echarts.init(echartsContainerRef.current);
-    }
+    const renderChart = async () => {
+      if (!echartsContainerRef.current) {
+        // console.log('?? ECharts: Container ref n?o est? dispon?vel ainda');
+        return;
+      }
 
-    // Se tem sensores configurados e dados disponíveis
-    if (sensorTags && sensorTags.length > 0 && assetTag && multiSensorHistory.series.length > 0 && chartData.length > 0) {
-      // console.log('📊 ECharts: Preparando dados para renderizar gráfico', {
-      //   hiddenSeriesCount: hiddenSeries.size,
-      //   hiddenSeries: Array.from(hiddenSeries)
-      // });
-      
-      // Preparar dados para ECharts
-      const timestamps = chartData.map(point => 
-        new Date(point.timestamp).toLocaleString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit',
-          day: '2-digit',
-          month: '2-digit'
-        })
-      );
+      const echartsModule = await ensureEcharts();
+      if (!isActive || !echartsContainerRef.current) {
+        return;
+      }
 
-      // Mapear TODAS as séries, mas controlar visibilidade através da propriedade 'show'
-      const seriesData = multiSensorHistory.series.map(serie => {
-        const isHidden = hiddenSeries.has(serie.label);
-        // console.log(`📊 Série "${serie.label}":`, { isHidden });
-        
-        // Configuração base da série
-        const serieConfig: any = {
-          name: serie.label,
-          type: 'line' as const,
-          smooth: true,
-          symbol: 'circle',
-          symbolSize: 6,
-          lineStyle: {
-            width: 2.5,
-            opacity: isHidden ? 0 : 1,
+      // Inicializar inst?ncia do ECharts
+      if (!echartsInstanceRef.current) {
+        // console.log('?? ECharts: Inicializando inst?ncia do ECharts');
+        echartsInstanceRef.current = echartsModule.init(echartsContainerRef.current);
+      }
+
+      // Se tem sensores configurados e dados dispon?veis
+      if (sensorTags && sensorTags.length > 0 && assetTag && multiSensorHistory.series.length > 0 && chartData.length > 0) {
+        // console.log('?? ECharts: Preparando dados para renderizar gr?fico', {
+        //   hiddenSeriesCount: hiddenSeries.size,
+        //   hiddenSeries: Array.from(hiddenSeries)
+        // });
+
+        // Preparar dados para ECharts
+        const timestamps = chartData.map(point => 
+          new Date(point.timestamp).toLocaleString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            day: '2-digit',
+            month: '2-digit'
+          })
+        );
+
+        // Mapear TODAS as s?ries, mas controlar visibilidade atrav?s da propriedade 'show'
+        const seriesData = multiSensorHistory.series.map(serie => {
+          const isHidden = hiddenSeries.has(serie.label);
+          // console.log(`?? S?rie "${serie.label}":`, { isHidden });
+
+          // Configura??o base da s?rie
+          const serieConfig: any = {
+            name: serie.label,
+            type: 'line' as const,
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            lineStyle: {
+              width: 2.5,
+              opacity: isHidden ? 0 : 1,
+            },
+            itemStyle: {
+              color: serie.color,
+              opacity: isHidden ? 0 : 1,
+            },
+            data: chartData.map(point => point[serie.label]),
+            silent: isHidden,
+          };
+
+          // Se for gr?fico de ?rea, adicionar preenchimento
+          if (widget.type === 'chart-area') {
+            serieConfig.areaStyle = {
+              opacity: isHidden ? 0 : 0.3, // ?rea com 30% de opacidade quando vis?vel
+              color: serie.color,
+            };
+          }
+
+          return serieConfig;
+        });
+
+        const option: EChartsOption = {
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+              type: 'cross',
+              label: {
+                backgroundColor: '#6a7985'
+              }
+            },
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderColor: '#ddd',
+            borderWidth: 1,
+            textStyle: {
+              color: '#333',
+              fontSize: 12
+            },
+            formatter: (params: any) => {
+              if (!Array.isArray(params)) return '';
+              let tooltip = `<strong>${params[0].axisValue}</strong><br/>`;
+              params.forEach((param: any) => {
+                // Pular s?ries ocultas no tooltip
+                const serieLabel = param.seriesName;
+                if (hiddenSeries.has(serieLabel)) return;
+
+                const value = typeof param.value === 'number' ? param.value.toFixed(2) : param.value;
+                tooltip += `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${param.color};margin-right:5px;"></span>${param.seriesName}: <strong>${value}</strong><br/>`;
+              });
+              return tooltip;
+            }
           },
-          itemStyle: {
-            color: serie.color,
-            opacity: isHidden ? 0 : 1,
+          legend: {
+            show: false // Esconder legenda do ECharts, usar no header
           },
-          data: chartData.map(point => point[serie.label]),
-          silent: isHidden,
+          grid: {
+            left: '60px',
+            right: '30px',
+            bottom: '40px',
+            top: '20px',
+            containLabel: false
+          },
+          xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: timestamps,
+            axisLabel: {
+              fontSize: 11,
+              color: '#666',
+              rotate: 45
+            },
+            axisLine: {
+              lineStyle: {
+                color: '#ddd'
+              }
+            }
+          },
+          yAxis: {
+            type: 'value',
+            axisLabel: {
+              fontSize: 11,
+              color: '#666'
+            },
+            splitLine: {
+              lineStyle: {
+                color: '#eee',
+                type: 'dashed'
+              }
+            },
+            axisLine: {
+              lineStyle: {
+                color: '#ddd'
+              }
+            }
+          },
+          series: seriesData
         };
 
-        // Se for gráfico de área, adicionar preenchimento
-        if (widget.type === 'chart-area') {
-          serieConfig.areaStyle = {
-            opacity: isHidden ? 0 : 0.3, // Área com 30% de opacidade quando visível
-            color: serie.color,
-          };
-        }
+        // console.log('?? ECharts: Setando op??es do gr?fico:', {
+        //   timestamps: timestamps.length,
+        //   seriesData: seriesData.length,
+        //   visibleSeries: seriesData.filter((s: any) => !s.silent).length,
+        //   hiddenSeriesCount: hiddenSeries.size
+        // });
 
-        return serieConfig;
-      });
+        // Usar setOption com notMerge: true para for?ar re-renderiza??o completa
+        echartsInstanceRef.current.setOption(option, {
+          notMerge: true, // N?o fazer merge, substituir completamente
+          replaceMerge: ['series'], // Substituir array de s?ries
+        });
 
-      const option: echarts.EChartsOption = {
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: {
-            type: 'cross',
-            label: {
-              backgroundColor: '#6a7985'
-            }
-          },
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          borderColor: '#ddd',
-          borderWidth: 1,
-          textStyle: {
-            color: '#333',
-            fontSize: 12
-          },
-          formatter: (params: any) => {
-            if (!Array.isArray(params)) return '';
-            let tooltip = `<strong>${params[0].axisValue}</strong><br/>`;
-            params.forEach((param: any) => {
-              // Pular séries ocultas no tooltip
-              const serieLabel = param.seriesName;
-              if (hiddenSeries.has(serieLabel)) return;
-              
-              const value = typeof param.value === 'number' ? param.value.toFixed(2) : param.value;
-              tooltip += `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${param.color};margin-right:5px;"></span>${param.seriesName}: <strong>${value}</strong><br/>`;
-            });
-            return tooltip;
-          }
-        },
-        legend: {
-          show: false // Esconder legenda do ECharts, usar no header
-        },
-        grid: {
-          left: '60px',
-          right: '30px',
-          bottom: '40px',
-          top: '20px',
-          containLabel: false
-        },
-        xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: timestamps,
-          axisLabel: {
-            fontSize: 11,
-            color: '#666',
-            rotate: 45
-          },
-          axisLine: {
-            lineStyle: {
-              color: '#ddd'
-            }
-          }
-        },
-        yAxis: {
-          type: 'value',
-          axisLabel: {
-            fontSize: 11,
-            color: '#666'
-          },
-          splitLine: {
-            lineStyle: {
-              color: '#eee',
-              type: 'dashed'
-            }
-          },
-          axisLine: {
-            lineStyle: {
-              color: '#ddd'
-            }
-          }
-        },
-        series: seriesData
-      };
+        // console.log('?? ECharts: Gr?fico renderizado com sucesso');
+      }
+    };
 
-      // console.log('📊 ECharts: Setando opções do gráfico:', {
-      //   timestamps: timestamps.length,
-      //   seriesData: seriesData.length,
-      //   visibleSeries: seriesData.filter((s: any) => !s.silent).length,
-      //   hiddenSeriesCount: hiddenSeries.size
-      // });
-
-      // Usar setOption com notMerge: true para forçar re-renderização completa
-      echartsInstanceRef.current.setOption(option, {
-        notMerge: true, // Não fazer merge, substituir completamente
-        replaceMerge: ['series'], // Substituir array de séries
-      });
-      
-      // console.log('📊 ECharts: Gráfico renderizado com sucesso');
-    }
+    renderChart();
 
     // Cleanup e resize
     const handleResize = () => {
@@ -410,9 +428,11 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
 
     window.addEventListener('resize', handleResize);
     return () => {
+      isActive = false;
       window.removeEventListener('resize', handleResize);
     };
   }, [widget.type, chartData, multiSensorHistory.series, hiddenSeries, sensorTags, assetTag]);
+
 
   // Cleanup da instância ECharts ao desmontar
   useEffect(() => {
@@ -426,6 +446,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
 
   // Effect para gerenciar gráfico de barras ECharts
   useEffect(() => {
+    let isActive = true;
     // console.log('📊 Bar Chart useEffect executando:', {
     //   widgetType: widget.type,
     //   hasContainer: !!barChartContainerRef.current,
@@ -439,162 +460,167 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
       // console.log('📊 Bar Chart: Tipo de widget não é chart-bar ou chart-bar-horizontal');
       return;
     }
-    
+
     if (!barChartContainerRef.current) {
       // console.log('📊 Bar Chart: Container ref não está disponível ainda');
       return;
     }
 
-    // Inicializar instância do ECharts para barras
-    if (!barChartInstanceRef.current) {
-      // console.log('📊 Bar Chart: Inicializando instância do ECharts');
-      barChartInstanceRef.current = echarts.init(barChartContainerRef.current);
-    }
+    ensureEcharts().then((echartsModule) => {
+      if (!isActive || !barChartContainerRef.current) {
+        return;
+      }
+      // Inicializar instância do ECharts para barras
+      if (!barChartInstanceRef.current) {
+        // console.log('📊 Bar Chart: Inicializando instância do ECharts');
+        barChartInstanceRef.current = echartsModule.init(barChartContainerRef.current);
+      }
 
-    // Se tem sensores configurados e dados disponíveis
-    if (sensorTags && sensorTags.length > 0 && assetTag && multiSensorHistory.series.length > 0) {
-      // console.log('📊 Bar Chart: Preparando dados para renderizar gráfico');
-      
-      // Pegar o último valor de cada série para exibir
-      const barData = multiSensorHistory.series.map(serie => {
-        const lastValue = serie.data.length > 0 
-          ? serie.data[serie.data.length - 1].value 
-          : 0;
-        
-        return {
-          name: serie.label,
-          value: lastValue,
-          color: serie.color,
-          unit: serie.unit || ''
-        };
-      });
+      // Se tem sensores configurados e dados disponíveis
+      if (sensorTags && sensorTags.length > 0 && assetTag && multiSensorHistory.series.length > 0) {
+        // console.log('📊 Bar Chart: Preparando dados para renderizar gráfico');
 
-      // console.log('📊 Bar Chart: Dados preparados:', barData);
+        // Pegar o último valor de cada série para exibir
+        const barData = multiSensorHistory.series.map(serie => {
+          const lastValue = serie.data.length > 0 
+            ? serie.data[serie.data.length - 1].value 
+            : 0;
 
-      // Determinar se é horizontal ou vertical
-      const isHorizontal = widget.type === 'chart-bar-horizontal';
+          return {
+            name: serie.label,
+            value: lastValue,
+            color: serie.color,
+            unit: serie.unit || ''
+          };
+        });
 
-      const option: echarts.EChartsOption = {
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: {
-            type: 'shadow'
-          },
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          borderColor: '#ddd',
-          borderWidth: 1,
-          textStyle: {
-            color: '#333',
-            fontSize: 12
-          },
-          formatter: (params: any) => {
-            if (!Array.isArray(params) || params.length === 0) return '';
-            const param = params[0];
-            const dataItem = barData.find(d => d.name === param.name);
-            const value = typeof param.value === 'number' ? param.value.toFixed(2) : param.value;
-            const unit = dataItem?.unit || '';
-            return `<strong>${param.name}</strong><br/>Valor: <strong>${value}${unit ? ' ' + unit : ''}</strong>`;
-          }
-        },
-        grid: {
-          left: isHorizontal ? '15%' : '3%',
-          right: '3%',
-          bottom: isHorizontal ? '3%' : '0%',
-          top: isHorizontal ? '5%' : '12%',
-          containLabel: true
-        },
-        xAxis: {
-          type: isHorizontal ? 'value' : 'category',
-          data: isHorizontal ? undefined : barData.map(d => d.name),
-          axisLabel: {
-            fontSize: isHorizontal ? 11 : 10,
-            color: '#666',
-            rotate: isHorizontal ? 0 : 20,
-            interval: 0
-          },
-          splitLine: isHorizontal ? {
-            lineStyle: {
-              color: '#eee',
-              type: 'dashed'
-            }
-          } : undefined,
-          axisLine: {
-            lineStyle: {
-              color: '#ddd'
-            }
-          },
-          axisTick: {
-            show: false
-          }
-        },
-        yAxis: {
-          type: isHorizontal ? 'category' : 'value',
-          data: isHorizontal ? barData.map(d => d.name) : undefined,
-          axisLabel: {
-            fontSize: 11,
-            color: '#666'
-          },
-          splitLine: !isHorizontal ? {
-            lineStyle: {
-              color: '#eee',
-              type: 'dashed'
-            }
-          } : undefined,
-          axisLine: {
-            lineStyle: {
-              color: '#ddd'
-            }
-          },
-          axisTick: {
-            show: false
-          }
-        },
-        series: [{
-          type: 'bar',
-          data: barData.map(d => ({
-            value: d.value,
-            itemStyle: {
-              color: d.color
-            }
-          })),
-          barWidth: '80%',
-          label: {
-            show: true,
-            position: isHorizontal ? 'right' : 'top',
-            formatter: (params: any) => {
-              const dataItem = barData[params.dataIndex];
-              const value = typeof params.value === 'number' ? params.value.toFixed(1) : params.value;
-              const unit = dataItem?.unit || '';
-              return `{bold|${value}}{unit|${unit ? ' ' + unit : ''}}`;
+        // console.log('📊 Bar Chart: Dados preparados:', barData);
+
+        // Determinar se é horizontal ou vertical
+        const isHorizontal = widget.type === 'chart-bar-horizontal';
+
+        const option: EChartsOption = {
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+              type: 'shadow'
             },
-            fontSize: 10,
-            color: '#333',
-            fontWeight: 600,
-            rich: {
-              bold: {
-                fontWeight: 600,
-                color: '#333',
-                fontSize: 11
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderColor: '#ddd',
+            borderWidth: 1,
+            textStyle: {
+              color: '#333',
+              fontSize: 12
+            },
+            formatter: (params: any) => {
+              if (!Array.isArray(params) || params.length === 0) return '';
+              const param = params[0];
+              const dataItem = barData.find(d => d.name === param.name);
+              const value = typeof param.value === 'number' ? param.value.toFixed(2) : param.value;
+              const unit = dataItem?.unit || '';
+              return `<strong>${param.name}</strong><br/>Valor: <strong>${value}${unit ? ' ' + unit : ''}</strong>`;
+            }
+          },
+          grid: {
+            left: isHorizontal ? '15%' : '3%',
+            right: '3%',
+            bottom: isHorizontal ? '3%' : '0%',
+            top: isHorizontal ? '5%' : '12%',
+            containLabel: true
+          },
+          xAxis: {
+            type: isHorizontal ? 'value' : 'category',
+            data: isHorizontal ? undefined : barData.map(d => d.name),
+            axisLabel: {
+              fontSize: isHorizontal ? 11 : 10,
+              color: '#666',
+              rotate: isHorizontal ? 0 : 20,
+              interval: 0
+            },
+            splitLine: isHorizontal ? {
+              lineStyle: {
+                color: '#eee',
+                type: 'dashed'
+              }
+            } : undefined,
+            axisLine: {
+              lineStyle: {
+                color: '#ddd'
+              }
+            },
+            axisTick: {
+              show: false
+            }
+          },
+          yAxis: {
+            type: isHorizontal ? 'category' : 'value',
+            data: isHorizontal ? barData.map(d => d.name) : undefined,
+            axisLabel: {
+              fontSize: 11,
+              color: '#666'
+            },
+            splitLine: !isHorizontal ? {
+              lineStyle: {
+                color: '#eee',
+                type: 'dashed'
+              }
+            } : undefined,
+            axisLine: {
+              lineStyle: {
+                color: '#ddd'
+              }
+            },
+            axisTick: {
+              show: false
+            }
+          },
+          series: [{
+            type: 'bar',
+            data: barData.map(d => ({
+              value: d.value,
+              itemStyle: {
+                color: d.color
+              }
+            })),
+            barWidth: '80%',
+            label: {
+              show: true,
+              position: isHorizontal ? 'right' : 'top',
+              formatter: (params: any) => {
+                const dataItem = barData[params.dataIndex];
+                const value = typeof params.value === 'number' ? params.value.toFixed(1) : params.value;
+                const unit = dataItem?.unit || '';
+                return `{bold|${value}}{unit|${unit ? ' ' + unit : ''}}`;
               },
-              unit: {
-                fontWeight: 400,
-                color: '#666',
-                fontSize: 9
+              fontSize: 10,
+              color: '#333',
+              fontWeight: 600,
+              rich: {
+                bold: {
+                  fontWeight: 600,
+                  color: '#333',
+                  fontSize: 11
+                },
+                unit: {
+                  fontWeight: 400,
+                  color: '#666',
+                  fontSize: 9
+                }
               }
             }
-          }
-        }]
-      };
+          }]
+        };
 
-      // console.log('📊 Bar Chart: Setando opções do gráfico');
+        // console.log('📊 Bar Chart: Setando opções do gráfico');
 
-      barChartInstanceRef.current.setOption(option, {
-        notMerge: true,
-      });
-      
-      // console.log('📊 Bar Chart: Gráfico renderizado com sucesso');
-    }
+        barChartInstanceRef.current.setOption(option, {
+          notMerge: true,
+        });
 
+        // console.log('📊 Bar Chart: Gráfico renderizado com sucesso');
+      }
+
+    });
     // Cleanup e resize
     const handleResize = () => {
       barChartInstanceRef.current?.resize();
@@ -602,6 +628,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
 
     window.addEventListener('resize', handleResize);
     return () => {
+      isActive = false;
       window.removeEventListener('resize', handleResize);
     };
   }, [widget.type, multiSensorHistory.series, sensorTags, assetTag]);
@@ -615,7 +642,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
       }
     };
   }, [widget.type]);
-  
+
   const {
     attributes,
     listeners,
@@ -844,7 +871,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
               )}
             </div>
           </div>
-          
+
           {/* Label */}
           <div className={cn(
             "text-muted-foreground text-center leading-tight",
@@ -852,7 +879,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
           )}>
             {label}
           </div>
-          
+
           {/* Indicador de tendência */}
           <div className={cn(
             "flex items-center gap-1",
@@ -1040,7 +1067,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
               </span>
             )}
           </div>
-          
+
           {/* Label */}
           <div className={cn(
             "text-muted-foreground text-center leading-tight",
@@ -1048,7 +1075,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
           )}>
             {label}
           </div>
-          
+
           {/* Indicador de tendência */}
           <div className={cn(
             "flex items-center gap-1 text-xs",
@@ -1096,7 +1123,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
   function renderButtonCard() {
     const label = widget.config?.label || formatSensorLabel(sensorTag) || widget.title;
     const buttonColor = widget.config?.color || '#3b82f6';
-    
+
     return (
       <div className="h-full flex flex-col items-center justify-center gap-3 p-3">
         <h3 className="text-xs font-medium text-muted-foreground text-center">{label}</h3>
@@ -1116,7 +1143,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
 
   function renderToggleCard() {
     const label = widget.config?.label || formatSensorLabel(sensorTag) || widget.title;
-    
+
     return (
       <div className="h-full flex flex-col items-center justify-center gap-3 p-3">
         <h3 className="text-xs font-medium text-muted-foreground text-center">{label}</h3>
@@ -1146,21 +1173,21 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
 
   function renderStatusCard() {
     const label = widget.config?.label || formatSensorLabel(sensorTag) || widget.title;
-    
+
     // Usar valor do sensor se disponível
     let statusValue = 50;
     if (sensorTag && assetId && sensorData.value !== null) {
       statusValue = Number(sensorData.value);
     }
-    
+
     // Determinar status baseado nos thresholds ou valor padrão
     let status: string;
     let statusColor: string;
     let statusBgClass: string;
-    
+
     const warningThreshold = widget.config?.warningThreshold;
     const criticalThreshold = widget.config?.criticalThreshold;
-    
+
     if (criticalThreshold !== undefined || warningThreshold !== undefined) {
       // Usar thresholds configurados
       if (criticalThreshold !== undefined && statusValue >= criticalThreshold) {
@@ -1193,7 +1220,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
         statusBgClass = 'bg-red-50';
       }
     }
-    
+
     return (
       <div className={cn("h-full flex flex-col items-center justify-center gap-3 p-3 rounded-lg", statusBgClass)}>
         <h3 className="text-xs font-medium text-muted-foreground text-center">{label}</h3>
@@ -1223,7 +1250,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
     // Se tem sensores configurados, usar dados reais
     if (sensorTags && sensorTags.length > 0 && assetTag) {
       console.log('📊 ECharts: Condição principal atendida (tem sensorTags e assetTag)');
-      
+
       if (multiSensorHistory.loading) {
         console.log('📊 ECharts: Estado = loading');
         return (
@@ -1287,7 +1314,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
     // Se tem sensores configurados, usar dados reais
     if (sensorTags && sensorTags.length > 0 && assetTag) {
       console.log('📊 Area ECharts: Condição principal atendida (tem sensorTags e assetTag)');
-      
+
       if (multiSensorHistory.loading) {
         console.log('📊 Area ECharts: Estado = loading');
         return (
@@ -1350,7 +1377,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
     // Se tem sensores configurados, usar dados reais
     if (sensorTags && sensorTags.length > 0 && assetTag) {
       console.log('📊 Bar Chart: Condição principal atendida (tem sensorTags e assetTag)');
-      
+
       if (multiSensorHistory.loading) {
         return (
           <div className="h-full flex flex-col items-center justify-center">
@@ -1581,7 +1608,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
             <span className="text-xl font-bold">{total.toFixed(1)}</span>
           </div>
         </div>
-        
+
         {/* Legenda */}
         <div className="flex flex-wrap gap-2 mt-4 text-xs max-w-[90%] justify-center">
           {donutData.map((item, index) => (
@@ -1640,7 +1667,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
         .map((series) => {
           const lastDataPoint = series.data.length > 0 ? series.data[series.data.length - 1] : null;
           const lastValue = lastDataPoint ? lastDataPoint.value : 0;
-          
+
           return {
             name: series.label || series.name,
             value: Math.abs(lastValue), // Usar valor absoluto para o gráfico de pizza
@@ -1661,7 +1688,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
       }
 
       const total = pieData.reduce((sum, item) => sum + item.value, 0);
-      
+
       // Função para calcular coordenadas de um ponto no círculo
       const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
         const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
@@ -1676,7 +1703,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
         const start = polarToCartesian(x, y, radius, endAngle);
         const end = polarToCartesian(x, y, radius, startAngle);
         const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-        
+
         return [
           "M", x, y,
           "L", start.x, start.y,
@@ -1737,7 +1764,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
         .map((series) => {
           const lastDataPoint = series.data.length > 0 ? series.data[series.data.length - 1] : null;
           const lastValue = lastDataPoint ? lastDataPoint.value : 0;
-          
+
           return {
             name: series.label || series.name,
             value: Math.abs(lastValue),
@@ -1804,17 +1831,17 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
         const result = evaluateFormula(formula, displayValue);
         if (result !== null && typeof result === 'number') displayValue = result;
       }
-      
+
       // Calcular porcentagem usando os valores mínimo e máximo configurados
       const min = widget.config?.minValue ?? 0;
       const max = widget.config?.maxValue ?? 100;
-      
+
       // Calcular porcentagem - se o valor está fora do range, limitar entre 0 e 100%
       const range = max - min;
       const normalizedValue = displayValue - min;
       const rawPercent = range > 0 ? (normalizedValue / range) * 100 : 0;
       const percent = Math.min(100, Math.max(0, rawPercent));
-      
+
       const label = widget.config?.label || formatSensorLabel(sensorTag);
       const unit = widget.config?.unit || sensorData.unit || '';
 
@@ -1852,7 +1879,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
                   className="transition-all duration-500"
                 />
               </svg>
-              
+
               {/* Valores mínimo e máximo próximos à base do gauge */}
               <div className="absolute bottom-0 left-0 text-xs text-muted-foreground" 
                    style={{ left: '16.67%', transform: 'translateX(-50%)' }}>
@@ -1864,14 +1891,14 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
               </div>
             </div>
           </div>
-          
+
           <div className="text-2xl font-bold mt-3">
             {Number(sensorData.value).toFixed(1)}
           </div>
           <div className="text-xs text-muted-foreground">
             {label}
           </div>
-          
+
           {/* Mostrar indicadores quando valor está fora do range */}
           {(displayValue > max || displayValue < min) && (
             <div className="text-xs mt-2 px-2 py-1 rounded text-white" 
@@ -1908,7 +1935,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
         const result = evaluateFormula(formula, displayValue);
         if (result !== null && typeof result === 'number') displayValue = result;
       }
-      
+
       // Calcular porcentagem se tiver min/max configurados
       const min = widget.config?.minValue ?? 0;
       const max = widget.config?.maxValue ?? 100;
@@ -2006,7 +2033,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
       const tableData = multiSensorHistory.series.map(serie => {
         const lastDataPoint = serie.data[serie.data.length - 1];
         const formattedValue = lastDataPoint ? lastDataPoint.value.toFixed(2) : 'N/A';
-        
+
         return {
           variable: formatSensorLabel(serie.sensorTag),
           value: formattedValue,
@@ -2076,7 +2103,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
       if (value === null || value === undefined || min === Infinity || max === -Infinity || min === max) {
         return 'rgb(243, 244, 246)'; // gray-100
       }
-      
+
       const normalized = (value - min) / (max - min);
       const intensity = Math.round(255 * (1 - normalized));
       return `rgb(${255}, ${intensity}, ${intensity})`; // Red scale
@@ -2111,7 +2138,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
               : 'Sem dados de escala'
             }
           </div>
-          
+
           {/* Grid do heatmap */}
           <div className="grid gap-1" style={{ gridTemplateColumns: `auto repeat(24, 1fr)` }}>
             {/* Header com horas */}
@@ -2121,7 +2148,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
                 {hour}
               </div>
             ))}
-            
+
             {/* Rows com dias */}
             {days.map(day => (
               <>
@@ -2131,7 +2158,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
                 {hours.map(hour => {
                   const value = heatmapData.grid[day]?.[hour];
                   const color = getHeatmapColor(value, heatmapData.min, heatmapData.max);
-                  
+
                   return (
                     <div
                       key={`${day}-${hour}`}

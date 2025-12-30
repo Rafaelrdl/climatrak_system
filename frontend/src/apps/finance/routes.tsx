@@ -5,15 +5,34 @@
  */
 
 import { Routes, Route } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 import { FinanceGuard } from './components';
-import {
-  FinanceDashboard,
-  FinanceBudgets,
-  FinanceLedger,
-  FinanceCommitments,
-  FinanceSavings,
-  FinanceSettings,
-} from './pages';
+import { LoadingSpinner } from '@/shared/ui/components/LoadingSpinner';
+
+const FinanceDashboard = lazy(async () => {
+  const mod = await import('./pages/FinanceDashboard');
+  return { default: mod.FinanceDashboard };
+});
+const FinanceBudgets = lazy(async () => {
+  const mod = await import('./pages/FinanceBudgets');
+  return { default: mod.FinanceBudgets };
+});
+const FinanceLedger = lazy(async () => {
+  const mod = await import('./pages/FinanceLedger');
+  return { default: mod.FinanceLedger };
+});
+const FinanceCommitments = lazy(async () => {
+  const mod = await import('./pages/FinanceCommitments');
+  return { default: mod.FinanceCommitments };
+});
+const FinanceSavings = lazy(async () => {
+  const mod = await import('./pages/FinanceSavings');
+  return { default: mod.FinanceSavings };
+});
+const FinanceSettings = lazy(async () => {
+  const mod = await import('./pages/FinanceSettings');
+  return { default: mod.FinanceSettings };
+});
 
 /**
  * Rotas do módulo Finance
@@ -25,60 +44,62 @@ import {
 export function FinanceRoutes() {
   return (
     <FinanceGuard subject="finance" action="view">
-      <Routes>
-        {/* Painel do mês */}
-        <Route path="/" element={<FinanceDashboard />} />
-        
-        {/* Orçamentos - requer permissão finance_budget */}
-        <Route 
-          path="budgets" 
-          element={
-            <FinanceGuard subject="finance_budget" action="view">
-              <FinanceBudgets />
-            </FinanceGuard>
-          } 
-        />
-        
-        {/* Ledger - requer permissão finance_ledger */}
-        <Route 
-          path="ledger" 
-          element={
-            <FinanceGuard subject="finance_ledger" action="view">
-              <FinanceLedger />
-            </FinanceGuard>
-          } 
-        />
-        
-        {/* Compromissos - requer permissão finance_commitment */}
-        <Route 
-          path="commitments" 
-          element={
-            <FinanceGuard subject="finance_commitment" action="view">
-              <FinanceCommitments />
-            </FinanceGuard>
-          } 
-        />
-        
-        {/* Economia - requer permissão finance_savings */}
-        <Route 
-          path="savings" 
-          element={
-            <FinanceGuard subject="finance_savings" action="view">
-              <FinanceSavings />
-            </FinanceGuard>
-          } 
-        />
-        
-        {/* Cadastros - requer permissão finance (manage) */}
-        <Route 
-          path="settings" 
-          element={
-            <FinanceGuard subject="finance" action="manage">
-              <FinanceSettings />
-            </FinanceGuard>
-          } 
-        />
-      </Routes>
+      <Suspense fallback={<LoadingSpinner centered text="Carregando..." />}>
+        <Routes>
+          {/* Painel do mês */}
+          <Route path="/" element={<FinanceDashboard />} />
+          
+          {/* Orçamentos - requer permissão finance_budget */}
+          <Route 
+            path="budgets" 
+            element={
+              <FinanceGuard subject="finance_budget" action="view">
+                <FinanceBudgets />
+              </FinanceGuard>
+            } 
+          />
+          
+          {/* Ledger - requer permissão finance_ledger */}
+          <Route 
+            path="ledger" 
+            element={
+              <FinanceGuard subject="finance_ledger" action="view">
+                <FinanceLedger />
+              </FinanceGuard>
+            } 
+          />
+          
+          {/* Compromissos - requer permissão finance_commitment */}
+          <Route 
+            path="commitments" 
+            element={
+              <FinanceGuard subject="finance_commitment" action="view">
+                <FinanceCommitments />
+              </FinanceGuard>
+            } 
+          />
+          
+          {/* Economia - requer permissão finance_savings */}
+          <Route 
+            path="savings" 
+            element={
+              <FinanceGuard subject="finance_savings" action="view">
+                <FinanceSavings />
+              </FinanceGuard>
+            } 
+          />
+          
+          {/* Cadastros - requer permissão finance (manage) */}
+          <Route 
+            path="settings" 
+            element={
+              <FinanceGuard subject="finance" action="manage">
+                <FinanceSettings />
+              </FinanceGuard>
+            } 
+          />
+        </Routes>
+      </Suspense>
     </FinanceGuard>
   );
 }

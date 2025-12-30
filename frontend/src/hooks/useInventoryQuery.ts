@@ -115,7 +115,7 @@ export function useInventoryItems(params?: InventoryItemParams) {
     queryKey: inventoryKeys.itemsList(params),
     queryFn: () => inventoryItemsService.getAll(params),
     enabled: isUserAuthenticated(),
-    staleTime: 0, // Always fetch fresh data
+    staleTime: 1000 * 60, // 1 minuto
   });
 }
 

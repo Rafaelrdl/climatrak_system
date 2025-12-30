@@ -93,13 +93,14 @@ services:
       context: ../backend
       dockerfile: ../infra/api/Dockerfile
     container_name: climatrak-api
-    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --worker-class gthread --threads 2 --timeout 120 --log-level debug
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --worker-class gthread --threads 2 --timeout 120 --log-level info
     env_file:
       - ../backend/.env
     environment:
       DJANGO_SECRET_KEY: dev-secret-key-change-in-production-minimum-50-characters-long
       DJANGO_SETTINGS_MODULE: config.settings.development
       DEBUG: "True"
+      GUNICORN_LOG_REQUESTS: "false"
       DB_NAME: app
       DB_USER: app
       DB_PASSWORD: app

@@ -1,7 +1,10 @@
 """
 Gunicorn configuration with debug hooks
 """
+import os
 import sys
+LOG_REQUESTS = os.getenv("GUNICORN_LOG_REQUESTS", "false").lower() in ("1", "true", "yes", "on")
+
 
 
 def post_worker_init(worker):
@@ -11,11 +14,15 @@ def post_worker_init(worker):
 
 def pre_request(worker, req):
     """Called before each request"""
+    if not LOG_REQUESTS:
+        return
     print(f"🔵 [GUNICORN] pre_request: Worker {worker.pid} recebendo {req.method} {req.path}", file=sys.stderr, flush=True)
 
 
 def post_request(worker, req, environ, resp):
     """Called after each request"""
+    if not LOG_REQUESTS:
+        return
     print(f"✅ [GUNICORN] post_request: Worker {worker.pid} respondeu {resp.status} para {req.path}", file=sys.stderr, flush=True)
 
 

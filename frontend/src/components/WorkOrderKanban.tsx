@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
-import type { WorkOrder } from '@/types';
+import type { WorkOrder, Equipment } from '@/types';
 import {
   DndContext,
   DragOverlay,
@@ -35,22 +35,24 @@ interface KanbanColumnProps {
   title: string;
   status: WorkOrder['status'];
   workOrders: WorkOrder[];
+  equipmentById: Map<string, Equipment>;
   onStartWorkOrder?: (id: string) => void;
   onEditWorkOrder?: (wo: WorkOrder) => void;
 }
 
 interface WorkOrderCardProps {
   workOrder: WorkOrder;
+  equipmentById: Map<string, Equipment>;
   onStartWorkOrder?: (id: string) => void;
   onEditWorkOrder?: (wo: WorkOrder) => void;
 }
 
 function WorkOrderCard({ 
   workOrder, 
+  equipmentById,
   onStartWorkOrder, 
   onEditWorkOrder 
 }: WorkOrderCardProps) {
-  const { data: equipment = [] } = useEquipments();
   const { settings } = useWorkOrderSettingsStore();
   
   const {
@@ -68,7 +70,7 @@ function WorkOrderCard({
     opacity: isDragging ? 0.4 : 1,
   };
 
-  const eq = equipment.find(e => e.id === workOrder.equipmentId);
+  const eq = equipmentById.get(String(workOrder.equipmentId));
   
   // Parsear data como local para evitar timezone issues
   const parseLocalDate = (dateString: string): Date => {
@@ -238,6 +240,7 @@ function KanbanColumn({
   title, 
   status,
   workOrders, 
+  equipmentById,
   onStartWorkOrder, 
   onEditWorkOrder 
 }: KanbanColumnProps) {
@@ -318,6 +321,7 @@ function KanbanColumn({
                     <WorkOrderCard
                       key={wo.id}
                       workOrder={wo}
+                      equipmentById={equipmentById}
                       onStartWorkOrder={onStartWorkOrder}
                       onEditWorkOrder={onEditWorkOrder}
                     />
@@ -351,7 +355,13 @@ export function WorkOrderKanban({
   onStartWorkOrder, 
   onEditWorkOrder 
 }: WorkOrderKanbanProps) {
+  const { data: equipment = [] } = useEquipments();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const equipmentById = useMemo(() => {
+    const map = new Map<string, Equipment>();
+    equipment.forEach((eq) => map.set(String(eq.id), eq));
+    return map;
+  }, [equipment]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -453,6 +463,7 @@ export function WorkOrderKanban({
               title={column.title}
               status={column.status}
               workOrders={column.workOrders}
+              equipmentById={equipmentById}
               onStartWorkOrder={onStartWorkOrder}
               onEditWorkOrder={onEditWorkOrder}
             />

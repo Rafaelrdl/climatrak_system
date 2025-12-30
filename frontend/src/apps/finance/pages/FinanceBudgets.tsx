@@ -26,7 +26,11 @@ import {
   Lock,
   Unlock,
   Check,
+  TrendingUp,
+  DollarSign,
+  PiggyBank,
 } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -105,9 +109,9 @@ const STATUS_LABELS: Record<BudgetPlanStatus, string> = {
 };
 
 const STATUS_COLORS: Record<BudgetPlanStatus, string> = {
-  draft: 'bg-gray-100 text-gray-700',
-  approved: 'bg-emerald-100 text-emerald-700',
-  locked: 'bg-amber-100 text-amber-700',
+  draft: 'bg-muted text-muted-foreground',
+  approved: 'bg-primary/10 text-primary border border-primary/30',
+  locked: 'bg-amber-50 text-amber-700 border border-amber-200',
 };
 
 // ==================== Helper Functions ====================
@@ -170,12 +174,19 @@ function CreatePlanDialog({ open, onOpenChange, onSuccess }: CreatePlanDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Novo Plano Orçamentário</DialogTitle>
-          <DialogDescription>
-            Crie um novo plano anual para gerenciar seu orçamento.
-          </DialogDescription>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Calendar className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <DialogTitle>Novo Plano Orçamentário</DialogTitle>
+              <DialogDescription className="mt-1">
+                Configure o orçamento anual para planejamento financeiro
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
@@ -241,10 +252,16 @@ function CreatePlanDialog({ open, onOpenChange, onSuccess }: CreatePlanDialogPro
         
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <X className="mr-2 h-4 w-4" />
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={createPlan.isPending}>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={createPlan.isPending}
+            className="bg-primary hover:bg-primary/90"
+          >
             {createPlan.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {!createPlan.isPending && <Check className="mr-2 h-4 w-4" />}
             Criar Plano
           </Button>
         </DialogFooter>
@@ -265,19 +282,26 @@ function PlanCard({ plan, isSelected, onSelect }: PlanCardProps) {
   return (
     <Card 
       className={cn(
-        'cursor-pointer transition-all hover:shadow-md',
-        isSelected && 'ring-2 ring-primary'
+        'cursor-pointer transition-all duration-200',
+        'hover:shadow-md hover:border-primary/50',
+        isSelected && 'ring-2 ring-primary border-primary shadow-md bg-primary/5'
       )}
       onClick={onSelect}
     >
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Calendar className="h-5 w-5 text-primary" />
+            <div className={cn(
+              'p-2 rounded-lg transition-colors',
+              isSelected ? 'bg-primary text-white' : 'bg-primary/10 text-primary'
+            )}>
+              <Calendar className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="font-semibold text-lg">{plan.year}</h3>
+              <h3 className={cn(
+                'font-semibold text-lg transition-colors',
+                isSelected && 'text-primary'
+              )}>{plan.year}</h3>
               <p className="text-sm text-muted-foreground">{plan.currency}</p>
             </div>
           </div>
@@ -286,8 +310,8 @@ function PlanCard({ plan, isSelected, onSelect }: PlanCardProps) {
               {STATUS_LABELS[plan.status]}
             </Badge>
             <ChevronRight className={cn(
-              'h-5 w-5 text-muted-foreground transition-transform',
-              isSelected && 'rotate-90'
+              'h-5 w-5 text-muted-foreground transition-transform duration-200',
+              isSelected && 'rotate-90 text-primary'
             )} />
           </div>
         </div>
@@ -524,10 +548,17 @@ function CreateEnvelopeDialog({ budgetPlanId, open, onOpenChange }: CreateEnvelo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Novo Envelope</DialogTitle>
-          <DialogDescription>
-            Crie uma categoria de orçamento para alocar valores mensais.
-          </DialogDescription>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <PiggyBank className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <DialogTitle>Novo Envelope Orçamentário</DialogTitle>
+              <DialogDescription className="mt-1">
+                Configure uma categoria de orçamento para alocar valores mensais
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
@@ -586,13 +617,16 @@ function CreateEnvelopeDialog({ budgetPlanId, open, onOpenChange }: CreateEnvelo
         
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <X className="mr-2 h-4 w-4" />
             Cancelar
           </Button>
           <Button 
             onClick={handleSubmit} 
             disabled={!name || !costCenterId || createEnvelope.isPending}
+            className="bg-primary hover:bg-primary/90"
           >
             {createEnvelope.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {!createEnvelope.isPending && <Check className="mr-2 h-4 w-4" />}
             Criar Envelope
           </Button>
         </DialogFooter>
@@ -761,22 +795,39 @@ function PlanDetail({ plan }: PlanDetailProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Plano {plan.year}</h2>
-          <p className="text-sm text-muted-foreground">
-            {envelopes?.length ?? 0} envelopes configurados
-          </p>
+      <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <FileSpreadsheet className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              Plano Orçamentário {plan.year}
+              <Badge className={STATUS_COLORS[plan.status]}>
+                {STATUS_LABELS[plan.status]}
+              </Badge>
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {envelopes?.length ?? 0} {(envelopes?.length ?? 0) === 1 ? 'envelope configurado' : 'envelopes configurados'}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {hasChanges && canEdit && (
-            <Button onClick={handleSave}>
+            <Button 
+              onClick={handleSave}
+              className="bg-primary hover:bg-primary/90"
+            >
               <Save className="mr-2 h-4 w-4" />
               Salvar Alterações
             </Button>
           )}
           {canEdit && (
-            <Button variant="outline" onClick={() => setIsCreateEnvelopeOpen(true)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsCreateEnvelopeOpen(true)}
+              className="hover:bg-primary/10 hover:text-primary hover:border-primary"
+            >
               <Plus className="mr-2 h-4 w-4" />
               Novo Envelope
             </Button>
@@ -785,54 +836,83 @@ function PlanDetail({ plan }: PlanDetailProps) {
       </div>
 
       {/* Summary */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Planejado</p>
-              <p className="text-2xl font-bold">
-                <MoneyCell value={totalPlanned} />
-              </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="border-primary/30">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium text-muted-foreground">Total Planejado</p>
+              <div className="p-2 rounded-lg bg-primary/10">
+                <DollarSign className="h-4 w-4 text-primary" />
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Contingência</p>
-              <p className="text-2xl font-bold text-amber-600">
-                <MoneyCell value={totalContingency} />
-              </p>
+            <p className="text-3xl font-bold text-primary">
+              <MoneyCell value={totalPlanned} />
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Orçamento base anual</p>
+          </CardContent>
+        </Card>
+        <Card className="border-amber-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium text-muted-foreground">Contingência</p>
+              <div className="p-2 rounded-lg bg-amber-50">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Geral</p>
-              <p className="text-2xl font-bold text-primary">
-                <MoneyCell value={totalPlanned + totalContingency} />
-              </p>
+            <p className="text-3xl font-bold text-amber-600">
+              <MoneyCell value={totalContingency} />
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Reserva de emergência</p>
+          </CardContent>
+        </Card>
+        <Card className="border-primary">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium text-muted-foreground">Total Geral</p>
+              <div className="p-2 rounded-lg bg-primary">
+                <TrendingUp className="h-4 w-4 text-white" />
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <p className="text-3xl font-bold text-primary">
+              <MoneyCell value={totalPlanned + totalContingency} />
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Orçamento total aprovado</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Envelopes */}
       {envelopes && envelopes.length > 0 ? (
-        <Accordion type="multiple" className="w-full">
-          {envelopes.map((envelope) => (
-            <EnvelopeEditor
-              key={envelope.id}
-              envelope={envelope}
-              months={envelopeMonths[envelope.id] ?? []}
-              isLocked={plan.status === 'locked'}
-              onMonthsChange={(months) => handleMonthsChange(envelope.id, months)}
-            />
-          ))}
-        </Accordion>
-      ) : (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileSpreadsheet className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="font-medium text-lg mb-2">Nenhum envelope criado</h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Crie envelopes para distribuir seu orçamento por categoria e centro de custo.
+          <ScrollArea className="h-[calc(100vh-520px)]">
+            <Accordion type="multiple" className="w-full px-6 py-2">
+              {envelopes.map((envelope) => (
+                <EnvelopeEditor
+                  key={envelope.id}
+                  envelope={envelope}
+                  months={envelopeMonths[envelope.id] ?? []}
+                  isLocked={plan.status === 'locked'}
+                  onMonthsChange={(months) => handleMonthsChange(envelope.id, months)}
+                />
+              ))}
+            </Accordion>
+          </ScrollArea>
+        </Card>
+      ) : (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="p-4 rounded-full bg-primary/10 mb-4">
+              <PiggyBank className="h-12 w-12 text-primary" />
+            </div>
+            <h3 className="font-semibold text-xl mb-2">Nenhum envelope configurado</h3>
+            <p className="text-muted-foreground text-center max-w-md mb-6">
+              Configure envelopes orçamentários para distribuir valores por categoria e centro de custo ao longo dos 12 meses.
             </p>
             {canEdit && (
-              <Button onClick={() => setIsCreateEnvelopeOpen(true)}>
+              <Button 
+                onClick={() => setIsCreateEnvelopeOpen(true)}
+                className="bg-primary hover:bg-primary/90"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Criar Primeiro Envelope
               </Button>
@@ -875,14 +955,19 @@ export function FinanceBudgets() {
   }, [plans, selectedPlanId]);
 
   return (
-    <div className="space-y-6">
+    <div className="h-[calc(100vh-140px)] flex flex-col">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Orçamentos</h1>
-          <p className="text-muted-foreground">
-            Planejamento orçamentário anual e mensal
-          </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-lg bg-primary/10">
+            <FileSpreadsheet className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Orçamentos</h1>
+            <p className="text-muted-foreground">
+              Planejamento orçamentário anual e gestão mensal de envelopes
+            </p>
+          </div>
         </div>
         
         <div className="flex items-center gap-3">
@@ -893,7 +978,8 @@ export function FinanceBudgets() {
               setSelectedPlanId(null);
             }}
           >
-            <SelectTrigger className="w-[120px]">
+            <SelectTrigger className="w-[140px]">
+              <Calendar className="mr-2 h-4 w-4" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -906,7 +992,10 @@ export function FinanceBudgets() {
           </Select>
           
           {canCreate && (
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Button 
+              onClick={() => setIsCreateDialogOpen(true)}
+              className="bg-primary hover:bg-primary/90"
+            >
               <Plus className="mr-2 h-4 w-4" />
               Novo Plano
             </Button>
@@ -935,50 +1024,67 @@ export function FinanceBudgets() {
 
       {/* Plans List */}
       {plans && plans.length > 0 && (
-        <div className="grid gap-6 lg:grid-cols-4">
+        <div className="grid gap-6 lg:grid-cols-4 flex-1 overflow-hidden">
           {/* Plans Sidebar */}
-          <div className="space-y-3">
-            {plans.map((plan) => (
-              <PlanCard
-                key={plan.id}
-                plan={plan}
-                isSelected={plan.id === selectedPlanId}
-                onSelect={() => setSelectedPlanId(plan.id)}
-              />
-            ))}
+          <div>
+            <ScrollArea className="h-[calc(100vh-240px)]">
+              <div className="space-y-3 pr-4">
+                {plans.map((plan) => (
+                  <PlanCard
+                    key={plan.id}
+                    plan={plan}
+                    isSelected={plan.id === selectedPlanId}
+                    onSelect={() => setSelectedPlanId(plan.id)}
+                  />
+                ))}
+              </div>
+            </ScrollArea>
           </div>
           
           {/* Plan Detail */}
-          <div className="lg:col-span-3">
-            {selectedPlan ? (
-              <PlanDetail plan={selectedPlan} />
-            ) : (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">
-                    Selecione um plano para ver detalhes
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+          <div className="lg:col-span-3 overflow-hidden">
+            <ScrollArea className="h-[calc(100vh-240px)]">
+              {selectedPlan ? (
+                <div className="pr-4">
+                  <PlanDetail plan={selectedPlan} />
+                </div>
+              ) : (
+                <Card className="border-dashed">
+                  <CardContent className="flex flex-col items-center justify-center py-16">
+                    <div className="p-4 rounded-full bg-primary/10 mb-4">
+                      <Calendar className="h-12 w-12 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-lg mb-2">Selecione um plano</h3>
+                    <p className="text-muted-foreground text-center">
+                      Escolha um plano orçamentário para visualizar e editar envelopes
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </ScrollArea>
           </div>
         </div>
       )}
 
       {/* Empty State */}
       {plans && plans.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileSpreadsheet className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="font-medium text-lg mb-2">Nenhum plano encontrado</h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Não há planos orçamentários para {selectedYear}. Crie um novo plano para começar.
+        <Card className="border-dashed flex-1">
+          <CardContent className="flex flex-col items-center justify-center h-full py-16">
+            <div className="p-6 rounded-full bg-primary/10 mb-6">
+              <FileSpreadsheet className="h-16 w-16 text-primary" />
+            </div>
+            <h3 className="font-semibold text-2xl mb-3">Nenhum plano orçamentário em {selectedYear}</h3>
+            <p className="text-muted-foreground text-center max-w-md mb-6">
+              Configure seu primeiro plano orçamentário para gerenciar custos de manutenção de forma estruturada ao longo do ano.
             </p>
             {canCreate && (
-              <Button onClick={() => setIsCreateDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Criar Plano {selectedYear}
+              <Button 
+                onClick={() => setIsCreateDialogOpen(true)}
+                size="lg"
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                Criar Plano Orçamentário {selectedYear}
               </Button>
             )}
           </CardContent>

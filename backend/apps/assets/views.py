@@ -12,6 +12,7 @@ Classes:
 """
 
 from django.utils import timezone
+from django.db.models import Count
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -524,6 +525,10 @@ class DeviceViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return DeviceListSerializer
         return DeviceSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.annotate(sensor_count=Count('sensors', distinct=True))
     
     @action(detail=True, methods=['get'])
     def sensors(self, request, pk=None):

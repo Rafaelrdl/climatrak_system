@@ -5,6 +5,7 @@ Tenant isolation é automático via django-tenants (PostgreSQL schemas).
 Todos os models herdam de models.Model e são isolados por schema.
 """
 from django.db import models
+from django.contrib.postgres.indexes import GinIndex
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -253,6 +254,7 @@ class Alert(models.Model):
             models.Index(fields=['acknowledged', 'resolved']),
             models.Index(fields=['severity', 'triggered_at']),
             models.Index(fields=['asset_tag']),
+            GinIndex(fields=['asset_tag'], name='alerts_alert_asset_tag_trgm', opclasses=['gin_trgm_ops']),
         ]
     
     def __str__(self):

@@ -35,7 +35,7 @@ export function useEquipments(filters?: EquipmentFilters) {
   return useQuery({
     queryKey: equipmentKeys.list(filters),
     queryFn: () => equipmentService.getAll(filters),
-    staleTime: 0, // Sempre buscar dados frescos
+    staleTime: 1000 * 60, // 1 minuto
     gcTime: 1000 * 60, // 1 minuto - limpar cache mais rapidamente
     enabled: isUserAuthenticated(),
   });
