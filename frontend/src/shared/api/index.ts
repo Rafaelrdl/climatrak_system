@@ -15,3 +15,5 @@ export function getApiUrl(module: 'cmms' | 'monitor', path: string): string {
   const baseUrl = API_BASE_URLS[module];
   return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
 }
+
+export { parsePaginatedResponse, type Paginated } from './pagination';

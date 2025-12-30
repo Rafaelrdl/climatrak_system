@@ -20,9 +20,11 @@ import {
   Tag,
   Loader2,
   AlertCircle,
-  MoreHorizontal,
-  Check,
-  X,
+  Briefcase,
+  DollarSign,
+  Calendar,
+  FolderTree,
+  Settings,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -152,49 +155,70 @@ function CostCenterDialog({ open, onOpenChange, costCenter, costCenters }: CostC
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Editar Centro de Custo' : 'Novo Centro de Custo'}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing 
-              ? 'Atualize as informações do centro de custo.'
-              : 'Crie um novo centro de custo para organizar os gastos.'}
-          </DialogDescription>
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Building2 className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <DialogTitle>
+                {isEditing ? 'Editar Centro de Custo' : 'Novo Centro de Custo'}
+              </DialogTitle>
+              <DialogDescription>
+                {isEditing 
+                  ? 'Atualize as informações do centro de custo.'
+                  : 'Crie um novo centro de custo para organizar os gastos.'}
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-5 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="cc-name">Nome *</Label>
+            <Label htmlFor="cc-name" className="flex items-center gap-2 text-sm font-medium">
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
+              Nome <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="cc-name"
               placeholder="Ex: Central de Água Gelada"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              className="transition-all hover:border-primary focus-visible:ring-primary"
             />
           </div>
           
           <div className="grid gap-2">
-            <Label htmlFor="cc-code">Código *</Label>
+            <Label htmlFor="cc-code" className="flex items-center gap-2 text-sm font-medium">
+              <Tag className="h-4 w-4 text-muted-foreground" />
+              Código <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="cc-code"
               placeholder="Ex: CAG-01"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
+              className="transition-all hover:border-primary focus-visible:ring-primary font-mono"
             />
           </div>
           
           <div className="grid gap-2">
-            <Label htmlFor="cc-parent">Centro de Custo Pai</Label>
+            <Label htmlFor="cc-parent" className="flex items-center gap-2 text-sm font-medium">
+              <FolderTree className="h-4 w-4 text-muted-foreground" />
+              Centro de Custo Pai
+            </Label>
             <Select value={parentId} onValueChange={setParentId}>
-              <SelectTrigger id="cc-parent">
+              <SelectTrigger 
+                id="cc-parent"
+                className="transition-all hover:border-primary focus:ring-primary"
+              >
                 <SelectValue placeholder="Nenhum (raiz)" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">Nenhum (raiz)</SelectItem>
                 {costCenters
-                  .filter(cc => cc.id !== costCenter?.id) // Can't be parent of itself
+                  .filter(cc => cc.id !== costCenter?.id)
                   .map((cc) => (
                     <SelectItem key={cc.id} value={cc.id}>
                       {cc.code} - {cc.name}
@@ -209,7 +233,11 @@ function CostCenterDialog({ open, onOpenChange, costCenter, costCenters }: CostC
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={!name || !code || isPending}>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={!name || !code || isPending}
+            className="bg-primary hover:bg-primary/90"
+          >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isEditing ? 'Salvar' : 'Criar'}
           </Button>
@@ -275,29 +303,43 @@ function RateCardDialog({ open, onOpenChange, editingRateCard }: RateCardDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>
-            {editingRateCard ? 'Editar Taxa de Mão de Obra' : 'Nova Taxa de Mão de Obra'}
-          </DialogTitle>
-          <DialogDescription>
-            Defina o custo por hora para uma função/cargo.
-          </DialogDescription>
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Clock className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <DialogTitle>
+                {editingRateCard ? 'Editar Taxa de Mão de Obra' : 'Nova Taxa de Mão de Obra'}
+              </DialogTitle>
+              <DialogDescription>
+                Defina o custo por hora para uma função/cargo.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-5 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="rc-role">Função/Cargo *</Label>
+            <Label htmlFor="rc-role" className="flex items-center gap-2 text-sm font-medium">
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
+              Função/Cargo <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="rc-role"
               placeholder="Ex: Técnico de Refrigeração"
               value={role}
               onChange={(e) => setRole(e.target.value)}
+              className="transition-all hover:border-primary focus-visible:ring-primary"
             />
           </div>
           
           <div className="grid gap-2">
-            <Label htmlFor="rc-cost">Custo por Hora (R$) *</Label>
+            <Label htmlFor="rc-cost" className="flex items-center gap-2 text-sm font-medium">
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              Custo por Hora (R$) <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="rc-cost"
               type="number"
@@ -306,16 +348,21 @@ function RateCardDialog({ open, onOpenChange, editingRateCard }: RateCardDialogP
               placeholder="Ex: 110.00"
               value={costPerHour}
               onChange={(e) => setCostPerHour(e.target.value)}
+              className="transition-all hover:border-primary focus-visible:ring-primary font-mono"
             />
           </div>
           
           <div className="grid gap-2">
-            <Label htmlFor="rc-effective">Vigência a partir de *</Label>
+            <Label htmlFor="rc-effective" className="flex items-center gap-2 text-sm font-medium">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              Vigência a partir de <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="rc-effective"
               type="date"
               value={effectiveFrom}
               onChange={(e) => setEffectiveFrom(e.target.value)}
+              className="transition-all hover:border-primary focus-visible:ring-primary"
             />
           </div>
         </div>
@@ -327,9 +374,10 @@ function RateCardDialog({ open, onOpenChange, editingRateCard }: RateCardDialogP
           <Button 
             onClick={handleSubmit} 
             disabled={!role || !costPerHour || createRateCard.isPending}
+            className="bg-primary hover:bg-primary/90"
           >
             {createRateCard.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Criar Taxa
+            {editingRateCard ? 'Salvar' : 'Criar Taxa'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -397,7 +445,7 @@ function CostCentersTab() {
 
   if (error) {
     return (
-      <Alert variant="destructive">
+      <Alert variant="destructive" className="border-red-200 bg-red-50">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           Erro ao carregar centros de custo. Tente novamente.
@@ -409,11 +457,20 @@ function CostCentersTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Organize os custos por área, unidade ou sistema.
-        </p>
+        <div className="flex items-center gap-2">
+          <Building2 className="h-5 w-5 text-primary" />
+          <div>
+            <p className="text-sm font-medium">Centros de Custo</p>
+            <p className="text-xs text-muted-foreground">
+              Organize os custos por área, unidade ou sistema
+            </p>
+          </div>
+        </div>
         {canCreate && (
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button 
+            onClick={() => setDialogOpen(true)}
+            className="bg-primary hover:bg-primary/90 transition-colors"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Novo Centro
           </Button>
@@ -423,69 +480,83 @@ function CostCentersTab() {
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-12 w-full" />
+            <Skeleton key={i} className="h-14 w-full" />
           ))}
         </div>
       ) : costCenters && costCenters.length > 0 ? (
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Código</TableHead>
-                <TableHead>Nome</TableHead>
-                <TableHead>Centro Pai</TableHead>
-                <TableHead className="w-[100px]">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {costCenters.map((cc) => (
-                <TableRow key={cc.id}>
-                  <TableCell>
-                    <Badge variant="outline">{cc.code}</Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">{cc.name}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {getParentName(cc.parent_id)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2 justify-end">
-                      {canEdit && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleEdit(cc)}
-                          title="Editar"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {canDelete && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => setDeleteId(cc.id)}
-                          title="Excluir"
-                        >
-                          <Trash2 className="h-4 w-4 text-red-600" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
+        <div className="border rounded-lg bg-card shadow-sm">
+          <ScrollArea className="h-[calc(100vh-380px)]">
+            <Table>
+              <TableHeader className="sticky top-0 bg-muted/50 backdrop-blur-sm">
+                <TableRow>
+                  <TableHead className="w-[180px]">Código</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead className="w-[280px]">Centro Pai</TableHead>
+                  <TableHead className="w-[100px] text-right">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {costCenters.map((cc) => (
+                  <TableRow 
+                    key={cc.id}
+                    className="transition-colors hover:bg-primary/10"
+                  >
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono text-xs border-primary/30 text-primary">
+                        {cc.code}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{cc.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {getParentName(cc.parent_id)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 justify-end">
+                        {canEdit && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleEdit(cc)}
+                            title="Editar"
+                            className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => setDeleteId(cc.id)}
+                            title="Excluir"
+                            className="h-8 w-8 hover:bg-red-100 hover:text-red-700 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollArea>
         </div>
       ) : (
-        <Card>
+        <Card className="border-dashed border-2">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="font-medium text-lg mb-2">Nenhum centro de custo</h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Crie centros de custo para organizar seus gastos por área.
+            <div className="p-4 rounded-full bg-primary/10 mb-4">
+              <Building2 className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="font-semibold text-lg mb-1">Nenhum centro de custo</h3>
+            <p className="text-sm text-muted-foreground text-center mb-6 max-w-sm">
+              Crie centros de custo para organizar seus gastos por área, unidade ou sistema.
             </p>
             {canCreate && (
-              <Button onClick={() => setDialogOpen(true)}>
+              <Button 
+                onClick={() => setDialogOpen(true)}
+                className="bg-primary hover:bg-primary/90"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Criar Primeiro Centro
               </Button>
@@ -519,7 +590,7 @@ function CostCentersTab() {
           </AlertDialogHeader>
           
           {deleteError && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="border-red-200 bg-red-50">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{deleteError}</AlertDescription>
             </Alert>
@@ -531,6 +602,7 @@ function CostCentersTab() {
               onClick={handleDelete}
               variant="destructive"
               disabled={deleteCostCenter.isPending}
+              className="bg-red-600 hover:bg-red-700"
             >
               {deleteCostCenter.isPending ? (
                 <>
@@ -603,7 +675,7 @@ function RateCardsTab() {
 
   if (error) {
     return (
-      <Alert variant="destructive">
+      <Alert variant="destructive" className="border-red-200 bg-red-50">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           Erro ao carregar taxas de mão de obra. Tente novamente.
@@ -615,11 +687,20 @@ function RateCardsTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Defina o custo por hora para cada função ou cargo.
-        </p>
+        <div className="flex items-center gap-2">
+          <Clock className="h-5 w-5 text-primary" />
+          <div>
+            <p className="text-sm font-medium">Taxas de Mão de Obra</p>
+            <p className="text-xs text-muted-foreground">
+              Defina o custo por hora para cada função ou cargo
+            </p>
+          </div>
+        </div>
         {canCreate && (
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button 
+            onClick={() => setDialogOpen(true)}
+            className="bg-primary hover:bg-primary/90 transition-colors"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Nova Taxa
           </Button>
@@ -629,69 +710,84 @@ function RateCardsTab() {
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-12 w-full" />
+            <Skeleton key={i} className="h-14 w-full" />
           ))}
         </div>
       ) : rateCards && rateCards.length > 0 ? (
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[40%]">Função/Cargo</TableHead>
-                <TableHead className="w-[20%] text-right">Custo/Hora</TableHead>
-                <TableHead className="w-[25%]">Vigência</TableHead>
-                <TableHead className="w-[15%] text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rateCards.map((rc) => (
-                <TableRow key={rc.id}>
-                  <TableCell className="font-medium">{rc.role}</TableCell>
-                  <TableCell className="text-right">
-                    <MoneyCell value={rc.cost_per_hour} />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    A partir de {formatDate(rc.effective_from)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {canEdit && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(rc)}
-                          title="Editar"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {canDelete && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteId(rc.id)}
-                          title="Excluir"
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
+        <div className="border rounded-lg bg-card shadow-sm">
+          <ScrollArea className="h-[calc(100vh-380px)]">
+            <Table>
+              <TableHeader className="sticky top-0 bg-muted/50 backdrop-blur-sm">
+                <TableRow>
+                  <TableHead className="w-[35%]">Função/Cargo</TableHead>
+                  <TableHead className="w-[20%] text-right">Custo/Hora</TableHead>
+                  <TableHead className="w-[30%]">Vigência</TableHead>
+                  <TableHead className="w-[15%] text-right">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {rateCards.map((rc) => (
+                  <TableRow 
+                    key={rc.id}
+                    className="transition-colors hover:bg-primary/10"
+                  >
+                    <TableCell className="font-medium">{rc.role}</TableCell>
+                    <TableCell className="text-right">
+                      <MoneyCell value={rc.cost_per_hour} />
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5" />
+                        A partir de {formatDate(rc.effective_from)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(rc)}
+                            title="Editar"
+                            className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleteId(rc.id)}
+                            title="Excluir"
+                            className="h-8 w-8 hover:bg-red-100 hover:text-red-700 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollArea>
         </div>
       ) : (
-        <Card>
+        <Card className="border-dashed border-2">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Clock className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="font-medium text-lg mb-2">Nenhuma taxa cadastrada</h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Defina taxas de mão de obra para calcular custos de labor.
+            <div className="p-4 rounded-full bg-primary/10 mb-4">
+              <Clock className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="font-semibold text-lg mb-1">Nenhuma taxa cadastrada</h3>
+            <p className="text-sm text-muted-foreground text-center mb-6 max-w-sm">
+              Defina taxas de mão de obra para calcular custos de labor automaticamente.
             </p>
             {canCreate && (
-              <Button onClick={() => setDialogOpen(true)}>
+              <Button 
+                onClick={() => setDialogOpen(true)}
+                className="bg-primary hover:bg-primary/90"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Criar Primeira Taxa
               </Button>
@@ -724,7 +820,7 @@ function RateCardsTab() {
           </AlertDialogHeader>
           
           {deleteError && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="border-red-200 bg-red-50">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{deleteError}</AlertDescription>
             </Alert>
@@ -736,6 +832,7 @@ function RateCardsTab() {
               onClick={handleDelete}
               variant="destructive"
               disabled={deleteRateCard.isPending}
+              className="bg-red-600 hover:bg-red-700"
             >
               {deleteRateCard.isPending ? (
                 <>
@@ -759,26 +856,40 @@ function CategoriesTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Categorias de manutenção utilizadas para classificar custos.
-        </p>
-        <Badge variant="outline">Somente leitura</Badge>
+        <div className="flex items-center gap-2">
+          <Tag className="h-5 w-5 text-primary" />
+          <div>
+            <p className="text-sm font-medium">Categorias de Manutenção</p>
+            <p className="text-xs text-muted-foreground">
+              Categorias utilizadas para classificar custos (fixas no MVP)
+            </p>
+          </div>
+        </div>
+        <Badge variant="outline" className="border-primary/30 text-primary">
+          Somente leitura
+        </Badge>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         {CATEGORIES.map((cat) => (
-          <Card key={cat.id}>
-            <CardContent className="p-4">
+          <Card 
+            key={cat.id} 
+            className="transition-all hover:shadow-md hover:border-primary"
+          >
+            <CardContent className="p-5">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
+                <div className="p-2.5 rounded-lg bg-primary/10">
                   <Tag className="h-5 w-5 text-primary" />
                 </div>
-                <div>
-                  <h3 className="font-medium">{cat.name}</h3>
-                  <p className="text-sm text-muted-foreground">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-base mb-1">{cat.name}</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
                     {cat.description}
                   </p>
-                  <Badge variant="outline" className="mt-2 text-xs">
+                  <Badge 
+                    variant="outline" 
+                    className="text-xs font-mono border-primary/30 text-primary"
+                  >
                     {cat.id}
                   </Badge>
                 </div>
@@ -795,44 +906,51 @@ function CategoriesTab() {
 
 export function FinanceSettings() {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Cadastros</h1>
-        <p className="text-muted-foreground">
+    <div className="h-[calc(100vh-140px)] flex flex-col">
+      {/* Header - Fixo */}
+      <div className="flex-none pb-4 border-b bg-background">
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <Settings className="h-7 w-7 text-primary" />
+          Cadastros Finance
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Configuração de centros de custo, taxas e categorias
         </p>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="cost-centers" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="cost-centers" className="gap-2">
-            <Building2 className="h-4 w-4" />
-            Centros de Custo
-          </TabsTrigger>
-          <TabsTrigger value="rate-cards" className="gap-2">
-            <Clock className="h-4 w-4" />
-            Taxas de Mão de Obra
-          </TabsTrigger>
-          <TabsTrigger value="categories" className="gap-2">
-            <Tag className="h-4 w-4" />
-            Categorias
-          </TabsTrigger>
-        </TabsList>
+      {/* Tabs - Viewport fixo com scroll interno */}
+      <div className="flex-1 overflow-hidden pt-4">
+        <Tabs defaultValue="cost-centers" className="h-full flex flex-col">
+          <TabsList className="flex-none">
+            <TabsTrigger value="cost-centers" className="gap-2">
+              <Building2 className="h-4 w-4" />
+              Centros de Custo
+            </TabsTrigger>
+            <TabsTrigger value="rate-cards" className="gap-2">
+              <Clock className="h-4 w-4" />
+              Taxas de Mão de Obra
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="gap-2">
+              <Tag className="h-4 w-4" />
+              Categorias
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="cost-centers">
-          <CostCentersTab />
-        </TabsContent>
+          <div className="flex-1 overflow-hidden pt-4">
+            <TabsContent value="cost-centers" className="h-full m-0">
+              <CostCentersTab />
+            </TabsContent>
 
-        <TabsContent value="rate-cards">
-          <RateCardsTab />
-        </TabsContent>
+            <TabsContent value="rate-cards" className="h-full m-0">
+              <RateCardsTab />
+            </TabsContent>
 
-        <TabsContent value="categories">
-          <CategoriesTab />
-        </TabsContent>
-      </Tabs>
+            <TabsContent value="categories" className="h-full m-0">
+              <CategoriesTab />
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
     </div>
   );
 }
