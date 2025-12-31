@@ -52,14 +52,6 @@ export async function fetchAllPages<T>(
     
     allResults.push(...response.data.results);
     nextUrl = response.data.next; // Follow 'next' link (null when no more pages)
-    
-    if (import.meta.env.DEV && nextUrl) {
-
-    }
-  }
-  
-  if (import.meta.env.DEV) {
-
   }
   
   return allResults;

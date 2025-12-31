@@ -54,13 +54,8 @@ import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-// Ensure PDF worker is configured and log status
+// Ensure PDF worker is configured
 configurePDFWorker();
-if (import.meta.env.DEV) {
-
-}
-
-
 
 interface ProcedureViewerProps {
   isOpen: boolean;

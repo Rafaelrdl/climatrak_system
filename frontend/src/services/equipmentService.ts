@@ -146,11 +146,6 @@ const apiAssetToEquipment = (asset: ApiAsset): Equipment & {
   apparentPower?: number;
   reactivePower?: number;
 } => {
-  // Debug: log para verificar o mapeamento de localização
-  if (asset.sector || asset.company_id) {
-
-  }
-  
   return {
     id: String(asset.id),
     tag: asset.tag,

@@ -178,20 +178,8 @@ interface TopDeviationsProps {
 }
 
 function TopDeviations({ data, isLoading }: TopDeviationsProps) {
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="flex items-center justify-between p-2">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-5 w-20" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
   // Sort categories by absolute variance (negative = over budget)
+  // Must be called before any conditional returns to follow React hooks rules
   const sortedByDeviation = useMemo(() => {
     if (!data) return [];
     return [...data]
@@ -206,6 +194,19 @@ function TopDeviations({ data, isLoading }: TopDeviationsProps) {
       .sort((a, b) => b.deviation - a.deviation) // Most over budget first
       .slice(0, 5);
   }, [data]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex items-center justify-between p-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-5 w-20" />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   if (sortedByDeviation.length === 0) {
     return (

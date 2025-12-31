@@ -106,8 +106,18 @@ export function parsePaginatedResponse<T>(raw: unknown): Paginated<T> {
 
   page = page ?? readNumber(obj.page);
   pageSize = pageSize ?? readNumber(obj.page_size ?? obj.pageSize ?? obj.limit);
-  next = next ?? readStringOrNull(obj.next);
-  prev = prev ?? readStringOrNull(obj.previous ?? obj.prev);
+  // Handle next/prev - need to check if already set (including null)
+  // Note: use 'in' operator to check if property exists, since ?? treats null as falsy
+  if (next === undefined) {
+    next = 'next' in obj ? readStringOrNull(obj.next) : undefined;
+  }
+  if (prev === undefined) {
+    if ('previous' in obj) {
+      prev = readStringOrNull(obj.previous);
+    } else if ('prev' in obj) {
+      prev = readStringOrNull(obj.prev);
+    }
+  }
 
   if (total === undefined) {
     total = items.length;

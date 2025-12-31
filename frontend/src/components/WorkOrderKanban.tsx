@@ -431,18 +431,14 @@ export function WorkOrderKanban({
       const newStatus = overId as WorkOrder['status'];
       
       if (activeWorkOrder.status !== newStatus) {
-
-        
         onUpdateWorkOrder(activeWorkOrder.id, { 
           status: newStatus,
           ...(newStatus === 'COMPLETED' && { completedAt: new Date().toISOString() })
         });
-      } else {
-
       }
-    } else {
-
+      // No action needed if status is the same
     }
+    // No action needed for invalid drop targets
 
     setActiveId(null);
   }

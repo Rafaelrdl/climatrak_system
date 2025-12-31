@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { 
-  initializeStorage,
   createProcedure,
   updateProcedure,
   listVersions,
@@ -17,11 +16,12 @@ describe('Version Comparison Functionality', () => {
   let mockFile: ProcedureFileRef;
 
   beforeEach(() => {
-    // Clear localStorage
+    // Clear localStorage completely
     localStorage.clear();
     
-    // Initialize storage
-    initializeStorage();
+    // Initialize storage with empty data
+    localStorage.setItem('procedure_versions:db', JSON.stringify([]));
+    localStorage.setItem('procedures:db', JSON.stringify([]));
     
     // Create mock file reference
     mockFile = {
@@ -220,12 +220,14 @@ describe('Version Comparison Functionality', () => {
     });
 
     // Create another version with the same data (simulating no real changes)
-    const sameVersion = updateProcedure({
+    updateProcedure({
       ...testProcedure,
       version: 2
     }, 'updated', 'No changes');
 
     const versions = listVersions(testProcedure.id);
+    expect(versions.length).toBeGreaterThanOrEqual(2);
+    
     const comparison = compareVersions(versions[1].id, versions[0].id);
     
     expect(comparison).not.toBeNull();

@@ -136,9 +136,6 @@ const processQueue = (error: AxiosError | null, token: string | null = null) => 
  */
 api.interceptors.response.use(
   (response) => {
-    if (import.meta.env.DEV) {
-
-    }
     return response;
   },
   async (error: AxiosError) => {
@@ -172,10 +169,6 @@ api.interceptors.response.use(
           {},
           { withCredentials: true }
         );
-
-        if (import.meta.env.DEV) {
-
-        }
 
         processQueue(null, data.access);
         return api(originalRequest);

@@ -40,4 +40,32 @@ export default tseslint.config(
       'react-refresh/only-export-components': 'off',
     },
   },
+  // Cypress E2E tests config
+  {
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    files: ['cypress/**/*.{ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        cy: 'readonly',
+        Cypress: 'readonly',
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        before: 'readonly',
+        after: 'readonly',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-namespace': 'off',
+      // Chai assertions use expressions like expect().to.exist
+      '@typescript-eslint/no-unused-expressions': 'off',
+    },
+  },
 )

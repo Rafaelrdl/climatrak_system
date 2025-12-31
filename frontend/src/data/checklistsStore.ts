@@ -84,7 +84,7 @@ const mockChecklists: ChecklistTemplate[] = [
 ];
 
 // State local
-let checklists: ChecklistTemplate[] = [...mockChecklists];
+const checklists: ChecklistTemplate[] = [...mockChecklists];
 
 // API-like functions
 export function listChecklists(): ChecklistTemplate[] {

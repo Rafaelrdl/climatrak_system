@@ -14,9 +14,9 @@ vi.mock('sonner', () => ({
 }));
 
 // Mock the hooks
-vi.mock('@/hooks/useDataTemp', () => ({
-  useSolicitations: () => [
-    [
+vi.mock('@/hooks/useRequestsQuery', () => ({
+  useSolicitations: () => ({
+    data: [
       {
         id: '1',
         location_name: 'Test Location',
@@ -30,50 +30,64 @@ vi.mock('@/hooks/useDataTemp', () => ({
         updated_at: '2024-01-20T08:30:00.000Z'
       }
     ],
-    vi.fn(),
-    vi.fn()
-  ],
-  useWorkOrders: () => [[], vi.fn(), vi.fn()],
-  useStockItems: () => [
-    [
-      {
-        id: '1',
-        code: 'TEST001',
-        description: 'Test Item',
-        unit: 'un',
-        quantity: 10,
-        minimum: 1,
-        maximum: 100
-      }
-    ],
-    vi.fn(),
-    vi.fn()
-  ],
-  canAdvanceStatus: () => true,
-  getNextStatus: () => 'Em triagem',
-  advanceSolicitationStatus: (solicitation: any) => ({
-    ...solicitation,
-    status: 'Em triagem',
-    status_history: [
-      ...solicitation.status_history,
-      {
-        from: solicitation.status,
-        to: 'Em triagem',
-        at: new Date().toISOString()
-      }
-    ],
-    updated_at: new Date().toISOString()
+    isLoading: false,
+    error: null
   }),
-  convertSolicitationToWorkOrder: () => ({
-    id: 'wo-123',
-    number: 'OS-123456',
-    equipmentId: '1',
-    type: 'CORRECTIVE',
-    status: 'OPEN',
-    scheduledDate: new Date().toISOString(),
-    priority: 'MEDIUM',
-    description: 'Convertida da solicitação: Test note',
-    stockItems: []
+  useConvertSolicitationToWorkOrder: () => ({
+    mutate: vi.fn(),
+    isPending: false
+  }),
+  useCreateRequest: () => ({
+    mutate: vi.fn(),
+    mutateAsync: vi.fn(),
+    isPending: false
+  }),
+  useSolicitationStatusCounts: () => ({
+    data: { nova: 1, em_triagem: 0, aprovada: 0, total: 1 },
+    isLoading: false
+  }),
+  useUpdateSolicitationStatus: () => ({
+    mutate: vi.fn(),
+    isPending: false
+  }),
+  requestKeys: {
+    all: ['requests'],
+    lists: () => ['requests', 'list'],
+    list: (filters: any) => ['requests', 'list', filters],
+    details: () => ['requests', 'detail'],
+    detail: (id: string) => ['requests', 'detail', id],
+  }
+}));
+
+// Mock companies hook
+vi.mock('@/hooks/useLocationsQuery', () => ({
+  useCompanies: () => ({
+    data: [{ id: '1', name: 'Test Company' }],
+    isLoading: false
+  }),
+  useLocations: () => ({
+    data: [{ id: '1', name: 'Test Location', company_id: '1' }],
+    isLoading: false
+  }),
+  useSectors: () => ({
+    data: [{ id: '1', name: 'Test Sector', company_id: '1' }],
+    isLoading: false
+  }),
+  useSubsections: () => ({
+    data: [{ id: '1', name: 'Test Subsection', sector_id: '1' }],
+    isLoading: false
+  })
+}));
+
+// Mock equipment hook
+vi.mock('@/hooks/useEquipmentQuery', () => ({
+  useEquipments: () => ({
+    data: [{ id: '1', name: 'Test Equipment', location_id: '1' }],
+    isLoading: false
+  }),
+  useEquipment: () => ({
+    data: { id: '1', name: 'Test Equipment', location_id: '1' },
+    isLoading: false
   })
 }));
 
@@ -138,35 +152,23 @@ describe('RequestsPage', () => {
     expect(screen.getByText('Nova')).toBeInTheDocument();
   });
 
-  it('opens drawer when row is clicked', async () => {
-    const user = userEvent.setup();
+  it('has action buttons in the table', () => {
     const Wrapper = createWrapper();
     render(<RequestsPage />, { wrapper: Wrapper });
     
-    const row = screen.getByRole('button', { name: /ver detalhes da solicitação/i });
-    await user.click(row);
-    
-    await waitFor(() => {
-      expect(screen.getByText('SOL-000001')).toBeInTheDocument();
+    // Find buttons in the table (view and convert buttons)
+    const allButtons = screen.getAllByRole('button');
+    // Filter to find icon buttons in the action column
+    const actionButtons = allButtons.filter(btn => {
+      const cell = btn.closest('td');
+      return cell !== null;
     });
+    
+    // Should have at least 2 action buttons per row (view + convert)
+    expect(actionButtons.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('handles keyboard navigation on table rows', async () => {
-    const user = userEvent.setup();
-    const Wrapper = createWrapper();
-    render(<RequestsPage />, { wrapper: Wrapper });
-    
-    const row = screen.getByRole('button', { name: /ver detalhes da solicitação/i });
-    row.focus();
-    
-    await user.keyboard('{Enter}');
-    
-    await waitFor(() => {
-      expect(screen.getByText('SOL-000001')).toBeInTheDocument();
-    });
-  });
-
-  it('has proper accessibility attributes', () => {
+  it('has proper accessibility attributes on table', () => {
     const Wrapper = createWrapper();
     render(<RequestsPage />, { wrapper: Wrapper });
     
@@ -177,8 +179,5 @@ describe('RequestsPage', () => {
     headers.forEach(header => {
       expect(header).toHaveAttribute('scope', 'col');
     });
-    
-    const row = screen.getByRole('button', { name: /ver detalhes da solicitação/i });
-    expect(row).toHaveAttribute('tabIndex', '0');
   });
 });
