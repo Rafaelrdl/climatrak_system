@@ -13,11 +13,12 @@ Classes:
 
 from django.db.models import Count
 from django.utils import timezone
-from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from django_filters.rest_framework import DjangoFilterBackend
 
 from apps.accounts.permissions import CanWrite
 
@@ -637,8 +638,9 @@ class DeviceViewSet(viewsets.ModelViewSet):
             - last_seen: Timestamp atualizado
             - is_online: Status online do device
         """
-        from dateutil import parser as date_parser
         from django.utils import timezone
+
+        from dateutil import parser as date_parser
 
         device = self.get_object()
 

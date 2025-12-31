@@ -24,6 +24,7 @@ from typing import List, Optional, Tuple
 
 from django.contrib.auth import authenticate
 from django.utils import timezone
+
 from django_tenants.utils import schema_context
 from rest_framework_simplejwt.tokens import RefreshToken
 

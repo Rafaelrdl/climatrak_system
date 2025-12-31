@@ -7,11 +7,12 @@ Provides REST endpoints for:
 - Aggregated time-series (Continuous Aggregates)
 """
 from django.db import connection
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 
 from .filters import ReadingFilter, TelemetryFilter
 from .models import Reading, Telemetry

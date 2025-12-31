@@ -5,9 +5,10 @@ These tests verify that data is properly isolated between tenants.
 Critical for multi-tenant security.
 """
 
-import pytest
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+
+import pytest
 from django_tenants.utils import (
     get_public_schema_name,
     get_tenant_model,

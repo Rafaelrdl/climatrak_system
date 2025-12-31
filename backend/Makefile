@@ -56,13 +56,13 @@ check:
 	@echo "\n✓ All checks passed!"
 
 fmt:
+	docker compose -f docker/docker-compose.yml exec api ruff check apps/ config/ --fix
 	docker compose -f docker/docker-compose.yml exec api black apps/ config/
-	docker compose -f docker/docker-compose.yml exec api isort apps/ config/
 
 fmt-check:
 	@echo "Checking code formatting..."
+	docker compose -f docker/docker-compose.yml exec api ruff check apps/ config/
 	docker compose -f docker/docker-compose.yml exec api black --check --diff apps/ config/
-	docker compose -f docker/docker-compose.yml exec api isort --check-only --diff apps/ config/
 
 lint:
 	docker compose -f docker/docker-compose.yml exec api ruff check apps/ config/
@@ -86,7 +86,6 @@ ci-local:
 	@echo "Running local CI checks (requires Python environment)..."
 	ruff check apps/ config/
 	black --check --diff apps/ config/
-	isort --check-only --diff apps/ config/
 	pytest apps/ -v --tb=short
 	python manage.py makemigrations --check --dry-run
 	@echo "✓ Local CI checks passed!"

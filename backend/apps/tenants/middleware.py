@@ -23,6 +23,7 @@ import logging
 
 from django.db import connection
 from django.http import JsonResponse
+
 from django_tenants.utils import get_tenant_model, schema_context
 
 logger = logging.getLogger(__name__)

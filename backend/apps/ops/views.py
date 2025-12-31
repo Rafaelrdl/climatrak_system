@@ -18,6 +18,7 @@ from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
+
 from django_tenants.utils import get_tenant_model, schema_context
 
 from .forms import TelemetryFilterForm
@@ -764,9 +765,10 @@ def export_cancel(request, job_id):
     """
     Cancel a pending export job.
     """
-    from celery.result import AsyncResult
     from django.contrib import messages
     from django.shortcuts import redirect
+
+    from celery.result import AsyncResult
 
     from .models import ExportJob
 

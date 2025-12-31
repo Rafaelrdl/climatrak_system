@@ -15,6 +15,7 @@ IMPORTANT: These signals run AFTER the User is saved in the tenant schema.
 import logging
 
 from django.db.models.signals import post_save, pre_delete
+
 from django_tenants.utils import schema_context
 
 from .models import TenantMembership, TenantUserIndex, compute_email_hash

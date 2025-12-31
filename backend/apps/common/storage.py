@@ -5,6 +5,7 @@ Storage utilities for MinIO/S3 integration.
 import logging
 
 from django.conf import settings
+
 from minio import Minio
 
 logger = logging.getLogger(__name__)

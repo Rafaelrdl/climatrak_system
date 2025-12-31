@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+
 from django_tenants.test.cases import TenantTestCase
 
 from apps.assets.models import Asset

@@ -6,6 +6,7 @@ import logging
 from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
+
 from django_tenants.utils import get_tenant_model
 
 logger = logging.getLogger(__name__)

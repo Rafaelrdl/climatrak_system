@@ -20,9 +20,10 @@ from datetime import date
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
-from django_tenants.test.cases import TenantTestCase
 from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
+
+from django_tenants.test.cases import TenantTestCase
 
 from apps.finance.models import Commitment, CostCenter
 from apps.finance.views import CommitmentViewSet

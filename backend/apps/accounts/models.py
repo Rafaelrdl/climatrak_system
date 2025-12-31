@@ -365,6 +365,7 @@ class Invite(models.Model):
         inviter_email = None
         if self.invited_by_id:
             from django.contrib.auth import get_user_model
+
             from django_tenants.utils import get_public_schema_name, schema_context
 
             UserModel = get_user_model()
@@ -424,6 +425,7 @@ class Invite(models.Model):
 
         # Mark invite as accepted
         from django.contrib.auth import get_user_model
+
         from django_tenants.utils import get_public_schema_name, schema_context
 
         public_schema = get_public_schema_name()

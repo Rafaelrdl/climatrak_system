@@ -4,8 +4,9 @@ Celery tasks for Assets monitoring and maintenance.
 import logging
 from datetime import timedelta
 
-from celery import shared_task
 from django.utils import timezone
+
+from celery import shared_task
 from django_tenants.utils import schema_context
 
 from apps.tenants.models import Tenant

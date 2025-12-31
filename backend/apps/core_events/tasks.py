@@ -10,9 +10,10 @@ Referência: docs/events/01-contrato-eventos.md
 import logging
 from typing import Callable, Dict, Optional
 
-from celery import shared_task
 from django.db import transaction
 from django.utils import timezone
+
+from celery import shared_task
 
 from .models import OutboxEvent, OutboxEventStatus
 

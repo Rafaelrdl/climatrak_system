@@ -12,6 +12,7 @@ import uuid
 
 from django.db import IntegrityError
 from django.utils import timezone
+
 from django_tenants.test.cases import TenantTestCase
 
 from apps.core_events.models import OutboxEvent, OutboxEventStatus

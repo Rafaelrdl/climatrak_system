@@ -9,8 +9,9 @@ a tenant context.
 """
 
 from django.db import connection
-from django_tenants.utils import schema_context
 from rest_framework import permissions
+
+from django_tenants.utils import schema_context
 
 
 def get_current_tenant():

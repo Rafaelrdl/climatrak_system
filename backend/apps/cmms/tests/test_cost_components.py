@@ -10,9 +10,10 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django_tenants.test.cases import TenantTestCase
 from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
+
+from django_tenants.test.cases import TenantTestCase
 
 User = get_user_model()
 

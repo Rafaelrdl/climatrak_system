@@ -51,9 +51,9 @@ jobs:
 
       - name: Install linting tools
         run: |
-          pip install ruff black isort
+          pip install ruff black
 
-      - name: Run Ruff (linter)
+      - name: Run Ruff (linter + import sorting)
         working-directory: backend
         run: |
           ruff check apps/ config/ --output-format=github
@@ -62,11 +62,6 @@ jobs:
         working-directory: backend
         run: |
           black --check --diff apps/ config/
-
-      - name: Check isort imports
-        working-directory: backend
-        run: |
-          isort --check-only --diff apps/ config/
 
   # ==========================================================================
   # Job 2: Tests with PostgreSQL

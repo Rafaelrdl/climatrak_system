@@ -26,6 +26,7 @@ skip = [".git", ".venv", "venv", "migrations", "__pycache__"]
 known_django = ["django", "rest_framework"]
 known_first_party = ["apps", "config"]
 sections = ["FUTURE", "STDLIB", "DJANGO", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+# Note: Use ruff for import sorting in CI (consistent and faster)
 
 [tool.ruff]
 line-length = 88
@@ -61,6 +62,13 @@ ignore = [
 "__init__.py" = ["F401", "F403"]
 "config/settings/*.py" = ["F401", "F403", "F405", "E402"]
 "*/tests/*.py" = ["F841"]  # unused variable in tests (common pattern)
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+section-order = ["future", "standard-library", "django", "third-party", "first-party", "local-folder"]
+
+[tool.ruff.lint.isort.sections]
+"django" = ["django", "rest_framework"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.development"

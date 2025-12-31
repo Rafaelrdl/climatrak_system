@@ -11,6 +11,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -720,6 +721,7 @@ class WhoAmIView(APIView):
 
     def get(self, request):
         from django.db import connection
+
         from django_tenants.utils import schema_context
 
         from apps.public_identity.models import (

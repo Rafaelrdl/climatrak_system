@@ -6,6 +6,7 @@ Each tenant gets its own PostgreSQL schema for data isolation.
 """
 
 from django.db import models
+
 from django_tenants.models import DomainMixin, TenantMixin
 
 

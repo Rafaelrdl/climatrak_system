@@ -19,9 +19,10 @@ django-tenants multi-tenant e autenticação JWT.
 from datetime import date, timedelta
 from decimal import Decimal
 
-from django_tenants.test.cases import TenantTestCase
 from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
+
+from django_tenants.test.cases import TenantTestCase
 
 from apps.finance.models import (
     BudgetEnvelope,

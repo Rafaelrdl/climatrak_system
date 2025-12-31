@@ -2,11 +2,12 @@
 Tenant discovery view - identifica tenant pelo email sem exigir senha.
 """
 
-from django_tenants.utils import schema_context
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from django_tenants.utils import schema_context
 
 from apps.public_identity.models import (
     TenantMembership,
