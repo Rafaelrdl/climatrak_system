@@ -13,11 +13,12 @@ from decimal import Decimal
 
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
-from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from django_filters.rest_framework import DjangoFilterBackend
 
 from .filters import (
     BudgetEnvelopeFilter,
@@ -1249,10 +1250,10 @@ class BudgetSummaryViewSet(viewsets.ViewSet):
         month_start = month_date
         month_end = month_date + relativedelta(months=1, days=-1)
 
-        # Filtros base
-        cc_filter = Q()
+        # Filtros base (cc_filter usado condicionalmente abaixo)
+        _ = Q()  # Base filter placeholder
         if cost_center_id:
-            cc_filter = Q(cost_center_id=cost_center_id)
+            _ = Q(cost_center_id=cost_center_id)
 
         # 1. Planned: BudgetMonth
         planned_qs = BudgetMonth.objects.filter(month=month_date)
@@ -1425,10 +1426,10 @@ class BudgetSummaryViewSet(viewsets.ViewSet):
         year_start = date(year, 1, 1)
         year_end = date(year, 12, 31)
 
-        # Filtros base
-        cc_filter = Q()
+        # Filtros base (aplicados condicionalmente nos querysets abaixo)
+        # cc_filter não usado diretamente, filtro aplicado em cada queryset
         if cost_center_id:
-            cc_filter = Q(cost_center_id=cost_center_id)
+            pass  # Filtro aplicado abaixo em cada queryset
 
         # Planned
         planned_qs = BudgetMonth.objects.filter(

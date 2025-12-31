@@ -72,7 +72,7 @@ class TelemetryFilterForm(forms.Form):
                 # Try parsing ISO-8601 format
                 datetime.fromisoformat(value.replace("Z", "+00:00"))
             except ValueError:
-                raise ValidationError("Invalid ISO-8601 timestamp format")
+                raise ValidationError("Invalid ISO-8601 timestamp format") from None
         return value
 
     def clean_to_timestamp(self):
@@ -82,7 +82,7 @@ class TelemetryFilterForm(forms.Form):
             try:
                 datetime.fromisoformat(value.replace("Z", "+00:00"))
             except ValueError:
-                raise ValidationError("Invalid ISO-8601 timestamp format")
+                raise ValidationError("Invalid ISO-8601 timestamp format") from None
         return value
 
     def clean_device_id(self):

@@ -8,12 +8,13 @@ from decimal import Decimal
 from django.conf import settings
 from django.db.models import Count, Q
 from django.utils import timezone
-from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from django_filters.rest_framework import DjangoFilterBackend
 
 logger = logging.getLogger(__name__)
 
@@ -797,7 +798,7 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                 # Obter função do técnico (position field)
                 role = getattr(work_order.assigned_to, "position", None) or "Técnico"
 
-                time_entry = TimeEntry.objects.create(
+                TimeEntry.objects.create(
                     work_order=work_order,
                     technician=work_order.assigned_to,
                     role=role,
@@ -1224,7 +1225,7 @@ class ProcedureViewSet(viewsets.ModelViewSet):
         return ProcedureDetailSerializer
 
     def perform_create(self, serializer):
-        procedure = serializer.save(created_by=self.request.user)
+        serializer.save(created_by=self.request.user)
 
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):

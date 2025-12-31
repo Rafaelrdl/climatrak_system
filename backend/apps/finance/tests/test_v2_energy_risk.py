@@ -16,9 +16,10 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django_tenants.test.cases import TenantTestCase
 from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
+
+from django_tenants.test.cases import TenantTestCase
 
 # Imports para criar Asset nos testes
 from apps.assets.models import Asset, Site
@@ -677,7 +678,7 @@ class AutoSavingsEngineTests(TenantTestCase):
                     kwh_total=kwh,
                     bandeira="verde",
                 )
-            except:
+            except Exception:
                 pass  # Ignora se já existe
 
     def test_collect_before_data(self):

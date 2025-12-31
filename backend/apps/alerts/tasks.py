@@ -11,8 +11,9 @@ import logging
 from datetime import timedelta
 from typing import Tuple
 
-from celery import shared_task
 from django.utils import timezone
+
+from celery import shared_task
 
 logger = logging.getLogger(__name__)
 
@@ -311,7 +312,7 @@ def evaluate_single_rule(rule):
                 "id", "tag"
             )
         }
-        for sensor_id, param_key in sensor_id_to_tag.items():
+        for sensor_id, _param_key in sensor_id_to_tag.items():
             if sensor_id in sensors_by_id:
                 sensor_tags.append(sensors_by_id[sensor_id])
 

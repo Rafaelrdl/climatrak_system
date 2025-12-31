@@ -198,8 +198,8 @@ class AcceptInviteSerializer(serializers.Serializer):
         """Validate that token exists and is valid."""
         try:
             invite = Invite.objects.get(token=value)
-        except Invite.DoesNotExist:
-            raise serializers.ValidationError("Invalid invite token.")
+        except Invite.DoesNotExist as exc:
+            raise serializers.ValidationError("Invalid invite token.") from exc
 
         if not invite.is_valid:
             if invite.is_expired:

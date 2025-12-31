@@ -3,7 +3,6 @@ import logging
 from datetime import datetime
 from datetime import timezone as dt_timezone
 
-import pytz
 from django.core.cache import cache
 from django.db import connection, transaction
 from django.utils import timezone as dj_timezone
@@ -12,6 +11,8 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+import pytz
 
 from apps.tenants.models import Tenant
 
@@ -237,7 +238,7 @@ class IngestView(APIView):
 
         # Continue processing with validated data and connected tenant
         try:
-            client_id = data.get("client_id")
+            _client_id = data.get("client_id")  # noqa: F841 - kept for debugging
             payload = data.get("payload")
             ts = data.get("ts")  # Timestamp do EMQX (fallback)
 

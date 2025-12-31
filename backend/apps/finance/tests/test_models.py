@@ -12,6 +12,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from django.test import TestCase
 from django.utils import timezone
 
@@ -71,7 +72,7 @@ class CostCenterModelTests(TestCase):
         """Código deve ser único."""
         CostCenter.objects.create(code="CC-001", name="First")
 
-        with self.assertRaises(Exception):  # IntegrityError
+        with self.assertRaises(IntegrityError):  # IntegrityError
             CostCenter.objects.create(code="CC-001", name="Second")
 
     def test_tags_default(self):
@@ -173,7 +174,7 @@ class BudgetPlanModelTests(TestCase):
             end_date=date(2024, 12, 31),
         )
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(IntegrityError):
             BudgetPlan.objects.create(
                 code="BUDGET-2024",
                 name="Second",
@@ -253,7 +254,7 @@ class BudgetEnvelopeModelTests(TestCase):
             amount=Decimal("10000.00"),
         )
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(IntegrityError):
             BudgetEnvelope.objects.create(
                 budget_plan=self.plan,
                 cost_center=self.cost_center,
@@ -310,7 +311,7 @@ class BudgetMonthModelTests(TestCase):
             planned_amount=Decimal("10000.00"),
         )
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(IntegrityError):
             BudgetMonth.objects.create(
                 envelope=self.envelope,
                 month=date(2024, 1, 1),
@@ -495,7 +496,7 @@ class CostTransactionModelTests(TestCase):
             idempotency_key=key,
         )
 
-        with self.assertRaises(Exception):  # IntegrityError
+        with self.assertRaises(IntegrityError):  # IntegrityError
             CostTransaction.objects.create(
                 transaction_type=CostTransaction.TransactionType.LABOR,
                 category=CostTransaction.Category.PREVENTIVE,

@@ -96,7 +96,7 @@ class TelemetryAdmin(admin.ModelAdmin):
             if len(payload) > 2:
                 preview += f" (+{len(payload) - 2} mais)"
             return format_html('<code style="font-size: 10px;">{}</code>', preview)
-        except:
+        except Exception:
             return "-"
 
     payload_preview.short_description = "Payload Preview"
@@ -108,7 +108,7 @@ class TelemetryAdmin(admin.ModelAdmin):
             return mark_safe(
                 f'<pre style="background-color: #f4f4f4; padding: 10px; border-radius: 5px;">{formatted}</pre>'
             )
-        except:
+        except Exception:
             return obj.payload
 
     payload_formatted.short_description = "Payload JSON"

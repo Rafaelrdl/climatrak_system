@@ -11,6 +11,7 @@ Este módulo implementa os modelos principais do sistema CMMS:
 - MaintenancePlan: Planos de manutenção preventiva
 """
 
+import datetime
 import uuid
 
 from django.contrib.auth import get_user_model
@@ -756,7 +757,7 @@ class MaintenancePlan(models.Model):
     def __str__(self):
         return self.name
 
-    def calculate_next_execution(self) -> "date":
+    def calculate_next_execution(self) -> datetime.date:
         """Calcula a próxima data de execução baseado na frequência."""
         from datetime import timedelta
 

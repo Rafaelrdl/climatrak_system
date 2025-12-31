@@ -2,15 +2,16 @@
 Views para Inventory
 """
 
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.db.models import Count, F, Sum
 from django.utils import timezone
-from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import (
     InventoryCategory,
@@ -191,7 +192,7 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
 
         try:
             new_quantity = Decimal(str(new_quantity))
-        except:
+        except (ValueError, InvalidOperation):
             return Response(
                 {"error": "Quantidade inválida"}, status=status.HTTP_400_BAD_REQUEST
             )
@@ -536,7 +537,7 @@ class InventoryCountViewSet(viewsets.ModelViewSet):
 
         try:
             count_item.counted_quantity = Decimal(str(counted_quantity))
-        except:
+        except (ValueError, InvalidOperation):
             return Response(
                 {"error": "Quantidade inválida"}, status=status.HTTP_400_BAD_REQUEST
             )

@@ -22,6 +22,7 @@ Usage:
 
 from django.conf import settings
 from django.db import connection
+
 from django_tenants.utils import get_public_schema_name, schema_context
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
@@ -93,8 +94,8 @@ class JWTCookieAuthentication(JWTAuthentication):
 
             return user
 
-        except User.DoesNotExist:
-            raise AuthenticationFailed("User not found", code="user_not_found")
+        except User.DoesNotExist as exc:
+            raise AuthenticationFailed("User not found", code="user_not_found") from exc
 
     def authenticate(self, request):
         """

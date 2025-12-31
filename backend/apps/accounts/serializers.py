@@ -5,6 +5,7 @@ Serializers for user authentication and profile management.
 from django.contrib.auth.password_validation import validate_password
 from django.db import connection
 from rest_framework import serializers
+
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from apps.accounts.models import User
@@ -360,10 +361,10 @@ class CentralizedLoginSerializer(serializers.Serializer):
                 try:
                     user_obj = User.objects.get(email=username_or_email.lower())
                     username = user_obj.username
-                except User.DoesNotExist:
+                except User.DoesNotExist as exc:
                     raise serializers.ValidationError(
                         {"username_or_email": "Credenciais inválidas."}
-                    )
+                    ) from exc
             else:
                 # It's a username
                 username = username_or_email.lower()

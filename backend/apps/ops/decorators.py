@@ -49,7 +49,7 @@ def audit_action(action_type, get_tenant_slug=None, get_filters=None):
                         record_count = data.get("meta", {}).get("total") or len(
                             data.get("data", [])
                         )
-                except:
+                except Exception:
                     pass
 
             # Log to audit

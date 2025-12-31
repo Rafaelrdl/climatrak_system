@@ -148,12 +148,14 @@ class KhompSenMLParser(PayloadParser):
                     senml_data = json.loads(senml_data)
                     logger.info("✅ Parse: Payload string convertido para JSON")
                 except json.JSONDecodeError as e:
-                    raise ValueError(f"Erro ao decodificar payload JSON string: {e}")
+                    raise ValueError(
+                        f"Erro ao decodificar payload JSON string: {e}"
+                    ) from e
 
-            emqx_wrapper = payload
+            emqx_wrapper = payload  # noqa: F841
         else:
             senml_data = payload
-            emqx_wrapper = None
+            emqx_wrapper = None  # noqa: F841
 
         if not isinstance(senml_data, list) or len(senml_data) < 1:
             raise ValueError("Payload SenML inválido: deve ser uma lista")
@@ -337,7 +339,9 @@ class KhompSenMLParser(PayloadParser):
                 labels = sensor_reading.get("labels", {})
                 sensor_type = labels.get("type", "unknown")
                 unit = labels.get("unit", "")
-                name = labels.get("name", sensor_id)
+                _name = labels.get(
+                    "name", sensor_id
+                )  # noqa: F841 - kept for future use
 
                 # Mapear sensor_type para metric_type
                 metric_type_map = {

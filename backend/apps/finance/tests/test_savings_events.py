@@ -17,9 +17,10 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from django_tenants.test.cases import TenantTestCase
 from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
+
+from django_tenants.test.cases import TenantTestCase
 
 from apps.finance.models import CostCenter, SavingsEvent
 from apps.finance.views import SavingsEventViewSet
@@ -569,9 +570,7 @@ class BudgetSummaryAPITests(TenantTestCase):
             planned_amount=Decimal("5000.00"),
         )
 
-        # Criar compromissos
-        from apps.finance.models import Commitment
-
+        # Criar compromissos (Commitment já importado acima)
         self.commitment = Commitment.objects.create(
             cost_center=self.cost_center,
             budget_month=date(2024, 6, 1),

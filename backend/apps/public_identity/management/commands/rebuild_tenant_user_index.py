@@ -20,6 +20,7 @@ import logging
 from typing import Optional
 
 from django.core.management.base import BaseCommand, CommandError
+
 from django_tenants.utils import get_tenant_model, schema_context
 
 logger = logging.getLogger(__name__)
@@ -77,7 +78,7 @@ class Command(BaseCommand):
                 try:
                     tenants = [Tenant.objects.get(schema_name=tenant_schema)]
                 except Tenant.DoesNotExist:
-                    raise CommandError(f"Tenant '{tenant_schema}' not found")
+                    raise CommandError(f"Tenant '{tenant_schema}' not found") from None
             else:
                 tenants = list(Tenant.objects.exclude(schema_name="public"))
 

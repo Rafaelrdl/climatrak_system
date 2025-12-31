@@ -536,10 +536,10 @@ class CostEngineService:
                         "asset_id": asset_id,
                         "breakdown": third_party_breakdown,
                         "suppliers": list(
-                            set(
+                            {
                                 e.get("supplier_name", "Unknown")
                                 for e in third_party_breakdown
-                            )
+                            }
                         ),
                     },
                     cost_center=cost_center,

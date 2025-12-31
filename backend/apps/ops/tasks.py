@@ -6,10 +6,11 @@ import logging
 from datetime import timedelta
 from io import StringIO
 
-from celery import shared_task
 from django.conf import settings
 from django.core.mail import send_mail
 from django.utils import timezone
+
+from celery import shared_task
 from django_tenants.utils import schema_context
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,7 @@ def export_telemetry_async(self, export_job_id):
         try:
             tenant = Tenant.objects.get(slug=job.tenant_slug)
         except Tenant.DoesNotExist:
-            raise Exception(f"Tenant {job.tenant_slug} not found")
+            raise Exception(f"Tenant {job.tenant_slug} not found") from None
 
         # Build query
         # 🔧 Usar schema_name (não slug) - suporta tenants com hífen
@@ -152,7 +153,9 @@ def export_telemetry_async(self, export_job_id):
 
         # Retry on transient errors
         if self.request.retries < self.max_retries:
-            raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
+            raise self.retry(
+                exc=exc, countdown=60 * (2**self.request.retries)
+            ) from exc
 
         raise
 

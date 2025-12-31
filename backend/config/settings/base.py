@@ -44,6 +44,7 @@ if any(weak in SECRET_KEY.lower() for weak in INSECURE_SECRETS):
         "⚠️ SECURITY WARNING: Detected weak SECRET_KEY! "
         "Generate a new one with: python -c 'import secrets; print(secrets.token_hex(50))'",
         RuntimeWarning,
+        stacklevel=2,
     )
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -486,7 +487,6 @@ JAZZMIN_SETTINGS = {
     "custom_css": None,
     "custom_js": None,
     "use_google_fonts_cdn": True,
-    "show_ui_builder": False,
     # Related modal
     "related_modal_active": True,
     # Custom links (per app)
