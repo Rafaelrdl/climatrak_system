@@ -199,23 +199,6 @@ export interface ApiUser {
 }
 
 /**
- * Centralized Login Response (for single-domain SPA architecture)
- */
-export interface CentralizedLoginResponse {
-  user: ApiUser;
-  tenants: Array<{
-    schema_name: string;
-    name: string;
-    slug: string;
-    role: string;
-    is_default: boolean;
-  }>;
-  message: string;
-  auth_method: string;
-  instructions: string;
-}
-
-/**
  * Login Request
  */
 export interface LoginRequest {

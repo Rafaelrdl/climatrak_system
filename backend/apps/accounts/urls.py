@@ -41,18 +41,6 @@ urlpatterns = [
         views.CookieTokenRefreshView.as_view(),
         name="token_refresh",
     ),
-    # 🆕 Centralized Authentication (X-Tenant Header Architecture)
-    # Single-domain SPA with X-Tenant header for tenant routing
-    path(
-        "auth/centralized-login/",
-        views.CentralizedLoginView.as_view(),
-        name="centralized_login",
-    ),
-    path("auth/tenants/", views.UserTenantsView.as_view(), name="user_tenants"),
-    path(
-        "auth/tenants/select/", views.TenantSelectView.as_view(), name="tenant_select"
-    ),
-    path("auth/whoami/", views.WhoAmIView.as_view(), name="whoami"),
     # Password Reset
     path(
         "auth/password-reset/request/",

@@ -129,36 +129,28 @@ class TenantDiscoveryView(APIView):
                     )
                 entries = index_entries
 
-            tenants = [entry.tenant for entry in entries]
-            domains = Domain.objects.filter(tenant__in=tenants).order_by(
-                "-is_primary", "domain"
+            primary_entry = entries[0]
+            primary_tenant = primary_entry.tenant
+            primary_domain = (
+                Domain.objects.filter(tenant=primary_tenant)
+                .order_by("-is_primary", "domain")
+                .values_list("domain", flat=True)
+                .first()
             )
-            domain_map = {}
-            for domain in domains:
-                if domain.tenant_id not in domain_map:
-                    domain_map[domain.tenant_id] = domain.domain
 
-            tenants_data = []
-            for entry in entries:
-                tenant = entry.tenant
-                tenants_data.append(
-                    {
-                        "schema_name": tenant.schema_name,
-                        "slug": tenant.slug,
-                        "name": tenant.name,
-                        "domain": domain_map.get(tenant.id),
-                    }
-                )
-
-            primary_tenant = tenants_data[0]
+            primary_tenant_data = {
+                "schema_name": primary_tenant.schema_name,
+                "slug": primary_tenant.slug,
+                "name": primary_tenant.name,
+                "domain": primary_domain,
+            }
 
             return Response(
                 {
                     "found": True,
                     "email": email,
-                    "tenants": tenants_data,
-                    "primary_tenant": primary_tenant,
-                    "has_multiple_tenants": len(tenants_data) > 1,
+                    "primary_tenant": primary_tenant_data,
+                    "has_multiple_tenants": len(entries) > 1,
                 }
             )
 

@@ -84,6 +84,19 @@ class TenantLoginView(APIView):
                 {"error": "Conta desativada."}, status=status.HTTP_401_UNAUTHORIZED
             )
 
+        # Ensure the user still has an active membership in this tenant
+        from apps.accounts.models import TenantMembership
+
+        tenant = connection.tenant
+        has_membership = TenantMembership.objects.filter(
+            user=user, tenant=tenant, status="active"
+        ).exists()
+
+        if not has_membership:
+            return Response(
+                {"error": "Conta desativada."}, status=status.HTTP_401_UNAUTHORIZED
+            )
+
         # Update last login
         user.last_login = timezone.now()
         user.last_login_ip = self._get_client_ip(request)

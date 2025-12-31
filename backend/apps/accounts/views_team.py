@@ -78,6 +78,10 @@ class TeamMemberViewSet(viewsets.ModelViewSet):
         membership.status = "inactive"
         membership.save()
 
+        if membership.user and membership.user.is_active:
+            membership.user.is_active = False
+            membership.user.save(update_fields=["is_active"])
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=["get"])
@@ -393,23 +397,35 @@ class PublicInviteAcceptView(APIView):
 
         from apps.public_identity.models import TenantUserIndex
 
-        email_hash = None
         origin_schema = connection.schema_name
         try:
-            from apps.public_identity.models import compute_email_hash
-
-            email_hash = compute_email_hash(invite.email)
-
             # Check if user exists in ANY tenant
-            user_index = TenantUserIndex.objects.filter(
-                identifier_hash=email_hash, is_active=True
-            ).first()
+            with schema_context("public"):
+                identifier_hash = TenantUserIndex.compute_hash(invite.email)
+                user_index = (
+                    TenantUserIndex.objects.filter(
+                        identifier_hash=identifier_hash, is_active=True
+                    )
+                    .select_related("tenant")
+                    .first()
+                )
 
+            existing_user = None
             if user_index:
                 # User exists - add them to this tenant
-                # Get the user from their existing tenant to validate password could work
                 with schema_context(user_index.tenant.schema_name):
-                    existing_user = User.objects.get(id=user_index.user_id)
+                    existing_user = User.objects.filter(
+                        email__iexact=invite.email
+                    ).first()
+
+            if user_index and not existing_user:
+                logger.warning(
+                    "TenantUserIndex out of sync for %s in tenant %s",
+                    invite.email,
+                    user_index.tenant.schema_name,
+                )
+
+            if user_index and existing_user:
 
                 # Now check/create in the INVITED tenant schema
                 with schema_context(invite.tenant.schema_name):

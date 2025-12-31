@@ -116,9 +116,17 @@ class CanWrite(permissions.BasePermission):
 
     def has_permission(self, request, view):
         """Check if user has write permissions."""
-        # Allow read operations for anyone
+        # Require membership even for read operations
         if request.method in permissions.SAFE_METHODS:
-            return True
+            if not request.user or not request.user.is_authenticated:
+                return False
+
+            tenant = get_current_tenant()
+            if not tenant:
+                return False
+
+            membership = get_public_membership(request.user, tenant)
+            return membership is not None
 
         if not request.user or not request.user.is_authenticated:
             return False

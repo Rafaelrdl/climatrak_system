@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { login as loginService, discoverTenant, tenantLogin } from '@/services/authService';
+import { discoverTenant, tenantLogin } from '@/services/authService';
 import ClimatrakLogoUrl from '@/assets/images/logo_climatrak.svg';
 
 type LoginStep = 'email' | 'password';

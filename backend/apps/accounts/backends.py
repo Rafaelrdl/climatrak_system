@@ -45,13 +45,9 @@ class EmailBackend(ModelBackend):
         with schema_context(current_schema):
             # Debug: verificar todos os usuários
             total_users = UserModel.objects.count()
-            logger.info(
+            logger.debug(
                 f"🔐 EmailBackend - Total users in schema {current_schema}: {total_users}"
             )
-
-            # Debug: listar emails disponíveis
-            all_emails = list(UserModel.objects.values_list("email", flat=True))
-            logger.info(f"🔐 EmailBackend - Available emails: {all_emails}")
 
             try:
                 # Tenta buscar por email

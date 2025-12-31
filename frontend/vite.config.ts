@@ -25,22 +25,7 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
-      '/api/auth/centralized-login': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/api/auth/discover-tenant': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-      },
       '/api/auth/password-reset': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/api/auth/logout': {
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,

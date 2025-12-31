@@ -55,7 +55,6 @@ class TenantHeaderMiddleware:
         "/api/auth/register/",
         "/api/auth/token/refresh/",
         "/api/auth/password-reset/",
-        "/api/auth/discover-tenant/",
         "/api/v2/auth/",
         "/api/health/",
         "/api/accounts/health/",
