@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { StatusBadge } from '@/shared/ui';
+import { ConfirmDialog, StatusBadge } from '@/shared/ui';
 import {
   Dialog,
   DialogContent,
@@ -25,16 +25,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Play, Edit, ClipboardList, AlertTriangle, User, FileText, UserPlus, Eye, Trash2, Calendar, Loader2 } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useSectors, useCompanies } from '@/hooks/useLocationsQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';
@@ -684,35 +674,28 @@ export function WorkOrderList({
       </DialogContent>
     </Dialog>
 
-    {/* Modal de confirmação de exclusão */}
-    <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Excluir Ordem de Serviço</AlertDialogTitle>
-          <AlertDialogDescription>
-            {workOrderToDelete && (
-              <>
-                Tem certeza que deseja excluir a ordem de serviço <strong>{workOrderToDelete.number}</strong>?
-                <br />
-                Esta ação não pode ser desfeita.
-              </>
-            )}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setWorkOrderToDelete(null)}>
-            Cancelar
-          </AlertDialogCancel>
-          <AlertDialogAction 
-            onClick={confirmDelete}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Excluir
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    {/* Modal de confirmacao de exclusao */}
+    <ConfirmDialog
+      open={deleteDialogOpen}
+      onOpenChange={(open) => {
+        setDeleteDialogOpen(open);
+        if (!open) {
+          setWorkOrderToDelete(null);
+        }
+      }}
+      title="Excluir Ordem de Servico"
+      description={
+        workOrderToDelete
+          ? `Tem certeza que deseja excluir a ordem de servico ${workOrderToDelete.number}? Esta acao nao pode ser desfeita.`
+          : 'Tem certeza que deseja excluir esta ordem de servico? Esta acao nao pode ser desfeita.'
+      }
+      confirmText="Excluir"
+      cancelText="Cancelar"
+      variant="destructive"
+      onConfirm={confirmDelete}
+      onCancel={() => setWorkOrderToDelete(null)}
+    />
+
     </>
   );
 }

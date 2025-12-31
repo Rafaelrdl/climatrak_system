@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { MoneyCell } from '@/components/finance/MoneyCell';
 import { useWorkOrderCosts } from '@/hooks/finance/useWorkOrderCosts';
 import { useAbility } from '@/hooks/useAbility';
+import { EmptyState } from '@/shared/ui';
 import { 
   DollarSign, 
   Clock, 
@@ -147,28 +148,6 @@ function LoadingSkeleton() {
   );
 }
 
-function EmptyState({ onPostCosts, canCreate }: { onPostCosts?: () => void; canCreate: boolean }) {
-  return (
-    <Card>
-      <CardContent className="py-12 text-center">
-        <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-          <DollarSign className="h-6 w-6 text-muted-foreground" />
-        </div>
-        <h3 className="text-lg font-medium mb-1">Nenhum custo registrado</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Esta ordem de serviço ainda não possui custos lançados no ledger.
-        </p>
-        {canCreate && onPostCosts && (
-          <Button onClick={onPostCosts}>
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Postar Custos
-          </Button>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
 export function WorkOrderCostsTab({
   workOrderId,
   workOrderNumber,
@@ -200,7 +179,23 @@ export function WorkOrderCostsTab({
   const hasCosts = transactions.length > 0;
 
   if (!hasCosts) {
-    return <EmptyState onPostCosts={onPostCosts} canCreate={canCreateCosts} />;
+    return (
+      <Card>
+        <CardContent className="p-0">
+          <EmptyState
+            icon={<DollarSign className="h-6 w-6 text-muted-foreground" />}
+            title="Nenhum custo registrado"
+            description="Esta ordem de servico ainda nao possui custos lancados no ledger."
+            action={canCreateCosts && onPostCosts ? (
+              <Button onClick={onPostCosts}>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Postar Custos
+              </Button>
+            ) : undefined}
+          />
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

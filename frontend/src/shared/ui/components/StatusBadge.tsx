@@ -27,6 +27,16 @@ import {
 } from 'lucide-react';
 import { ReactNode } from 'react';
 
+const statusTokenClasses = {
+  info: 'bg-[color:var(--status-info-bg)] text-[color:var(--status-info-fg)] border-[color:var(--status-info-border)]',
+  warning: 'bg-[color:var(--status-warning-bg)] text-[color:var(--status-warning-fg)] border-[color:var(--status-warning-border)]',
+  success: 'bg-[color:var(--status-success-bg)] text-[color:var(--status-success-fg)] border-[color:var(--status-success-border)]',
+  danger: 'bg-[color:var(--status-danger-bg)] text-[color:var(--status-danger-fg)] border-[color:var(--status-danger-border)]',
+  neutral: 'bg-[color:var(--status-neutral-bg)] text-[color:var(--status-neutral-fg)] border-[color:var(--status-neutral-border)]',
+  neutralMuted: 'bg-[color:var(--status-neutral-bg)] text-[color:var(--status-neutral-muted-fg)] border-[color:var(--status-neutral-border)]',
+  accent: 'bg-[color:var(--status-accent-bg)] text-[color:var(--status-accent-fg)] border-[color:var(--status-accent-border)]',
+};
+
 // Configuração de status por categoria
 const statusConfigs = {
   // Status de Ordem de Serviço
@@ -35,31 +45,31 @@ const statusConfigs = {
       label: 'Aberta', 
       variant: 'secondary' as const, 
       icon: Circle,
-      className: 'bg-blue-100 text-blue-800 border-blue-200'
+      className: statusTokenClasses.info
     },
     IN_PROGRESS: { 
       label: 'Em Execução', 
       variant: 'default' as const, 
       icon: Play,
-      className: 'bg-amber-100 text-amber-800 border-amber-200'
+      className: statusTokenClasses.warning
     },
     ON_HOLD: { 
       label: 'Em Espera', 
       variant: 'secondary' as const, 
       icon: Pause,
-      className: 'bg-gray-100 text-gray-800 border-gray-200'
+      className: statusTokenClasses.neutral
     },
     COMPLETED: { 
       label: 'Concluída', 
       variant: 'outline' as const, 
       icon: CheckCircle2,
-      className: 'bg-green-100 text-green-800 border-green-200'
+      className: statusTokenClasses.success
     },
     CANCELLED: { 
       label: 'Cancelada', 
       variant: 'destructive' as const, 
       icon: XCircle,
-      className: 'bg-red-100 text-red-800 border-red-200'
+      className: statusTokenClasses.danger
     },
   },
 
@@ -69,25 +79,25 @@ const statusConfigs = {
       label: 'Funcionando', 
       variant: 'outline' as const, 
       icon: CheckCircle2,
-      className: 'bg-green-100 text-green-800 border-green-200'
+      className: statusTokenClasses.success
     },
     MAINTENANCE: { 
       label: 'Em Manutenção', 
       variant: 'secondary' as const, 
       icon: Wrench,
-      className: 'bg-amber-100 text-amber-800 border-amber-200'
+      className: statusTokenClasses.warning
     },
     STOPPED: { 
       label: 'Parado', 
       variant: 'destructive' as const, 
       icon: XCircle,
-      className: 'bg-red-100 text-red-800 border-red-200'
+      className: statusTokenClasses.danger
     },
     OFFLINE: { 
       label: 'Offline', 
       variant: 'outline' as const, 
       icon: Circle,
-      className: 'bg-gray-100 text-gray-800 border-gray-200'
+      className: statusTokenClasses.neutral
     },
   },
 
@@ -97,25 +107,25 @@ const statusConfigs = {
       label: 'Baixa', 
       variant: 'outline' as const, 
       icon: Circle,
-      className: 'bg-slate-100 text-slate-700 border-slate-200'
+      className: statusTokenClasses.neutralMuted
     },
     MEDIUM: { 
       label: 'Média', 
       variant: 'secondary' as const, 
       icon: AlertCircle,
-      className: 'bg-blue-100 text-blue-800 border-blue-200'
+      className: statusTokenClasses.info
     },
     HIGH: { 
       label: 'Alta', 
       variant: 'default' as const, 
       icon: AlertTriangle,
-      className: 'bg-amber-100 text-amber-800 border-amber-200'
+      className: statusTokenClasses.warning
     },
     CRITICAL: { 
       label: 'Crítica', 
       variant: 'destructive' as const, 
       icon: AlertCircle,
-      className: 'bg-red-100 text-red-800 border-red-200'
+      className: statusTokenClasses.danger
     },
   },
 
@@ -125,19 +135,19 @@ const statusConfigs = {
       label: 'Preventiva', 
       variant: 'outline' as const, 
       icon: Clock,
-      className: 'bg-blue-100 text-blue-800 border-blue-200'
+      className: statusTokenClasses.info
     },
     CORRECTIVE: { 
       label: 'Corretiva', 
       variant: 'secondary' as const, 
       icon: Wrench,
-      className: 'bg-amber-100 text-amber-800 border-amber-200'
+      className: statusTokenClasses.warning
     },
     PREDICTIVE: { 
       label: 'Preditiva', 
       variant: 'outline' as const, 
       icon: AlertCircle,
-      className: 'bg-purple-100 text-purple-800 border-purple-200'
+      className: statusTokenClasses.accent
     },
   },
 
@@ -147,19 +157,19 @@ const statusConfigs = {
       label: 'Nova', 
       variant: 'secondary' as const, 
       icon: Circle,
-      className: 'bg-blue-100 text-blue-800 border-blue-200'
+      className: statusTokenClasses.info
     },
     'Em triagem': { 
       label: 'Em triagem', 
       variant: 'default' as const, 
       icon: Clock,
-      className: 'bg-amber-100 text-amber-800 border-amber-200'
+      className: statusTokenClasses.warning
     },
     'Convertida em OS': { 
       label: 'Convertida em OS', 
       variant: 'outline' as const, 
       icon: CheckCircle2,
-      className: 'bg-green-100 text-green-800 border-green-200'
+      className: statusTokenClasses.success
     },
   },
 
@@ -169,19 +179,19 @@ const statusConfigs = {
       label: 'Ativo', 
       variant: 'destructive' as const, 
       icon: AlertCircle,
-      className: 'bg-red-100 text-red-800 border-red-200'
+      className: statusTokenClasses.danger
     },
     ACKNOWLEDGED: { 
       label: 'Reconhecido', 
       variant: 'secondary' as const, 
       icon: CheckCircle2,
-      className: 'bg-amber-100 text-amber-800 border-amber-200'
+      className: statusTokenClasses.warning
     },
     RESOLVED: { 
       label: 'Resolvido', 
       variant: 'outline' as const, 
       icon: CheckCircle2,
-      className: 'bg-green-100 text-green-800 border-green-200'
+      className: statusTokenClasses.success
     },
   },
 
@@ -191,19 +201,19 @@ const statusConfigs = {
       label: 'Online', 
       variant: 'outline' as const, 
       icon: Circle,
-      className: 'bg-green-100 text-green-800 border-green-200'
+      className: statusTokenClasses.success
     },
     OFFLINE: { 
       label: 'Offline', 
       variant: 'secondary' as const, 
       icon: Circle,
-      className: 'bg-gray-100 text-gray-600 border-gray-200'
+      className: statusTokenClasses.neutralMuted
     },
     UNSTABLE: { 
       label: 'Instável', 
       variant: 'secondary' as const, 
       icon: AlertTriangle,
-      className: 'bg-amber-100 text-amber-800 border-amber-200'
+      className: statusTokenClasses.warning
     },
   },
 } as const;

@@ -81,7 +81,7 @@
 }
 
 @layer base {
-  #spark-app {
+  :root {
     --tomato-contrast: #fff;
     --red-contrast: #fff;
     --ruby-contrast: #fff;
@@ -227,6 +227,27 @@
     --color-accent-secondary-12: var(--violet-12);
     --color-accent-secondary-contrast: var(--violet-contrast);
 
+    /* Status colors */
+    --status-info-bg: var(--blue-3);
+    --status-info-fg: var(--blue-11);
+    --status-info-border: var(--blue-6);
+    --status-warning-bg: var(--amber-3);
+    --status-warning-fg: var(--amber-11);
+    --status-warning-border: var(--amber-6);
+    --status-success-bg: var(--green-3);
+    --status-success-fg: var(--green-11);
+    --status-success-border: var(--green-6);
+    --status-danger-bg: var(--red-3);
+    --status-danger-fg: var(--red-11);
+    --status-danger-border: var(--red-6);
+    --status-neutral-bg: var(--slate-3);
+    --status-neutral-fg: var(--slate-11);
+    --status-neutral-muted-fg: var(--slate-9);
+    --status-neutral-border: var(--slate-6);
+    --status-accent-bg: var(--purple-3);
+    --status-accent-fg: var(--purple-11);
+    --status-accent-border: var(--purple-6);
+
     /* Foreground colors */
     --color-fg: var(--color-neutral-12);
     --color-fg-secondary: var(--color-neutral-a11);
@@ -248,7 +269,7 @@
     --font-family: var(--font-sans-serif);
   }
 
-  #spark-app.dark-theme {
+  :root.dark-theme {
     --color-bg: var(--color-neutral-1);
     --color-bg-inset: #000000;
     --color-bg-overlay: var(--color-neutral-3);

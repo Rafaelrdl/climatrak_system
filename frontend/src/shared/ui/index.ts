@@ -136,9 +136,16 @@ export {
   DataTable,
   type DataTableProps,
   type DataTableColumn,
+  type Column,
+  type PaginationState,
+  type SortState,
   EmptyState,
   type EmptyStateProps,
   
+  // Filters
+  FilterBar,
+  type FilterBarProps,
+
   // Feedback
   ConfirmDialog,
   type ConfirmDialogProps,

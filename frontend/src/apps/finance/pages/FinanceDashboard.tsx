@@ -31,6 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader, StatCard } from '@/shared/ui';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MoneyCell, DeltaBadge, MonthPicker } from '@/components/finance';
 import { useFinanceSummary, useCostCenters } from '@/hooks/finance';
@@ -67,67 +68,6 @@ function getCategoryLabel(category: string): string {
     other: 'Outros',
   };
   return labels[category] || category;
-}
-
-// ==================== KPI Card ====================
-
-interface KPICardProps {
-  title: string;
-  value: number;
-  icon: React.ReactNode;
-  description?: string;
-  trend?: number;
-  link?: string;
-  linkLabel?: string;
-  variant?: 'default' | 'success' | 'warning' | 'danger';
-}
-
-function KPICard({
-  title,
-  value,
-  icon,
-  description,
-  trend,
-  link,
-  linkLabel = 'Ver detalhes',
-  variant = 'default',
-}: KPICardProps) {
-  const variantClasses = {
-    default: 'border-l-primary',
-    success: 'border-l-emerald-500',
-    warning: 'border-l-amber-500',
-    danger: 'border-l-red-500',
-  };
-
-  return (
-    <Card className={cn('border-l-4', variantClasses[variant])}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
-        <div className="text-muted-foreground">{icon}</div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-baseline gap-2">
-          <MoneyCell value={value} size="lg" className="text-2xl font-bold" />
-          {trend !== undefined && (
-            <DeltaBadge value={trend} type="percent" size="sm" />
-          )}
-        </div>
-        {description && (
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
-        )}
-        {link && (
-          <Button variant="link" size="sm" className="px-0 mt-2" asChild>
-            <Link to={link}>
-              {linkLabel}
-              <ArrowRight className="ml-1 h-3 w-3" />
-            </Link>
-          </Button>
-        )}
-      </CardContent>
-    </Card>
-  );
 }
 
 // ==================== Category Breakdown ====================
@@ -340,15 +280,10 @@ export function FinanceDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Painel Financeiro</h1>
-          <p className="text-muted-foreground">
-            Visão geral dos custos e economia do período
-          </p>
-        </div>
-
-        {/* Filters & Actions */}
+      <PageHeader
+        title="Painel Financeiro"
+        description="Visao geral dos custos e economia do periodo"
+      >
         <div className="flex items-center gap-3">
           <MonthPicker
             value={selectedMonth}
@@ -375,7 +310,6 @@ export function FinanceDashboard() {
             </Select>
           )}
 
-          {/* Quick Actions Dropdown */}
           {hasAnyCreatePermission && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -394,7 +328,7 @@ export function FinanceDashboard() {
                 {canCreateTransaction && (
                   <DropdownMenuItem onClick={() => navigate('/finance/ledger/new')}>
                     <DollarSign className="h-4 w-4 mr-2" />
-                    Lançar custo manual
+                    Lancar custo manual
                   </DropdownMenuItem>
                 )}
                 {(canCreateCommitment || canCreateTransaction) && canCreateSavings && (
@@ -410,7 +344,7 @@ export function FinanceDashboard() {
             </DropdownMenu>
           )}
         </div>
-      </div>
+      </PageHeader>
 
       {/* Error state */}
       {error && (
@@ -424,48 +358,76 @@ export function FinanceDashboard() {
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <KPICard
+        <StatCard
           title="Planejado"
-          value={summary?.planned ?? 0}
+          value={<MoneyCell value={summary?.planned ?? 0} size="lg" className="text-2xl font-bold" />}
           icon={<DollarSign className="h-5 w-5" />}
-          description="Orçamento previsto para o mês"
-          trend={trends.planned}
-          link="/finance/budgets"
-          linkLabel="Ver orçamentos"
+          description="Orcamento previsto para o mes"
+          trend={trends.planned > 0 ? 'up' : trends.planned < 0 ? 'down' : undefined}
+          trendValue={trends.planned !== 0 ? `${Math.abs(trends.planned).toFixed(1)}%` : undefined}
           variant="default"
+          action={(
+            <Button variant="link" size="sm" className="px-0" asChild>
+              <Link to="/finance/budgets">
+                Ver orcamentos
+                <ArrowRight className="ml-1 h-3 w-3" />
+              </Link>
+            </Button>
+          )}
         />
-        
-        <KPICard
+
+        <StatCard
           title="Comprometido"
-          value={summary?.committed ?? 0}
+          value={<MoneyCell value={summary?.committed ?? 0} size="lg" className="text-2xl font-bold" />}
           icon={<TrendingUp className="h-5 w-5" />}
           description="Pedidos aprovados/pendentes"
-          trend={trends.committed}
-          link="/finance/commitments"
-          linkLabel="Ver compromissos"
+          trend={trends.committed > 0 ? 'up' : trends.committed < 0 ? 'down' : undefined}
+          trendValue={trends.committed !== 0 ? `${Math.abs(trends.committed).toFixed(1)}%` : undefined}
           variant="warning"
+          action={(
+            <Button variant="link" size="sm" className="px-0" asChild>
+              <Link to="/finance/commitments">
+                Ver compromissos
+                <ArrowRight className="ml-1 h-3 w-3" />
+              </Link>
+            </Button>
+          )}
         />
-        
-        <KPICard
+
+        <StatCard
           title="Realizado"
-          value={summary?.actual ?? 0}
+          value={<MoneyCell value={summary?.actual ?? 0} size="lg" className="text-2xl font-bold" />}
           icon={<TrendingDown className="h-5 w-5" />}
-          description="Custos efetivamente lançados"
-          trend={trends.actual}
-          link="/finance/ledger"
-          linkLabel="Ver ledger"
+          description="Custos efetivamente lancados"
+          trend={trends.actual > 0 ? 'up' : trends.actual < 0 ? 'down' : undefined}
+          trendValue={trends.actual !== 0 ? `${Math.abs(trends.actual).toFixed(1)}%` : undefined}
           variant={(summary?.actual ?? 0) > (summary?.planned ?? 0) ? 'danger' : 'success'}
+          action={(
+            <Button variant="link" size="sm" className="px-0" asChild>
+              <Link to="/finance/ledger">
+                Ver ledger
+                <ArrowRight className="ml-1 h-3 w-3" />
+              </Link>
+            </Button>
+          )}
         />
-        
-        <KPICard
+
+        <StatCard
           title="Economia"
-          value={summary?.savings ?? 0}
+          value={<MoneyCell value={summary?.savings ?? 0} size="lg" className="text-2xl font-bold" />}
           icon={<PiggyBank className="h-5 w-5" />}
-          description="Economia gerada no período"
-          trend={trends.savings}
-          link="/finance/savings"
-          linkLabel="Ver economia"
+          description="Economia gerada no periodo"
+          trend={trends.savings > 0 ? 'up' : trends.savings < 0 ? 'down' : undefined}
+          trendValue={trends.savings !== 0 ? `${Math.abs(trends.savings).toFixed(1)}%` : undefined}
           variant="success"
+          action={(
+            <Button variant="link" size="sm" className="px-0" asChild>
+              <Link to="/finance/savings">
+                Ver economia
+                <ArrowRight className="ml-1 h-3 w-3" />
+              </Link>
+            </Button>
+          )}
         />
       </div>
 

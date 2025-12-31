@@ -1,18 +1,5 @@
 /**
- * StatCard - Card de estatística/KPI
- * 
- * Exibe métricas e indicadores com visual consistente.
- * 
- * @example
- * ```tsx
- * <StatCard
- *   title="Ordens Abertas"
- *   value={42}
- *   description="+12% em relação ao mês anterior"
- *   icon={<ClipboardList />}
- *   trend="up"
- * />
- * ```
+ * StatCard - KPI/estatistica padronizado
  */
 
 import { ReactNode } from 'react';
@@ -21,26 +8,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 
 export interface StatCardProps {
-  /** Título do card */
-  title: string;
-  /** Valor principal (número ou texto) */
-  value: string | number;
-  /** Descrição ou contexto adicional */
-  description?: string;
-  /** Ícone representativo */
+  title?: string;
+  value?: ReactNode;
+  description?: ReactNode;
   icon?: ReactNode;
-  /** Tendência (seta para cima, baixo ou neutro) */
   trend?: 'up' | 'down' | 'neutral';
-  /** Porcentagem de mudança */
-  trendValue?: string;
-  /** Cor do trend (verde para positivo, vermelho para negativo) */
+  trendValue?: ReactNode;
   trendColor?: 'positive' | 'negative' | 'neutral';
-  /** Classes CSS adicionais */
+  variant?: 'default' | 'success' | 'warning' | 'danger';
+  children?: ReactNode;
   className?: string;
-  /** Ação ao clicar */
   onClick?: () => void;
-  /** Carregando */
   loading?: boolean;
+  action?: ReactNode;
 }
 
 export function StatCard({
@@ -51,16 +31,18 @@ export function StatCard({
   trend,
   trendValue,
   trendColor,
+  variant = 'default',
+  children,
   className,
   onClick,
-  loading = false
+  loading = false,
+  action,
 }: StatCardProps) {
   const TrendIcon = trend === 'up' ? ArrowUp : trend === 'down' ? ArrowDown : Minus;
-  
-  // Determinar cor do trend automaticamente se não especificado
+
   const effectiveTrendColor = trendColor || (
-    trend === 'up' ? 'positive' : 
-    trend === 'down' ? 'negative' : 
+    trend === 'up' ? 'positive' :
+    trend === 'down' ? 'negative' :
     'neutral'
   );
 
@@ -70,11 +52,39 @@ export function StatCard({
     neutral: 'text-muted-foreground',
   };
 
+  const variantClasses = {
+    default: '',
+    success: 'bg-[color:var(--status-success-bg)] border-[color:var(--status-success-border)]',
+    warning: 'bg-[color:var(--status-warning-bg)] border-[color:var(--status-warning-border)]',
+    danger: 'bg-[color:var(--status-danger-bg)] border-[color:var(--status-danger-border)]',
+  };
+
+  if (children) {
+    return (
+      <Card
+        className={cn(
+          'transition-all duration-200',
+          onClick && 'cursor-pointer hover:shadow-md hover:border-primary/20',
+          variantClasses[variant],
+          className
+        )}
+        onClick={onClick}
+      >
+        {children}
+      </Card>
+    );
+  }
+
+  const displayValue = typeof value === 'number'
+    ? value.toLocaleString('pt-BR')
+    : (value ?? '-');
+
   return (
-    <Card 
+    <Card
       className={cn(
-        "transition-all duration-200",
-        onClick && "cursor-pointer hover:shadow-md hover:border-primary/20",
+        'transition-all duration-200',
+        onClick && 'cursor-pointer hover:shadow-md hover:border-primary/20',
+        variantClasses[variant],
         className
       )}
       onClick={onClick}
@@ -98,14 +108,14 @@ export function StatCard({
         ) : (
           <>
             <div className="text-2xl font-bold text-foreground">
-              {typeof value === 'number' ? value.toLocaleString('pt-BR') : value}
+              {displayValue}
             </div>
-            
+
             {(description || trendValue) && (
               <div className="flex items-center gap-1.5 mt-1">
                 {trend && trendValue && (
                   <span className={cn(
-                    "flex items-center text-xs font-medium",
+                    'flex items-center text-xs font-medium',
                     trendColors[effectiveTrendColor]
                   )}>
                     <TrendIcon className="h-3 w-3 mr-0.5" />
@@ -117,6 +127,12 @@ export function StatCard({
                     {description}
                   </span>
                 )}
+              </div>
+            )}
+
+            {action && (
+              <div className="mt-2">
+                {action}
               </div>
             )}
           </>

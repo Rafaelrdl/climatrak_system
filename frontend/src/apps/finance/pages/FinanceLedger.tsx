@@ -57,6 +57,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { MoneyCell, DeltaBadge, DataTable, type Column, type PaginationState } from '@/components/finance';
+import { FilterBar } from '@/shared/ui';
 import { useLedger, useCreateTransaction, useCostCenters } from '@/hooks/finance';
 import { useAbility } from '@/hooks/useAbility';
 import { cn } from '@/lib/utils';
@@ -157,16 +158,7 @@ function FilterPanel({ filters, onFiltersChange, onClear }: FilterPanelProps) {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80" align="end">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium">Filtros</h4>
-            {activeFiltersCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={onClear}>
-                Limpar
-              </Button>
-            )}
-          </div>
-
+        <FilterBar title="Filtros" count={activeFiltersCount} onClear={onClear}>
           <div className="space-y-3">
             <div className="grid gap-2">
               <Label>Centro de Custo</Label>
@@ -246,7 +238,7 @@ function FilterPanel({ filters, onFiltersChange, onClear }: FilterPanelProps) {
               />
             </div>
           </div>
-        </div>
+        </FilterBar>
       </PopoverContent>
     </Popover>
   );

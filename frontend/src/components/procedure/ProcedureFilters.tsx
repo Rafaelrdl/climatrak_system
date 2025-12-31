@@ -1,7 +1,7 @@
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { FilterBar } from '@/shared/ui';
 import {
   Select,
   SelectContent,
@@ -32,16 +32,69 @@ export function ProcedureFilters({
   onSearchChange,
   onReset,
 }: ProcedureFiltersProps) {
-  const hasActiveFilters = selectedCategory || selectedStatus !== 'Todos' || searchQuery;
+  const activeFiltersCount = [
+    selectedCategory ? 1 : 0,
+    selectedStatus !== 'Todos' ? 1 : 0,
+    searchQuery ? 1 : 0,
+  ].reduce((sum, count) => sum + count, 0);
+
+  const hasActiveFilters = activeFiltersCount > 0;
 
   return (
-    <div className="space-y-4">
+    <FilterBar
+      title="Filtros"
+      count={activeFiltersCount}
+      onClear={onReset}
+      footer={hasActiveFilters ? (
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-sm text-muted-foreground">Filtros ativos:</span>
+          {selectedCategory && (
+            <Badge variant="secondary" className="gap-1">
+              Categoria: {categories.find((category) => category.id === selectedCategory)?.name}
+              <button
+                type="button"
+                onClick={() => onCategoryChange(null)}
+                className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
+                aria-label="Remover filtro de categoria"
+              >
+                x
+              </button>
+            </Badge>
+          )}
+          {selectedStatus !== 'Todos' && (
+            <Badge variant="secondary" className="gap-1">
+              Status: {selectedStatus}
+              <button
+                type="button"
+                onClick={() => onStatusChange('Todos')}
+                className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
+                aria-label="Remover filtro de status"
+              >
+                x
+              </button>
+            </Badge>
+          )}
+          {searchQuery && (
+            <Badge variant="secondary" className="gap-1">
+              Busca: "{searchQuery}"
+              <button
+                type="button"
+                onClick={() => onSearchChange('')}
+                className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
+                aria-label="Limpar busca"
+              >
+                x
+              </button>
+            </Badge>
+          )}
+        </div>
+      ) : null}
+    >
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
-        {/* Search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar por título, descrição, tags..."
+            placeholder="Buscar por titulo, descricao, tags..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-10"
@@ -49,9 +102,7 @@ export function ProcedureFilters({
           />
         </div>
 
-        {/* Filters */}
         <div className="flex gap-2 items-center">
-          {/* Category Filter */}
           <Select
             value={selectedCategory || 'todos'}
             onValueChange={(value) => onCategoryChange(value === 'todos' ? null : value)}
@@ -78,7 +129,6 @@ export function ProcedureFilters({
             </SelectContent>
           </Select>
 
-          {/* Status Filter */}
           <Select
             value={selectedStatus}
             onValueChange={(value) => onStatusChange(value as ProcedureStatus | 'Todos')}
@@ -96,61 +146,8 @@ export function ProcedureFilters({
               </SelectItem>
             </SelectContent>
           </Select>
-
-          {/* Reset Filters */}
-          {hasActiveFilters && (
-            <Button variant="outline" size="sm" onClick={onReset}>
-              Limpar filtros
-            </Button>
-          )}
         </div>
       </div>
-
-      {/* Active Filters Display */}
-      {hasActiveFilters && (
-        <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-sm text-muted-foreground">Filtros ativos:</span>
-          
-          {selectedCategory && (
-            <Badge variant="secondary" className="gap-1">
-              Categoria: {categories.find(c => c.id === selectedCategory)?.name}
-              <button
-                onClick={() => onCategoryChange(null)}
-                className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
-                aria-label="Remover filtro de categoria"
-              >
-                ×
-              </button>
-            </Badge>
-          )}
-          
-          {selectedStatus !== 'Todos' && (
-            <Badge variant="secondary" className="gap-1">
-              Status: {selectedStatus}
-              <button
-                onClick={() => onStatusChange('Todos')}
-                className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
-                aria-label="Remover filtro de status"
-              >
-                ×
-              </button>
-            </Badge>
-          )}
-          
-          {searchQuery && (
-            <Badge variant="secondary" className="gap-1">
-              Busca: "{searchQuery}"
-              <button
-                onClick={() => onSearchChange('')}
-                className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
-                aria-label="Limpar busca"
-              >
-                ×
-              </button>
-            </Badge>
-          )}
-        </div>
-      )}
-    </div>
+    </FilterBar>
   );
 }

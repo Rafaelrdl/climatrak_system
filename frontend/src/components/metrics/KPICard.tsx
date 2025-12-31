@@ -6,6 +6,7 @@
 
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
+import { StatCard } from '@/shared/ui';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   TrendingUp, 
@@ -86,7 +87,7 @@ export function KPICard({ metric, icon: Icon, onClick, className }: KPICardProps
   const ChangeIcon = metric.trend > 0 ? ArrowUpRight : metric.trend < 0 ? ArrowDownRight : Minus;
   
   return (
-    <Card 
+    <StatCard
       className={cn(
         'transition-all duration-200 hover:shadow-md',
         onClick && 'cursor-pointer hover:border-teal-500',
@@ -164,7 +165,7 @@ export function KPICard({ metric, icon: Icon, onClick, className }: KPICardProps
           </div>
         )}
       </CardContent>
-    </Card>
+    </StatCard>
   );
 }
 

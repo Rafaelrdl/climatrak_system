@@ -1,5 +1,6 @@
 /* Structural CSS file - do not edit directly */
 /* Import Tailwind CSS and application styles */
+@import "./styles/theme.css";
 @import "./index.css";
 
 /* Additional global styles can be added below */
