@@ -10,12 +10,13 @@ from django.apps import AppConfig
 
 
 class PublicIdentityConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.public_identity'
-    verbose_name = 'Public Identity (Tenant Discovery)'
-    
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.public_identity"
+    verbose_name = "Public Identity (Tenant Discovery)"
+
     def ready(self):
         # Import signals when app is ready
         from . import signals
+
         # Connect the signals to User model
         signals.connect_signals()

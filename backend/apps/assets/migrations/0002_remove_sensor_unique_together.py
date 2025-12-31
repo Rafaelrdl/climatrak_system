@@ -12,14 +12,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('assets', '0001_initial'),
+        ("assets", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='sensor',
+            name="sensor",
             unique_together=set(),  # Remove todas as restrições unique_together
         ),
     ]

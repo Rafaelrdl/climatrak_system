@@ -4,9 +4,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('ingest', '0001_initial'),
+        ("ingest", "0001_initial"),
     ]
 
     operations = [

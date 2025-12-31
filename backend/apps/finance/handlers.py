@@ -12,50 +12,50 @@ Referências:
 
 import logging
 
-from apps.core_events.tasks import register_event_handler
 from apps.core_events.models import OutboxEvent
+from apps.core_events.tasks import register_event_handler
 
-from .cost_engine import CostEngineService, CostEngineError
+from .cost_engine import CostEngineError, CostEngineService
 
 logger = logging.getLogger(__name__)
 
 
-@register_event_handler('work_order.closed')
+@register_event_handler("work_order.closed")
 def handle_work_order_closed(event: OutboxEvent) -> None:
     """
     Handler para evento work_order.closed.
-    
+
     Consome o evento e cria lançamentos no ledger (CostTransaction)
     para labor, parts e third_party.
-    
+
     Após sucesso, emite eventos cost.entry_posted para cada transação criada.
-    
+
     Args:
         event: OutboxEvent com o evento work_order.closed
-        
+
     Raises:
         CostEngineError: Se falhar no processamento
     """
     logger.info(f"Processing work_order.closed event: {event.id}")
-    
+
     # Extrair dados do evento
     # O payload tem o formato do envelope com 'data' contendo os dados específicos
     event_data = event.event_data
     tenant_id = event.tenant_id
-    
+
     try:
         result = CostEngineService.process_work_order_closed(
             event_data=event_data,
             tenant_id=str(tenant_id),
         )
-        
+
         logger.info(
             f"work_order.closed processed successfully - "
             f"transactions: {result['transactions_created']}, "
             f"skipped: {result['skipped']}, "
             f"events: {result['events_published']}"
         )
-        
+
     except CostEngineError as e:
         logger.error(f"CostEngine error processing event {event.id}: {e}")
         raise
@@ -64,18 +64,18 @@ def handle_work_order_closed(event: OutboxEvent) -> None:
         raise CostEngineError(f"Unexpected error: {e}") from e
 
 
-@register_event_handler('commitment.approved')
+@register_event_handler("commitment.approved")
 def handle_commitment_approved(event: OutboxEvent) -> None:
     """
     Handler para evento commitment.approved.
-    
+
     Consome o evento e atualiza o sumário mensal de compromissos.
     No MVP, este handler apenas registra o processamento.
     Futuramente pode atualizar caches ou materializar views.
-    
+
     Args:
         event: OutboxEvent com o evento commitment.approved
-        
+
     Payload esperado (event_data):
     {
         "commitment_id": "uuid",
@@ -86,16 +86,16 @@ def handle_commitment_approved(event: OutboxEvent) -> None:
     }
     """
     logger.info(f"Processing commitment.approved event: {event.id}")
-    
+
     event_data = event.event_data
     tenant_id = event.tenant_id
-    
-    commitment_id = event_data.get('commitment_id')
-    amount = event_data.get('amount')
-    budget_month = event_data.get('budget_month')
-    cost_center_id = event_data.get('cost_center_id')
-    category = event_data.get('category')
-    
+
+    commitment_id = event_data.get("commitment_id")
+    amount = event_data.get("amount")
+    budget_month = event_data.get("budget_month")
+    cost_center_id = event_data.get("cost_center_id")
+    category = event_data.get("category")
+
     logger.info(
         f"Commitment approved - "
         f"commitment_id: {commitment_id}, "
@@ -105,14 +105,14 @@ def handle_commitment_approved(event: OutboxEvent) -> None:
         f"category: {category}, "
         f"tenant_id: {tenant_id}"
     )
-    
+
     # MVP: Apenas logging para confirmar processamento
     # Futuramente:
     # - Atualizar cache de compromissos por mês
     # - Recalcular sumário de orçamento
     # - Notificar sistemas interessados
-    
+
     # O handler é idempotente por natureza (apenas logging)
     # Se necessário processar de verdade, usar idempotency_key do evento
-    
+
     logger.info(f"commitment.approved event {event.id} processed successfully")

@@ -19,35 +19,30 @@ from drf_spectacular.views import (
 urlpatterns = [
     # NOTE: Admin is NOT included here - it's only in public schema
     # Admin URL: http://localhost:8000/admin (public schema)
-    
     # API Documentation
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
+    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
     # Authentication & Users API
-    path('api/', include('apps.accounts.urls')),
-    
+    path("api/", include("apps.accounts.urls")),
     # Assets Catalog API (tenant-specific data)
-    path('api/', include('apps.assets.urls')),
-    
+    path("api/", include("apps.assets.urls")),
     # Telemetry API (tenant-specific data)
-    path('api/telemetry/', include('apps.ingest.api_urls')),
-    
+    path("api/telemetry/", include("apps.ingest.api_urls")),
     # Alerts & Rules API (tenant-specific data)
-    path('api/alerts/', include('apps.alerts.urls')),
-    
+    path("api/alerts/", include("apps.alerts.urls")),
     # Locations API (Company, Sector, Subsection hierarchy)
-    path('api/locations/', include('apps.locations.urls')),
-    
+    path("api/locations/", include("apps.locations.urls")),
     # Inventory API (Categories, Items, Movements)
-    path('api/inventory/', include('apps.inventory.urls')),
-    
+    path("api/inventory/", include("apps.inventory.urls")),
     # CMMS API (Work Orders, Requests, Maintenance Plans)
-    path('api/cmms/', include('apps.cmms.urls')),
-    
+    path("api/cmms/", include("apps.cmms.urls")),
     # Finance API (Cost Centers, Rate Cards, Budget Plans)
-    path('api/finance/', include('apps.finance.urls')),
+    path("api/finance/", include("apps.finance.urls")),
 ]
 
 # Serve media files in development

@@ -3,403 +3,510 @@
 
 import uuid
 from decimal import Decimal
+
+import django.core.validators
+import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
-import django.db.models.deletion
-import django.core.validators
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('inventory', '0001_initial'),
-        ('cmms', '0006_add_checklist_category'),
+        ("inventory", "0001_initial"),
+        ("cmms", "0006_add_checklist_category"),
     ]
 
     operations = [
         # TimeEntry - Apontamento de Mão de Obra
         migrations.CreateModel(
-            name='TimeEntry',
+            name="TimeEntry",
             fields=[
-                ('id', models.UUIDField(
-                    default=uuid.uuid4,
-                    editable=False,
-                    primary_key=True,
-                    serialize=False
-                )),
-                ('role', models.CharField(
-                    help_text='Função/cargo para cálculo de custo (ex: Técnico HVAC)',
-                    max_length=100,
-                    verbose_name='Função'
-                )),
-                ('role_code', models.CharField(
-                    blank=True,
-                    help_text='Código da função no RateCard',
-                    max_length=50,
-                    verbose_name='Código da Função'
-                )),
-                ('hours', models.DecimalField(
-                    decimal_places=2,
-                    help_text='Quantidade de horas trabalhadas',
-                    max_digits=6,
-                    validators=[django.core.validators.MinValueValidator(Decimal('0.01'))],
-                    verbose_name='Horas'
-                )),
-                ('work_date', models.DateField(
-                    help_text='Data em que o trabalho foi realizado',
-                    verbose_name='Data do Trabalho'
-                )),
-                ('hourly_rate', models.DecimalField(
-                    blank=True,
-                    decimal_places=2,
-                    help_text='Custo por hora (preenchido do RateCard ou manual)',
-                    max_digits=10,
-                    null=True,
-                    validators=[django.core.validators.MinValueValidator(0)],
-                    verbose_name='Custo por Hora'
-                )),
-                ('description', models.TextField(
-                    blank=True,
-                    help_text='Descrição da atividade realizada',
-                    verbose_name='Descrição'
-                )),
-                ('created_at', models.DateTimeField(
-                    auto_now_add=True,
-                    verbose_name='Criado em'
-                )),
-                ('updated_at', models.DateTimeField(
-                    auto_now=True,
-                    verbose_name='Atualizado em'
-                )),
-                ('work_order', models.ForeignKey(
-                    on_delete=django.db.models.deletion.CASCADE,
-                    related_name='time_entries',
-                    to='cmms.workorder',
-                    verbose_name='Ordem de Serviço'
-                )),
-                ('technician', models.ForeignKey(
-                    blank=True,
-                    help_text='Técnico que executou o trabalho',
-                    null=True,
-                    on_delete=django.db.models.deletion.SET_NULL,
-                    related_name='time_entries',
-                    to=settings.AUTH_USER_MODEL,
-                    verbose_name='Técnico'
-                )),
-                ('created_by', models.ForeignKey(
-                    blank=True,
-                    null=True,
-                    on_delete=django.db.models.deletion.SET_NULL,
-                    related_name='created_time_entries',
-                    to=settings.AUTH_USER_MODEL,
-                    verbose_name='Criado por'
-                )),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "role",
+                    models.CharField(
+                        help_text="Função/cargo para cálculo de custo (ex: Técnico HVAC)",
+                        max_length=100,
+                        verbose_name="Função",
+                    ),
+                ),
+                (
+                    "role_code",
+                    models.CharField(
+                        blank=True,
+                        help_text="Código da função no RateCard",
+                        max_length=50,
+                        verbose_name="Código da Função",
+                    ),
+                ),
+                (
+                    "hours",
+                    models.DecimalField(
+                        decimal_places=2,
+                        help_text="Quantidade de horas trabalhadas",
+                        max_digits=6,
+                        validators=[
+                            django.core.validators.MinValueValidator(Decimal("0.01"))
+                        ],
+                        verbose_name="Horas",
+                    ),
+                ),
+                (
+                    "work_date",
+                    models.DateField(
+                        help_text="Data em que o trabalho foi realizado",
+                        verbose_name="Data do Trabalho",
+                    ),
+                ),
+                (
+                    "hourly_rate",
+                    models.DecimalField(
+                        blank=True,
+                        decimal_places=2,
+                        help_text="Custo por hora (preenchido do RateCard ou manual)",
+                        max_digits=10,
+                        null=True,
+                        validators=[django.core.validators.MinValueValidator(0)],
+                        verbose_name="Custo por Hora",
+                    ),
+                ),
+                (
+                    "description",
+                    models.TextField(
+                        blank=True,
+                        help_text="Descrição da atividade realizada",
+                        verbose_name="Descrição",
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="Criado em"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="Atualizado em"),
+                ),
+                (
+                    "work_order",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="time_entries",
+                        to="cmms.workorder",
+                        verbose_name="Ordem de Serviço",
+                    ),
+                ),
+                (
+                    "technician",
+                    models.ForeignKey(
+                        blank=True,
+                        help_text="Técnico que executou o trabalho",
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="time_entries",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Técnico",
+                    ),
+                ),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="created_time_entries",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Criado por",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Apontamento de Tempo',
-                'verbose_name_plural': 'Apontamentos de Tempo',
-                'ordering': ['-work_date', '-created_at'],
+                "verbose_name": "Apontamento de Tempo",
+                "verbose_name_plural": "Apontamentos de Tempo",
+                "ordering": ["-work_date", "-created_at"],
             },
         ),
-        
         # PartUsage - Uso de Peças/Materiais
         migrations.CreateModel(
-            name='PartUsage',
+            name="PartUsage",
             fields=[
-                ('id', models.UUIDField(
-                    default=uuid.uuid4,
-                    editable=False,
-                    primary_key=True,
-                    serialize=False
-                )),
-                ('part_number', models.CharField(
-                    blank=True,
-                    help_text='Código/Part Number (manual)',
-                    max_length=100,
-                    verbose_name='Código da Peça'
-                )),
-                ('part_name', models.CharField(
-                    blank=True,
-                    help_text='Nome/descrição da peça (manual)',
-                    max_length=255,
-                    verbose_name='Nome da Peça'
-                )),
-                ('quantity', models.DecimalField(
-                    decimal_places=2,
-                    max_digits=12,
-                    validators=[django.core.validators.MinValueValidator(Decimal('0.01'))],
-                    verbose_name='Quantidade'
-                )),
-                ('unit', models.CharField(
-                    default='UN',
-                    help_text='Unidade de medida (UN, PC, KG, etc.)',
-                    max_length=20,
-                    verbose_name='Unidade'
-                )),
-                ('unit_cost', models.DecimalField(
-                    blank=True,
-                    decimal_places=2,
-                    help_text='Custo por unidade (do inventário ou manual)',
-                    max_digits=12,
-                    null=True,
-                    validators=[django.core.validators.MinValueValidator(0)],
-                    verbose_name='Custo Unitário'
-                )),
-                ('description', models.TextField(
-                    blank=True,
-                    verbose_name='Observações'
-                )),
-                ('inventory_deducted', models.BooleanField(
-                    default=False,
-                    help_text='Se a baixa no inventário já foi realizada',
-                    verbose_name='Baixa Realizada'
-                )),
-                ('inventory_movement_id', models.UUIDField(
-                    blank=True,
-                    help_text='Referência à movimentação de inventário',
-                    null=True,
-                    verbose_name='ID da Movimentação'
-                )),
-                ('created_at', models.DateTimeField(
-                    auto_now_add=True,
-                    verbose_name='Criado em'
-                )),
-                ('updated_at', models.DateTimeField(
-                    auto_now=True,
-                    verbose_name='Atualizado em'
-                )),
-                ('work_order', models.ForeignKey(
-                    on_delete=django.db.models.deletion.CASCADE,
-                    related_name='part_usages',
-                    to='cmms.workorder',
-                    verbose_name='Ordem de Serviço'
-                )),
-                ('inventory_item', models.ForeignKey(
-                    blank=True,
-                    help_text='Item do estoque (se aplicável)',
-                    null=True,
-                    on_delete=django.db.models.deletion.SET_NULL,
-                    related_name='work_order_usages',
-                    to='inventory.inventoryitem',
-                    verbose_name='Item de Inventário'
-                )),
-                ('created_by', models.ForeignKey(
-                    blank=True,
-                    null=True,
-                    on_delete=django.db.models.deletion.SET_NULL,
-                    related_name='created_part_usages',
-                    to=settings.AUTH_USER_MODEL,
-                    verbose_name='Criado por'
-                )),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "part_number",
+                    models.CharField(
+                        blank=True,
+                        help_text="Código/Part Number (manual)",
+                        max_length=100,
+                        verbose_name="Código da Peça",
+                    ),
+                ),
+                (
+                    "part_name",
+                    models.CharField(
+                        blank=True,
+                        help_text="Nome/descrição da peça (manual)",
+                        max_length=255,
+                        verbose_name="Nome da Peça",
+                    ),
+                ),
+                (
+                    "quantity",
+                    models.DecimalField(
+                        decimal_places=2,
+                        max_digits=12,
+                        validators=[
+                            django.core.validators.MinValueValidator(Decimal("0.01"))
+                        ],
+                        verbose_name="Quantidade",
+                    ),
+                ),
+                (
+                    "unit",
+                    models.CharField(
+                        default="UN",
+                        help_text="Unidade de medida (UN, PC, KG, etc.)",
+                        max_length=20,
+                        verbose_name="Unidade",
+                    ),
+                ),
+                (
+                    "unit_cost",
+                    models.DecimalField(
+                        blank=True,
+                        decimal_places=2,
+                        help_text="Custo por unidade (do inventário ou manual)",
+                        max_digits=12,
+                        null=True,
+                        validators=[django.core.validators.MinValueValidator(0)],
+                        verbose_name="Custo Unitário",
+                    ),
+                ),
+                (
+                    "description",
+                    models.TextField(blank=True, verbose_name="Observações"),
+                ),
+                (
+                    "inventory_deducted",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Se a baixa no inventário já foi realizada",
+                        verbose_name="Baixa Realizada",
+                    ),
+                ),
+                (
+                    "inventory_movement_id",
+                    models.UUIDField(
+                        blank=True,
+                        help_text="Referência à movimentação de inventário",
+                        null=True,
+                        verbose_name="ID da Movimentação",
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="Criado em"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="Atualizado em"),
+                ),
+                (
+                    "work_order",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="part_usages",
+                        to="cmms.workorder",
+                        verbose_name="Ordem de Serviço",
+                    ),
+                ),
+                (
+                    "inventory_item",
+                    models.ForeignKey(
+                        blank=True,
+                        help_text="Item do estoque (se aplicável)",
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="work_order_usages",
+                        to="inventory.inventoryitem",
+                        verbose_name="Item de Inventário",
+                    ),
+                ),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="created_part_usages",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Criado por",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Uso de Peça',
-                'verbose_name_plural': 'Uso de Peças',
-                'ordering': ['-created_at'],
+                "verbose_name": "Uso de Peça",
+                "verbose_name_plural": "Uso de Peças",
+                "ordering": ["-created_at"],
             },
         ),
-        
         # ExternalCost - Custos Externos/Terceiros
         migrations.CreateModel(
-            name='ExternalCost',
+            name="ExternalCost",
             fields=[
-                ('id', models.UUIDField(
-                    default=uuid.uuid4,
-                    editable=False,
-                    primary_key=True,
-                    serialize=False
-                )),
-                ('cost_type', models.CharField(
-                    choices=[
-                        ('SERVICE', 'Serviço Terceirizado'),
-                        ('RENTAL', 'Locação de Equipamento'),
-                        ('MATERIAL', 'Material Externo'),
-                        ('TRANSPORT', 'Transporte'),
-                        ('CONSULTANT', 'Consultoria'),
-                        ('OTHER', 'Outros')
-                    ],
-                    default='SERVICE',
-                    max_length=20,
-                    verbose_name='Tipo de Custo'
-                )),
-                ('supplier_name', models.CharField(
-                    help_text='Nome do fornecedor/prestador',
-                    max_length=255,
-                    verbose_name='Fornecedor'
-                )),
-                ('supplier_document', models.CharField(
-                    blank=True,
-                    help_text='Documento do fornecedor',
-                    max_length=20,
-                    verbose_name='CNPJ/CPF'
-                )),
-                ('description', models.TextField(
-                    help_text='Descrição do serviço/custo',
-                    verbose_name='Descrição'
-                )),
-                ('amount', models.DecimalField(
-                    decimal_places=2,
-                    help_text='Valor total do custo',
-                    max_digits=14,
-                    validators=[django.core.validators.MinValueValidator(Decimal('0.01'))],
-                    verbose_name='Valor'
-                )),
-                ('currency', models.CharField(
-                    default='BRL',
-                    max_length=3,
-                    verbose_name='Moeda'
-                )),
-                ('invoice_number', models.CharField(
-                    blank=True,
-                    help_text='Número da nota fiscal',
-                    max_length=100,
-                    verbose_name='Número da NF'
-                )),
-                ('invoice_date', models.DateField(
-                    blank=True,
-                    null=True,
-                    verbose_name='Data da NF'
-                )),
-                ('attachments', models.JSONField(
-                    blank=True,
-                    default=list,
-                    help_text='Lista de anexos [{name, url, type, uploaded_at}]',
-                    verbose_name='Anexos'
-                )),
-                ('created_at', models.DateTimeField(
-                    auto_now_add=True,
-                    verbose_name='Criado em'
-                )),
-                ('updated_at', models.DateTimeField(
-                    auto_now=True,
-                    verbose_name='Atualizado em'
-                )),
-                ('work_order', models.ForeignKey(
-                    on_delete=django.db.models.deletion.CASCADE,
-                    related_name='external_costs',
-                    to='cmms.workorder',
-                    verbose_name='Ordem de Serviço'
-                )),
-                ('created_by', models.ForeignKey(
-                    blank=True,
-                    null=True,
-                    on_delete=django.db.models.deletion.SET_NULL,
-                    related_name='created_external_costs',
-                    to=settings.AUTH_USER_MODEL,
-                    verbose_name='Criado por'
-                )),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "cost_type",
+                    models.CharField(
+                        choices=[
+                            ("SERVICE", "Serviço Terceirizado"),
+                            ("RENTAL", "Locação de Equipamento"),
+                            ("MATERIAL", "Material Externo"),
+                            ("TRANSPORT", "Transporte"),
+                            ("CONSULTANT", "Consultoria"),
+                            ("OTHER", "Outros"),
+                        ],
+                        default="SERVICE",
+                        max_length=20,
+                        verbose_name="Tipo de Custo",
+                    ),
+                ),
+                (
+                    "supplier_name",
+                    models.CharField(
+                        help_text="Nome do fornecedor/prestador",
+                        max_length=255,
+                        verbose_name="Fornecedor",
+                    ),
+                ),
+                (
+                    "supplier_document",
+                    models.CharField(
+                        blank=True,
+                        help_text="Documento do fornecedor",
+                        max_length=20,
+                        verbose_name="CNPJ/CPF",
+                    ),
+                ),
+                (
+                    "description",
+                    models.TextField(
+                        help_text="Descrição do serviço/custo", verbose_name="Descrição"
+                    ),
+                ),
+                (
+                    "amount",
+                    models.DecimalField(
+                        decimal_places=2,
+                        help_text="Valor total do custo",
+                        max_digits=14,
+                        validators=[
+                            django.core.validators.MinValueValidator(Decimal("0.01"))
+                        ],
+                        verbose_name="Valor",
+                    ),
+                ),
+                (
+                    "currency",
+                    models.CharField(default="BRL", max_length=3, verbose_name="Moeda"),
+                ),
+                (
+                    "invoice_number",
+                    models.CharField(
+                        blank=True,
+                        help_text="Número da nota fiscal",
+                        max_length=100,
+                        verbose_name="Número da NF",
+                    ),
+                ),
+                (
+                    "invoice_date",
+                    models.DateField(blank=True, null=True, verbose_name="Data da NF"),
+                ),
+                (
+                    "attachments",
+                    models.JSONField(
+                        blank=True,
+                        default=list,
+                        help_text="Lista de anexos [{name, url, type, uploaded_at}]",
+                        verbose_name="Anexos",
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="Criado em"),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(auto_now=True, verbose_name="Atualizado em"),
+                ),
+                (
+                    "work_order",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="external_costs",
+                        to="cmms.workorder",
+                        verbose_name="Ordem de Serviço",
+                    ),
+                ),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="created_external_costs",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Criado por",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Custo Externo',
-                'verbose_name_plural': 'Custos Externos',
-                'ordering': ['-created_at'],
+                "verbose_name": "Custo Externo",
+                "verbose_name_plural": "Custos Externos",
+                "ordering": ["-created_at"],
             },
         ),
-        
         # ExternalCostAttachment - Anexos de Custos Externos
         migrations.CreateModel(
-            name='ExternalCostAttachment',
+            name="ExternalCostAttachment",
             fields=[
-                ('id', models.UUIDField(
-                    default=uuid.uuid4,
-                    editable=False,
-                    primary_key=True,
-                    serialize=False
-                )),
-                ('file', models.FileField(
-                    upload_to='cmms/external_costs/%Y/%m/',
-                    verbose_name='Arquivo'
-                )),
-                ('file_type', models.CharField(
-                    choices=[
-                        ('INVOICE', 'Nota Fiscal'),
-                        ('RECEIPT', 'Recibo'),
-                        ('REPORT', 'Relatório'),
-                        ('PHOTO', 'Foto'),
-                        ('CONTRACT', 'Contrato'),
-                        ('OTHER', 'Outro')
-                    ],
-                    default='OTHER',
-                    max_length=20,
-                    verbose_name='Tipo de Arquivo'
-                )),
-                ('file_name', models.CharField(
-                    max_length=255,
-                    verbose_name='Nome do Arquivo'
-                )),
-                ('description', models.CharField(
-                    blank=True,
-                    max_length=255,
-                    verbose_name='Descrição'
-                )),
-                ('uploaded_at', models.DateTimeField(
-                    auto_now_add=True,
-                    verbose_name='Enviado em'
-                )),
-                ('external_cost', models.ForeignKey(
-                    on_delete=django.db.models.deletion.CASCADE,
-                    related_name='attachment_files',
-                    to='cmms.externalcost',
-                    verbose_name='Custo Externo'
-                )),
-                ('uploaded_by', models.ForeignKey(
-                    null=True,
-                    on_delete=django.db.models.deletion.SET_NULL,
-                    to=settings.AUTH_USER_MODEL,
-                    verbose_name='Enviado por'
-                )),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "file",
+                    models.FileField(
+                        upload_to="cmms/external_costs/%Y/%m/", verbose_name="Arquivo"
+                    ),
+                ),
+                (
+                    "file_type",
+                    models.CharField(
+                        choices=[
+                            ("INVOICE", "Nota Fiscal"),
+                            ("RECEIPT", "Recibo"),
+                            ("REPORT", "Relatório"),
+                            ("PHOTO", "Foto"),
+                            ("CONTRACT", "Contrato"),
+                            ("OTHER", "Outro"),
+                        ],
+                        default="OTHER",
+                        max_length=20,
+                        verbose_name="Tipo de Arquivo",
+                    ),
+                ),
+                (
+                    "file_name",
+                    models.CharField(max_length=255, verbose_name="Nome do Arquivo"),
+                ),
+                (
+                    "description",
+                    models.CharField(
+                        blank=True, max_length=255, verbose_name="Descrição"
+                    ),
+                ),
+                (
+                    "uploaded_at",
+                    models.DateTimeField(auto_now_add=True, verbose_name="Enviado em"),
+                ),
+                (
+                    "external_cost",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="attachment_files",
+                        to="cmms.externalcost",
+                        verbose_name="Custo Externo",
+                    ),
+                ),
+                (
+                    "uploaded_by",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Enviado por",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Anexo de Custo Externo',
-                'verbose_name_plural': 'Anexos de Custos Externos',
-                'ordering': ['-uploaded_at'],
+                "verbose_name": "Anexo de Custo Externo",
+                "verbose_name_plural": "Anexos de Custos Externos",
+                "ordering": ["-uploaded_at"],
             },
         ),
-        
         # Índices
         migrations.AddIndex(
-            model_name='timeentry',
-            index=models.Index(fields=['work_order'], name='cmms_te_wo_idx'),
+            model_name="timeentry",
+            index=models.Index(fields=["work_order"], name="cmms_te_wo_idx"),
         ),
         migrations.AddIndex(
-            model_name='timeentry',
-            index=models.Index(fields=['technician'], name='cmms_te_tech_idx'),
+            model_name="timeentry",
+            index=models.Index(fields=["technician"], name="cmms_te_tech_idx"),
         ),
         migrations.AddIndex(
-            model_name='timeentry',
-            index=models.Index(fields=['work_date'], name='cmms_te_date_idx'),
+            model_name="timeentry",
+            index=models.Index(fields=["work_date"], name="cmms_te_date_idx"),
         ),
         migrations.AddIndex(
-            model_name='timeentry',
-            index=models.Index(fields=['role_code'], name='cmms_te_role_idx'),
+            model_name="timeentry",
+            index=models.Index(fields=["role_code"], name="cmms_te_role_idx"),
         ),
         migrations.AddIndex(
-            model_name='partusage',
-            index=models.Index(fields=['work_order'], name='cmms_pu_wo_idx'),
+            model_name="partusage",
+            index=models.Index(fields=["work_order"], name="cmms_pu_wo_idx"),
         ),
         migrations.AddIndex(
-            model_name='partusage',
-            index=models.Index(fields=['inventory_item'], name='cmms_pu_inv_idx'),
+            model_name="partusage",
+            index=models.Index(fields=["inventory_item"], name="cmms_pu_inv_idx"),
         ),
         migrations.AddIndex(
-            model_name='partusage',
-            index=models.Index(fields=['part_number'], name='cmms_pu_pn_idx'),
+            model_name="partusage",
+            index=models.Index(fields=["part_number"], name="cmms_pu_pn_idx"),
         ),
         migrations.AddIndex(
-            model_name='externalcost',
-            index=models.Index(fields=['work_order'], name='cmms_ec_wo_idx'),
+            model_name="externalcost",
+            index=models.Index(fields=["work_order"], name="cmms_ec_wo_idx"),
         ),
         migrations.AddIndex(
-            model_name='externalcost',
-            index=models.Index(fields=['cost_type'], name='cmms_ec_type_idx'),
+            model_name="externalcost",
+            index=models.Index(fields=["cost_type"], name="cmms_ec_type_idx"),
         ),
         migrations.AddIndex(
-            model_name='externalcost',
-            index=models.Index(fields=['supplier_name'], name='cmms_ec_supplier_idx'),
+            model_name="externalcost",
+            index=models.Index(fields=["supplier_name"], name="cmms_ec_supplier_idx"),
         ),
         migrations.AddIndex(
-            model_name='externalcost',
-            index=models.Index(fields=['invoice_date'], name='cmms_ec_invdate_idx'),
+            model_name="externalcost",
+            index=models.Index(fields=["invoice_date"], name="cmms_ec_invdate_idx"),
         ),
     ]

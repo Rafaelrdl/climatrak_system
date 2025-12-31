@@ -10,20 +10,20 @@ Endpoints disponíveis:
     /api/sensors/ - CRUD de sensors
 """
 
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import SiteViewSet, AssetViewSet, DeviceViewSet, SensorViewSet
+from .views import AssetViewSet, DeviceViewSet, SensorViewSet, SiteViewSet
 
 # Configuração do router
 router = DefaultRouter()
-router.register(r'sites', SiteViewSet, basename='site')
-router.register(r'assets', AssetViewSet, basename='asset')
-router.register(r'devices', DeviceViewSet, basename='device')
-router.register(r'sensors', SensorViewSet, basename='sensor')
+router.register(r"sites", SiteViewSet, basename="site")
+router.register(r"assets", AssetViewSet, basename="asset")
+router.register(r"devices", DeviceViewSet, basename="device")
+router.register(r"sensors", SensorViewSet, basename="sensor")
 
 # URLs da aplicação
-app_name = 'assets'
+app_name = "assets"
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]

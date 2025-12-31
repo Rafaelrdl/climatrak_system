@@ -6,25 +6,18 @@ from django.db import migrations
 def clear_deprecated_fields(apps, schema_editor):
     """
     Clear deprecated fields from public schema tables.
-    
+
     This ensures no user-identifying data remains in public schema
     beyond the email hash which is needed for tenant discovery.
     """
-    TenantMembership = apps.get_model('public_identity', 'TenantMembership')
-    TenantUserIndex = apps.get_model('public_identity', 'TenantUserIndex')
-    
+    TenantMembership = apps.get_model("public_identity", "TenantMembership")
+    TenantUserIndex = apps.get_model("public_identity", "TenantUserIndex")
+
     # Clear deprecated fields from TenantMembership
-    TenantMembership.objects.update(
-        tenant_user_id=None,
-        email_hint='',
-        display_name=''
-    )
-    
+    TenantMembership.objects.update(tenant_user_id=None, email_hint="", display_name="")
+
     # Clear deprecated fields from TenantUserIndex
-    TenantUserIndex.objects.update(
-        tenant_user_id=None,
-        email_hint=None
-    )
+    TenantUserIndex.objects.update(tenant_user_id=None, email_hint=None)
 
 
 def reverse_noop(apps, schema_editor):

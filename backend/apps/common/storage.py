@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 def get_minio_client():
     """
     Get configured MinIO client instance.
-    
+
     Returns:
         Minio: Configured MinIO client
     """
@@ -28,18 +28,18 @@ def get_minio_client():
 def ensure_bucket_exists(bucket_name=None):
     """
     Ensure MinIO bucket exists, create if not.
-    
+
     Args:
         bucket_name (str): Bucket name. Defaults to settings.MINIO_BUCKET
     """
     if bucket_name is None:
         bucket_name = settings.MINIO_BUCKET
-    
+
     client = get_minio_client()
-    
+
     if not client.bucket_exists(bucket_name):
         client.make_bucket(bucket_name)
         if settings.DEBUG:
             logger.info("Created MinIO bucket: %s", bucket_name)
-    
+
     return bucket_name

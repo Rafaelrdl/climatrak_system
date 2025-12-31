@@ -8,7 +8,8 @@ Referência: docs/events/01-contrato-eventos.md
 """
 
 import logging
-from typing import Callable, Dict, Optional, Any
+from typing import Callable, Dict, Optional
+
 from celery import shared_task
 from django.db import transaction
 from django.utils import timezone
@@ -26,33 +27,35 @@ _event_handlers: Dict[str, Callable[[OutboxEvent], None]] = {}
 def register_event_handler(event_name: str):
     """
     Decorator para registrar um handler de evento.
-    
+
     Uso:
         from apps.core_events.tasks import register_event_handler
-        
+
         @register_event_handler('work_order.closed')
         def handle_work_order_closed(event: OutboxEvent):
             # Processar o evento
             data = event.event_data
             ...
-    
+
     Args:
         event_name: Nome do evento que o handler processa
     """
+
     def decorator(func: Callable[[OutboxEvent], None]):
         _event_handlers[event_name] = func
         logger.info(f"Registered handler for event: {event_name}")
         return func
+
     return decorator
 
 
 def get_event_handler(event_name: str) -> Optional[Callable[[OutboxEvent], None]]:
     """
     Retorna o handler registrado para um evento.
-    
+
     Args:
         event_name: Nome do evento
-        
+
     Returns:
         Handler function ou None se não registrado
     """
@@ -76,13 +79,13 @@ def get_registered_events() -> list[str]:
 def process_outbox_event(self, event_id: str):
     """
     Processa um evento individual da Outbox.
-    
+
     Esta task é chamada para cada evento pendente e:
     1. Busca o evento pelo ID
     2. Verifica se ainda está pendente
     3. Localiza e executa o handler registrado
     4. Marca como processed ou failed
-    
+
     Args:
         event_id: UUID do evento a processar
     """
@@ -116,7 +119,9 @@ def process_outbox_event(self, event_id: str):
                 handler(event)
 
                 # Marcar como processado
-                worker_id = f"celery-{self.request.id}" if self.request.id else "unknown"
+                worker_id = (
+                    f"celery-{self.request.id}" if self.request.id else "unknown"
+                )
                 event.mark_processed(processed_by=worker_id)
 
                 logger.info(f"Event {event_id} processed successfully")
@@ -152,29 +157,29 @@ def process_outbox_event(self, event_id: str):
 def dispatch_pending_events(self, batch_size: int = 100, tenant_id: str = None):
     """
     Dispatcher principal: busca eventos pendentes e agenda processamento.
-    
+
     Esta task é executada periodicamente (via Celery Beat) para:
     1. Buscar eventos com status 'pending'
     2. Agendar uma task process_outbox_event para cada um
-    
+
     Args:
         batch_size: Número máximo de eventos a processar por execução
         tenant_id: Filtrar por tenant específico (opcional)
     """
-    queryset = OutboxEvent.objects.filter(
-        status=OutboxEventStatus.PENDING
-    ).order_by('created_at')
-    
+    queryset = OutboxEvent.objects.filter(status=OutboxEventStatus.PENDING).order_by(
+        "created_at"
+    )
+
     if tenant_id:
         queryset = queryset.filter(tenant_id=tenant_id)
-    
+
     # Buscar batch de eventos pendentes
     pending_events = list(queryset[:batch_size])
-    
+
     if not pending_events:
         logger.debug("No pending events to dispatch")
-        return {'dispatched': 0}
-    
+        return {"dispatched": 0}
+
     dispatched = 0
     for event in pending_events:
         try:
@@ -183,72 +188,74 @@ def dispatch_pending_events(self, batch_size: int = 100, tenant_id: str = None):
             dispatched += 1
         except Exception as e:
             logger.error(f"Failed to dispatch event {event.id}: {e}")
-    
+
     logger.info(f"Dispatched {dispatched} events for processing")
-    return {'dispatched': dispatched}
+    return {"dispatched": dispatched}
 
 
 @shared_task(bind=True)
 def retry_failed_events(self, batch_size: int = 50, tenant_id: str = None):
     """
     Task para reprocessar eventos falhos.
-    
+
     Reseta o status de eventos 'failed' para 'pending' e os re-enfileira.
     Útil para recovery após correção de bugs ou problemas de infra.
-    
+
     Args:
         batch_size: Número máximo de eventos a reprocessar
         tenant_id: Filtrar por tenant específico (opcional)
     """
     from .services import EventRetrier
-    
+
     count = EventRetrier.retry_failed_events(
         tenant_id=tenant_id,
         limit=batch_size,
     )
-    
+
     if count > 0:
         # Disparar o dispatcher para processar os eventos resetados
         dispatch_pending_events.delay(batch_size=count, tenant_id=tenant_id)
-    
+
     logger.info(f"Reset {count} failed events for retry")
-    return {'reset': count}
+    return {"reset": count}
 
 
 @shared_task(bind=True)
-def cleanup_old_events(self, days: int = 30, status: str = 'processed'):
+def cleanup_old_events(self, days: int = 30, status: str = "processed"):
     """
     Task para limpeza de eventos antigos.
-    
+
     Remove eventos processados com mais de X dias para evitar
     crescimento indefinido da tabela.
-    
+
     Args:
         days: Eventos mais antigos que X dias serão removidos
         status: Status dos eventos a remover (default: processed)
     """
     from datetime import timedelta
-    
+
     cutoff_date = timezone.now() - timedelta(days=days)
-    
+
     deleted_count, _ = OutboxEvent.objects.filter(
         status=status,
         created_at__lt=cutoff_date,
     ).delete()
-    
-    logger.info(f"Cleaned up {deleted_count} old events (status={status}, older than {days} days)")
-    return {'deleted': deleted_count}
+
+    logger.info(
+        f"Cleaned up {deleted_count} old events (status={status}, older than {days} days)"
+    )
+    return {"deleted": deleted_count}
 
 
 # =============================================================================
 # Exemplo de handler (comentado - será implementado em outras issues)
 # =============================================================================
-# 
+#
 # @register_event_handler('work_order.closed')
 # def handle_work_order_closed(event: OutboxEvent):
 #     """
 #     Handler para evento work_order.closed.
-#     
+#
 #     Processa fechamento de OS e publica lançamentos no ledger.
 #     Implementado em FIN-004.
 #     """

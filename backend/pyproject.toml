@@ -1,0 +1,80 @@
+# pyproject.toml - ClimaTrak Backend Configuration
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | migrations
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+skip = [".git", ".venv", "venv", "migrations", "__pycache__"]
+known_django = ["django", "rest_framework"]
+known_first_party = ["apps", "config"]
+sections = ["FUTURE", "STDLIB", "DJANGO", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "migrations",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+]
+ignore = [
+    "E402",  # module level import not at top of file (necessário em alguns casos Django)
+    "E501",  # line too long (handled by black)
+    "F401",  # imported but unused (pode ser intencional em __init__.py)
+    "F403",  # star imports (usado em settings)
+    "F405",  # may be undefined from star imports (usado em settings)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403"]
+"config/settings/*.py" = ["F401", "F403", "F405", "E402"]
+"*/tests/*.py" = ["F841"]  # unused variable in tests (common pattern)
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.development"
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short --strict-markers"
+testpaths = ["apps"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "tenant: marks tests that require tenant isolation",
+    "integration: marks tests that require external services",
+]

@@ -23,46 +23,46 @@ V2 Endpoints:
 - /api/finance/bar/ - Budget-at-Risk
 """
 
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
+
 from .views import (
-    CostCenterViewSet,
-    RateCardViewSet,
-    BudgetPlanViewSet,
+    BARViewSet,
+    BaselineViewSet,
     BudgetEnvelopeViewSet,
     BudgetMonthViewSet,
-    CostTransactionViewSet,
-    LedgerAdjustmentViewSet,
-    CommitmentViewSet,
-    SavingsEventViewSet,
+    BudgetPlanViewSet,  # V2
     BudgetSummaryViewSet,
-    # V2
-    EnergyTariffViewSet,
+    CommitmentViewSet,
+    CostCenterViewSet,
+    CostTransactionViewSet,
     EnergyReadingViewSet,
-    BaselineViewSet,
+    EnergyTariffViewSet,
+    LedgerAdjustmentViewSet,
+    RateCardViewSet,
     RiskSnapshotViewSet,
-    BARViewSet,
+    SavingsEventViewSet,
 )
 
 router = DefaultRouter()
-router.register(r'cost-centers', CostCenterViewSet, basename='cost-center')
-router.register(r'rate-cards', RateCardViewSet, basename='rate-card')
-router.register(r'budget-plans', BudgetPlanViewSet, basename='budget-plan')
-router.register(r'budget-envelopes', BudgetEnvelopeViewSet, basename='budget-envelope')
-router.register(r'budget-months', BudgetMonthViewSet, basename='budget-month')
-router.register(r'transactions', CostTransactionViewSet, basename='cost-transaction')
-router.register(r'adjustments', LedgerAdjustmentViewSet, basename='ledger-adjustment')
-router.register(r'commitments', CommitmentViewSet, basename='commitment')
-router.register(r'savings-events', SavingsEventViewSet, basename='savings-event')
-router.register(r'budget-summary', BudgetSummaryViewSet, basename='budget-summary')
+router.register(r"cost-centers", CostCenterViewSet, basename="cost-center")
+router.register(r"rate-cards", RateCardViewSet, basename="rate-card")
+router.register(r"budget-plans", BudgetPlanViewSet, basename="budget-plan")
+router.register(r"budget-envelopes", BudgetEnvelopeViewSet, basename="budget-envelope")
+router.register(r"budget-months", BudgetMonthViewSet, basename="budget-month")
+router.register(r"transactions", CostTransactionViewSet, basename="cost-transaction")
+router.register(r"adjustments", LedgerAdjustmentViewSet, basename="ledger-adjustment")
+router.register(r"commitments", CommitmentViewSet, basename="commitment")
+router.register(r"savings-events", SavingsEventViewSet, basename="savings-event")
+router.register(r"budget-summary", BudgetSummaryViewSet, basename="budget-summary")
 
 # V2 (M4/M5)
-router.register(r'energy-tariffs', EnergyTariffViewSet, basename='energy-tariff')
-router.register(r'energy-readings', EnergyReadingViewSet, basename='energy-reading')
-router.register(r'baselines', BaselineViewSet, basename='baseline')
-router.register(r'risk-snapshots', RiskSnapshotViewSet, basename='risk-snapshot')
-router.register(r'bar', BARViewSet, basename='bar')
+router.register(r"energy-tariffs", EnergyTariffViewSet, basename="energy-tariff")
+router.register(r"energy-readings", EnergyReadingViewSet, basename="energy-reading")
+router.register(r"baselines", BaselineViewSet, basename="baseline")
+router.register(r"risk-snapshots", RiskSnapshotViewSet, basename="risk-snapshot")
+router.register(r"bar", BARViewSet, basename="bar")
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]

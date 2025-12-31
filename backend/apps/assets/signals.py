@@ -10,11 +10,10 @@ Responsável por:
 import logging
 
 from django.conf import settings
-from django.db.models.signals import post_save, post_delete
-from django.dispatch import receiver
-from django.utils import timezone
 from django.core.cache import cache
 from django.db import connection
+from django.db.models.signals import post_delete, post_save
+from django.dispatch import receiver
 
 from apps.assets.models import Site
 
@@ -29,11 +28,11 @@ def invalidate_site_timezone_cache_on_save(sender, instance, **kwargs):
     """
     # Obter o tenant atual do schema
     schema_name = connection.schema_name
-    
+
     # Invalidar cache para este site
     cache_key = f"site_timezone:{schema_name}:{instance.name}"
     deleted = cache.delete(cache_key)
-    
+
     if deleted and settings.DEBUG:
         logger.info(
             "Cache do timezone invalidado para Site '%s' (tenant: %s)",
@@ -50,7 +49,7 @@ def invalidate_site_timezone_cache_on_delete(sender, instance, **kwargs):
     schema_name = connection.schema_name
     cache_key = f"site_timezone:{schema_name}:{instance.name}"
     cache.delete(cache_key)
-    
+
     if settings.DEBUG:
         logger.info(
             "Cache do timezone invalidado para Site deletado '%s' (tenant: %s)",

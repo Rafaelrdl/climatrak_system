@@ -7,11 +7,11 @@ Garante que eventos sejam criados com formato correto e idempotência.
 Referência: docs/events/01-contrato-eventos.md
 """
 
-import uuid
 import hashlib
+import uuid
 from datetime import datetime
 from typing import Any, Dict, Optional, Union
-from django.db import transaction
+
 from django.utils import timezone
 
 from .models import OutboxEvent, OutboxEventStatus
@@ -20,15 +20,15 @@ from .models import OutboxEvent, OutboxEventStatus
 class EventPublisher:
     """
     Service para publicar eventos de domínio na Outbox.
-    
+
     Uso típico:
         from apps.core_events.services import EventPublisher
-        
+
         # Dentro de uma transação de banco
         with transaction.atomic():
             work_order.status = 'closed'
             work_order.save()
-            
+
             EventPublisher.publish(
                 tenant_id=work_order.tenant_id,
                 event_name='work_order.closed',
@@ -37,7 +37,7 @@ class EventPublisher:
                 data={'order_number': work_order.number, ...}
             )
     """
-    
+
     @classmethod
     def publish(
         cls,
@@ -52,9 +52,9 @@ class EventPublisher:
     ) -> OutboxEvent:
         """
         Publica um evento de domínio na Outbox.
-        
+
         O evento será processado de forma assíncrona pelo dispatcher Celery.
-        
+
         Args:
             tenant_id: ID do tenant que originou o evento
             event_name: Nome qualificado do evento (ex: work_order.closed)
@@ -64,10 +64,10 @@ class EventPublisher:
             idempotency_key: Chave única para evitar duplicatas (auto-gerada se não fornecida)
             occurred_at: Timestamp do evento (usa timezone.now() se não fornecido)
             max_attempts: Número máximo de tentativas de processamento
-            
+
         Returns:
             OutboxEvent: Evento criado na outbox
-            
+
         Raises:
             IntegrityError: Se idempotency_key já existe para o tenant
         """
@@ -80,7 +80,7 @@ class EventPublisher:
                 # Se não for UUID válido, assumir que é schema_name
                 # Converter para UUID determinístico usando namespace
                 tenant_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"tenant:{tenant_id}")
-        
+
         # Converter aggregate_id para UUID
         # Suporta: UUID, string UUID, ou integer (converte para UUID namespace)
         if isinstance(aggregate_id, str):
@@ -93,11 +93,11 @@ class EventPublisher:
             # Converter integer para UUID usando namespace determinístico
             # Isso garante que o mesmo ID sempre gere o mesmo UUID
             aggregate_id = uuid.uuid5(uuid.NAMESPACE_OID, str(aggregate_id))
-        
+
         # Gerar timestamps
         now = occurred_at or timezone.now()
         event_id = uuid.uuid4()
-        
+
         # Gerar idempotency_key se não fornecida
         if not idempotency_key:
             idempotency_key = cls._generate_idempotency_key(
@@ -106,20 +106,20 @@ class EventPublisher:
                 aggregate_id=aggregate_id,
                 occurred_at=now,
             )
-        
+
         # Montar envelope do evento conforme contrato
         payload = {
-            'event_id': str(event_id),
-            'tenant_id': str(tenant_id),
-            'event_name': event_name,
-            'occurred_at': now.isoformat(),
-            'aggregate': {
-                'type': aggregate_type,
-                'id': str(aggregate_id),
+            "event_id": str(event_id),
+            "tenant_id": str(tenant_id),
+            "event_name": event_name,
+            "occurred_at": now.isoformat(),
+            "aggregate": {
+                "type": aggregate_type,
+                "id": str(aggregate_id),
             },
-            'data': data,
+            "data": data,
         }
-        
+
         # Criar evento na outbox
         event = OutboxEvent.objects.create(
             id=event_id,
@@ -133,9 +133,9 @@ class EventPublisher:
             idempotency_key=idempotency_key,
             max_attempts=max_attempts,
         )
-        
+
         return event
-    
+
     @classmethod
     def publish_idempotent(
         cls,
@@ -150,9 +150,9 @@ class EventPublisher:
     ) -> tuple[OutboxEvent, bool]:
         """
         Publica um evento de forma idempotente (get_or_create).
-        
+
         Se o evento já existe com a mesma idempotency_key, retorna o existente.
-        
+
         Args:
             tenant_id: ID do tenant que originou o evento
             event_name: Nome qualificado do evento
@@ -162,29 +162,29 @@ class EventPublisher:
             idempotency_key: Chave única (obrigatória neste método)
             occurred_at: Timestamp do evento
             max_attempts: Número máximo de tentativas
-            
+
         Returns:
             tuple: (OutboxEvent, created) - Evento e bool indicando se foi criado
         """
         # Normalizar UUIDs
         if isinstance(tenant_id, str):
             tenant_id = uuid.UUID(tenant_id)
-        
+
         # Converter aggregate_id para UUID
         if isinstance(aggregate_id, str):
             aggregate_id = uuid.UUID(aggregate_id)
         elif isinstance(aggregate_id, int):
             aggregate_id = uuid.uuid5(uuid.NAMESPACE_OID, str(aggregate_id))
-        
+
         # Verificar se já existe
         existing = OutboxEvent.objects.filter(
             tenant_id=tenant_id,
             idempotency_key=idempotency_key,
         ).first()
-        
+
         if existing:
             return existing, False
-        
+
         # Criar novo evento
         event = cls.publish(
             tenant_id=tenant_id,
@@ -196,9 +196,9 @@ class EventPublisher:
             occurred_at=occurred_at,
             max_attempts=max_attempts,
         )
-        
+
         return event, True
-    
+
     @staticmethod
     def _generate_idempotency_key(
         event_name: str,
@@ -208,7 +208,7 @@ class EventPublisher:
     ) -> str:
         """
         Gera uma chave de idempotência baseada nos dados do evento.
-        
+
         A chave é um hash SHA256 dos componentes únicos do evento.
         """
         components = [
@@ -217,35 +217,35 @@ class EventPublisher:
             str(aggregate_id),
             occurred_at.isoformat(),
         ]
-        combined = ':'.join(components)
+        combined = ":".join(components)
         return hashlib.sha256(combined.encode()).hexdigest()[:64]
 
 
 class EventRetrier:
     """
     Service para reprocessamento de eventos falhos.
-    
+
     Permite reprocessar eventos que falharam, resetando o contador
     de tentativas e marcando como pending novamente.
     """
-    
+
     @classmethod
     def retry_event(cls, event_id: Union[uuid.UUID, str]) -> OutboxEvent:
         """
         Reseta um evento para ser reprocessado.
-        
+
         Args:
             event_id: ID do evento a reprocessar
-            
+
         Returns:
             OutboxEvent: Evento atualizado
-            
+
         Raises:
             OutboxEvent.DoesNotExist: Se evento não existe
         """
         if isinstance(event_id, str):
             event_id = uuid.UUID(event_id)
-        
+
         event = OutboxEvent.objects.get(id=event_id)
         event.status = OutboxEventStatus.PENDING
         event.attempts = 0
@@ -254,9 +254,9 @@ class EventRetrier:
         event.processed_at = None
         event.processed_by = None
         event.save()
-        
+
         return event
-    
+
     @classmethod
     def retry_failed_events(
         cls,
@@ -266,28 +266,28 @@ class EventRetrier:
     ) -> int:
         """
         Reseta múltiplos eventos falhos para reprocessamento.
-        
+
         Args:
             tenant_id: Filtrar por tenant (opcional)
             event_name: Filtrar por nome do evento (opcional)
             limit: Número máximo de eventos a resetar
-            
+
         Returns:
             int: Número de eventos resetados
         """
         queryset = OutboxEvent.objects.filter(status=OutboxEventStatus.FAILED)
-        
+
         if tenant_id:
             if isinstance(tenant_id, str):
                 tenant_id = uuid.UUID(tenant_id)
             queryset = queryset.filter(tenant_id=tenant_id)
-        
+
         if event_name:
             queryset = queryset.filter(event_name=event_name)
-        
+
         events = queryset[:limit]
         count = 0
-        
+
         for event in events:
             event.status = OutboxEventStatus.PENDING
             event.attempts = 0
@@ -297,5 +297,5 @@ class EventRetrier:
             event.processed_by = None
             event.save()
             count += 1
-        
+
         return count
