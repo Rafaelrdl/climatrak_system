@@ -170,6 +170,8 @@ services:
       dockerfile: ../infra/api/Dockerfile
     container_name: climatrak-scheduler
     command: celery -A config beat --loglevel=info
+    env_file:
+      - ../backend/.env
     environment:
       DJANGO_SECRET_KEY: dev-secret-key-change-in-production-minimum-50-characters-long
       DJANGO_SETTINGS_MODULE: config.settings.development
