@@ -46,22 +46,29 @@ const products = [
     name: 'TrakNor',
     subtitle: 'CMMS',
     description: 'Sistema completo de gestão de manutenção com ordens de serviço, inventário e relatórios.',
-    color: 'from-blue-600 to-blue-400',
+    color: 'from-teal-600 to-teal-400',
     href: '/produtos/traknor',
   },
   {
     name: 'TrakSense',
     subtitle: 'IoT Platform',
     description: 'Plataforma de monitoramento IoT com dashboards, alertas e análise de dados em tempo real.',
-    color: 'from-emerald-600 to-emerald-400',
+    color: 'from-cyan-600 to-cyan-400',
     href: '/produtos/traksense',
   },
   {
     name: 'AirTrak',
     subtitle: 'Smart Sensor',
     description: 'Sensor inteligente para equipamentos HVAC com temperatura, umidade e pressão.',
-    color: 'from-violet-600 to-violet-400',
+    color: 'from-emerald-600 to-emerald-400',
     href: '/produtos/airtrak',
+  },
+  {
+    name: 'Finance',
+    subtitle: 'Cost Control',
+    description: 'Módulo de gestão financeira com orçamentos, lançamentos automáticos e economias.',
+    color: 'from-violet-600 to-violet-400',
+    href: '/produtos/finance',
   },
 ]
 

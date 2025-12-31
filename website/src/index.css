@@ -2,47 +2,66 @@
 
 @theme {
   --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222.2 84% 4.9%);
+  --color-foreground: hsl(200 30% 10%);
   --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222.2 84% 4.9%);
+  --color-card-foreground: hsl(200 30% 10%);
   --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(222.2 84% 4.9%);
-  --color-primary: hsl(211 100% 43%);
-  --color-primary-foreground: hsl(210 40% 98%);
-  --color-secondary: hsl(210 40% 96.1%);
-  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
+  --color-popover-foreground: hsl(200 30% 10%);
+  /* Primary: Verde-Petróleo (Teal) - oklch(0.45 0.15 200) convertido */
+  --color-primary: hsl(185 75% 30%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(185 20% 95%);
+  --color-secondary-foreground: hsl(185 50% 20%);
+  --color-muted: hsl(185 10% 96%);
+  --color-muted-foreground: hsl(185 10% 45%);
   --color-accent: hsl(36 100% 50%);
   --color-accent-foreground: hsl(0 0% 100%);
   --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(214.3 31.8% 91.4%);
-  --color-input: hsl(214.3 31.8% 91.4%);
-  --color-ring: hsl(211 100% 43%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(185 20% 90%);
+  --color-input: hsl(185 20% 90%);
+  --color-ring: hsl(185 75% 30%);
   --radius: 0.5rem;
   
-  /* Brand colors */
-  --color-brand-50: #e6f0fa;
-  --color-brand-100: #cce1f5;
-  --color-brand-200: #99c3eb;
-  --color-brand-300: #66a5e1;
-  --color-brand-400: #3387d7;
-  --color-brand-500: #0967d2;
-  --color-brand-600: #0756b0;
-  --color-brand-700: #05448e;
-  --color-brand-800: #04326b;
-  --color-brand-900: #022149;
+  /* Brand colors - Verde Petróleo/Teal */
+  --color-brand-50: #e6f7f7;
+  --color-brand-100: #ccefef;
+  --color-brand-200: #99dfdf;
+  --color-brand-300: #66cfcf;
+  --color-brand-400: #33bfbf;
+  --color-brand-500: #0d9488;
+  --color-brand-600: #0a7a70;
+  --color-brand-700: #086058;
+  --color-brand-800: #054640;
+  --color-brand-900: #032c28;
   
-  /* Emerald for TrakSense */
+  /* TrakNor CMMS - Teal */
+  --color-teal-50: #f0fdfa;
+  --color-teal-100: #ccfbf1;
+  --color-teal-500: #14b8a6;
+  --color-teal-600: #0d9488;
+  --color-teal-700: #0f766e;
+  
+  /* TrakSense IoT - Cyan */
+  --color-cyan-50: #ecfeff;
+  --color-cyan-100: #cffafe;
+  --color-cyan-500: #06b6d4;
+  --color-cyan-600: #0891b2;
+  --color-cyan-700: #0e7490;
+  
+  /* AirTrak Sensors - Emerald */
   --color-emerald-50: #ecfdf5;
+  --color-emerald-100: #d1fae5;
   --color-emerald-500: #10b981;
   --color-emerald-600: #059669;
+  --color-emerald-700: #047857;
   
-  /* Violet for AirTrak */
+  /* Finance Module - Violet/Indigo */
   --color-violet-50: #f5f3ff;
+  --color-violet-100: #ede9fe;
   --color-violet-500: #8b5cf6;
   --color-violet-600: #7c3aed;
+  --color-violet-700: #6d28d9;
 }
 
 :root {

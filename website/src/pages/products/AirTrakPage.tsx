@@ -109,7 +109,7 @@ export function AirTrakPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-violet-600 to-violet-400 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-400 flex items-center justify-center">
                   <Cpu className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -142,9 +142,9 @@ export function AirTrakPage() {
             </div>
             <div>
               <Card className="overflow-hidden">
-                <div className="h-80 bg-gradient-to-br from-violet-600 to-violet-400 flex items-center justify-center">
+                <div className="h-80 bg-gradient-to-br from-emerald-600 to-emerald-400 flex items-center justify-center">
                   <div className="w-32 h-32 bg-white rounded-2xl shadow-xl flex items-center justify-center">
-                    <Cpu className="w-16 h-16 text-violet-600" />
+                    <Cpu className="w-16 h-16 text-emerald-600" />
                   </div>
                 </div>
               </Card>
@@ -170,13 +170,13 @@ export function AirTrakPage() {
               <Card key={spec.label} className="card-hover">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0">
-                      <spec.icon className="w-6 h-6 text-violet-600" />
+                    <div className="w-12 h-12 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                      <spec.icon className="w-6 h-6 text-emerald-600" />
                     </div>
                     <div>
                       <div className="text-sm text-muted-foreground">{spec.label}</div>
                       <div className="font-bold">{spec.value}</div>
-                      <div className="text-sm text-violet-600">{spec.precision}</div>
+                      <div className="text-sm text-emerald-600">{spec.precision}</div>
                     </div>
                   </div>
                 </CardContent>
@@ -199,8 +199,8 @@ export function AirTrakPage() {
             {features.map((feature) => (
               <Card key={feature.title} className="card-hover">
                 <CardContent className="pt-6">
-                  <div className="w-12 h-12 rounded-lg bg-violet-100 flex items-center justify-center mb-4">
-                    <feature.icon className="w-6 h-6 text-violet-600" />
+                  <div className="w-12 h-12 rounded-lg bg-emerald-100 flex items-center justify-center mb-4">
+                    <feature.icon className="w-6 h-6 text-emerald-600" />
                   </div>
                   <h3 className="font-semibold mb-2">{feature.title}</h3>
                   <p className="text-sm text-muted-foreground">{feature.description}</p>
@@ -227,26 +227,26 @@ export function AirTrakPage() {
               <div className="grid sm:grid-cols-2 gap-3">
                 {applications.map((app) => (
                   <div key={app} className="flex items-center gap-2">
-                    <Check className="w-5 h-5 text-violet-500 flex-shrink-0" />
+                    <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                     <span>{app}</span>
                   </div>
                 ))}
               </div>
             </div>
             <Card className="overflow-hidden">
-              <div className="h-80 bg-gradient-to-br from-violet-100 to-violet-50 flex items-center justify-center">
+              <div className="h-80 bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="w-24 h-24 bg-white rounded-xl shadow-lg flex items-center justify-center">
-                    <Thermometer className="w-10 h-10 text-violet-400" />
+                    <Thermometer className="w-10 h-10 text-emerald-400" />
                   </div>
                   <div className="w-24 h-24 bg-white rounded-xl shadow-lg flex items-center justify-center">
-                    <Droplets className="w-10 h-10 text-violet-400" />
+                    <Droplets className="w-10 h-10 text-emerald-400" />
                   </div>
                   <div className="w-24 h-24 bg-white rounded-xl shadow-lg flex items-center justify-center">
-                    <Gauge className="w-10 h-10 text-violet-400" />
+                    <Gauge className="w-10 h-10 text-emerald-400" />
                   </div>
                   <div className="w-24 h-24 bg-white rounded-xl shadow-lg flex items-center justify-center">
-                    <Wifi className="w-10 h-10 text-violet-400" />
+                    <Wifi className="w-10 h-10 text-emerald-400" />
                   </div>
                 </div>
               </div>
@@ -256,11 +256,11 @@ export function AirTrakPage() {
       </section>
 
       {/* Important Note */}
-      <section className="section-padding bg-violet-50">
+      <section className="section-padding bg-emerald-50">
         <div className="container-wide">
-          <Card className="max-w-3xl mx-auto border-violet-200">
+          <Card className="max-w-3xl mx-auto border-emerald-200">
             <CardContent className="pt-6 text-center">
-              <Cpu className="w-12 h-12 text-violet-600 mx-auto mb-4" />
+              <Cpu className="w-12 h-12 text-emerald-600 mx-auto mb-4" />
               <h3 className="text-xl font-bold mb-2">
                 AirTrak + TrakSense = Solução Completa
               </h3>
@@ -277,7 +277,7 @@ export function AirTrakPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="section-padding bg-gradient-to-r from-violet-600 to-violet-500 text-white">
+      <section className="section-padding bg-gradient-to-r from-emerald-600 to-emerald-500 text-white">
         <div className="container-wide text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
             Pronto para sensorizar seus ativos?
@@ -288,7 +288,7 @@ export function AirTrakPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/demo">
-              <Button size="xl" variant="secondary" className="bg-white text-violet-600 hover:bg-white/90">
+              <Button size="xl" variant="secondary" className="bg-white text-emerald-600 hover:bg-white/90">
                 Solicitar Orçamento
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>

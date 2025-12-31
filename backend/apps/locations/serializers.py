@@ -2,6 +2,7 @@
 Serializers para Locations
 """
 
+from django.utils.text import slugify
 from rest_framework import serializers
 
 from .models import Company, LocationContact, Sector, Subsection
@@ -41,6 +42,16 @@ class SubsectionSerializer(serializers.ModelSerializer):
     full_path = serializers.CharField(read_only=True)
     asset_count = serializers.IntegerField(read_only=True)
     contacts = LocationContactSerializer(many=True, read_only=True)
+
+    def validate(self, data):
+        code = data.get("code")
+        if code is None and self.instance:
+            code = self.instance.code
+        if not code:
+            name = data.get("name") or (self.instance.name if self.instance else "")
+            if name:
+                data["code"] = slugify(name)[:50]
+        return data
 
     class Meta:
         model = Subsection

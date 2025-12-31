@@ -95,7 +95,7 @@ export function TrakSensePage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-400 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-400 flex items-center justify-center">
                   <Activity className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -128,7 +128,7 @@ export function TrakSensePage() {
             </div>
             <div>
               <Card className="overflow-hidden">
-                <div className="h-80 bg-gradient-to-br from-emerald-600 to-emerald-400 flex items-center justify-center">
+                <div className="h-80 bg-gradient-to-br from-cyan-600 to-cyan-400 flex items-center justify-center">
                   <div className="w-48 h-32 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur">
                     <Activity className="w-16 h-16 text-white" />
                   </div>
@@ -145,8 +145,8 @@ export function TrakSensePage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             {metrics.map((metric) => (
               <div key={metric.label} className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                  <metric.icon className="w-5 h-5 text-emerald-600" />
+                <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
+                  <metric.icon className="w-5 h-5 text-cyan-600" />
                 </div>
                 <div>
                   <div className="text-xl font-bold">{metric.value}</div>
@@ -174,8 +174,8 @@ export function TrakSensePage() {
             {features.map((feature) => (
               <Card key={feature.title} className="card-hover">
                 <CardContent className="pt-6">
-                  <div className="w-12 h-12 rounded-lg bg-emerald-100 flex items-center justify-center mb-4">
-                    <feature.icon className="w-6 h-6 text-emerald-600" />
+                  <div className="w-12 h-12 rounded-lg bg-cyan-100 flex items-center justify-center mb-4">
+                    <feature.icon className="w-6 h-6 text-cyan-600" />
                   </div>
                   <h3 className="font-semibold mb-2">{feature.title}</h3>
                   <p className="text-sm text-muted-foreground">{feature.description}</p>
@@ -229,7 +229,7 @@ export function TrakSensePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="section-padding bg-gradient-to-r from-emerald-600 to-emerald-500 text-white">
+      <section className="section-padding bg-gradient-to-r from-cyan-600 to-cyan-500 text-white">
         <div className="container-wide text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
             Comece a monitorar agora
@@ -240,7 +240,7 @@ export function TrakSensePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/demo">
-              <Button size="xl" variant="secondary" className="bg-white text-emerald-600 hover:bg-white/90">
+              <Button size="xl" variant="secondary" className="bg-white text-cyan-600 hover:bg-white/90">
                 Agendar Demo Gratuita
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>

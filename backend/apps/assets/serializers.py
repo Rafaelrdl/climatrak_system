@@ -66,7 +66,7 @@ class SiteSerializer(serializers.ModelSerializer):
             return obj.active_asset_count
         # Fallback to query (for cases where annotation isn't available)
         return obj.assets.filter(
-            status__in=["OPERATIONAL", "WARNING", "MAINTENANCE"]
+            status__in=["OK", "MAINTENANCE", "ALERT"]
         ).count()
 
 
@@ -150,6 +150,8 @@ class AssetListSerializer(serializers.ModelSerializer):
         """Retorna o ID da empresa via setor."""
         if obj.sector and obj.sector.company:
             return obj.sector.company.id
+        if obj.subsection and obj.subsection.sector and obj.subsection.sector.company:
+            return obj.subsection.sector.company.id
         return None
 
 
@@ -269,6 +271,8 @@ class AssetSerializer(serializers.ModelSerializer):
         """Retorna o ID da empresa via setor."""
         if obj.sector and obj.sector.company:
             return obj.sector.company.id
+        if obj.subsection and obj.subsection.sector and obj.subsection.sector.company:
+            return obj.subsection.sector.company.id
         return None
 
     def get_device_count(self, obj):
@@ -312,6 +316,24 @@ class AssetSerializer(serializers.ModelSerializer):
                             "last_maintenance": "Data de manutenção não pode ser anterior à instalação."
                         }
                     )
+        # Mantém consistência entre setor e subseção
+        sector = data.get("sector") if "sector" in data else getattr(self.instance, "sector", None)
+        subsection = (
+            data.get("subsection")
+            if "subsection" in data
+            else getattr(self.instance, "subsection", None)
+        )
+
+        if subsection and not sector:
+            data["sector"] = subsection.sector
+            sector = subsection.sector
+
+        if sector and subsection and subsection.sector_id != sector.id:
+            raise serializers.ValidationError(
+                {
+                    "subsection": "Subseção não pertence ao setor informado."
+                }
+            )
         return data
 
 
@@ -409,12 +431,16 @@ class AssetCompleteSerializer(serializers.ModelSerializer):
         """Obtém o ID da empresa do setor"""
         if obj.sector and obj.sector.company:
             return obj.sector.company.id
+        if obj.subsection and obj.subsection.sector and obj.subsection.sector.company:
+            return obj.subsection.sector.company.id
         return None
 
     def get_company_name(self, obj):
         """Obtém o nome da empresa do setor"""
         if obj.sector and obj.sector.company:
             return obj.sector.company.name
+        if obj.subsection and obj.subsection.sector and obj.subsection.sector.company:
+            return obj.subsection.sector.company.name
         return None
 
     def get_device_count(self, obj):

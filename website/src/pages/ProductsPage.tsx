@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { ArrowRight, Wrench, Activity, Cpu, Check } from 'lucide-react'
+import { ArrowRight, Wrench, Activity, Cpu, Check, DollarSign } from 'lucide-react'
 
 const products = [
   {
@@ -11,8 +11,11 @@ const products = [
     subtitle: 'CMMS - Sistema de Gestão de Manutenção',
     description: 'Plataforma completa para gerenciar todo o ciclo de vida dos seus ativos, desde cadastro até ordens de serviço, inventário e relatórios.',
     icon: Wrench,
-    color: 'blue',
-    gradient: 'from-blue-600 to-blue-400',
+    color: 'teal',
+    gradient: 'from-teal-600 to-teal-400',
+    bgLight: 'bg-teal-100',
+    textColor: 'text-teal-700',
+    checkColor: 'text-teal-500',
     features: [
       'Gestão de Ordens de Serviço',
       'Manutenção Preventiva e Corretiva',
@@ -31,8 +34,11 @@ const products = [
     subtitle: 'Plataforma IoT de Monitoramento',
     description: 'Monitoramento em tempo real dos seus equipamentos HVAC com dashboards interativos, alertas inteligentes e análise de dados.',
     icon: Activity,
-    color: 'emerald',
-    gradient: 'from-emerald-600 to-emerald-400',
+    color: 'cyan',
+    gradient: 'from-cyan-600 to-cyan-400',
+    bgLight: 'bg-cyan-100',
+    textColor: 'text-cyan-700',
+    checkColor: 'text-cyan-500',
     features: [
       'Dashboards Customizáveis',
       'Alertas em Tempo Real',
@@ -51,8 +57,11 @@ const products = [
     subtitle: 'Sensor Inteligente para HVAC',
     description: 'Sensor plug & play para monitoramento de temperatura, umidade e pressão em equipamentos de climatização.',
     icon: Cpu,
-    color: 'violet',
-    gradient: 'from-violet-600 to-violet-400',
+    color: 'emerald',
+    gradient: 'from-emerald-600 to-emerald-400',
+    bgLight: 'bg-emerald-100',
+    textColor: 'text-emerald-700',
+    checkColor: 'text-emerald-500',
     features: [
       'Temperatura e Umidade',
       'Pressão Diferencial',
@@ -64,6 +73,29 @@ const products = [
       'Certificação IP65',
     ],
     href: '/produtos/airtrak',
+  },
+  {
+    id: 'finance',
+    name: 'Finance',
+    subtitle: 'Módulo de Gestão Financeira',
+    description: 'Controle total dos custos de manutenção com orçamentos, lançamentos automáticos, compromissos e registro de economias.',
+    icon: DollarSign,
+    color: 'violet',
+    gradient: 'from-violet-600 to-violet-400',
+    bgLight: 'bg-violet-100',
+    textColor: 'text-violet-700',
+    checkColor: 'text-violet-500',
+    features: [
+      'Orçamentos por Centro de Custo',
+      'Lançamentos Automáticos',
+      'Compromissos de Manutenção',
+      'Registro de Economias',
+      'Dashboards Financeiros',
+      'Alertas de Orçamento',
+      'Relatórios por Período',
+      'Integração com TrakNor',
+    ],
+    href: '/produtos/finance',
   },
 ]
 
@@ -93,7 +125,7 @@ export function ProductsPage() {
               className={`grid lg:grid-cols-2 gap-12 items-center ${index % 2 === 1 ? 'lg:flex-row-reverse' : ''}`}
             >
               <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
-                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-${product.color}-100 text-${product.color}-700 mb-4`}>
+                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${product.bgLight} ${product.textColor} mb-4`}>
                   <product.icon className="w-4 h-4" />
                   <span className="text-sm font-medium">{product.subtitle}</span>
                 </div>
@@ -103,7 +135,7 @@ export function ProductsPage() {
                 <div className="grid sm:grid-cols-2 gap-3 mb-8">
                   {product.features.map((feature) => (
                     <div key={feature} className="flex items-center gap-2">
-                      <Check className={`w-5 h-5 text-${product.color}-500 flex-shrink-0`} />
+                      <Check className={`w-5 h-5 ${product.checkColor} flex-shrink-0`} />
                       <span className="text-sm">{feature}</span>
                     </div>
                   ))}
@@ -141,12 +173,13 @@ export function ProductsPage() {
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Nosso ecossistema foi projetado para integração perfeita. 
-              Os sensores AirTrak alimentam o TrakSense, que cria alertas automáticos no TrakNor.
+              Os sensores AirTrak alimentam o TrakSense, que cria alertas e OS automáticas no TrakNor, 
+              com custos registrados automaticamente no Finance.
             </p>
           </div>
           
           <div className="relative">
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-4 gap-6">
               {products.map((product, index) => (
                 <Card key={product.id} className="relative">
                   <CardContent className="pt-6 text-center">

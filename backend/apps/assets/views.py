@@ -90,7 +90,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         queryset = queryset.annotate(
             active_asset_count=Count(
                 "assets",
-                filter=Q(assets__status__in=["OPERATIONAL", "WARNING", "MAINTENANCE"]),
+                filter=Q(assets__status__in=["OK", "MAINTENANCE", "ALERT"]),
             )
         )
         return queryset

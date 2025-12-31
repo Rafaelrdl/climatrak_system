@@ -12,6 +12,7 @@ const navigation = [
       { name: 'TrakNor CMMS', href: '/produtos/traknor', description: 'Sistema de gestão de manutenção' },
       { name: 'TrakSense IoT', href: '/produtos/traksense', description: 'Monitoramento em tempo real' },
       { name: 'AirTrak Sensor', href: '/produtos/airtrak', description: 'Sensor inteligente para HVAC' },
+      { name: 'Finance', href: '/produtos/finance', description: 'Gestão financeira de manutenção' },
     ],
   },
   {
