@@ -105,8 +105,12 @@ class TelemetryAdmin(admin.ModelAdmin):
         """Payload formatado em JSON."""
         try:
             formatted = json.dumps(obj.payload, indent=2, ensure_ascii=False)
-            return mark_safe(
-                f'<pre style="background-color: #f4f4f4; padding: 10px; border-radius: 5px;">{formatted}</pre>'
+            # Escape HTML para prevenir XSS antes de usar mark_safe
+            from django.utils.html import escape
+
+            escaped_formatted = escape(formatted)
+            return mark_safe(  # nosec
+                f'<pre style="background-color: #f4f4f4; padding: 10px; border-radius: 5px;">{escaped_formatted}</pre>'
             )
         except Exception:
             return obj.payload

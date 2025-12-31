@@ -253,6 +253,7 @@ class DeviceHistoryView(APIView):
             if sensor_ids:
                 # Filter by specific sensors
                 placeholders = ",".join(["%s"] * len(sensor_ids))
+                # nosec B608 - SQL uses parameterized placeholders, not string interpolation
                 sql = f"""
                     SELECT ts, sensor_id, value
                     FROM reading
@@ -262,7 +263,7 @@ class DeviceHistoryView(APIView):
                       AND ts <= %s
                     ORDER BY ts ASC
                     LIMIT %s
-                """
+                """  # nosec B608
                 params = [device_id] + sensor_ids + [ts_from, ts_to, limit]
             else:
                 # All sensors
@@ -285,6 +286,7 @@ class DeviceHistoryView(APIView):
             if sensor_ids:
                 # Filter by specific sensors
                 placeholders = ",".join(["%s"] * len(sensor_ids))
+                # nosec B608 - SQL uses parameterized placeholders, not string interpolation
                 sql = f"""
                     SELECT time_bucket(%(bucket_interval)s, ts) AS bucket,
                            sensor_id,
@@ -301,7 +303,7 @@ class DeviceHistoryView(APIView):
                     GROUP BY bucket, sensor_id
                     ORDER BY bucket ASC
                     LIMIT %(limit)s
-                """
+                """  # nosec B608
                 # Use named params for aggregation
                 params = {
                     "bucket_interval": bucket_interval,
