@@ -70,12 +70,6 @@ export async function logout() {
 export interface TenantDiscoveryResult {
   found: boolean;
   email: string;
-  tenants?: Array<{
-    schema_name: string;
-    slug: string;
-    name: string;
-    domain?: string;
-  }>;
   primary_tenant?: {
     schema_name: string;
     slug: string;

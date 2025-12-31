@@ -466,7 +466,7 @@ class RawSQLIsolationTests(TenantTestCase):
                     """
                     SELECT COUNT(*) FROM information_schema.tables 
                     WHERE table_schema = 'public' 
-                    AND table_name IN ('tenant_user_index', 'tenant_memberships')
+                    AND table_name IN ('public_tenant_user_index', 'public_tenant_memberships')
                     """
                 )
                 index_tables = cursor.fetchone()[0]

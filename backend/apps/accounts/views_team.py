@@ -456,12 +456,18 @@ class PublicInviteAcceptView(APIView):
                             existing_membership.status = "active"
                             existing_membership.role = invite.role
                             existing_membership.save()
+                            if not user_in_tenant.is_active:
+                                user_in_tenant.is_active = True
+                                user_in_tenant.save(update_fields=["is_active"])
                             membership_role = existing_membership.role
                         else:
                             # Create membership for existing user
                             membership = invite.accept(
                                 user_in_tenant, invite_schema=origin_schema
                             )
+                            if not user_in_tenant.is_active:
+                                user_in_tenant.is_active = True
+                                user_in_tenant.save(update_fields=["is_active"])
                             membership_role = membership.role
                     else:
                         # User exists in another tenant but not this one
