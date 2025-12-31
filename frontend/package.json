@@ -18,6 +18,9 @@
         "preview": "vite preview",
         "cy:open": "cypress open",
         "cy:run": "cypress run",
+        "cy:smoke": "cypress run --spec 'cypress/e2e/critical/auth.cy.ts,cypress/e2e/critical/dashboard.cy.ts'",
+        "cy:critical": "cypress run --spec 'cypress/e2e/critical/**/*.cy.ts'",
+        "cy:nightly": "cypress run --config video=true,screenshotOnRunFailure=true",
         "cy:run-acl": "cypress run --spec 'cypress/e2e/acl/**/*.cy.ts'"
     },
     "dependencies": {

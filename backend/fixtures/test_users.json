@@ -1,0 +1,44 @@
+[
+  {
+    "model": "accounts.user",
+    "pk": 1,
+    "fields": {
+      "email": "admin@climatrak.test",
+      "username": "admin",
+      "first_name": "Admin",
+      "last_name": "E2E",
+      "is_active": true,
+      "is_staff": true,
+      "is_superuser": true,
+      "password": "pbkdf2_sha256$720000$test$3RqM1XjvqM4X3XJ5X3XJ5X3XJ5X3XJ5X3XJ5X3XJ5="
+    }
+  },
+  {
+    "model": "accounts.user",
+    "pk": 2,
+    "fields": {
+      "email": "operator@climatrak.test",
+      "username": "operator",
+      "first_name": "Operador",
+      "last_name": "E2E",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "pbkdf2_sha256$720000$test$3RqM1XjvqM4X3XJ5X3XJ5X3XJ5X3XJ5X3XJ5X3XJ5="
+    }
+  },
+  {
+    "model": "accounts.user",
+    "pk": 3,
+    "fields": {
+      "email": "viewer@climatrak.test",
+      "username": "viewer",
+      "first_name": "Viewer",
+      "last_name": "E2E",
+      "is_active": true,
+      "is_staff": false,
+      "is_superuser": false,
+      "password": "pbkdf2_sha256$720000$test$3RqM1XjvqM4X3XJ5X3XJ5X3XJ5X3XJ5X3XJ5X3XJ5="
+    }
+  }
+]

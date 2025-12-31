@@ -1,0 +1,30 @@
+{
+  "admin": {
+    "email": "admin@climatrak.test",
+    "username": "admin@climatrak.test",
+    "password": "TestAdmin123!",
+    "role": "admin",
+    "tenant": "demo"
+  },
+  "manager": {
+    "email": "operator@climatrak.test",
+    "username": "operator@climatrak.test",
+    "password": "TestOperator123!",
+    "role": "operator",
+    "tenant": "demo"
+  },
+  "technician": {
+    "email": "operator@climatrak.test",
+    "username": "operator@climatrak.test",
+    "password": "TestOperator123!",
+    "role": "technician",
+    "tenant": "demo"
+  },
+  "viewer": {
+    "email": "viewer@climatrak.test",
+    "username": "viewer@climatrak.test",
+    "password": "TestViewer123!",
+    "role": "viewer",
+    "tenant": "demo"
+  }
+}

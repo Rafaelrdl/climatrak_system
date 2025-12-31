@@ -1,0 +1,422 @@
+# =============================================================================
+# E2E Tests Workflow - ClimaTrak System
+# =============================================================================
+# Estratégia:
+# - PR: Roda smoke tests (auth + dashboard) - rápido ~2min
+# - Nightly: Roda suite completa - mais lento ~10min
+# =============================================================================
+
+name: E2E Tests
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - '.github/workflows/e2e-tests.yml'
+  
+  # Nightly às 03:00 UTC (00:00 BRT)
+  schedule:
+    - cron: '0 3 * * *'
+  
+  # Manual trigger para debugging
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Tipo de teste'
+        required: true
+        default: 'smoke'
+        type: choice
+        options:
+          - smoke
+          - critical
+          - full
+
+env:
+  # Backend
+  DJANGO_SETTINGS_MODULE: config.settings.test
+  SECRET_KEY: test-secret-key-for-ci
+  DATABASE_URL: postgres://postgres:postgres@localhost:5432/climatrak_test
+  REDIS_URL: redis://localhost:6379/0
+  
+  # Frontend
+  VITE_API_URL: http://localhost:8000
+
+jobs:
+  # ============================================================================
+  # Smoke Tests - Roda em PRs (rápido)
+  # ============================================================================
+  smoke-tests:
+    if: github.event_name == 'pull_request'
+    name: 🔥 Smoke Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: climatrak_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+      
+      # ----- Backend Setup -----
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+      
+      - name: 📦 Install Backend Dependencies
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: 🗄️ Setup Database
+        working-directory: backend
+        run: |
+          python manage.py migrate --run-syncdb
+          python manage.py loaddata fixtures/test_users.json || true
+      
+      - name: 🚀 Start Backend Server
+        working-directory: backend
+        run: |
+          python manage.py runserver 0.0.0.0:8000 &
+          sleep 5
+          curl --retry 10 --retry-delay 2 --retry-connrefused http://localhost:8000/api/health/ || true
+      
+      # ----- Frontend Setup -----
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: 📦 Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+      
+      - name: 🏗️ Build Frontend
+        working-directory: frontend
+        run: npm run build
+      
+      - name: 🌐 Start Frontend Server
+        working-directory: frontend
+        run: |
+          npm run preview -- --host &
+          sleep 5
+      
+      # ----- Cypress Smoke Tests -----
+      - name: 🧪 Run Smoke Tests
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: frontend
+          browser: chrome
+          headed: false
+          spec: |
+            cypress/e2e/critical/auth.cy.ts
+            cypress/e2e/critical/dashboard.cy.ts
+          config: video=false,screenshotOnRunFailure=true
+        env:
+          CYPRESS_BASE_URL: http://localhost:4173
+          CYPRESS_API_URL: http://localhost:8000
+      
+      - name: 📸 Upload Screenshots on Failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: cypress-screenshots-smoke
+          path: frontend/cypress/screenshots
+          retention-days: 7
+
+  # ============================================================================
+  # Critical Tests - Roda em workflow_dispatch (manual)
+  # ============================================================================
+  critical-tests:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.test_type == 'critical'
+    name: ⚡ Critical Flow Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: climatrak_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+      
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+      
+      - name: 📦 Install Backend Dependencies
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: 🗄️ Setup Database
+        working-directory: backend
+        run: |
+          python manage.py migrate --run-syncdb
+          python manage.py loaddata fixtures/test_users.json || true
+      
+      - name: 🚀 Start Backend Server
+        working-directory: backend
+        run: |
+          python manage.py runserver 0.0.0.0:8000 &
+          sleep 5
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: 📦 Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+      
+      - name: 🏗️ Build Frontend
+        working-directory: frontend
+        run: npm run build
+      
+      - name: 🌐 Start Frontend Server
+        working-directory: frontend
+        run: |
+          npm run preview -- --host &
+          sleep 5
+      
+      - name: 🧪 Run Critical Tests
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: frontend
+          browser: chrome
+          headed: false
+          spec: cypress/e2e/critical/**/*.cy.ts
+          config: video=true,screenshotOnRunFailure=true
+        env:
+          CYPRESS_BASE_URL: http://localhost:4173
+          CYPRESS_API_URL: http://localhost:8000
+      
+      - name: 📸 Upload Test Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cypress-artifacts-critical
+          path: |
+            frontend/cypress/screenshots
+            frontend/cypress/videos
+          retention-days: 7
+
+  # ============================================================================
+  # Full Suite - Nightly (completo)
+  # ============================================================================
+  nightly-tests:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.test_type == 'full')
+    name: 🌙 Nightly Full Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: climatrak_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+      
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+      
+      - name: 📦 Install Backend Dependencies
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: 🗄️ Setup Database
+        working-directory: backend
+        run: |
+          python manage.py migrate --run-syncdb
+          # Carregar fixtures de teste
+          python manage.py loaddata fixtures/test_users.json || true
+          python manage.py loaddata fixtures/test_tenants.json || true
+          python manage.py loaddata fixtures/test_assets.json || true
+      
+      - name: 🚀 Start Backend Server
+        working-directory: backend
+        run: |
+          python manage.py runserver 0.0.0.0:8000 &
+          sleep 5
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: 📦 Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+      
+      - name: 🏗️ Build Frontend
+        working-directory: frontend
+        run: npm run build
+      
+      - name: 🌐 Start Frontend Server
+        working-directory: frontend
+        run: |
+          npm run preview -- --host &
+          sleep 5
+      
+      # Roda todos os testes E2E
+      - name: 🧪 Run Full E2E Suite
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: frontend
+          browser: chrome
+          headed: false
+          config: video=true,screenshotOnRunFailure=true
+        env:
+          CYPRESS_BASE_URL: http://localhost:4173
+          CYPRESS_API_URL: http://localhost:8000
+      
+      - name: 📸 Upload Test Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cypress-artifacts-nightly-${{ github.run_id }}
+          path: |
+            frontend/cypress/screenshots
+            frontend/cypress/videos
+          retention-days: 14
+      
+      # Notificar falhas no Slack (opcional)
+      - name: 🔔 Notify on Failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "❌ E2E Nightly Tests Failed!",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "❌ *E2E Nightly Tests Failed*\n\n• Repository: ${{ github.repository }}\n• Run: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true
+
+  # ============================================================================
+  # Relatório de Resultados
+  # ============================================================================
+  report:
+    name: 📊 Test Report
+    runs-on: ubuntu-latest
+    needs: [smoke-tests, critical-tests, nightly-tests]
+    if: always() && (needs.smoke-tests.result != 'skipped' || needs.critical-tests.result != 'skipped' || needs.nightly-tests.result != 'skipped')
+    
+    steps:
+      - name: 📥 Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cypress-*
+          merge-multiple: true
+          path: artifacts
+        continue-on-error: true
+      
+      - name: 📊 Generate Summary
+        run: |
+          echo "## 🧪 E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.smoke-tests.result }}" != "skipped" ]; then
+            echo "### 🔥 Smoke Tests: ${{ needs.smoke-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.critical-tests.result }}" != "skipped" ]; then
+            echo "### ⚡ Critical Tests: ${{ needs.critical-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.nightly-tests.result }}" != "skipped" ]; then
+            echo "### 🌙 Nightly Tests: ${{ needs.nightly-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Generated at $(date -u +'%Y-%m-%d %H:%M:%S UTC')*" >> $GITHUB_STEP_SUMMARY
