@@ -61,7 +61,7 @@ export interface Equipment {
   subsectionName?: string;
   installDate: string;
   nextMaintenance: string;
-  status: 'FUNCTIONING' | 'MAINTENANCE' | 'STOPPED';
+  status: 'OK' | 'MAINTENANCE' | 'STOPPED' | 'ALERT';
   criticidade: 'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA';
   lastMaintenance?: string;
   totalOperatingHours?: number;

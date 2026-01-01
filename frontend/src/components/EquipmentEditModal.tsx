@@ -58,10 +58,16 @@ const EQUIPMENT_TYPES = [
 
 // Opções de status do equipamento
 const STATUS_OPTIONS = [
-  { value: 'FUNCTIONING', label: '🟢 Ativo' },
-  { value: 'MAINTENANCE', label: '🟡 Em Manutenção' },
-  { value: 'STOPPED', label: '🔴 Desativado' },
+  { value: 'OK', label: '?? Operacional' },
+  { value: 'MAINTENANCE', label: '?? Em Manuten??o' },
+  { value: 'STOPPED', label: '?? Parado' },
 ];
+
+const ALERT_STATUS_OPTION = {
+  value: 'ALERT',
+  label: '?? Alerta (autom?tico)',
+  disabled: true,
+};
 
 // Opções de criticidade
 const CRITICIDADE_OPTIONS = [
@@ -105,7 +111,8 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
   // Informações Básicas
   const [tag, setTag] = useState('');
   const [equipmentType, setEquipmentType] = useState('CHILLER');
-  const [equipmentStatus, setEquipmentStatus] = useState<'FUNCTIONING' | 'MAINTENANCE' | 'STOPPED'>('FUNCTIONING');
+  const [equipmentStatus, setEquipmentStatus] = useState<'OK' | 'MAINTENANCE' | 'STOPPED' | 'ALERT'>('OK');
+  const statusOptions = equipmentStatus === 'ALERT' ? [...STATUS_OPTIONS, ALERT_STATUS_OPTION] : STATUS_OPTIONS;
   const [criticidade, setCriticidade] = useState<'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA'>('MEDIA');
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
@@ -154,7 +161,7 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
     if (equipment && open) {
       setTag(equipment.tag || '');
       setEquipmentType(equipment.type || 'CHILLER');
-      setEquipmentStatus(equipment.status || 'FUNCTIONING');
+      setEquipmentStatus(equipment.status || 'OK');
       setCriticidade(equipment.criticidade || 'MEDIA');
       setBrand(equipment.brand || '');
       setModel(equipment.model || '');
@@ -363,13 +370,13 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
                     <Label htmlFor="equipmentStatus">
                       Estado do Equipamento <span className="text-red-500">*</span>
                     </Label>
-                    <Select value={equipmentStatus} onValueChange={(value: 'FUNCTIONING' | 'MAINTENANCE' | 'STOPPED') => setEquipmentStatus(value)}>
+                    <Select value={equipmentStatus} onValueChange={(value: 'OK' | 'MAINTENANCE' | 'STOPPED' | 'ALERT') => setEquipmentStatus(value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o estado" />
                       </SelectTrigger>
                       <SelectContent>
-                        {STATUS_OPTIONS.map((status) => (
-                          <SelectItem key={status.value} value={status.value}>
+                        {statusOptions.map((status) => (
+                          <SelectItem key={status.value} value={status.value} disabled={status.disabled}>
                             {status.label}
                           </SelectItem>
                         ))}

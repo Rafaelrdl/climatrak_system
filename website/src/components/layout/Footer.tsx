@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Mail, Phone, MapPin, Linkedin, Instagram, Youtube } from 'lucide-react'
+import logoClimatrak from '@/assets/logo_climatrak.svg'
 
 const footerLinks = {
   produtos: [
@@ -33,10 +34,7 @@ export function Footer() {
           {/* Brand Column */}
           <div className="col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-brand">
-                <span className="text-xl font-bold text-white">C</span>
-              </div>
-              <span className="text-xl font-bold">ClimaTrak</span>
+              <img src={logoClimatrak} alt="ClimaTrak" className="h-8 w-auto" />
             </Link>
             <p className="text-sm text-muted-foreground mb-6 max-w-xs">
               Transformamos ativos em inteligência operacional com IoT + Software para gestão de manutenção e conformidade.

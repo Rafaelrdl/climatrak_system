@@ -215,11 +215,32 @@ export function EquipmentSearch({
 
   const getStatusIcon = (status: Equipment['status']) => {
     switch (status) {
-      case 'FUNCTIONING': return <Zap className="h-4 w-4 text-green-500" />;
+      case 'OK': return <Zap className="h-4 w-4 text-green-500" />;
       case 'MAINTENANCE': return <Wrench className="h-4 w-4 text-yellow-500" />;
+      case 'ALERT': return <AlertCircle className="h-4 w-4 text-orange-500" />;
       case 'STOPPED': return <AlertCircle className="h-4 w-4 text-red-500" />;
+      default: return null;
     }
   };
+
+  const getStatusLabel = (status: Equipment['status']) => {
+    switch (status) {
+      case 'OK': return 'Operacional';
+      case 'MAINTENANCE': return 'Em Manuten??o';
+      case 'ALERT': return 'Alerta';
+      case 'STOPPED': return 'Parado';
+      default: return status;
+    }
+  };
+
+  const getStatusVariant = (status: Equipment['status']) =>
+    status === 'OK'
+      ? 'default'
+      : status === 'MAINTENANCE'
+        ? 'secondary'
+        : status === 'ALERT'
+          ? 'outline'
+          : 'destructive';
 
   const getMaintenanceStatus = (equipment: Equipment) => {
     const maintenanceDate = new Date(equipment.nextMaintenance);
@@ -317,8 +338,7 @@ export function EquipmentSearch({
                         />
                         <Label htmlFor={`status-${status}`} className="text-sm flex items-center gap-2">
                           {getStatusIcon(status)}
-                          {status === 'FUNCTIONING' ? 'Funcionando' : 
-                           status === 'MAINTENANCE' ? 'Em Manutenção' : 'Parado'}
+                          {getStatusLabel(status)}
                         </Label>
                       </div>
                     ))}
@@ -468,8 +488,7 @@ export function EquipmentSearch({
             ))}
             {filters.status?.map(status => (
               <Badge key={status} variant="secondary">
-                Status: {status === 'FUNCTIONING' ? 'Funcionando' : 
-                        status === 'MAINTENANCE' ? 'Em Manutenção' : 'Parado'}
+                Status: {getStatusLabel(status)}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -550,16 +569,8 @@ export function EquipmentSearch({
                 </div>
                 
                 <div className="flex items-center justify-between pt-2 border-t">
-                  <Badge variant={maintenanceStatus.variant}>
-                    <Clock className="h-3 w-3 mr-1" />
-                    {maintenanceStatus.text}
-                  </Badge>
-                  <Badge variant={
-                    eq.status === 'FUNCTIONING' ? 'default' :
-                    eq.status === 'MAINTENANCE' ? 'secondary' : 'destructive'
-                  }>
-                    {eq.status === 'FUNCTIONING' ? 'Funcionando' : 
-                     eq.status === 'MAINTENANCE' ? 'Em Manutenção' : 'Parado'}
+                  <Badge variant={getStatusVariant(eq.status)}>
+                    {getStatusLabel(eq.status)}
                   </Badge>
                 </div>
               </CardContent>

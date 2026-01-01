@@ -176,9 +176,9 @@ export function Dashboard() {
 
   // Calcular status dos equipamentos baseado nos dados reais da API
   const equipmentStatusData = useMemo(() => {
-    const functioning = (equipment || []).filter(eq => eq.status === 'FUNCTIONING').length;
+    const functioning = (equipment || []).filter(eq => eq.status === 'OK').length;
     const maintenance = (equipment || []).filter(eq => eq.status === 'MAINTENANCE').length;
-    const stopped = (equipment || []).filter(eq => eq.status === 'STOPPED').length;
+    const stopped = (equipment || []).filter(eq => eq.status === 'STOPPED' || eq.status === 'ALERT').length;
     
     return {
       functioning,

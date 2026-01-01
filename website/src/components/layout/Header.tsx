@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { Menu, X, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import logoClimatrak from '@/assets/logo_climatrak.svg'
 
 const navigation = [
   {
@@ -41,10 +42,7 @@ export function Header() {
       <nav className="container-wide flex h-16 items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-brand">
-            <span className="text-xl font-bold text-white">C</span>
-          </div>
-          <span className="text-xl font-bold text-foreground">ClimaTrak</span>
+          <img src={logoClimatrak} alt="ClimaTrak" className="h-14 w-auto" />
         </Link>
 
         {/* Desktop Navigation */}

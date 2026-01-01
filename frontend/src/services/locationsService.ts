@@ -231,7 +231,6 @@ export const locationsService = {
     const payload = {
       name: data.name,
       sector: Number(data.sectorId),
-      code: '',  // Campo obrigatório para unique_together
       description: data.notes || '',
     };
 

@@ -75,12 +75,37 @@ const statusConfigs = {
 
   // Status de Equipamento/Ativo
   equipment: {
-    FUNCTIONING: { 
-      label: 'Funcionando', 
-      variant: 'outline' as const, 
+    OK: {
+      label: 'Operacional',
+      variant: 'outline' as const,
       icon: CheckCircle2,
       className: statusTokenClasses.success
     },
+    MAINTENANCE: {
+      label: 'Em Manuten??o',
+      variant: 'secondary' as const,
+      icon: Wrench,
+      className: statusTokenClasses.warning
+    },
+    ALERT: {
+      label: 'Alerta',
+      variant: 'outline' as const,
+      icon: AlertTriangle,
+      className: statusTokenClasses.warning
+    },
+    STOPPED: {
+      label: 'Parado',
+      variant: 'destructive' as const,
+      icon: XCircle,
+      className: statusTokenClasses.danger
+    },
+    OFFLINE: {
+      label: 'Offline',
+      variant: 'outline' as const,
+      icon: Circle,
+      className: statusTokenClasses.neutral
+    },
+  },
     MAINTENANCE: { 
       label: 'Em Manutenção', 
       variant: 'secondary' as const, 

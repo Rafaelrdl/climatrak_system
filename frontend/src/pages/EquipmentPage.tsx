@@ -24,6 +24,7 @@ import { useRoleBasedData, DataFilterInfo } from '@/components/data/FilteredData
 import { useAbility } from '@/hooks/useAbility';
 import { equipmentService } from '@/services/equipmentService';
 import type { Equipment, SubSection } from '@/types';
+import { toast } from 'sonner';
 
 /**
  * PÁGINA DE GESTÃO DE ATIVOS
@@ -192,7 +193,7 @@ function AssetsContent() {
     serialNumber: '',  // Número de série
     patrimonio: '',    // Número de patrimônio
     criticidade: 'MEDIA' as Equipment['criticidade'], // Criticidade do equipamento (BAIXA, MEDIA, ALTA, CRITICA)
-    status: 'FUNCTIONING' as Equipment['status'], // Status do equipamento (FUNCTIONING, MAINTENANCE, STOPPED)
+    status: 'OK' as Equipment['status'], // Status do equipamento (OK, MAINTENANCE, STOPPED)
     installDate: '',   // Data de instalação
     warrantyExpiry: '', // Data de expiração da garantia
     notes: '',         // Observações adicionais
@@ -268,10 +269,27 @@ function AssetsContent() {
       'SPLIT': 'FAN_COIL',
     };
 
-    // Obter o primeiro site disponível
-    const defaultSiteId = sites.length > 0 ? sites[0].id : null;
-    if (!defaultSiteId) {
-      console.error('Nenhum site disponível para criar o ativo');
+    const fallbackCompanyId = sectorId
+      ? sectors.find((sector) => sector.id === sectorId)?.companyId
+      : undefined;
+    const selectedCompanyId = selectedNode?.type === 'company' ? selectedNode.data.id : undefined;
+    const companyId = newEquipment.companyId || selectedCompanyId || fallbackCompanyId;
+
+    if (!companyId) {
+      toast.error('Selecione uma empresa para definir o site do ativo');
+      return;
+    }
+
+    const companyName = companies.find((company) => company.id === companyId)?.name;
+    const siteForCompany = companyName
+      ? sites.find((site) =>
+          (site.company && site.company.toLowerCase() === companyName.toLowerCase()) ||
+          site.name.toLowerCase() === companyName.toLowerCase()
+        )
+      : undefined;
+
+    if (!siteForCompany) {
+      toast.error('Nenhum site encontrado para a empresa selecionada');
       return;
     }
 
@@ -279,8 +297,9 @@ function AssetsContent() {
       await equipmentService.create({
         tag: newEquipment.tag,
         name: newEquipment.notes || newEquipment.tag, // Usa tag como nome se não tiver notas
-        site: defaultSiteId,
+        site: siteForCompany.id,
         assetType: typeMapping[newEquipment.type] || newEquipment.type,
+        status: newEquipment.status,
         manufacturer: newEquipment.brand,
         model: newEquipment.model,
         serialNumber: newEquipment.serialNumber,
@@ -315,7 +334,7 @@ function AssetsContent() {
         serialNumber: '',
         patrimonio: '',
         criticidade: 'MEDIA',
-        status: 'FUNCTIONING',
+        status: 'OK',
         installDate: '',
         warrantyExpiry: '',
         notes: '',
@@ -779,9 +798,9 @@ function AssetsContent() {
                       <SelectValue placeholder="Selecione o status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="FUNCTIONING">🟢 Ativo</SelectItem>
-                      <SelectItem value="MAINTENANCE">🟡 Em Manutenção</SelectItem>
-                      <SelectItem value="STOPPED">🔴 Desativado</SelectItem>
+                      <SelectItem value="OK">?? Operacional</SelectItem>
+                      <SelectItem value="MAINTENANCE">?? Em Manuten?ao</SelectItem>
+                      <SelectItem value="STOPPED">?? Parado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

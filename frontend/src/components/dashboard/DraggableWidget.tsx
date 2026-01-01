@@ -2253,11 +2253,13 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
                 <TableCell>{eq.type}</TableCell>
                 <TableCell>
                   <Badge variant={
-                    eq.status === 'FUNCTIONING' ? 'default' :
-                    eq.status === 'MAINTENANCE' ? 'secondary' : 'destructive'
+                    eq.status === 'OK' ? 'default' :
+                    eq.status === 'MAINTENANCE' ? 'secondary' :
+                    eq.status === 'ALERT' ? 'outline' : 'destructive'
                   }>
-                    {eq.status === 'FUNCTIONING' ? 'Funcionando' :
-                     eq.status === 'MAINTENANCE' ? 'Manutenção' : 'Parado'}
+                    {eq.status === 'OK' ? 'Operacional' :
+                     eq.status === 'MAINTENANCE' ? 'Manuten??o' :
+                     eq.status === 'ALERT' ? 'Alerta' : 'Parado'}
                   </Badge>
                 </TableCell>
               </TableRow>
@@ -2308,9 +2310,9 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
 
   function renderEquipmentStatus() {
     const stats = {
-      functioning: equipment.filter(eq => eq.status === 'FUNCTIONING').length,
+      functioning: equipment.filter(eq => eq.status === 'OK').length,
       maintenance: equipment.filter(eq => eq.status === 'MAINTENANCE').length,
-      stopped: equipment.filter(eq => eq.status === 'STOPPED').length,
+      stopped: equipment.filter(eq => eq.status === 'STOPPED' || eq.status === 'ALERT').length,
     };
     const total = stats.functioning + stats.maintenance + stats.stopped;
 

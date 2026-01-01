@@ -96,13 +96,18 @@ const mapAssetType = (assetType: string): Equipment['type'] => {
  */
 const mapAssetStatus = (status: string): Equipment['status'] => {
   const mapping: Record<string, Equipment['status']> = {
-    'OPERATIONAL': 'FUNCTIONING',
-    'WARNING': 'FUNCTIONING',
-    'CRITICAL': 'STOPPED',
+    'OK': 'OK',
     'MAINTENANCE': 'MAINTENANCE',
+    'STOPPED': 'STOPPED',
+    'ALERT': 'ALERT',
+    // Legacy/backward compatibility
+    'OPERATIONAL': 'OK',
+    'WARNING': 'ALERT',
+    'CRITICAL': 'ALERT',
     'INACTIVE': 'STOPPED',
+    'ACTIVE': 'OK',
   };
-  return mapping[status] || 'FUNCTIONING';
+  return mapping[status] || 'OK';
 };
 
 /**
@@ -276,12 +281,15 @@ const equipmentToApiAsset = (equipment: Partial<Equipment> & {
   
   // Mapear status reverso
   if (equipment.status) {
-    const statusMapping: Record<Equipment['status'], string> = {
-      'FUNCTIONING': 'OK',
+    const statusMapping: Record<string, string> = {
+      'OK': 'OK',
       'MAINTENANCE': 'MAINTENANCE',
       'STOPPED': 'STOPPED',
+      'ALERT': 'ALERT',
+      // Legacy/backward compatibility
+      'FUNCTIONING': 'OK',
     };
-    data.status = statusMapping[equipment.status];
+    data.status = statusMapping[equipment.status] || equipment.status;
   }
   
   // Mapear tipo reverso
@@ -331,12 +339,15 @@ export const equipmentService = {
     }
     
     if (filters?.status) {
-      const statusMapping: Record<Equipment['status'], string> = {
-        'FUNCTIONING': 'OPERATIONAL',
+      const statusMapping: Record<string, string> = {
+        'OK': 'OK',
         'MAINTENANCE': 'MAINTENANCE',
-        'STOPPED': 'INACTIVE',
+        'STOPPED': 'STOPPED',
+        'ALERT': 'ALERT',
+        // Legacy/backward compatibility
+        'FUNCTIONING': 'OK',
       };
-      params.status = statusMapping[filters.status];
+      params.status = statusMapping[filters.status] || filters.status;
     }
     
     const response = await api.get<PaginatedResponse<ApiAsset> | ApiAsset[]>(
@@ -398,6 +409,7 @@ export const equipmentService = {
     name: string;
     site: number;
     assetType: string;
+    status?: Equipment['status'];
     manufacturer?: string;
     model?: string;
     serialNumber?: string;
@@ -435,6 +447,17 @@ export const equipmentService = {
     if (data.warrantyExpiry && data.warrantyExpiry.trim() !== '') apiData.warranty_expiry = data.warrantyExpiry;
     if (data.installDate && data.installDate.trim() !== '') apiData.installation_date = data.installDate;
     if (data.location) apiData.location_description = data.location;
+    if (data.status) {
+      const statusMapping: Record<string, string> = {
+        'OK': 'OK',
+        'MAINTENANCE': 'MAINTENANCE',
+        'STOPPED': 'STOPPED',
+        'ALERT': 'ALERT',
+        // Legacy/backward compatibility
+        'FUNCTIONING': 'OK',
+      };
+      apiData.status = statusMapping[data.status] || data.status;
+    }
     
     // Localização
     if (data.sectorId) apiData.sector = parseInt(data.sectorId, 10);
@@ -470,9 +493,9 @@ export const equipmentService = {
     
     const stats = {
       total: equipments.length,
-      functioning: equipments.filter(e => e.status === 'FUNCTIONING').length,
+      functioning: equipments.filter(e => e.status === 'OK').length,
       maintenance: equipments.filter(e => e.status === 'MAINTENANCE').length,
-      stopped: equipments.filter(e => e.status === 'STOPPED').length,
+      stopped: equipments.filter(e => e.status === 'STOPPED' || e.status === 'ALERT').length,
       byType: {} as Record<string, number>,
     };
     

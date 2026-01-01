@@ -468,11 +468,13 @@ export function AssetUtilizationDashboard({
                         </TableCell>
                         <TableCell>
                           <Badge variant={
-                            eq.status === 'FUNCTIONING' ? 'default' :
-                            eq.status === 'MAINTENANCE' ? 'secondary' : 'destructive'
+                            eq.status === 'OK' ? 'default' :
+                            eq.status === 'MAINTENANCE' ? 'secondary' :
+                            eq.status === 'ALERT' ? 'outline' : 'destructive'
                           }>
-                            {eq.status === 'FUNCTIONING' ? 'Funcionando' :
-                             eq.status === 'MAINTENANCE' ? 'Manutenção' : 'Parado'}
+                            {eq.status === 'OK' ? 'Operacional' :
+                             eq.status === 'MAINTENANCE' ? 'Manuten??o' :
+                             eq.status === 'ALERT' ? 'Alerta' : 'Parado'}
                           </Badge>
                         </TableCell>
                       </TableRow>

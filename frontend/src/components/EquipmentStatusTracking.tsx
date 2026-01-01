@@ -96,7 +96,7 @@ export function EquipmentStatusTracking({ equipment, isOpen, onClose }: Equipmen
       }
     }
 
-    if (equipment.status === 'STOPPED') {
+    if (equipment.status === 'STOPPED' || equipment.status === 'ALERT') {
       alerts.push({
         id: '4',
         equipmentId: equipment.id,
@@ -181,20 +181,26 @@ export function EquipmentStatusTracking({ equipment, isOpen, onClose }: Equipmen
 
   const getStatusColor = (status: Equipment['status']) => {
     switch (status) {
-      case 'FUNCTIONING': return 'text-green-600';
+      case 'OK': return 'text-green-600';
       case 'MAINTENANCE': return 'text-yellow-600';
+      case 'ALERT': return 'text-orange-600';
       case 'STOPPED': return 'text-red-600';
+      default: return 'text-muted-foreground';
     }
   };
 
   const getStatusBadge = (status: Equipment['status']) => {
     switch (status) {
-      case 'FUNCTIONING': 
-        return <Badge className="bg-green-100 text-green-800">Funcionando</Badge>;
-      case 'MAINTENANCE': 
-        return <Badge className="bg-yellow-100 text-yellow-800">Em Manutenção</Badge>;
-      case 'STOPPED': 
+      case 'OK':
+        return <Badge className="bg-green-100 text-green-800">Operacional</Badge>;
+      case 'MAINTENANCE':
+        return <Badge className="bg-yellow-100 text-yellow-800">Em Manuten??o</Badge>;
+      case 'ALERT':
+        return <Badge className="bg-orange-100 text-orange-800">Alerta</Badge>;
+      case 'STOPPED':
         return <Badge className="bg-red-100 text-red-800">Parado</Badge>;
+      default:
+        return <Badge>Indefinido</Badge>;
     }
   };
 
