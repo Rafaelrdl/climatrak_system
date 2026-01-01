@@ -210,13 +210,21 @@ export function MonitorAssetDetailPage() {
     const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
       'OK': { label: 'Operacional', variant: 'default' },
       'ACTIVE': { label: 'Operacional', variant: 'default' },
-      'Maintenance': { label: 'Em Manutenção', variant: 'secondary' },
-      'MAINTENANCE': { label: 'Em Manutenção', variant: 'secondary' },
+      'OPERATIONAL': { label: 'Operacional', variant: 'default' },
+      'MAINTENANCE': { label: 'Em Manuten??o', variant: 'secondary' },
+      'Maintenance': { label: 'Em Manuten??o', variant: 'secondary' },
+      'STOPPED': { label: 'Parado', variant: 'destructive' },
+      'INACTIVE': { label: 'Parado', variant: 'destructive' },
       'Stopped': { label: 'Parado', variant: 'destructive' },
-      'INACTIVE': { label: 'Inativo', variant: 'destructive' },
+      'ALERT': { label: 'Alerta', variant: 'outline' },
       'Alert': { label: 'Alerta', variant: 'outline' },
       'WARNING': { label: 'Alerta', variant: 'outline' },
+      'CRITICAL': { label: 'Alerta', variant: 'outline' },
+      'ERROR': { label: 'Alerta', variant: 'outline' },
     };
+    const config = statusMap[status] || { label: status, variant: 'outline' as const };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
     const config = statusMap[status] || { label: status, variant: 'outline' as const };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };

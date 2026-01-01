@@ -102,15 +102,15 @@ export function TrakSensePage() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="py-16 md:py-24 bg-gradient-to-br from-cyan-50 via-white to-cyan-100">
+      <section className="py-16 md:py-24 bg-gradient-to-br from-teal-50 via-white to-teal-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-400 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-teal-600 to-teal-400 flex items-center justify-center">
                   <Activity className="w-6 h-6 text-white" />
                 </div>
-                <Badge className="bg-cyan-100 text-cyan-700">IoT Platform</Badge>
+                <Badge className="bg-teal-100 text-teal-700">IoT Platform</Badge>
               </div>
               <h1 className="text-4xl sm:text-5xl font-bold mb-6">TrakSense</h1>
               <p className="text-xl text-gray-600 mb-4">
@@ -122,7 +122,7 @@ export function TrakSensePage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link to="/demo">
-                  <Button size="lg" className="bg-cyan-600 hover:bg-cyan-700">
+                  <Button size="lg" className="bg-teal-600 hover:bg-teal-700">
                     Agendar Demo <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -255,8 +255,8 @@ export function TrakSensePage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             {metrics.map((metric) => (
               <div key={metric.label} className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
-                  <metric.icon className="w-5 h-5 text-cyan-600" />
+                <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+                  <metric.icon className="w-5 h-5 text-teal-600" />
                 </div>
                 <div>
                   <div className="text-xl font-bold">{metric.value}</div>
@@ -272,7 +272,7 @@ export function TrakSensePage() {
       <section className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-cyan-100 text-cyan-700">Funcionalidades</Badge>
+            <Badge className="mb-4 bg-teal-100 text-teal-700">Funcionalidades</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
               Explore os Módulos do TrakSense
             </h2>
@@ -290,11 +290,11 @@ export function TrakSensePage() {
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all",
                     activeModule === module.id 
-                      ? 'bg-cyan-500 text-white shadow-lg'
-                      : 'bg-white border hover:border-cyan-300 hover:bg-cyan-50'
+                      ? 'bg-teal-500 text-white shadow-lg'
+                      : 'bg-white border hover:border-teal-300 hover:bg-teal-50'
                   )}
                 >
-                  <module.icon className={cn("w-5 h-5", activeModule === module.id ? 'text-white' : 'text-cyan-600')} />
+                  <module.icon className={cn("w-5 h-5", activeModule === module.id ? 'text-white' : 'text-teal-600')} />
                   <span className="font-medium">{module.name}</span>
                   <ChevronRight className={cn("w-4 h-4 ml-auto transition-transform", activeModule === module.id ? 'text-white rotate-90' : 'text-gray-400')} />
                 </button>
@@ -302,11 +302,11 @@ export function TrakSensePage() {
             </div>
 
             <div className="lg:col-span-2">
-              <Card className="overflow-hidden border-cyan-200">
+              <Card className="overflow-hidden border-teal-200">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-cyan-100 flex items-center justify-center">
-                      <activeScreen.icon className="w-6 h-6 text-cyan-600" />
+                    <div className="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center">
+                      <activeScreen.icon className="w-6 h-6 text-teal-600" />
                     </div>
                     <div>
                       <h3 className="text-xl font-bold">{activeScreen.name}</h3>
@@ -319,7 +319,7 @@ export function TrakSensePage() {
                   <div className="grid sm:grid-cols-2 gap-3 mb-6">
                     {activeScreen.features.map((feature) => (
                       <div key={feature} className="flex items-center gap-2">
-                        <Check className="w-4 h-4 text-cyan-500" />
+                        <Check className="w-4 h-4 text-teal-500" />
                         <span className="text-sm">{feature}</span>
                       </div>
                     ))}
@@ -339,7 +339,7 @@ export function TrakSensePage() {
       <section className="py-16 md:py-24 bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-cyan-900 text-cyan-300">Interface Moderna</Badge>
+            <Badge className="mb-4 bg-teal-900 text-teal-300">Interface Moderna</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Dashboards Personalizáveis</h2>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
               Arraste e solte widgets para criar o painel perfeito para suas necessidades.
@@ -357,7 +357,7 @@ export function TrakSensePage() {
                   { icon: Settings, name: 'Regras', active: false },
                   { icon: LineChart, name: 'Relatórios', active: false },
                 ].map((item) => (
-                  <div key={item.name} className={cn("flex items-center gap-2 px-3 py-2 rounded-lg text-sm", item.active ? 'bg-cyan-500 text-white' : 'text-gray-600')}>
+                  <div key={item.name} className={cn("flex items-center gap-2 px-3 py-2 rounded-lg text-sm", item.active ? 'bg-teal-500 text-white' : 'text-gray-600')}>
                     <item.icon className="w-4 h-4" />
                     <span>{item.name}</span>
                   </div>
@@ -372,7 +372,7 @@ export function TrakSensePage() {
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm"><Plus className="w-4 h-4 mr-1" /> Widget</Button>
-                    <Button size="sm" className="bg-cyan-600 hover:bg-cyan-700">Salvar</Button>
+                    <Button size="sm" className="bg-teal-600 hover:bg-teal-700">Salvar</Button>
                   </div>
                 </div>
 
@@ -386,13 +386,13 @@ export function TrakSensePage() {
                     <div className="h-40 flex items-end gap-1">
                       {Array.from({length: 24}).map((_, i) => (
                         <div key={i} className="flex-1 flex flex-col gap-0.5">
-                          <div className="bg-cyan-400 rounded-t" style={{ height: `${30 + Math.random() * 40}%` }} />
+                          <div className="bg-teal-400 rounded-t" style={{ height: `${30 + Math.random() * 40}%` }} />
                           <div className="bg-blue-400 rounded-t" style={{ height: `${20 + Math.random() * 30}%` }} />
                         </div>
                       ))}
                     </div>
                     <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                      <span className="flex items-center gap-1"><span className="w-2 h-2 bg-cyan-400 rounded" /> Temperatura</span>
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 bg-teal-400 rounded" /> Temperatura</span>
                       <span className="flex items-center gap-1"><span className="w-2 h-2 bg-blue-400 rounded" /> Umidade</span>
                     </div>
                   </div>
@@ -471,7 +471,7 @@ export function TrakSensePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <Badge className="mb-4 bg-cyan-100 text-cyan-700">Motor de Regras</Badge>
+              <Badge className="mb-4 bg-teal-100 text-teal-700">Motor de Regras</Badge>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">Alertas Inteligentes</h2>
               <p className="text-lg text-gray-500 mb-6">
                 Configure regras complexas com condições compostas, janelas de tempo e ações automáticas 
@@ -486,8 +486,8 @@ export function TrakSensePage() {
                   'Escalonamento automático por severidade',
                 ].map((feature) => (
                   <div key={feature} className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-cyan-100 flex items-center justify-center">
-                      <Check className="w-4 h-4 text-cyan-600" />
+                    <div className="w-6 h-6 rounded-full bg-teal-100 flex items-center justify-center">
+                      <Check className="w-4 h-4 text-teal-600" />
                     </div>
                     <span>{feature}</span>
                   </div>
@@ -508,14 +508,14 @@ export function TrakSensePage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 p-2 bg-white rounded border text-sm">
                         <span className="text-gray-600">QUANDO</span>
-                        <span className="px-2 py-0.5 bg-cyan-100 text-cyan-700 rounded text-xs">Temperatura</span>
+                        <span className="px-2 py-0.5 bg-teal-100 text-teal-700 rounded text-xs">Temperatura</span>
                         <span className="text-gray-600">for</span>
                         <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">maior que</span>
                         <span className="font-medium">28°C</span>
                       </div>
                       <div className="flex items-center gap-2 p-2 bg-white rounded border text-sm">
                         <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">E</span>
-                        <span className="px-2 py-0.5 bg-cyan-100 text-cyan-700 rounded text-xs">Umidade</span>
+                        <span className="px-2 py-0.5 bg-teal-100 text-teal-700 rounded text-xs">Umidade</span>
                         <span className="text-gray-600">for</span>
                         <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">maior que</span>
                         <span className="font-medium">70%</span>
@@ -546,7 +546,7 @@ export function TrakSensePage() {
                   
                   <div className="flex gap-2">
                     <Button variant="outline" className="flex-1">Cancelar</Button>
-                    <Button className="flex-1 bg-cyan-600 hover:bg-cyan-700">Salvar Regra</Button>
+                    <Button className="flex-1 bg-teal-600 hover:bg-teal-700">Salvar Regra</Button>
                   </div>
                 </div>
               </div>
@@ -556,15 +556,15 @@ export function TrakSensePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 bg-gradient-to-r from-cyan-600 to-cyan-500 text-white">
+      <section className="py-16 md:py-24 bg-gradient-to-r from-teal-600 to-teal-500 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">Comece a monitorar agora</h2>
-          <p className="text-lg text-cyan-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg text-teal-100 mb-8 max-w-2xl mx-auto">
             Agende uma demonstração e veja como o TrakSense pode dar visibilidade total aos seus equipamentos HVAC.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link to="/demo">
-              <Button size="lg" className="bg-white text-cyan-600 hover:bg-cyan-50">
+              <Button size="lg" className="bg-white text-teal-600 hover:bg-teal-50">
                 Agendar Demo Gratuita <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -587,7 +587,7 @@ function ModulePreview({ moduleId }: { moduleId: string }) {
           {[
             { icon: Radio, label: 'Online', value: '23', color: 'text-green-600' },
             { icon: Bell, label: 'Alertas', value: '3', color: 'text-amber-600' },
-            { icon: Thermometer, label: 'Temp. Média', value: '24°C', color: 'text-cyan-600' },
+            { icon: Thermometer, label: 'Temp. Média', value: '24°C', color: 'text-teal-600' },
             { icon: Droplets, label: 'Umidade', value: '55%', color: 'text-blue-600' },
           ].map((m) => (
             <div key={m.label} className="text-center p-2 bg-gray-50 rounded">
@@ -599,7 +599,7 @@ function ModulePreview({ moduleId }: { moduleId: string }) {
         </div>
         <div className="h-16 flex items-end gap-0.5">
           {Array.from({length: 30}).map((_, i) => (
-            <div key={i} className="flex-1 bg-cyan-400 rounded-t" style={{ height: `${30 + Math.random() * 50}%` }} />
+            <div key={i} className="flex-1 bg-teal-400 rounded-t" style={{ height: `${30 + Math.random() * 50}%` }} />
           ))}
         </div>
       </div>
@@ -613,7 +613,7 @@ function ModulePreview({ moduleId }: { moduleId: string }) {
         <div className="space-y-2">
           {['Sala de Servidores', 'Produção', 'Laboratório'].map((d) => (
             <div key={d} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs">
-              <LayoutDashboard className="w-4 h-4 text-cyan-500" />
+              <LayoutDashboard className="w-4 h-4 text-teal-500" />
               <span className="flex-1 font-medium">{d}</span>
               <Eye className="w-4 h-4 text-gray-400" />
             </div>
@@ -630,7 +630,7 @@ function ModulePreview({ moduleId }: { moduleId: string }) {
             { name: 'AirTrak-003', location: 'AC Unit', signal: 'Forte', battery: 91 },
           ].map((s) => (
             <div key={s.name} className="flex items-center gap-3 p-2 bg-gray-50 rounded text-xs">
-              <Radio className="w-4 h-4 text-cyan-500" />
+              <Radio className="w-4 h-4 text-teal-500" />
               <div className="flex-1">
                 <div className="font-medium">{s.name}</div>
                 <div className="text-gray-500">{s.location}</div>
@@ -679,7 +679,7 @@ function ModulePreview({ moduleId }: { moduleId: string }) {
             { name: 'CO₂ Elevado', status: 'Pausada' },
           ].map((r) => (
             <div key={r.name} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs">
-              <Settings className="w-4 h-4 text-cyan-500" />
+              <Settings className="w-4 h-4 text-teal-500" />
               <span className="flex-1 font-medium">{r.name}</span>
               <span className={cn("px-1.5 py-0.5 rounded", r.status === 'Ativa' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600')}>{r.status}</span>
             </div>
@@ -690,3 +690,5 @@ function ModulePreview({ moduleId }: { moduleId: string }) {
   }
   return previews[moduleId] || <div className="text-center py-8 text-gray-500">Preview não disponível</div>
 }
+
+

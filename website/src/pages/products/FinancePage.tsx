@@ -76,7 +76,7 @@ const moduleScreens = [
 ]
 
 const kpis = [
-  { label: 'Orçamento', value: 'R$ 850k', icon: Wallet, color: 'text-violet-600', bg: 'bg-violet-100' },
+  { label: 'Orçamento', value: 'R$ 850k', icon: Wallet, color: 'text-teal-600', bg: 'bg-teal-100' },
   { label: 'Comprometido', value: 'R$ 620k', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-100' },
   { label: 'Realizado', value: 'R$ 485k', icon: CheckCircle2, color: 'text-teal-600', bg: 'bg-teal-100' },
   { label: 'Economia', value: 'R$ 124k', icon: PiggyBank, color: 'text-emerald-600', bg: 'bg-emerald-100' },
@@ -89,15 +89,15 @@ export function FinancePage() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="py-16 md:py-24 bg-gradient-to-br from-violet-50 via-white to-violet-100">
+      <section className="py-16 md:py-24 bg-gradient-to-br from-teal-50 via-white to-teal-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-violet-600 to-violet-400 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-teal-600 to-teal-400 flex items-center justify-center">
                   <DollarSign className="w-6 h-6 text-white" />
                 </div>
-                <Badge className="bg-violet-100 text-violet-700">Módulo Finance</Badge>
+                <Badge className="bg-teal-100 text-teal-700">Módulo Finance</Badge>
               </div>
               <h1 className="text-4xl sm:text-5xl font-bold mb-6">Finance</h1>
               <p className="text-xl text-gray-600 mb-4">
@@ -109,7 +109,7 @@ export function FinancePage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link to="/demo">
-                  <Button size="lg" className="bg-violet-600 hover:bg-violet-700">
+                  <Button size="lg" className="bg-teal-600 hover:bg-teal-700">
                     Agendar Demo <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -167,16 +167,16 @@ export function FinancePage() {
                       ].map((d, i) => (
                         <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
                           <div className="w-full flex gap-0.5">
-                            <div className="flex-1 bg-violet-300 rounded-t" style={{ height: `${d.p}%` }} />
-                            <div className="flex-1 bg-violet-500 rounded-t" style={{ height: `${d.r}%` }} />
+                            <div className="flex-1 bg-teal-300 rounded-t" style={{ height: `${d.p}%` }} />
+                            <div className="flex-1 bg-teal-500 rounded-t" style={{ height: `${d.r}%` }} />
                           </div>
                           <span className="text-xs text-gray-400">{d.m}</span>
                         </div>
                       ))}
                     </div>
                     <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                      <span className="flex items-center gap-1"><span className="w-2 h-2 bg-violet-300 rounded" /> Planejado</span>
-                      <span className="flex items-center gap-1"><span className="w-2 h-2 bg-violet-500 rounded" /> Realizado</span>
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 bg-teal-300 rounded" /> Planejado</span>
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 bg-teal-500 rounded" /> Realizado</span>
                     </div>
                   </div>
 
@@ -186,7 +186,7 @@ export function FinancePage() {
                       {[
                         { cat: 'Preventiva', pct: 48, color: 'bg-teal-500' },
                         { cat: 'Corretiva', pct: 35, color: 'bg-amber-500' },
-                        { cat: 'Preditiva', pct: 12, color: 'bg-violet-500' },
+                        { cat: 'Preditiva', pct: 12, color: 'bg-teal-500' },
                         { cat: 'Outros', pct: 5, color: 'bg-gray-400' },
                       ].map((c) => (
                         <div key={c.cat}>
@@ -226,7 +226,7 @@ export function FinancePage() {
       <section className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-violet-100 text-violet-700">Funcionalidades</Badge>
+            <Badge className="mb-4 bg-teal-100 text-teal-700">Funcionalidades</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
               Explore os Módulos do Finance
             </h2>
@@ -244,11 +244,11 @@ export function FinancePage() {
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all",
                     activeModule === module.id 
-                      ? 'bg-violet-500 text-white shadow-lg'
-                      : 'bg-white border hover:border-violet-300 hover:bg-violet-50'
+                      ? 'bg-teal-500 text-white shadow-lg'
+                      : 'bg-white border hover:border-teal-300 hover:bg-teal-50'
                   )}
                 >
-                  <module.icon className={cn("w-5 h-5", activeModule === module.id ? 'text-white' : 'text-violet-600')} />
+                  <module.icon className={cn("w-5 h-5", activeModule === module.id ? 'text-white' : 'text-teal-600')} />
                   <span className="font-medium">{module.name}</span>
                   <ChevronRight className={cn("w-4 h-4 ml-auto transition-transform", activeModule === module.id ? 'text-white rotate-90' : 'text-gray-400')} />
                 </button>
@@ -256,11 +256,11 @@ export function FinancePage() {
             </div>
 
             <div className="lg:col-span-2">
-              <Card className="overflow-hidden border-violet-200">
+              <Card className="overflow-hidden border-teal-200">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-violet-100 flex items-center justify-center">
-                      <activeScreen.icon className="w-6 h-6 text-violet-600" />
+                    <div className="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center">
+                      <activeScreen.icon className="w-6 h-6 text-teal-600" />
                     </div>
                     <div>
                       <h3 className="text-xl font-bold">{activeScreen.name}</h3>
@@ -273,7 +273,7 @@ export function FinancePage() {
                   <div className="grid sm:grid-cols-2 gap-3 mb-6">
                     {activeScreen.features.map((feature) => (
                       <div key={feature} className="flex items-center gap-2">
-                        <Check className="w-4 h-4 text-violet-500" />
+                        <Check className="w-4 h-4 text-teal-500" />
                         <span className="text-sm">{feature}</span>
                       </div>
                     ))}
@@ -293,7 +293,7 @@ export function FinancePage() {
       <section className="py-16 md:py-24 bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-violet-900 text-violet-300">Interface Moderna</Badge>
+            <Badge className="mb-4 bg-teal-900 text-teal-300">Interface Moderna</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Ledger de Lançamentos</h2>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
               Todos os custos de manutenção em um só lugar, com rastreabilidade completa.
@@ -310,7 +310,7 @@ export function FinancePage() {
                   { icon: Target, name: 'Orçamentos', active: false },
                   { icon: Wallet, name: 'Compromissos', active: false },
                 ].map((item) => (
-                  <div key={item.name} className={cn("flex items-center gap-2 px-3 py-2 rounded-lg text-sm", item.active ? 'bg-violet-500 text-white' : 'text-gray-600')}>
+                  <div key={item.name} className={cn("flex items-center gap-2 px-3 py-2 rounded-lg text-sm", item.active ? 'bg-teal-500 text-white' : 'text-gray-600')}>
                     <item.icon className="w-4 h-4" />
                     <span>{item.name}</span>
                   </div>
@@ -326,13 +326,13 @@ export function FinancePage() {
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm"><Filter className="w-4 h-4 mr-1" /> Filtros</Button>
                     <Button variant="outline" size="sm"><Download className="w-4 h-4 mr-1" /> Exportar</Button>
-                    <Button size="sm" className="bg-violet-600 hover:bg-violet-700"><Plus className="w-4 h-4 mr-1" /> Novo</Button>
+                    <Button size="sm" className="bg-teal-600 hover:bg-teal-700"><Plus className="w-4 h-4 mr-1" /> Novo</Button>
                   </div>
                 </div>
 
                 <div className="flex gap-2 mb-4">
                   {['Todos', 'Preventiva', 'Corretiva', 'Preditiva', 'Peças', 'Mão de Obra'].map((f, i) => (
-                    <span key={f} className={cn("text-xs px-2 py-1 rounded cursor-pointer", i === 0 ? 'bg-violet-100 text-violet-700' : 'hover:bg-gray-100')}>{f}</span>
+                    <span key={f} className={cn("text-xs px-2 py-1 rounded cursor-pointer", i === 0 ? 'bg-teal-100 text-teal-700' : 'hover:bg-gray-100')}>{f}</span>
                   ))}
                 </div>
 
@@ -363,11 +363,11 @@ export function FinancePage() {
                             <span className={cn("text-xs px-2 py-0.5 rounded", 
                               t.cat === 'Preventiva' ? 'bg-teal-100 text-teal-700' :
                               t.cat === 'Corretiva' ? 'bg-amber-100 text-amber-700' :
-                              t.cat === 'Preditiva' ? 'bg-violet-100 text-violet-700' :
+                              t.cat === 'Preditiva' ? 'bg-teal-100 text-teal-700' :
                               'bg-gray-100 text-gray-700'
                             )}>{t.cat}</span>
                           </td>
-                          <td className="px-4 py-3 text-violet-600 font-medium">{t.os}</td>
+                          <td className="px-4 py-3 text-teal-600 font-medium">{t.os}</td>
                           <td className="px-4 py-3 text-right font-medium">{t.value}</td>
                         </tr>
                       ))}
@@ -469,9 +469,9 @@ export function FinancePage() {
                       <div className="text-2xl font-bold text-blue-600">48h</div>
                       <div className="text-xs text-blue-500">Downtime evitado</div>
                     </div>
-                    <div className="p-3 bg-violet-50 rounded-lg">
-                      <div className="text-2xl font-bold text-violet-600">5.0x</div>
-                      <div className="text-xs text-violet-500">ROI desta ação</div>
+                    <div className="p-3 bg-teal-50 rounded-lg">
+                      <div className="text-2xl font-bold text-teal-600">5.0x</div>
+                      <div className="text-xs text-teal-500">ROI desta ação</div>
                     </div>
                   </div>
                   
@@ -516,28 +516,28 @@ export function FinancePage() {
 
               <div className="flex justify-center">
                 <div className="flex flex-col items-center">
-                  <div className="w-0.5 h-8 bg-violet-300" />
-                  <Activity className="w-6 h-6 text-violet-500 my-2" />
-                  <div className="w-0.5 h-8 bg-violet-300" />
+                  <div className="w-0.5 h-8 bg-teal-300" />
+                  <Activity className="w-6 h-6 text-teal-500 my-2" />
+                  <div className="w-0.5 h-8 bg-teal-300" />
                 </div>
               </div>
 
-              <div className="flex items-center gap-6 p-6 bg-violet-50 rounded-xl border border-violet-200">
-                <div className="w-14 h-14 rounded-xl bg-violet-100 flex items-center justify-center">
-                  <DollarSign className="w-7 h-7 text-violet-600" />
+              <div className="flex items-center gap-6 p-6 bg-teal-50 rounded-xl border border-teal-200">
+                <div className="w-14 h-14 rounded-xl bg-teal-100 flex items-center justify-center">
+                  <DollarSign className="w-7 h-7 text-teal-600" />
                 </div>
                 <div className="flex-1">
-                  <div className="font-bold text-lg text-violet-900">Lançamento Automático</div>
-                  <div className="text-violet-600">Ledger atualizado • Categoria: Preventiva</div>
-                  <div className="flex gap-4 mt-2 text-sm text-violet-700">
+                  <div className="font-bold text-lg text-teal-900">Lançamento Automático</div>
+                  <div className="text-teal-600">Ledger atualizado • Categoria: Preventiva</div>
+                  <div className="flex gap-4 mt-2 text-sm text-teal-700">
                     <span>Centro de custo: Bloco A</span>
                     <span>•</span>
                     <span>Ref: OS-0847</span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-violet-700">R$ 1.730</div>
-                  <div className="text-xs text-violet-500">Total lançado</div>
+                  <div className="text-2xl font-bold text-teal-700">R$ 1.730</div>
+                  <div className="text-xs text-teal-500">Total lançado</div>
                 </div>
               </div>
             </div>
@@ -546,15 +546,15 @@ export function FinancePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 bg-gradient-to-r from-violet-600 to-violet-500 text-white">
+      <section className="py-16 md:py-24 bg-gradient-to-r from-teal-600 to-teal-500 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">Transforme a Gestão Financeira da Manutenção</h2>
-          <p className="text-lg text-violet-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg text-teal-100 mb-8 max-w-2xl mx-auto">
             Junte-se às empresas que já controlam seus custos de manutenção de forma profissional.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link to="/demo">
-              <Button size="lg" className="bg-white text-violet-600 hover:bg-violet-50">
+              <Button size="lg" className="bg-white text-teal-600 hover:bg-teal-50">
                 Agendar Demonstração <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -574,8 +574,8 @@ function ModulePreview({ moduleId }: { moduleId: string }) {
     painel: (
       <div className="bg-white rounded-lg p-4 shadow-sm">
         <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="p-2 bg-violet-50 rounded text-center">
-            <div className="text-lg font-bold text-violet-600">57%</div>
+          <div className="p-2 bg-teal-50 rounded text-center">
+            <div className="text-lg font-bold text-teal-600">57%</div>
             <div className="text-xs text-gray-500">Orçamento usado</div>
           </div>
           <div className="p-2 bg-emerald-50 rounded text-center">
@@ -585,7 +585,7 @@ function ModulePreview({ moduleId }: { moduleId: string }) {
         </div>
         <div className="h-16 flex items-end gap-1">
           {[45, 52, 48, 55, 50, 58, 45, 62, 55, 68, 72, 65].map((h, i) => (
-            <div key={i} className="flex-1 bg-violet-400 rounded-t" style={{ height: `${h}%` }} />
+            <div key={i} className="flex-1 bg-teal-400 rounded-t" style={{ height: `${h}%` }} />
           ))}
         </div>
       </div>
@@ -599,7 +599,7 @@ function ModulePreview({ moduleId }: { moduleId: string }) {
             { desc: 'Troca filtros Bloco A', cat: 'Preventiva', value: 'R$ 320' },
           ].map((t, i) => (
             <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs">
-              <FileText className="w-4 h-4 text-violet-500" />
+              <FileText className="w-4 h-4 text-teal-500" />
               <div className="flex-1">
                 <div className="font-medium">{t.desc}</div>
                 <span className={cn("text-xs", t.cat === 'Preventiva' ? 'text-teal-600' : 'text-amber-600')}>{t.cat}</span>
@@ -626,12 +626,13 @@ function ModulePreview({ moduleId }: { moduleId: string }) {
             </div>
           ))}
         </div>
-        <div className="mt-3 p-2 bg-violet-50 rounded text-center">
-          <div className="text-xs text-violet-600">ROI Acumulado</div>
-          <div className="text-lg font-bold text-violet-700">3.2x</div>
+        <div className="mt-3 p-2 bg-teal-50 rounded text-center">
+          <div className="text-xs text-teal-600">ROI Acumulado</div>
+          <div className="text-lg font-bold text-teal-700">3.2x</div>
         </div>
       </div>
     ),
   }
   return previews[moduleId] || <div className="text-center py-8 text-gray-500">Preview não disponível</div>
 }
+

@@ -106,25 +106,6 @@ const statusConfigs = {
       className: statusTokenClasses.neutral
     },
   },
-    MAINTENANCE: { 
-      label: 'Em Manutenção', 
-      variant: 'secondary' as const, 
-      icon: Wrench,
-      className: statusTokenClasses.warning
-    },
-    STOPPED: { 
-      label: 'Parado', 
-      variant: 'destructive' as const, 
-      icon: XCircle,
-      className: statusTokenClasses.danger
-    },
-    OFFLINE: { 
-      label: 'Offline', 
-      variant: 'outline' as const, 
-      icon: Circle,
-      className: statusTokenClasses.neutral
-    },
-  },
 
   // Níveis de Prioridade
   priority: {

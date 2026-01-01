@@ -51,10 +51,15 @@ const ASSET_TYPES: { value: AssetType; label: string }[] = [
 // Status disponíveis
 const ASSET_STATUSES: { value: AssetStatus; label: string }[] = [
   { value: 'OK', label: 'Operacional' },
-  { value: 'MAINTENANCE', label: 'Em Manutenção' },
-  { value: 'INACTIVE', label: 'Inativo' },
-  { value: 'WARNING', label: 'Alerta' },
+  { value: 'MAINTENANCE', label: 'Em Manuten??o' },
+  { value: 'STOPPED', label: 'Parado' },
 ];
+
+const ALERT_STATUS_OPTION = {
+  value: 'ALERT',
+  label: 'Alerta (autom?tico)',
+  disabled: true,
+};
 
 export function AssetEditModal({ asset, open, onOpenChange }: AssetEditModalProps) {
   const updateMutation = useUpdateAssetMutation();
@@ -71,6 +76,7 @@ export function AssetEditModal({ asset, open, onOpenChange }: AssetEditModalProp
     location_description: '',
     health_score: 100,
   });
+  const statusOptions = formData.status === 'ALERT' ? [...ASSET_STATUSES, ALERT_STATUS_OPTION] : ASSET_STATUSES;
 
   // Preencher formulário quando o asset mudar
   useEffect(() => {
@@ -182,8 +188,8 @@ export function AssetEditModal({ asset, open, onOpenChange }: AssetEditModalProp
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ASSET_STATUSES.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
+                  {statusOptions.map((status) => (
+                    <SelectItem key={status.value} value={status.value} disabled={status.disabled}>
                       {status.label}
                     </SelectItem>
                   ))}

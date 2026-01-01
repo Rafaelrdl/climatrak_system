@@ -35,10 +35,10 @@ const products = [
     description: 'Monitoramento em tempo real dos seus equipamentos HVAC com dashboards interativos, alertas inteligentes e análise de dados.',
     icon: Activity,
     color: 'cyan',
-    gradient: 'from-cyan-600 to-cyan-400',
-    bgLight: 'bg-cyan-100',
-    textColor: 'text-cyan-700',
-    checkColor: 'text-cyan-500',
+    gradient: 'from-teal-600 to-teal-400',
+    bgLight: 'bg-teal-100',
+    textColor: 'text-teal-700',
+    checkColor: 'text-teal-500',
     features: [
       'Dashboards Customizáveis',
       'Alertas em Tempo Real',
@@ -58,10 +58,10 @@ const products = [
     description: 'Sensor plug & play para monitoramento de temperatura, umidade e pressão em equipamentos de climatização.',
     icon: Cpu,
     color: 'emerald',
-    gradient: 'from-emerald-600 to-emerald-400',
-    bgLight: 'bg-emerald-100',
-    textColor: 'text-emerald-700',
-    checkColor: 'text-emerald-500',
+    gradient: 'from-teal-600 to-teal-400',
+    bgLight: 'bg-teal-100',
+    textColor: 'text-teal-700',
+    checkColor: 'text-teal-500',
     features: [
       'Temperatura e Umidade',
       'Pressão Diferencial',
@@ -81,10 +81,10 @@ const products = [
     description: 'Controle total dos custos de manutenção com orçamentos, lançamentos automáticos, compromissos e registro de economias.',
     icon: DollarSign,
     color: 'violet',
-    gradient: 'from-violet-600 to-violet-400',
-    bgLight: 'bg-violet-100',
-    textColor: 'text-violet-700',
-    checkColor: 'text-violet-500',
+    gradient: 'from-teal-600 to-teal-400',
+    bgLight: 'bg-teal-100',
+    textColor: 'text-teal-700',
+    checkColor: 'text-teal-500',
     features: [
       'Orçamentos por Centro de Custo',
       'Lançamentos Automáticos',
@@ -229,3 +229,4 @@ export function ProductsPage() {
     </div>
   )
 }
+

@@ -37,19 +37,47 @@ const getStatusColor = (status: AssetStatus) => {
   switch (status) {
     case 'OK':
     case 'ACTIVE':
+    case 'OPERATIONAL':
       return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-    case 'Maintenance':
     case 'MAINTENANCE':
+    case 'Maintenance':
       return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-    case 'Stopped':
-    case 'INACTIVE':
-      return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+    case 'ALERT':
     case 'Alert':
     case 'WARNING':
+    case 'CRITICAL':
     case 'ERROR':
       return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
+    case 'STOPPED':
+    case 'INACTIVE':
+    case 'Stopped':
+      return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
     default:
       return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400';
+  }
+};
+
+const getStatusLabel = (status: AssetStatus) => {
+  switch (status) {
+    case 'OK':
+    case 'ACTIVE':
+    case 'OPERATIONAL':
+      return 'Operacional';
+    case 'MAINTENANCE':
+    case 'Maintenance':
+      return 'Em Manuten??o';
+    case 'ALERT':
+    case 'Alert':
+    case 'WARNING':
+    case 'CRITICAL':
+    case 'ERROR':
+      return 'Alerta';
+    case 'STOPPED':
+    case 'INACTIVE':
+    case 'Stopped':
+      return 'Parado';
+    default:
+      return status;
   }
 };
 
@@ -110,10 +138,10 @@ export function MonitorAssetsPage() {
 
   // Contadores por status
   const statusCounts = useMemo(() => ({
-    normal: assets.filter(a => a.status === 'OK' || a.status === 'ACTIVE').length,
-    maintenance: assets.filter(a => a.status === 'Maintenance' || a.status === 'MAINTENANCE').length,
-    alert: assets.filter(a => a.status === 'Alert' || a.status === 'WARNING').length,
-    stopped: assets.filter(a => a.status === 'Stopped' || a.status === 'INACTIVE' || a.status === 'ERROR').length,
+    normal: assets.filter(a => ['OK', 'ACTIVE', 'OPERATIONAL'].includes(a.status)).length,
+    maintenance: assets.filter(a => ['MAINTENANCE', 'Maintenance'].includes(a.status)).length,
+    alert: assets.filter(a => ['ALERT', 'Alert', 'WARNING', 'CRITICAL', 'ERROR'].includes(a.status)).length,
+    stopped: assets.filter(a => ['STOPPED', 'INACTIVE', 'Stopped'].includes(a.status)).length,
   }), [assets]);
 
   // Função para abrir modal de edição
@@ -195,10 +223,10 @@ export function MonitorAssetsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os Status</SelectItem>
-              <SelectItem value="OK">Normal</SelectItem>
-              <SelectItem value="Maintenance">Manutenção</SelectItem>
-              <SelectItem value="Alert">Alerta</SelectItem>
-              <SelectItem value="Stopped">Parado</SelectItem>
+              <SelectItem value="OK">Operacional</SelectItem>
+              <SelectItem value="MAINTENANCE">Manuten??o</SelectItem>
+              <SelectItem value="ALERT">Alerta</SelectItem>
+              <SelectItem value="STOPPED">Parado</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -304,11 +332,11 @@ export function MonitorAssetsPage() {
                   
                   <td className="py-4 px-6">
                     <div className="flex items-center space-x-2">
-                      {(asset.status === 'Alert' || asset.status === 'WARNING') && (
+                      {(['ALERT', 'Alert', 'WARNING', 'CRITICAL', 'ERROR'].includes(asset.status)) && (
                         <AlertCircle className="w-4 h-4 text-orange-500" />
                       )}
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(asset.status)}`}>
-                        {asset.status}
+                        {getStatusLabel(asset.status)}
                       </span>
                     </div>
                   </td>

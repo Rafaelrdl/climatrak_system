@@ -26,6 +26,7 @@ const navigation = [
     ],
   },
   { name: 'Preços', href: '/precos' },
+  { name: 'Para Técnicos', href: '/tecnicos' },
   { name: 'Sobre', href: '/sobre' },
   { name: 'Blog', href: '/blog' },
 ]

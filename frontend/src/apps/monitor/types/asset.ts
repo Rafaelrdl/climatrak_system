@@ -5,14 +5,21 @@
  * Sincronizado com o backend Django REST Framework
  */
 
-export type AssetStatus = 
-  | 'OPERATIONAL' 
-  | 'WARNING' 
-  | 'CRITICAL' 
-  | 'MAINTENANCE' 
-  | 'INACTIVE'
+export type AssetStatus =
+  | 'OK'
+  | 'MAINTENANCE'
+  | 'STOPPED'
+  | 'ALERT'
   // Legacy aliases (for backward compatibility)
-  | 'OK' | 'ACTIVE' | 'Alert' | 'Stopped' | 'ERROR';
+  | 'OPERATIONAL'
+  | 'WARNING'
+  | 'CRITICAL'
+  | 'INACTIVE'
+  | 'ACTIVE'
+  | 'Alert'
+  | 'Stopped'
+  | 'Maintenance'
+  | 'ERROR';
 
 export type AssetType = 
   | 'CHILLER' 

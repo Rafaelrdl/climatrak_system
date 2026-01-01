@@ -182,7 +182,7 @@ export function LocationFormModal({
           {
             onSuccess: (updatedCompany) => {
               // Atualiza nó selecionado se for o mesmo
-              if (selectedNode?.id === companyId) {
+              if (selectedNode?.type === 'company' && selectedNode.data.id === companyId) {
                 setSelectedNode({ ...selectedNode, data: updatedCompany });
               }
               onClose();
@@ -215,7 +215,7 @@ export function LocationFormModal({
           {
             onSuccess: (updatedSector) => {
               // Atualiza nó selecionado se for o mesmo
-              if (selectedNode?.id === sectorId) {
+              if (selectedNode?.type === 'sector' && selectedNode.data.id === sectorId) {
                 setSelectedNode({ ...selectedNode, data: updatedSector });
               }
               onClose();
@@ -248,7 +248,7 @@ export function LocationFormModal({
           {
             onSuccess: (updatedSubsection) => {
               // Atualiza nó selecionado se for o mesmo
-              if (selectedNode?.id === subsectionId) {
+              if (selectedNode?.type === 'subsection' && selectedNode.data.id === subsectionId) {
                 setSelectedNode({ ...selectedNode, data: updatedSubsection });
               }
               onClose();
@@ -621,8 +621,17 @@ export function LocationFormModal({
    */
   const renderSubSectionForm = () => {
     // Filtra setores pela empresa selecionada
-    const availableSectors = sectorForm.companyId 
-      ? sectors.filter(s => s.companyId === sectorForm.companyId)
+    const selectedCompanyId = subSectionForm.sectorId
+      ? sectors.find(s => s.id === subSectionForm.sectorId)?.companyId
+      : sectorForm.companyId;
+    const normalizedCompanyId =
+      selectedCompanyId && selectedCompanyId !== 'no-company' && selectedCompanyId !== 'no-company-sub'
+        ? selectedCompanyId
+        : undefined;
+
+    const hasCompany = Boolean(normalizedCompanyId);
+    const availableSectors = hasCompany
+      ? sectors.filter(s => s.companyId === normalizedCompanyId)
       : sectors;
 
     return (
@@ -652,11 +661,7 @@ export function LocationFormModal({
           <div>
             <Label htmlFor="companySelectSub" className="mb-2 block">Empresa *</Label>
             <Select 
-              value={
-                subSectionForm.sectorId 
-                  ? sectors.find(s => s.id === subSectionForm.sectorId)?.companyId || 'no-company-sub'
-                  : 'no-company-sub'
-              }
+              value={normalizedCompanyId || 'no-company-sub'}
               onValueChange={(companyId) => {
                 // Reset sector when company changes
                 setSubSectionForm(prev => ({ ...prev, sectorId: 'no-sector' }));
@@ -684,7 +689,7 @@ export function LocationFormModal({
             <Select 
               value={subSectionForm.sectorId} 
               onValueChange={(value) => setSubSectionForm(prev => ({ ...prev, sectorId: value }))}
-              disabled={!sectorForm.companyId || sectorForm.companyId === 'no-company'}
+              disabled={!hasCompany}
             >
               <SelectTrigger className="h-10">
                 <SelectValue placeholder="Selecione um setor" />

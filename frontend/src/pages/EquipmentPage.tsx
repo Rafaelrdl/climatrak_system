@@ -147,10 +147,18 @@ function AssetsContent() {
         // Extrai o ID original da empresa do formato "company-1"
         const companyId = selectedNode.id.replace('company-', '');
         const companySectors = sectors.filter(s => s.companyId === companyId);
-        const sectorIds = companySectors.map(s => s.id);
+        const sectorIds = new Set(companySectors.map(s => s.id));
+        const subsectionIds = new Set(
+          subSections
+            .filter((ss) => sectorIds.has(ss.sectorId))
+            .map((ss) => ss.id)
+        );
         
         filteredByLocation = validEquipmentData.filter(
-          (eq: Equipment) => eq.sectorId && sectorIds.includes(eq.sectorId)
+          (eq: Equipment) =>
+            eq.companyId === companyId ||
+            (eq.sectorId && sectorIds.has(eq.sectorId)) ||
+            (eq.subSectionId && subsectionIds.has(eq.subSectionId))
         );
         break;
       }
@@ -159,8 +167,16 @@ function AssetsContent() {
         // Para setores, filtra equipamentos deste setor específico
         const originalSectorId = extractOriginalId(selectedNode.id, 'sector');
         
+        const subsectionIds = new Set(
+          subSections
+            .filter((ss) => ss.sectorId === originalSectorId)
+            .map((ss) => ss.id)
+        );
+        
         filteredByLocation = validEquipmentData.filter(
-          (eq: Equipment) => eq.sectorId === originalSectorId
+          (eq: Equipment) =>
+            eq.sectorId === originalSectorId ||
+            (eq.subSectionId && subsectionIds.has(eq.subSectionId))
         );
         break;
       }
@@ -180,7 +196,7 @@ function AssetsContent() {
     }
     
     setFilteredEquipment(filteredByLocation);
-  }, [selectedNode, filteredEquipmentData, sectors]);
+  }, [selectedNode, filteredEquipmentData, sectors, subSections]);
 
   // ========== ESTADO DO FORMULÁRIO DE NOVO EQUIPAMENTO ==========
   // Estado para armazenar os dados do formulário de criação de equipamento
