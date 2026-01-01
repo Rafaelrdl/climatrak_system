@@ -157,6 +157,14 @@ class TeamService {
   }
 
   /**
+   * Remove permanentemente um membro do tenant
+   * DELETE /api/team/members/{id}/delete/
+   */
+  async deleteMember(memberId: number): Promise<void> {
+    await api.delete(`${this.baseUrl}/members/${memberId}/delete/`);
+  }
+
+  /**
    * Lista técnicos disponíveis (membros com role admin, operator ou technician que estão ativos)
    */
   async getTechnicians(): Promise<TeamMember[]> {

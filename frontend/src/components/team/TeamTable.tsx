@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MoreHorizontal, Mail, UserCheck, UserX, RotateCcw, Shield, Clock, Calendar, Briefcase } from 'lucide-react';
+import { MoreHorizontal, Mail, UserCheck, UserX, RotateCcw, Shield, Clock, Calendar, Briefcase, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -45,6 +45,7 @@ interface TeamTableProps {
   onToggleUserStatus: (userId: string, currentStatus: User['status']) => void;
   onChangeUserRole?: (userId: string, newRole: User['role']) => void;
   onChangeUserPosition?: (userId: string, newPosition: string) => void;
+  onDeleteUser?: (userId: string) => void;
   currentUserId: string;
   isAdmin?: boolean;
 }
@@ -83,6 +84,8 @@ const statusLabels: Record<string, string> = {
   pending: 'Pendente',
 };
 
+const EMPTY_POSITION_VALUE = '__none__';
+
 export function TeamTable({
   users,
   invites,
@@ -91,6 +94,7 @@ export function TeamTable({
   onToggleUserStatus,
   onChangeUserRole,
   onChangeUserPosition,
+  onDeleteUser,
   currentUserId,
   isAdmin = false,
 }: TeamTableProps) {
@@ -335,11 +339,13 @@ export function TeamTable({
                   <TableCell>
                     {isUser && isAdmin && !isCurrentUser && onChangeUserPosition ? (
                       <Select
-                        value={(data as User).position || ''}
+                        value={(data as User).position || EMPTY_POSITION_VALUE}
                         onValueChange={(newPosition) => {
+                          const resolvedPosition =
+                            newPosition === EMPTY_POSITION_VALUE ? '' : newPosition;
                           handleAction(
                             `position-${data.id}`,
-                            () => onChangeUserPosition(data.id, newPosition)
+                            () => onChangeUserPosition(data.id, resolvedPosition)
                           );
                         }}
                         disabled={loadingStates[`position-${data.id}`]}
@@ -353,7 +359,7 @@ export function TeamTable({
                           </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">
+                          <SelectItem value={EMPTY_POSITION_VALUE}>
                             <span className="text-muted-foreground">Sem cargo</span>
                           </SelectItem>
                           {rateCards.map((rateCard) => (
@@ -462,29 +468,47 @@ export function TeamTable({
                           )}
                           
                           {isUser && !isCurrentUser && (
-                            <DropdownMenuItem
-                              onClick={() => handleAction(
-                                `toggle-${data.id}`,
-                                () => onToggleUserStatus(data.id, data.status)
-                              )}
-                              disabled={loadingStates[`toggle-${data.id}`]}
-                              className={cn(
-                                "gap-2",
-                                data.status === 'active' && "text-destructive focus:text-destructive"
-                              )}
-                            >
-                              {data.status === 'active' ? (
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => handleAction(
+                                  `toggle-${data.id}`,
+                                  () => onToggleUserStatus(data.id, data.status)
+                                )}
+                                disabled={loadingStates[`toggle-${data.id}`]}
+                                className={cn(
+                                  "gap-2",
+                                  data.status === 'active' && "text-destructive focus:text-destructive"
+                                )}
+                              >
+                                {data.status === 'active' ? (
+                                  <>
+                                    <UserX className="h-4 w-4" />
+                                    Desativar Usuário
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck className="h-4 w-4" />
+                                    Ativar Usuário
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                              {onDeleteUser && (
                                 <>
-                                  <UserX className="h-4 w-4" />
-                                  Desativar Usuário
-                                </>
-                              ) : (
-                                <>
-                                  <UserCheck className="h-4 w-4" />
-                                  Ativar Usuário
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleAction(
+                                      `delete-${data.id}`,
+                                      () => onDeleteUser(data.id)
+                                    )}
+                                    disabled={loadingStates[`delete-${data.id}`]}
+                                    className="gap-2 text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    Excluir Usuário
+                                  </DropdownMenuItem>
                                 </>
                               )}
-                            </DropdownMenuItem>
+                            </>
                           )}
                           
                           {isCurrentUser && (

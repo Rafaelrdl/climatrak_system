@@ -16,7 +16,8 @@ import {
   useUpdateMember,
   useCreateInvite,
   useResendInvite,
-  useRevokeInvite
+  useRevokeInvite,
+  useDeleteMember
 } from '@/hooks/useTeamQuery';
 import { useUsers } from '@/data/usersStore';
 import type { Invite } from '@/models/invite';
@@ -39,6 +40,7 @@ export function TeamPage() {
   const createInviteMutation = useCreateInvite();
   const resendInviteMutation = useResendInvite();
   const revokeInviteMutation = useRevokeInvite();
+  const deleteMemberMutation = useDeleteMember();
 
   // Usuário atual (do localStorage)
   const { getCurrentUser } = useUsers();
@@ -210,6 +212,27 @@ export function TeamPage() {
     }
   }, [teamMembers, updateMemberMutation]);
 
+  const handleDeleteUser = useCallback(async (userId: string) => {
+    try {
+      const member = teamMembers.find(m => String(m.user.id) === userId);
+      if (!member) {
+        toast.error('Membro não encontrado');
+        return;
+      }
+
+      const userLabel = member.user.full_name || member.user.email;
+      const confirmed = window.confirm(
+        `Tem certeza que deseja excluir o usuário ${userLabel}? Esta ação não pode ser desfeita.`
+      );
+      if (!confirmed) return;
+
+      await deleteMemberMutation.mutateAsync(member.id);
+      toast.success('Usuário excluído com sucesso');
+    } catch (error: any) {
+      toast.error('Erro ao excluir usuário');
+    }
+  }, [teamMembers, deleteMemberMutation]);
+
   // Verificar se o usuário atual é admin
   const isCurrentUserAdmin = useMemo(() => {
     if (!currentUser) return false;
@@ -325,6 +348,7 @@ export function TeamPage() {
                 onToggleUserStatus={handleToggleUserStatus}
                 onChangeUserRole={handleChangeUserRole}
                 onChangeUserPosition={handleChangeUserPosition}
+                onDeleteUser={handleDeleteUser}
                 currentUserId={currentUser?.id || ''}
                 isAdmin={isCurrentUserAdmin}
               />

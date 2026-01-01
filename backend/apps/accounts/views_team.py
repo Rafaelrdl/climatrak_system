@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.mail import send_mail
-from django.db import connection
+from django.db import connection, transaction
 from django.db.models import Count
 from django.db.utils import OperationalError, ProgrammingError
 from django.template.loader import render_to_string
@@ -146,6 +146,56 @@ class TeamMemberViewSet(viewsets.ModelViewSet):
         if membership.user and membership.user.is_active:
             membership.user.is_active = False
             membership.user.save(update_fields=["is_active"])
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["delete"], url_path="delete")
+    def hard_delete(self, request, pk=None):
+        """Permanently remove a member from the tenant."""
+        membership = self.get_object()
+        tenant = connection.tenant
+
+        if membership.user_id == request.user.id:
+            return Response(
+                {"detail": "You cannot delete your own account."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Prevent removing the last owner
+        if membership.role == "owner":
+            other_owners = (
+                TenantMembership.objects.filter(
+                    tenant=tenant, role="owner", status="active"
+                )
+                .exclude(pk=membership.pk)
+                .count()
+            )
+
+            if other_owners == 0:
+                return Response(
+                    {"detail": "Cannot remove the last owner from the organization."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        user = membership.user
+
+        with transaction.atomic():
+            membership.delete()
+
+            if user and user.is_active:
+                user.is_active = False
+                user.save(update_fields=["is_active"])
+
+            try:
+                from apps.public_identity.signals import remove_user_from_public_index
+
+                remove_user_from_public_index(tenant, user.email, user.id)
+            except Exception as exc:
+                logger.exception(
+                    "Failed to update public identity for deleted user %s: %s",
+                    user.email if user else None,
+                    exc,
+                )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

@@ -225,9 +225,6 @@ export function MonitorAssetDetailPage() {
     const config = statusMap[status] || { label: status, variant: 'outline' as const };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
-    const config = statusMap[status] || { label: status, variant: 'outline' as const };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
 
   return (
     <div className="p-6 space-y-6">

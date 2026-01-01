@@ -125,3 +125,19 @@ export function useRevokeInvite() {
     },
   });
 }
+
+/**
+ * Hook para excluir um membro definitivamente
+ */
+export function useDeleteMember() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (memberId: number) => teamService.deleteMember(memberId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team', 'members'] });
+      queryClient.invalidateQueries({ queryKey: ['team', 'technicians'] });
+      queryClient.invalidateQueries({ queryKey: ['team', 'stats'] });
+    },
+  });
+}
