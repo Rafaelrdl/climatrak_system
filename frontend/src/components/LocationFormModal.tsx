@@ -621,8 +621,12 @@ export function LocationFormModal({
    */
   const renderSubSectionForm = () => {
     // Filtra setores pela empresa selecionada
-    const selectedCompanyId = subSectionForm.sectorId
-      ? sectors.find(s => s.id === subSectionForm.sectorId)?.companyId
+    const selectedSectorId =
+      subSectionForm.sectorId && subSectionForm.sectorId !== 'no-sector'
+        ? subSectionForm.sectorId
+        : undefined;
+    const selectedCompanyId = selectedSectorId
+      ? sectors.find(s => s.id === selectedSectorId)?.companyId
       : sectorForm.companyId;
     const normalizedCompanyId =
       selectedCompanyId && selectedCompanyId !== 'no-company' && selectedCompanyId !== 'no-company-sub'

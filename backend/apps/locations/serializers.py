@@ -43,6 +43,17 @@ class SubsectionSerializer(serializers.ModelSerializer):
     asset_count = serializers.IntegerField(read_only=True)
     contacts = LocationContactSerializer(many=True, read_only=True)
 
+    def to_internal_value(self, data):
+        data = data.copy()
+        code = data.get("code")
+        if code is None and self.instance:
+            code = self.instance.code
+        if not code:
+            name = data.get("name") or (self.instance.name if self.instance else "")
+            if name:
+                data["code"] = slugify(name)[:50]
+        return super().to_internal_value(data)
+
     def validate(self, data):
         code = data.get("code")
         if code is None and self.instance:
