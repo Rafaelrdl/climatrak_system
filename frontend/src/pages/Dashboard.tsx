@@ -7,6 +7,7 @@ import { TechnicianPerformanceChart } from '@/components/charts/TechnicianPerfor
 import { DataFilterInfo } from '@/components/data/FilteredDataProvider';
 import { OnboardingProgressCard } from '@/components/onboarding/OnboardingProgressCard';
 import { WelcomeGuide } from '@/components/tour/WelcomeGuide';
+import { RoleDashboardSection } from '@/components/dashboard';
 import { 
   ClipboardList, 
   AlertTriangle, 
@@ -340,6 +341,9 @@ export function Dashboard() {
 
       {/* Onboarding Progress Card for new users */}
       <OnboardingProgressCard />
+
+      {/* Role-specific Dashboard Section */}
+      <RoleDashboardSection className="mb-6" />
 
       {/* KPI Cards - filtered based on role */}
       {availableWidgets.includes('kpis') && (
