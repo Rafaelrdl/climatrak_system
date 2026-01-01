@@ -3,6 +3,7 @@ import { KPICard } from '@/components/KPICard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TechnicianPerformanceChart } from '@/components/charts/TechnicianPerformanceChart';
 import { DataFilterInfo } from '@/components/data/FilteredDataProvider';
 import { OnboardingProgressCard } from '@/components/onboarding/OnboardingProgressCard';
@@ -15,7 +16,10 @@ import {
   Clock, 
   Activity,
   TrendingUp,
-  User
+  User,
+  LayoutDashboard,
+  DollarSign,
+  Settings2
 } from 'lucide-react';
 import { useDashboardKPIs, useChartData } from '@/hooks/useDataTemp';
 import { useWorkOrders, useWorkOrderStats } from '@/hooks/useWorkOrdersQuery';
@@ -322,6 +326,363 @@ export function Dashboard() {
     filtered: 0
   };
 
+  // Verificar se é admin ou owner para mostrar abas
+  const showTabs = role === 'admin' || role === 'owner';
+
+  // ==================== Componentes Reutilizáveis ====================
+  
+  // KPI Cards Component
+  const KPICardsSection = ({ kpiList }: { kpiList: typeof filteredKPIs }) => (
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5" data-tour="dashboard-kpis">
+      {kpiList.map((kpi) => {
+        let icon = <Activity className="h-4 w-4" />;
+        let variant: "default" | "success" | "warning" | "danger" = "default";
+        let trend: "up" | "down" | undefined;
+        let trendValue: string | undefined;
+
+        switch (kpi.key) {
+          case 'openWorkOrders':
+            icon = <ClipboardList className="h-4 w-4" />;
+            break;
+          case 'overdueWorkOrders':
+            icon = <AlertTriangle className="h-4 w-4" />;
+            variant = typeof kpi.value === 'number' && kpi.value > 0 ? "danger" : "success";
+            break;
+          case 'criticalEquipment':
+            icon = <AlertCircle className="h-4 w-4" />;
+            variant = typeof kpi.value === 'number' && kpi.value > 0 ? "warning" : "success";
+            break;
+          case 'mttr':
+            icon = <Clock className="h-4 w-4" />;
+            variant = "success";
+            trend = "down";
+            trendValue = "2h menos que o mês anterior";
+            break;
+          case 'mtbf':
+            icon = <Activity className="h-4 w-4" />;
+            variant = "success";
+            trend = "up";
+            trendValue = "5h mais que o mês anterior";
+            break;
+          case 'myAssignedWork':
+          case 'myRequests':
+            icon = <User className="h-4 w-4" />;
+            break;
+          case 'totalCost':
+            icon = <TrendingUp className="h-4 w-4" />;
+            variant = "warning";
+            break;
+        }
+
+        return (
+          <KPICard
+            key={kpi.key}
+            title={kpi.label}
+            value={typeof kpi.value === 'number' && kpi.key.includes('Cost') ? 
+              `R$ ${kpi.value.toLocaleString()}` : 
+              typeof kpi.value === 'number' && kpi.key.includes('Percent') ? 
+                `${kpi.value}%` : 
+                kpi.key.includes('mttr') || kpi.key.includes('mtbf') ? 
+                  `${kpi.value}h` : 
+                  kpi.value.toString()
+            }
+            icon={icon}
+            variant={variant}
+            trend={trend}
+            trendValue={trendValue}
+          />
+        );
+      })}
+    </div>
+  );
+
+  // Evolução de OS Chart Component
+  const WorkOrderEvolutionChart = () => (
+    <Card className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <TrendingUp className="h-5 w-5" />
+          Evolução de OS por Dia
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex items-end justify-between h-40 border-b border-border">
+            {weeklyData.map((day) => (
+              <div key={day.day} className="flex flex-col items-center gap-2 group">
+                <div className="flex flex-col items-center gap-1 relative">
+                  <div className="invisible group-hover:visible absolute -top-16 left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground px-3 py-2 rounded-lg shadow-lg border text-xs whitespace-nowrap z-10">
+                    <div className="font-medium mb-1">{day.day}</div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded" style={{ backgroundColor: 'var(--primary)' }}></div>
+                        <span>Concluído: {day.completed}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded" style={{ backgroundColor: 'var(--destructive)' }}></div>
+                        <span>Em Atraso: {day.inProgress}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded" style={{ backgroundColor: 'var(--secondary)' }}></div>
+                        <span>Aberto: {day.open}</span>
+                      </div>
+                    </div>
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-popover"></div>
+                  </div>
+                  
+                  <div 
+                    className="w-6 rounded-t chart-bar"
+                    style={{ height: `${day.completed * 8}px`, backgroundColor: 'var(--primary)' }}
+                    title={`Concluído: ${day.completed}`}
+                  />
+                  <div 
+                    className="w-6 rounded-t chart-bar"
+                    style={{ height: `${day.inProgress * 8}px`, backgroundColor: 'var(--destructive)' }}
+                    title={`Em Atraso: ${day.inProgress}`}
+                  />
+                  <div 
+                    className="w-6 rounded-t chart-bar"
+                    style={{ height: `${day.open * 8}px`, backgroundColor: 'var(--secondary)' }}
+                    title={`Aberto: ${day.open}`}
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground transition-colors group-hover:text-foreground">{day.day}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-2 py-1 transition-colors cursor-pointer group">
+              <div className="w-3 h-3 rounded transition-transform group-hover:scale-110" style={{ backgroundColor: 'var(--primary)' }} />
+              <span className="transition-colors group-hover:text-foreground">Concluído</span>
+            </div>
+            <div className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-2 py-1 transition-colors cursor-pointer group">
+              <div className="w-3 h-3 rounded transition-transform group-hover:scale-110" style={{ backgroundColor: 'var(--destructive)' }} />
+              <span className="transition-colors group-hover:text-foreground">Em Atraso</span>
+            </div>
+            <div className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-2 py-1 transition-colors cursor-pointer group">
+              <div className="w-3 h-3 rounded transition-transform group-hover:scale-110" style={{ backgroundColor: 'var(--secondary)' }} />
+              <span className="transition-colors group-hover:text-foreground">Aberto</span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Status dos Ativos Chart Component
+  const AssetStatusChart = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Status dos Ativos</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            {(() => {
+              const equipmentStatus = equipmentStatusData;
+              const total = equipmentStatus.functioning + equipmentStatus.maintenance + equipmentStatus.stopped;
+              
+              if (total === 0) return <div className="text-muted-foreground">Sem dados disponíveis</div>;
+              
+              const functioningPercent = (equipmentStatus.functioning / total) * 100;
+              const maintenancePercent = (equipmentStatus.maintenance / total) * 100;
+              const stoppedPercent = (equipmentStatus.stopped / total) * 100;
+              
+              const circumference = 2 * Math.PI * 40;
+              const functioningLength = (functioningPercent / 100) * circumference;
+              const maintenanceLength = (maintenancePercent / 100) * circumference;
+              const stoppedLength = (stoppedPercent / 100) * circumference;
+              
+              return (
+                <div className="relative w-32 h-32 group">
+                  <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="transparent" stroke="rgb(229 231 235)" strokeWidth="10" />
+                    {equipmentStatus.functioning > 0 && (
+                      <circle cx="50" cy="50" r="40" fill="transparent" stroke="#006b76" strokeWidth="10"
+                        strokeDasharray={`${functioningLength} ${circumference}`} strokeDashoffset="0" strokeLinecap="round" />
+                    )}
+                    {equipmentStatus.maintenance > 0 && (
+                      <circle cx="50" cy="50" r="40" fill="transparent" stroke="rgb(234 179 8)" strokeWidth="10"
+                        strokeDasharray={`${maintenanceLength} ${circumference}`} strokeDashoffset={-functioningLength} strokeLinecap="round" />
+                    )}
+                    {equipmentStatus.stopped > 0 && (
+                      <circle cx="50" cy="50" r="40" fill="transparent" stroke="#dc2626" strokeWidth="10"
+                        strokeDasharray={`${stoppedLength} ${circumference}`} strokeDashoffset={-(functioningLength + maintenanceLength)} strokeLinecap="round" />
+                    )}
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-2xl font-bold transition-colors group-hover:text-primary">{total}</span>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between hover:bg-muted/50 rounded-lg px-2 py-1 transition-colors cursor-pointer">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded" style={{ backgroundColor: 'var(--primary)' }} />
+                <span className="text-sm">Funcionando</span>
+              </div>
+              <span className="text-sm font-medium">{equipmentStatusData.functioning}</span>
+            </div>
+            <div className="flex items-center justify-between hover:bg-muted/50 rounded-lg px-2 py-1 transition-colors cursor-pointer">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-yellow-500 rounded" />
+                <span className="text-sm">Em Manutenção</span>
+              </div>
+              <span className="text-sm font-medium">{equipmentStatusData.maintenance}</span>
+            </div>
+            <div className="flex items-center justify-between hover:bg-muted/50 rounded-lg px-2 py-1 transition-colors cursor-pointer">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded" style={{ backgroundColor: 'var(--destructive)' }} />
+                <span className="text-sm">Parado</span>
+              </div>
+              <span className="text-sm font-medium">{equipmentStatusData.stopped}</span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Próximas Manutenções Table Component
+  const UpcomingMaintenanceTable = () => (
+    <Card data-tour="next-maintenances">
+      <CardHeader>
+        <CardTitle>Próximas Manutenções (7 dias)</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {upcomingMaintenance.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Nenhuma manutenção programada para os próximos 7 dias
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>OS</TableHead>
+                <TableHead>Equipamento</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Prioridade</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {upcomingMaintenance.map((maintenance) => (
+                <TableRow key={maintenance.id}>
+                  <TableCell className="font-medium">{maintenance.equipmentName}</TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{maintenance.equipmentName}</div>
+                      <div className="text-xs text-muted-foreground">{maintenance.sectorName || 'Setor não definido'}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={maintenance.type === 'Manutenção Preventiva' ? 'default' : maintenance.type === 'Solicitação' ? 'outline' : 'secondary'}
+                      className={maintenance.type === 'Solicitação' ? 'bg-violet-100 text-violet-700 border-violet-200' : ''}>
+                      {maintenance.type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{new Date(maintenance.scheduledDate).toLocaleDateString('pt-BR')}</TableCell>
+                  <TableCell>
+                    <Badge variant={maintenance.priority === 'CRITICAL' ? 'destructive' : maintenance.priority === 'HIGH' ? 'outline' : 'secondary'}>
+                      {maintenance.priority === 'CRITICAL' ? 'Crítica' : maintenance.priority === 'HIGH' ? 'Alta' : maintenance.priority === 'MEDIUM' ? 'Média' : 'Baixa'}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  // ==================== Render para Admin/Owner com Abas ====================
+  if (showTabs) {
+    // KPIs operacionais para a aba Visão Geral
+    const operationalKPIs = filteredKPIs.filter(kpi => 
+      ['openWorkOrders', 'overdueWorkOrders', 'criticalEquipment', 'mttr', 'mtbf'].includes(kpi.key)
+    );
+
+    return (
+      <div className="space-y-6">
+        <PageHeader 
+          title={dashboardConfig.title}
+          description={getDashboardDescription()}
+        />
+
+        <OnboardingProgressCard />
+
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="overview" className="gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              Visão Geral
+            </TabsTrigger>
+            <TabsTrigger value="finance" className="gap-2">
+              <DollarSign className="h-4 w-4" />
+              Financeiro
+            </TabsTrigger>
+            <TabsTrigger value="operations" className="gap-2">
+              <Settings2 className="h-4 w-4" />
+              Operacional
+            </TabsTrigger>
+          </TabsList>
+
+          {/* ==================== ABA VISÃO GERAL ==================== */}
+          <TabsContent value="overview" className="space-y-6 mt-0">
+            <div className="text-sm text-muted-foreground mb-2">
+              Resumo consolidado das principais métricas do sistema
+            </div>
+            
+            {/* KPIs Operacionais */}
+            {availableWidgets.includes('kpis') && operationalKPIs.length > 0 && (
+              <KPICardsSection kpiList={operationalKPIs} />
+            )}
+
+            {/* Gráficos lado a lado */}
+            <div className="grid gap-6 lg:grid-cols-2" data-tour="dashboard-charts">
+              {availableWidgets.includes('workOrdersChart') && <WorkOrderEvolutionChart />}
+              {availableWidgets.includes('assetStatusChart') && <AssetStatusChart />}
+            </div>
+
+            {/* Próximas Manutenções */}
+            {availableWidgets.includes('upcomingMaintenance') && <UpcomingMaintenanceTable />}
+          </TabsContent>
+
+          {/* ==================== ABA FINANCEIRO ==================== */}
+          <TabsContent value="finance" className="space-y-6 mt-0">
+            <div className="text-sm text-muted-foreground mb-2">
+              Acompanhamento de orçamento, variância e economia
+            </div>
+
+            {/* Widgets específicos do Finance (do RoleDashboardSection) */}
+            <RoleDashboardSection variant="finance" />
+          </TabsContent>
+
+          {/* ==================== ABA OPERACIONAL ==================== */}
+          <TabsContent value="operations" className="space-y-6 mt-0">
+            <div className="text-sm text-muted-foreground mb-2">
+              Gestão de planos preventivos, estoque e desempenho da equipe
+            </div>
+            
+            {/* Widgets de Planos e Estoque (do RoleDashboardSection) */}
+            <RoleDashboardSection variant="operations" />
+
+            {/* Desempenho por Técnico */}
+            {availableWidgets.includes('technicianPerformanceChart') && (
+              <TechnicianPerformanceChart />
+            )}
+          </TabsContent>
+        </Tabs>
+
+        <WelcomeGuide />
+      </div>
+    );
+  }
+
+  // ==================== Render para outros papéis (sem abas) ====================
   return (
     <div className="space-y-6">
       <PageHeader 
@@ -330,14 +691,12 @@ export function Dashboard() {
       />
       
       {/* Role-based data filtering info */}
-      {role !== 'admin' && (
-        <DataFilterInfo
-          filterStats={filterStats}
-          dataType="dashboard"
-          canViewAll={false}
-          className="mb-4"
-        />
-      )}
+      <DataFilterInfo
+        filterStats={filterStats}
+        dataType="dashboard"
+        canViewAll={false}
+        className="mb-4"
+      />
 
       {/* Onboarding Progress Card for new users */}
       <OnboardingProgressCard />
@@ -347,440 +706,20 @@ export function Dashboard() {
 
       {/* KPI Cards - filtered based on role */}
       {availableWidgets.includes('kpis') && (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5" data-tour="dashboard-kpis">
-        {/* Render KPI cards based on filtered data */}
-        {filteredKPIs.map((kpi) => {
-          // Determine appropriate icon and variant based on KPI
-          let icon = <Activity className="h-4 w-4" />;
-          let variant: "default" | "success" | "warning" | "danger" = "default";
-          let trend: "up" | "down" | undefined;
-          let trendValue: string | undefined;
-
-          switch (kpi.key) {
-            case 'openWorkOrders':
-              icon = <ClipboardList className="h-4 w-4" />;
-              break;
-            case 'overdueWorkOrders':
-              icon = <AlertTriangle className="h-4 w-4" />;
-              variant = typeof kpi.value === 'number' && kpi.value > 0 ? "danger" : "success";
-              break;
-            case 'criticalEquipment':
-              icon = <AlertCircle className="h-4 w-4" />;
-              variant = typeof kpi.value === 'number' && kpi.value > 0 ? "warning" : "success";
-              break;
-            case 'mttr':
-              icon = <Clock className="h-4 w-4" />;
-              variant = "success";
-              trend = "down";
-              trendValue = "2h menos que o mês anterior";
-              break;
-            case 'mtbf':
-              icon = <Activity className="h-4 w-4" />;
-              variant = "success";
-              trend = "up";
-              trendValue = "5h mais que o mês anterior";
-              break;
-            case 'myAssignedWork':
-            case 'myRequests':
-              icon = <User className="h-4 w-4" />;
-              break;
-            case 'totalCost':
-              icon = <TrendingUp className="h-4 w-4" />;
-              variant = "warning";
-              break;
-          }
-
-          return (
-            <KPICard
-              key={kpi.key}
-              title={kpi.label}
-              value={typeof kpi.value === 'number' && kpi.key.includes('Cost') ? 
-                `R$ ${kpi.value.toLocaleString()}` : 
-                typeof kpi.value === 'number' && kpi.key.includes('Percent') ? 
-                  `${kpi.value}%` : 
-                  kpi.key.includes('mttr') || kpi.key.includes('mtbf') ? 
-                    `${kpi.value}h` : 
-                    kpi.value.toString()
-              }
-              icon={icon}
-              variant={variant}
-              trend={trend}
-              trendValue={trendValue}
-            />
-          );
-        })}
-      </div>
+        <KPICardsSection kpiList={filteredKPIs} />
       )}
 
       <div className="grid gap-6 lg:grid-cols-2" data-tour="dashboard-charts">
-        {/* OS Evolution Chart - only for admin/technician */}
-        {availableWidgets.includes('workOrdersChart') && (
-        <Card className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Evolução de OS por Dia
-              {role !== 'admin' && (
-                <Badge variant="outline" className="ml-2 text-xs">
-                  Filtrado
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Simple chart representation */}
-              <div className="flex items-end justify-between h-40 border-b border-border">
-                {weeklyData.map((day) => (
-                  <div key={day.day} className="flex flex-col items-center gap-2 group">
-                    <div className="flex flex-col items-center gap-1 relative">
-                      {/* Hover tooltip */}
-                      <div className="invisible group-hover:visible absolute -top-16 left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground px-3 py-2 rounded-lg shadow-lg border text-xs whitespace-nowrap z-10">
-                        <div className="font-medium mb-1">{day.day}</div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded" style={{ backgroundColor: 'var(--primary)' }}></div>
-                            <span>Concluído: {day.completed}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded" style={{ backgroundColor: 'var(--destructive)' }}></div>
-                            <span>Em Atraso: {day.inProgress}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded" style={{ backgroundColor: 'var(--secondary)' }}></div>
-                            <span>Aberto: {day.open}</span>
-                          </div>
-                        </div>
-                        {/* Arrow */}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-popover"></div>
-                      </div>
-                      
-                      <div 
-                        className="w-6 rounded-t chart-bar"
-                        style={{ 
-                          height: `${day.completed * 8}px`, 
-                          backgroundColor: 'var(--primary)'
-                        }}
-                        title={`Concluído: ${day.completed}`}
-                      />
-                      <div 
-                        className="w-6 rounded-t chart-bar"
-                        style={{ 
-                          height: `${day.inProgress * 8}px`, 
-                          backgroundColor: 'var(--destructive)'
-                        }}
-                        title={`Em Atraso: ${day.inProgress}`}
-                      />
-                      <div 
-                        className="w-6 rounded-t chart-bar"
-                        style={{ 
-                          height: `${day.open * 8}px`, 
-                          backgroundColor: 'var(--secondary)'
-                        }}
-                        title={`Aberto: ${day.open}`}
-                      />
-                    </div>
-                    <span className="text-xs text-muted-foreground transition-colors group-hover:text-foreground">{day.day}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-2 py-1 transition-colors cursor-pointer group">
-                  <div className="w-3 h-3 rounded transition-transform group-hover:scale-110" style={{ backgroundColor: 'var(--primary)' }} />
-                  <span className="transition-colors group-hover:text-foreground">Concluído</span>
-                </div>
-                <div className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-2 py-1 transition-colors cursor-pointer group">
-                  <div className="w-3 h-3 rounded transition-transform group-hover:scale-110" style={{ backgroundColor: 'var(--destructive)' }} />
-                  <span className="transition-colors group-hover:text-foreground">Em Atraso</span>
-                </div>
-                <div className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-2 py-1 transition-colors cursor-pointer group">
-                  <div className="w-3 h-3 rounded transition-transform group-hover:scale-110" style={{ backgroundColor: 'var(--secondary)' }} />
-                  <span className="transition-colors group-hover:text-foreground">Aberto</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        )}
-
-        {/* Equipment Status - available for all roles but with different data */}
-        {availableWidgets.includes('assetStatusChart') && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Status dos Ativos
-              {role === 'requester' && (
-                <Badge variant="outline" className="ml-2 text-xs">
-                  Limitado
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Donut chart representation */}
-              <div className="flex items-center justify-center">
-                {(() => {
-                  const equipmentStatus = equipmentStatusData;
-                  const total = equipmentStatus.functioning + 
-                               equipmentStatus.maintenance + 
-                               equipmentStatus.stopped;
-                  
-                  if (total === 0) return <div className="text-muted-foreground">Sem dados disponíveis</div>;
-                  
-                  // Calculate percentages
-                  const functioningPercent = (equipmentStatus.functioning / total) * 100;
-                  const maintenancePercent = (equipmentStatus.maintenance / total) * 100;
-                  const stoppedPercent = (equipmentStatus.stopped / total) * 100;
-                  
-                  // Calculate stroke-dasharray for each segment
-                  const circumference = 2 * Math.PI * 40; // radius = 40
-                  const functioningLength = (functioningPercent / 100) * circumference;
-                  const maintenanceLength = (maintenancePercent / 100) * circumference;
-                  const stoppedLength = (stoppedPercent / 100) * circumference;
-                  
-                  return (
-                    <div className="relative w-32 h-32 group">
-                      {/* Tooltip container - shown dynamically */}
-                      <div 
-                        id="donut-tooltip"
-                        className="absolute -top-16 left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground px-3 py-2 rounded-lg shadow-lg border text-xs whitespace-nowrap z-20 opacity-0 pointer-events-none transition-all duration-200"
-                      >
-                        <div className="font-medium mb-1" id="tooltip-title"></div>
-                        <div id="tooltip-content"></div>
-                        {/* Arrow */}
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-popover"></div>
-                      </div>
-
-                      <svg 
-                        className="w-32 h-32 transform -rotate-90" 
-                        viewBox="0 0 100 100"
-                        onMouseLeave={() => {
-                          const tooltip = document.getElementById('donut-tooltip');
-                          if (tooltip) tooltip.style.opacity = '0';
-                        }}
-                      >
-                        {/* Background circle */}
-                        <circle
-                          cx="50"
-                          cy="50"
-                          r="40"
-                          fill="transparent"
-                          stroke="rgb(229 231 235)"
-                          strokeWidth="10"
-                        />
-                        
-                        {/* Functioning segment (teal) */}
-                        {equipmentStatus.functioning > 0 && (
-                        <circle
-                          cx="50"
-                          cy="50"
-                          r="40"
-                          fill="transparent"
-                          stroke="#006b76"
-                          strokeWidth="10"
-                          strokeDasharray={`${functioningLength} ${circumference}`}
-                          strokeDashoffset="0"
-                          strokeLinecap="round"
-                          className="donut-segment"
-                          onMouseEnter={() => {
-                            const tooltip = document.getElementById('donut-tooltip');
-                            const title = document.getElementById('tooltip-title');
-                            const content = document.getElementById('tooltip-content');
-                            if (tooltip && title && content) {
-                              title.textContent = 'Funcionando';
-                              content.textContent = `${equipmentStatus.functioning} equipamentos (${functioningPercent.toFixed(1)}%)`;
-                              tooltip.style.opacity = '1';
-                            }
-                          }}
-                        />
-                        )}
-                        
-                        {/* Maintenance segment (yellow) */}
-                        {equipmentStatus.maintenance > 0 && (
-                        <circle
-                          cx="50"
-                          cy="50"
-                          r="40"
-                          fill="transparent"
-                          stroke="rgb(234 179 8)"
-                          strokeWidth="10"
-                          strokeDasharray={`${maintenanceLength} ${circumference}`}
-                          strokeDashoffset={-functioningLength}
-                          strokeLinecap="round"
-                          className="donut-segment"
-                          onMouseEnter={() => {
-                            const tooltip = document.getElementById('donut-tooltip');
-                            const title = document.getElementById('tooltip-title');
-                            const content = document.getElementById('tooltip-content');
-                            if (tooltip && title && content) {
-                              title.textContent = 'Em Manutenção';
-                              content.textContent = `${equipmentStatus.maintenance} equipamentos (${maintenancePercent.toFixed(1)}%)`;
-                              tooltip.style.opacity = '1';
-                            }
-                          }}
-                        />
-                        )}
-                        
-                        {/* Stopped segment (red) */}
-                        {equipmentStatus.stopped > 0 && (
-                        <circle
-                          cx="50"
-                          cy="50"
-                          r="40"
-                          fill="transparent"
-                          stroke="#dc2626"
-                          strokeWidth="10"
-                          strokeDasharray={`${stoppedLength} ${circumference}`}
-                          strokeDashoffset={-(functioningLength + maintenanceLength)}
-                          strokeLinecap="round"
-                          className="donut-segment"
-                          onMouseEnter={() => {
-                            const tooltip = document.getElementById('donut-tooltip');
-                            const title = document.getElementById('tooltip-title');
-                            const content = document.getElementById('tooltip-content');
-                            if (tooltip && title && content) {
-                              title.textContent = 'Parado';
-                              content.textContent = `${equipmentStatus.stopped} equipamentos (${stoppedPercent.toFixed(1)}%)`;
-                              tooltip.style.opacity = '1';
-                            }
-                          }}
-                        />
-                        )}
-                      </svg>
-                      
-                      {/* Center number */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-2xl font-bold transition-colors group-hover:text-primary">
-                          {total}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between hover:bg-muted/50 rounded-lg px-2 py-1 transition-colors cursor-pointer group">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded transition-transform group-hover:scale-110" style={{ backgroundColor: 'var(--primary)' }} />
-                    <span className="text-sm transition-colors group-hover:text-foreground">Funcionando</span>
-                  </div>
-                  <span className="text-sm font-medium">
-                    {equipmentStatusData.functioning}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between hover:bg-muted/50 rounded-lg px-2 py-1 transition-colors cursor-pointer group">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-yellow-500 rounded transition-transform group-hover:scale-110" />
-                    <span className="text-sm transition-colors group-hover:text-foreground">Em Manutenção</span>
-                  </div>
-                  <span className="text-sm font-medium">
-                    {equipmentStatusData.maintenance}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between hover:bg-muted/50 rounded-lg px-2 py-1 transition-colors cursor-pointer group">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded transition-transform group-hover:scale-110" style={{ backgroundColor: 'var(--destructive)' }} />
-                    <span className="text-sm transition-colors group-hover:text-foreground">Parado</span>
-                  </div>
-                  <span className="text-sm font-medium">
-                    {equipmentStatusData.stopped}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        )}
+        {availableWidgets.includes('workOrdersChart') && <WorkOrderEvolutionChart />}
+        {availableWidgets.includes('assetStatusChart') && <AssetStatusChart />}
       </div>
 
-      {/* Technician Performance Chart - only for admin/technician */}
       {availableWidgets.includes('technicianPerformanceChart') && (
         <TechnicianPerformanceChart />
       )}
 
-      {/* Upcoming Maintenance Table - filtered based on role */}
-      {availableWidgets.includes('upcomingMaintenance') && (
-      <Card data-tour="next-maintenances">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {role === 'requester' ? 'Minhas Solicitações Programadas' : 'Próximas Manutenções (7 dias)'}
-            {role !== 'admin' && (
-              <Badge variant="outline" className="ml-2 text-xs">
-                {role === 'technician' ? 'Minhas' : 'Limitado'}
-              </Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {upcomingMaintenance.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {role === 'requester' 
-                ? 'Nenhuma solicitação programada' 
-                : role === 'technician' 
-                  ? 'Nenhuma manutenção atribuída para os próximos 7 dias'
-                  : 'Nenhuma manutenção programada para os próximos 7 dias'
-              }
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>OS</TableHead>
-                  <TableHead>Equipamento</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Prioridade</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {upcomingMaintenance.map((maintenance) => (
-                  <TableRow key={maintenance.id}>
-                    <TableCell className="font-medium">{maintenance.equipmentName}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{maintenance.equipmentName}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {maintenance.sectorName || 'Setor não definido'}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={
-                          maintenance.type === 'Manutenção Preventiva' ? 'default' : 
-                          maintenance.type === 'Solicitação' ? 'outline' : 
-                          'secondary'
-                        }
-                        className={maintenance.type === 'Solicitação' ? 'bg-violet-100 text-violet-700 border-violet-200' : ''}
-                      >
-                        {maintenance.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(maintenance.scheduledDate).toLocaleDateString('pt-BR')}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={
-                        maintenance.priority === 'CRITICAL' ? 'destructive' : 
-                        maintenance.priority === 'HIGH' ? 'outline' : 
-                        'secondary'
-                      }>
-                        {maintenance.priority === 'CRITICAL' ? 'Crítica' :
-                         maintenance.priority === 'HIGH' ? 'Alta' : 
-                         maintenance.priority === 'MEDIUM' ? 'Média' : 'Baixa'}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-      )}
+      {availableWidgets.includes('upcomingMaintenance') && <UpcomingMaintenanceTable />}
       
-      {/* Welcome Guide - appears after tour completion */}
       <WelcomeGuide />
     </div>
   );

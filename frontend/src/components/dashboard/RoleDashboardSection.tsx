@@ -4,10 +4,10 @@
  * Renderiza os widgets apropriados baseado no papel do usuário.
  * Integra com os hooks de dados e componentes de widgets.
  * 
- * Para Admin/Owner: Usa sistema de abas para separar
- * - Visão Geral (KPIs operacionais do sistema)
- * - Financeiro (Budget, Variance, Economia)
- * - Operacional (Planos, Estoque)
+ * Para Admin/Owner no Dashboard.tsx: Usar prop variant='finance' ou variant='operations'
+ * para renderizar apenas os widgets específicos (sem abas internas).
+ * 
+ * Para outros papéis: Renderiza os widgets específicos do papel.
  */
 
 import { useAbility } from '@/hooks/useAbility';
@@ -20,14 +20,20 @@ import {
   ViewerWidgets,
 } from './RoleSpecificWidgets';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Info, LayoutDashboard, DollarSign, Settings2 } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 interface RoleDashboardSectionProps {
   className?: string;
+  /** 
+   * Variante para controlar qual seção renderizar (usado pelo Dashboard.tsx com abas).
+   * - 'finance': Apenas widgets financeiros
+   * - 'operations': Apenas widgets operacionais
+   * - undefined: Renderização padrão baseada no papel
+   */
+  variant?: 'finance' | 'operations';
 }
 
-export function RoleDashboardSection({ className }: RoleDashboardSectionProps) {
+export function RoleDashboardSection({ className, variant }: RoleDashboardSectionProps) {
   const { role, can } = useAbility();
   const {
     adminData,
@@ -37,116 +43,43 @@ export function RoleDashboardSection({ className }: RoleDashboardSectionProps) {
     viewerData,
   } = useRoleDashboardData();
   
-  // Owner: Mostrar widgets de admin/finance + operator em abas
-  if (role === 'owner') {
+  // ==================== Modo Variant (para abas do Dashboard.tsx) ====================
+  // Quando variant é passado, renderiza apenas a seção específica (sem abas internas)
+  
+  if (variant === 'finance' && (role === 'admin' || role === 'owner')) {
     return (
       <div className={className}>
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="overview" className="gap-2">
-              <LayoutDashboard className="h-4 w-4" />
-              Visão Geral
-            </TabsTrigger>
-            <TabsTrigger value="finance" className="gap-2">
-              <DollarSign className="h-4 w-4" />
-              Financeiro
-            </TabsTrigger>
-            <TabsTrigger value="operations" className="gap-2">
-              <Settings2 className="h-4 w-4" />
-              Operacional
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview" className="mt-0">
-            <div className="text-sm text-muted-foreground mb-4">
-              Resumo consolidado das principais métricas do sistema
-            </div>
-            <ViewerWidgets 
-              statsData={viewerData.statsData}
-              isLoading={viewerData.isLoading}
-            />
-          </TabsContent>
-          
-          <TabsContent value="finance" className="mt-0">
-            <div className="text-sm text-muted-foreground mb-4">
-              Acompanhamento de orçamento, variância e economia
-            </div>
-            <AdminFinanceWidgets 
-              budgetData={adminData.budgetData} 
-              isLoading={adminData.isLoading}
-            />
-          </TabsContent>
-          
-          <TabsContent value="operations" className="mt-0">
-            <div className="text-sm text-muted-foreground mb-4">
-              Gestão de planos preventivos e controle de estoque
-            </div>
-            <OperatorWidgets 
-              planData={operatorData.planData}
-              inventoryData={operatorData.inventoryData}
-              isLoadingPlans={operatorData.isLoadingPlans}
-              isLoadingInventory={operatorData.isLoadingInventory}
-            />
-          </TabsContent>
-        </Tabs>
+        <AdminFinanceWidgets 
+          budgetData={adminData.budgetData} 
+          isLoading={adminData.isLoading}
+        />
       </div>
     );
   }
   
-  // Admin: Mostrar widgets de finance + operator em abas (sem billing controls)
-  if (role === 'admin') {
+  if (variant === 'operations' && (role === 'admin' || role === 'owner')) {
     return (
       <div className={className}>
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="overview" className="gap-2">
-              <LayoutDashboard className="h-4 w-4" />
-              Visão Geral
-            </TabsTrigger>
-            <TabsTrigger value="finance" className="gap-2">
-              <DollarSign className="h-4 w-4" />
-              Financeiro
-            </TabsTrigger>
-            <TabsTrigger value="operations" className="gap-2">
-              <Settings2 className="h-4 w-4" />
-              Operacional
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview" className="mt-0">
-            <div className="text-sm text-muted-foreground mb-4">
-              Resumo consolidado das principais métricas do sistema
-            </div>
-            <ViewerWidgets 
-              statsData={viewerData.statsData}
-              isLoading={viewerData.isLoading}
-            />
-          </TabsContent>
-          
-          <TabsContent value="finance" className="mt-0">
-            <div className="text-sm text-muted-foreground mb-4">
-              Acompanhamento de orçamento, variância e economia
-            </div>
-            <AdminFinanceWidgets 
-              budgetData={adminData.budgetData} 
-              isLoading={adminData.isLoading}
-            />
-          </TabsContent>
-          
-          <TabsContent value="operations" className="mt-0">
-            <div className="text-sm text-muted-foreground mb-4">
-              Gestão de planos preventivos e controle de estoque
-            </div>
-            <OperatorWidgets 
-              planData={operatorData.planData}
-              inventoryData={operatorData.inventoryData}
-              isLoadingPlans={operatorData.isLoadingPlans}
-              isLoadingInventory={operatorData.isLoadingInventory}
-            />
-          </TabsContent>
-        </Tabs>
+        <OperatorWidgets 
+          planData={operatorData.planData}
+          inventoryData={operatorData.inventoryData}
+          isLoadingPlans={operatorData.isLoadingPlans}
+          isLoadingInventory={operatorData.isLoadingInventory}
+        />
       </div>
     );
+  }
+  
+  // Se variant foi passado mas o papel não é admin/owner, não renderiza nada
+  if (variant) {
+    return null;
+  }
+  
+  // ==================== Modo Padrão (para outros papéis) ====================
+  
+  // Owner e Admin: Não renderizam nada aqui pois usam as abas do Dashboard.tsx
+  if (role === 'owner' || role === 'admin') {
+    return null;
   }
   
   // Operator: Mostrar widgets de planos e estoque
