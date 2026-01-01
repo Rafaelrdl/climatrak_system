@@ -2,6 +2,7 @@ export { CustomDashboard } from './CustomDashboard';
 export { DraggableWidget } from './DraggableWidget';
 export { WidgetPalette } from './WidgetPalette';
 export { WidgetConfig } from './WidgetConfig';
+export { DashboardStatCard, type DashboardStatCardProps } from './DashboardStatCard';
 
 // Role-specific dashboard components
 export { 

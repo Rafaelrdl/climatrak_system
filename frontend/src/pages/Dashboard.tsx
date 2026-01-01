@@ -1,5 +1,4 @@
 import { PageHeader } from '@/shared/ui';
-import { KPICard } from '@/components/KPICard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +7,7 @@ import { TechnicianPerformanceChart } from '@/components/charts/TechnicianPerfor
 import { DataFilterInfo } from '@/components/data/FilteredDataProvider';
 import { OnboardingProgressCard } from '@/components/onboarding/OnboardingProgressCard';
 import { WelcomeGuide } from '@/components/tour/WelcomeGuide';
-import { RoleDashboardSection } from '@/components/dashboard';
+import { RoleDashboardSection, DashboardStatCard } from '@/components/dashboard';
 import { 
   ClipboardList, 
   AlertTriangle, 
@@ -335,61 +334,82 @@ export function Dashboard() {
   const KPICardsSection = ({ kpiList }: { kpiList: typeof filteredKPIs }) => (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5" data-tour="dashboard-kpis">
       {kpiList.map((kpi) => {
-        let icon = <Activity className="h-4 w-4" />;
-        let variant: "default" | "success" | "warning" | "danger" = "default";
+        let Icon = Activity;
+        let variant: "default" | "primary" | "success" | "warning" | "danger" | "info" = "default";
         let trend: "up" | "down" | undefined;
         let trendValue: string | undefined;
+        let description: string | undefined;
+        let suffix: string | undefined;
 
         switch (kpi.key) {
           case 'openWorkOrders':
-            icon = <ClipboardList className="h-4 w-4" />;
+            Icon = ClipboardList;
+            variant = "info";
+            description = "Ordens aguardando atendimento";
             break;
           case 'overdueWorkOrders':
-            icon = <AlertTriangle className="h-4 w-4" />;
+            Icon = AlertTriangle;
             variant = typeof kpi.value === 'number' && kpi.value > 0 ? "danger" : "success";
+            description = typeof kpi.value === 'number' && kpi.value > 0 
+              ? "Requer atenção imediata" 
+              : "Sem atrasos no momento";
             break;
           case 'criticalEquipment':
-            icon = <AlertCircle className="h-4 w-4" />;
+            Icon = AlertCircle;
             variant = typeof kpi.value === 'number' && kpi.value > 0 ? "warning" : "success";
+            description = "Equipamentos de alta prioridade";
             break;
           case 'mttr':
-            icon = <Clock className="h-4 w-4" />;
+            Icon = Clock;
             variant = "success";
             trend = "down";
-            trendValue = "2h menos que o mês anterior";
+            trendValue = "-2h";
+            suffix = "h";
+            description = "Tempo médio de reparo";
             break;
           case 'mtbf':
-            icon = <Activity className="h-4 w-4" />;
+            Icon = Activity;
             variant = "success";
             trend = "up";
-            trendValue = "5h mais que o mês anterior";
+            trendValue = "+5h";
+            suffix = "h";
+            description = "Tempo médio entre falhas";
             break;
           case 'myAssignedWork':
           case 'myRequests':
-            icon = <User className="h-4 w-4" />;
+            Icon = User;
+            variant = "primary";
+            description = kpi.key === 'myAssignedWork' 
+              ? "Ordens atribuídas a você" 
+              : "Suas solicitações ativas";
             break;
           case 'totalCost':
-            icon = <TrendingUp className="h-4 w-4" />;
+            Icon = TrendingUp;
             variant = "warning";
+            description = "Custo acumulado do período";
             break;
         }
 
+        // Formatar valor
+        let formattedValue: string | number = kpi.value;
+        if (typeof kpi.value === 'number' && kpi.key.includes('Cost')) {
+          formattedValue = `R$ ${kpi.value.toLocaleString()}`;
+          suffix = undefined;
+        } else if (typeof kpi.value === 'number' && kpi.key.includes('Percent')) {
+          suffix = "%";
+        }
+
         return (
-          <KPICard
+          <DashboardStatCard
             key={kpi.key}
             title={kpi.label}
-            value={typeof kpi.value === 'number' && kpi.key.includes('Cost') ? 
-              `R$ ${kpi.value.toLocaleString()}` : 
-              typeof kpi.value === 'number' && kpi.key.includes('Percent') ? 
-                `${kpi.value}%` : 
-                kpi.key.includes('mttr') || kpi.key.includes('mtbf') ? 
-                  `${kpi.value}h` : 
-                  kpi.value.toString()
-            }
-            icon={icon}
+            value={formattedValue}
+            suffix={suffix}
+            icon={<Icon className="h-4 w-4" />}
             variant={variant}
             trend={trend}
             trendValue={trendValue}
+            description={description}
           />
         );
       })}
