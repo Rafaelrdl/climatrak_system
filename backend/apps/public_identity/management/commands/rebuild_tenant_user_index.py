@@ -215,9 +215,9 @@ class Command(BaseCommand):
 
                 # Create/update in public schema
                 with schema_context("public"):
-                    # TenantUserIndex
+                    # TenantUserIndex - uses identifier_hash field
                     index_obj, index_created = TenantUserIndex.objects.update_or_create(
-                        email_hash=email_hash,
+                        identifier_hash=email_hash,
                         tenant=tenant,
                         defaults={
                             "tenant_user_id": user.id,
@@ -225,7 +225,7 @@ class Command(BaseCommand):
                         },
                     )
 
-                    # TenantMembership
+                    # TenantMembership - uses email_hash field
                     (
                         membership_obj,
                         membership_created,
