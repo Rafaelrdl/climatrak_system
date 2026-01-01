@@ -36,7 +36,18 @@ const detectTenantSlug = (): string => {
     // Ignorar erro de window em testes
   }
 
-  // 3. Tentar decodificar JWT do localStorage global (sem namespace)
+  // 3. Try auth:tenant_schema from localStorage (set on login)
+  try {
+    const storedSchema = localStorage.getItem('auth:tenant_schema');
+    if (storedSchema) {
+      cachedTenantSlug = storedSchema;
+      return storedSchema;
+    }
+  } catch (error) {
+    // Ignorar erro de parse
+  }
+
+  // 4. Tentar decodificar JWT do localStorage global (sem namespace)
   try {
     const token = localStorage.getItem('access_token');
     if (token) {
@@ -55,7 +66,7 @@ const detectTenantSlug = (): string => {
     // Token inválido ou não existe
   }
 
-  // 4. Tentar ler de current_tenant no localStorage global
+  // 5. Tentar ler de current_tenant no localStorage global
   try {
     const savedTenant = localStorage.getItem('current_tenant');
     if (savedTenant) {
@@ -154,6 +165,7 @@ export const tenantStorage = {
       localStorage.removeItem('current_tenant');
       localStorage.removeItem('auth:user');
       localStorage.removeItem('auth:role');
+      localStorage.removeItem('auth:tenant_schema');
       
       // Resetar cache
       cachedTenantSlug = null;

@@ -178,6 +178,44 @@ class CookieTokenRefreshView(TokenRefreshView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Enforce tenant lock for refresh when running on a tenant schema
+        from django.db import connection
+        from django_tenants.utils import get_public_schema_name
+
+        current_schema = getattr(connection, "schema_name", get_public_schema_name())
+        public_schema = get_public_schema_name()
+
+        if current_schema != public_schema:
+            try:
+                token = RefreshToken(refresh_token)
+            except Exception:
+                return Response(
+                    {
+                        "error": "Invalid refresh token",
+                        "detail": "Please login again",
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
+            token_schema = token.get("tenant_schema")
+            if not token_schema:
+                return Response(
+                    {
+                        "error": "Token missing tenant schema",
+                        "detail": "Please login again",
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
+            if token_schema.lower() != current_schema.lower():
+                return Response(
+                    {
+                        "error": "Token tenant mismatch",
+                        "detail": "Please login again",
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
         # Create a mutable copy of request.data and inject refresh token
         # This maintains compatibility with parent class validation logic
         from django.http import QueryDict

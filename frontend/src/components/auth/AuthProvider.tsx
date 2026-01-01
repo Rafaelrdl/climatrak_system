@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { tenantStorage } from '@/lib/tenantStorage';
 
 // Rotas públicas que não precisam de autenticação
 const PUBLIC_ROUTES = ['/login', '/forgot-password', '/reset-password', '/onboarding/accept', '/accept-invite', '/quick-setup', '/welcome-tour'];
@@ -18,6 +19,9 @@ const getTenantFromHostname = (): string | null => {
   return null;
 };
 
+const normalizeTenantKey = (value: string): string =>
+  value.toLowerCase().replace(/[-_]/g, '');
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,31 +33,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading) return; // Don't redirect while checking auth status
 
+    const tenantFromUrl = getTenantFromHostname();
+    const storedTenantSchema = localStorage.getItem('auth:tenant_schema');
+    const tenantMismatch =
+      tenantFromUrl &&
+      storedTenantSchema &&
+      normalizeTenantKey(tenantFromUrl) !== normalizeTenantKey(storedTenantSchema);
+
+    const clearTenantSession = () => {
+      tenantStorage.clear();
+      window.dispatchEvent(new Event('authChange'));
+    };
+
+    if (tenantMismatch) {
+      console.warn('Tenant mismatch detected - clearing session');
+      clearTenantSession();
+      setTenantValidated(false);
+      if (!isPublicRoute) {
+        navigate('/login');
+      }
+      return;
+    }
+
+    if (!tenantFromUrl && location.pathname === '/login' && storedTenantSchema && !isAuthenticated) {
+      clearTenantSession();
+    }
+
     // Validar tenant apenas se autenticado
     if (isAuthenticated && !isPublicRoute && !tenantValidated) {
-      const tenantFromUrl = getTenantFromHostname();
-      const storedTenantSchema = localStorage.getItem('auth:tenant_schema');
-      
-      // Se estiver em um subdomínio de tenant
-      if (tenantFromUrl && storedTenantSchema) {
-        // Verifica se o schema corresponde (case-insensitive)
-        const urlTenantLower = tenantFromUrl.toLowerCase();
-        const storedSchemaLower = storedTenantSchema.toLowerCase();
-        
-        if (!storedSchemaLower.includes(urlTenantLower) && !urlTenantLower.includes(storedSchemaLower)) {
-          console.warn('❌ Tenant mismatch - redirecting to correct tenant');
-          console.log('URL tenant:', tenantFromUrl, 'Stored schema:', storedTenantSchema);
-          
-          // Redireciona para o tenant correto
-          const protocol = window.location.protocol;
-          const port = window.location.port ? `:${window.location.port}` : '';
-          const baseDomain = window.location.hostname.split('.').slice(1).join('.');
-          const targetTenant = storedTenantSchema.toLowerCase();
-          
-          window.location.href = `${protocol}//${targetTenant}.${baseDomain}${port}/`;
-          return;
-        }
-      }
       setTenantValidated(true);
     }
 

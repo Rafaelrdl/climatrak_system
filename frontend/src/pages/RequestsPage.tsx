@@ -1,17 +1,18 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader, StatusBadge } from '@/shared/ui';
+import { PageHeader, StatusBadge, ConfirmDialog } from '@/shared/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { MessageSquare, Users, Calendar, Loader2, Plus, Eye, ArrowRightCircle } from 'lucide-react';
+import { MessageSquare, Users, Calendar, Loader2, Plus, Eye, ArrowRightCircle, XCircle } from 'lucide-react';
 import { SolicitationModal } from '@/components/SolicitationModal';
 import { SolicitationFilters, type SolicitationFilters as SolicitationFiltersType } from '@/components/SolicitationFilters';
 import { CreateRequestModal } from '@/components/CreateRequestModal';
 import { toast } from 'sonner';
 import {
   useSolicitations,
+  useUpdateSolicitationStatus,
   useConvertSolicitationToWorkOrder
 } from '@/hooks/useRequestsQuery';
 import { filterSolicitations, getFilterOptions } from '@/utils/solicitationFilters';
@@ -24,11 +25,13 @@ export function RequestsPage() {
   
   // Mutations
   const convertMutation = useConvertSolicitationToWorkOrder();
+  const updateStatusMutation = useUpdateSolicitationStatus();
   
   // Local state
   const [selectedSolicitation, setSelectedSolicitation] = useState<Solicitation | null>(null);
   const [filters, setFilters] = useState<SolicitationFiltersType>({});
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<Solicitation | null>(null);
 
   // Get filter options from all solicitations
   const filterOptions = useMemo(() => getFilterOptions(solicitations), [solicitations]);
@@ -89,6 +92,35 @@ export function RequestsPage() {
       return;
     }
     handleConvertToWorkOrder(solicitation);
+  };
+
+  const handleRejectClick = (solicitation: Solicitation, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (solicitation.status === 'Convertida em OS') {
+      toast.info('Esta solicitacao ja foi convertida em OS.');
+      return;
+    }
+    if (solicitation.status === 'Rejeitada') {
+      toast.info('Esta solicitacao ja foi rejeitada.');
+      return;
+    }
+    setRejectTarget(solicitation);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectTarget) {
+      return;
+    }
+
+    try {
+      await updateStatusMutation.mutateAsync({ id: rejectTarget.id, status: 'REJECTED' });
+      toast.success('Solicitacao rejeitada com sucesso.');
+      if (selectedSolicitation?.id === rejectTarget.id) {
+        setSelectedSolicitation(null);
+      }
+    } catch (error) {
+      toast.error('Erro ao rejeitar solicitacao.');
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -357,6 +389,31 @@ export function RequestsPage() {
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
+
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive"
+                                  onClick={(e) => handleRejectClick(solicitation, e)}
+                                  disabled={solicitation.status === 'Convertida em OS' || solicitation.status === 'Rejeitada'}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>
+                                  {solicitation.status === 'Convertida em OS'
+                                    ? 'Ja convertida em OS'
+                                    : solicitation.status === 'Rejeitada'
+                                      ? 'Solicitacao rejeitada'
+                                      : 'Rejeitar solicitacao'}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </td>
                     </tr>
@@ -397,6 +454,21 @@ export function RequestsPage() {
         isOpen={!!selectedSolicitation}
         onClose={handleCloseDrawer}
         onConvert={handleConvertToWorkOrder}
+      />
+
+      <ConfirmDialog
+        open={!!rejectTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRejectTarget(null);
+          }
+        }}
+        title="Rejeitar solicitacao"
+        description="Esta acao marca a solicitacao como rejeitada e impede a conversao em OS."
+        confirmText="Rejeitar"
+        variant="destructive"
+        onConfirm={handleConfirmReject}
+        loading={updateStatusMutation.isPending}
       />
 
       {/* Create Request Modal */}

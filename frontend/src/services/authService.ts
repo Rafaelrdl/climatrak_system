@@ -110,6 +110,7 @@ export async function tenantLogin(email: string, password: string): Promise<{
   localStorage.setItem('auth:user', JSON.stringify(user));
   localStorage.setItem('auth:role', user.role);
   localStorage.setItem('auth:tenant_schema', data.tenant.schema_name);
+  updateTenantSlugCache(data.tenant.schema_name);
   
   window.dispatchEvent(new Event('authChange'));
 

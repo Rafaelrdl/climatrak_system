@@ -92,6 +92,13 @@ class JWTCookieAuthentication(JWTAuthentication):
             if not user.is_active:
                 raise AuthenticationFailed("User is inactive", code="user_inactive")
 
+            if request_schema != public_schema:
+                if not self._has_active_membership(user, request_schema):
+                    raise AuthenticationFailed(
+                        "User is not a member of this tenant",
+                        code="no_tenant_membership",
+                    )
+
             return user
 
         except User.DoesNotExist as exc:
@@ -152,3 +159,21 @@ class JWTCookieAuthentication(JWTAuthentication):
             )
 
         return (user, validated_token)
+
+    def _has_active_membership(self, user, schema_name: str) -> bool:
+        from apps.public_identity.models import (
+            TenantMembership as PublicTenantMembership,
+            compute_email_hash,
+        )
+        from apps.tenants.models import Tenant
+
+        public_schema = get_public_schema_name()
+
+        with schema_context(public_schema):
+            tenant = Tenant.objects.filter(schema_name=schema_name).first()
+            if not tenant:
+                return False
+            email_hash = compute_email_hash(user.email)
+            return PublicTenantMembership.objects.filter(
+                email_hash=email_hash, tenant=tenant, status="active"
+            ).exists()

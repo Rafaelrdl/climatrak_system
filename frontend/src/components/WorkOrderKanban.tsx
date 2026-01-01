@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Play, Edit, User, Calendar, AlertCircle, CheckCircle2, Clock, Eye, GripVertical } from 'lucide-react';
+import { Play, Edit, User, Calendar, AlertCircle, CheckCircle2, Clock, Eye, GripVertical, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
@@ -277,6 +277,22 @@ function KanbanColumn({
           bgColor: 'bg-green-50',
           borderColor: 'border-green-200',
           hoverBg: 'bg-green-100',
+        };
+      case 'CANCELLED':
+        return {
+          icon: XCircle,
+          color: 'text-red-600',
+          bgColor: 'bg-red-50',
+          borderColor: 'border-red-200',
+          hoverBg: 'bg-red-100',
+        };
+      default:
+        return {
+          icon: AlertCircle,
+          color: 'text-gray-600',
+          bgColor: 'bg-gray-50',
+          borderColor: 'border-gray-200',
+          hoverBg: 'bg-gray-100',
         };
     }
   };

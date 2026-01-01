@@ -21,6 +21,8 @@ from apps.accounts.views_team import PublicInviteAcceptView, PublicInviteValidat
 from apps.common.health import health_check
 
 urlpatterns = [
+    # Observability endpoints (no auth required) - available on both schemas
+    path("", include("apps.common.observability.urls")),
     # Centralized Django Admin (only in public schema)
     path("admin/", admin.site.urls),
     # Ops Panel (staff-only, public schema)
