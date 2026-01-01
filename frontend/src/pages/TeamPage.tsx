@@ -1,9 +1,19 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Plus, Loader2, Search, Users } from 'lucide-react';
+import { Plus, Loader2, Search, Users, AlertTriangle } from 'lucide-react';
 import { PageHeader } from '@/shared/ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { TeamTable } from '@/components/team/TeamTable';
 import { TeamStatsHeader } from '@/components/team/TeamStatsHeader';
 import { InviteUserModal } from '@/components/team/InviteUserModal';
@@ -29,6 +39,13 @@ export function TeamPage() {
   const [previewInvite, setPreviewInvite] = useState<Invite | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'pending'>('all');
+  
+  // Estado para o diálogo de confirmação de exclusão
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    userId: string | null;
+    userName: string;
+  }>({ open: false, userId: null, userName: '' });
 
   // Dados da API
   const { data: teamMembers = [], isLoading: isLoadingMembers } = useTeamMembers();
@@ -212,26 +229,39 @@ export function TeamPage() {
     }
   }, [teamMembers, updateMemberMutation]);
 
-  const handleDeleteUser = useCallback(async (userId: string) => {
+  const handleDeleteUser = useCallback((userId: string) => {
+    const member = teamMembers.find(m => String(m.user.id) === userId);
+    if (!member) {
+      toast.error('Membro não encontrado');
+      return;
+    }
+
+    const userLabel = member.user.full_name || member.user.email;
+    setDeleteDialog({
+      open: true,
+      userId,
+      userName: userLabel,
+    });
+  }, [teamMembers]);
+
+  const confirmDeleteUser = useCallback(async () => {
+    if (!deleteDialog.userId) return;
+    
     try {
-      const member = teamMembers.find(m => String(m.user.id) === userId);
+      const member = teamMembers.find(m => String(m.user.id) === deleteDialog.userId);
       if (!member) {
         toast.error('Membro não encontrado');
         return;
       }
 
-      const userLabel = member.user.full_name || member.user.email;
-      const confirmed = window.confirm(
-        `Tem certeza que deseja excluir o usuário ${userLabel}? Esta ação não pode ser desfeita.`
-      );
-      if (!confirmed) return;
-
       await deleteMemberMutation.mutateAsync(member.id);
       toast.success('Usuário excluído com sucesso');
     } catch (error: any) {
       toast.error('Erro ao excluir usuário');
+    } finally {
+      setDeleteDialog({ open: false, userId: null, userName: '' });
     }
-  }, [teamMembers, deleteMemberMutation]);
+  }, [deleteDialog.userId, teamMembers, deleteMemberMutation]);
 
   // Verificar se o usuário atual é admin
   const isCurrentUserAdmin = useMemo(() => {
@@ -368,6 +398,44 @@ export function TeamPage() {
           invite={previewInvite}
           onClose={() => setPreviewInvite(null)}
         />
+
+        {/* Diálogo de confirmação de exclusão */}
+        <AlertDialog 
+          open={deleteDialog.open} 
+          onOpenChange={(open) => !open && setDeleteDialog({ open: false, userId: null, userName: '' })}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                </div>
+                <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+              </div>
+              <AlertDialogDescription className="pt-2">
+                Tem certeza que deseja excluir o usuário <strong>{deleteDialog.userName}</strong>?
+                <br />
+                <span className="text-destructive">Esta ação não pode ser desfeita.</span>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDeleteUser}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteMemberMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  'Excluir usuário'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </IfCan>
   );
