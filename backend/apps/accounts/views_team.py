@@ -505,9 +505,67 @@ class PublicInviteAcceptView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Check if user already exists (search in all tenant schemas via TenantUserIndex)
-        from django_tenants.utils import schema_context
+        # If the user already exists in this tenant, reuse the record instead of creating
+        # a duplicate (can happen after a "delete" that removed only membership).
+        with schema_context(invite.tenant.schema_name):
+            user_in_tenant = User.objects.filter(email__iexact=invite.email).first()
 
+            if user_in_tenant:
+                if password:
+                    if len(password) < 8:
+                        return Response(
+                            {"detail": "Password must be at least 8 characters."},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    user_in_tenant.set_password(password)
+                    user_in_tenant.save(update_fields=["password"])
+
+                existing_membership = TenantMembership.objects.filter(
+                    user=user_in_tenant,
+                    tenant=invite.tenant,
+                ).first()
+
+                if existing_membership and existing_membership.status == "active":
+                    return Response(
+                        {"detail": "You are already a member of this organization."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if existing_membership:
+                    existing_membership.status = "active"
+                    existing_membership.role = invite.role
+                    existing_membership.save()
+                    invite.mark_accepted(user_in_tenant, invite_schema=invite_schema)
+                    membership_role = existing_membership.role
+                else:
+                    membership = invite.accept(
+                        user_in_tenant, invite_schema=invite_schema
+                    )
+                    membership_role = membership.role
+
+                if not user_in_tenant.is_active:
+                    user_in_tenant.is_active = True
+                    user_in_tenant.save(update_fields=["is_active"])
+
+                return Response(
+                    {
+                        "message": "You have been added to the organization.",
+                        "existing_user": True,
+                        "user": {
+                            "id": user_in_tenant.id,
+                            "email": user_in_tenant.email,
+                            "full_name": user_in_tenant.full_name,
+                        },
+                        "membership": {
+                            "tenant_name": invite.tenant.name,
+                            "tenant_slug": invite.tenant.schema_name,
+                            "role": membership_role,
+                        },
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
+        # Check if user already exists (search in all tenant schemas via TenantUserIndex)
         from apps.public_identity.models import TenantUserIndex
 
         try:
@@ -654,8 +712,6 @@ class PublicInviteAcceptView(APIView):
             )
 
         # Create user IN THE TENANT SCHEMA (not public!)
-        from django_tenants.utils import schema_context
-
         name_parts = full_name.split(" ", 1)
         first_name = name_parts[0]
         last_name = name_parts[1] if len(name_parts) > 1 else ""
