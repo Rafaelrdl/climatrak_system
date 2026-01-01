@@ -494,6 +494,7 @@ class PublicInviteAcceptView(APIView):
                 {"detail": "Invalid invite token."}, status=status.HTTP_404_NOT_FOUND
             )
         invite_schema = invite_schema or connection.schema_name
+        from apps.public_identity.signals import sync_user_to_public_index
 
         if not invite.is_valid:
             if invite.is_expired:
@@ -526,6 +527,13 @@ class PublicInviteAcceptView(APIView):
                 ).first()
 
                 if existing_membership and existing_membership.status == "active":
+                    sync_user_to_public_index(
+                        invite.tenant,
+                        user_in_tenant,
+                        created=False,
+                        default_role=existing_membership.role,
+                        membership_status=existing_membership.status,
+                    )
                     return Response(
                         {"detail": "You are already a member of this organization."},
                         status=status.HTTP_400_BAD_REQUEST,
@@ -546,6 +554,14 @@ class PublicInviteAcceptView(APIView):
                 if not user_in_tenant.is_active:
                     user_in_tenant.is_active = True
                     user_in_tenant.save(update_fields=["is_active"])
+
+                sync_user_to_public_index(
+                    invite.tenant,
+                    user_in_tenant,
+                    created=False,
+                    default_role=membership_role,
+                    membership_status="active",
+                )
 
                 return Response(
                     {
@@ -615,6 +631,13 @@ class PublicInviteAcceptView(APIView):
                             existing_membership
                             and existing_membership.status == "active"
                         ):
+                            sync_user_to_public_index(
+                                invite.tenant,
+                                user_in_tenant,
+                                created=False,
+                                default_role=existing_membership.role,
+                                membership_status=existing_membership.status,
+                            )
                             return Response(
                                 {
                                     "detail": "You are already a member of this organization."
@@ -661,6 +684,14 @@ class PublicInviteAcceptView(APIView):
                             user_in_tenant, invite_schema=invite_schema
                         )
                         membership_role = membership.role
+
+                    sync_user_to_public_index(
+                        invite.tenant,
+                        user_in_tenant,
+                        created=False,
+                        default_role=membership_role,
+                        membership_status="active",
+                    )
 
                     user_id = user_in_tenant.id
                     user_email = user_in_tenant.email
@@ -735,6 +766,13 @@ class PublicInviteAcceptView(APIView):
                 user_email = user.email
                 user_full_name = user.full_name
                 membership_role = membership.role
+                sync_user_to_public_index(
+                    invite.tenant,
+                    user,
+                    created=True,
+                    default_role=membership_role,
+                    membership_status="active",
+                )
         except Exception as e:
             logger.exception(f"Error creating user for invite {invite.token}: {e}")
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
