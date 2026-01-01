@@ -1052,9 +1052,10 @@ export function WorkOrderEditModal({
                               <div className="flex gap-2">
                                 <Input 
                                   type="number" 
-                                  min="1"
+                                  min="0.01"
+                                  step="0.01"
                                   value={stockItemForm.quantity} 
-                                  onChange={(e) => setStockItemForm(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                                  onChange={(e) => setStockItemForm(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
                                   placeholder="Qtd"
                                   className="w-20 h-9"
                                 />

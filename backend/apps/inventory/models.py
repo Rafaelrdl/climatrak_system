@@ -10,8 +10,9 @@ Estrutura:
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
-from django.db import models
+from django.db import models, transaction
 
 
 class InventoryCategory(models.Model):
@@ -21,7 +22,7 @@ class InventoryCategory(models.Model):
     """
 
     name = models.CharField("Nome", max_length=255)
-    code = models.CharField("Código", max_length=50, blank=True, unique=True)
+    code = models.CharField("Código", max_length=50, blank=True, null=True, unique=True)
     description = models.TextField("Descrição", blank=True)
     parent = models.ForeignKey(
         "self",
@@ -45,6 +46,11 @@ class InventoryCategory(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.code == "":
+            self.code = None
+        super().save(*args, **kwargs)
 
     @property
     def item_count(self):
@@ -246,7 +252,7 @@ class InventoryMovement(models.Model):
         "Quantidade",
         max_digits=12,
         decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.01"))],
+        validators=[MinValueValidator(Decimal("0"))],
     )
     quantity_before = models.DecimalField(
         "Quantidade Anterior", max_digits=12, decimal_places=2
@@ -293,33 +299,38 @@ class InventoryMovement(models.Model):
         return f"{self.get_type_display()} - {self.item.code} ({self.quantity})"
 
     def save(self, *args, **kwargs):
-        # Registrar quantidade anterior
-        if not self.pk:
-            self.quantity_before = self.item.quantity
+        if self.pk:
+            return super().save(*args, **kwargs)
 
-            # Se unit_cost não foi informado, usar o custo do item
+        if self.type == self.MovementType.ADJUSTMENT and self.quantity < 0:
+            raise ValidationError({"quantity": "Quantidade nao pode ser negativa."})
+        if self.type != self.MovementType.ADJUSTMENT and self.quantity <= 0:
+            raise ValidationError({"quantity": "Quantidade deve ser maior que zero."})
+
+        # Transacao para evitar condicoes de corrida no saldo
+        with transaction.atomic():
+            item = InventoryItem.objects.select_for_update().get(pk=self.item_id)
+            self.quantity_before = item.quantity
+
             if self.unit_cost is None:
-                self.unit_cost = self.item.unit_cost
+                self.unit_cost = item.unit_cost
 
-            # Calcular quantidade depois
-            if (
-                self.type == self.MovementType.IN
-                or self.type == self.MovementType.RETURN
-            ):
+            if self.type in (self.MovementType.IN, self.MovementType.RETURN):
                 self.quantity_after = self.quantity_before + self.quantity
             elif self.type == self.MovementType.OUT:
                 self.quantity_after = self.quantity_before - self.quantity
             elif self.type == self.MovementType.ADJUSTMENT:
-                # Para ajuste, quantity representa o valor final
                 self.quantity_after = self.quantity
             else:
                 self.quantity_after = self.quantity_before
 
-            # Atualizar quantidade do item
-            self.item.quantity = self.quantity_after
-            self.item.save(update_fields=["quantity", "updated_at"])
+            if self.quantity_after < 0:
+                raise ValidationError({"quantity": "Saldo insuficiente em estoque."})
 
-        super().save(*args, **kwargs)
+            item.quantity = self.quantity_after
+            item.save(update_fields=["quantity", "updated_at"])
+
+            return super().save(*args, **kwargs)
 
     @property
     def total_value(self):

@@ -236,7 +236,7 @@ class WorkOrderItemSerializer(serializers.ModelSerializer):
     """Serializer para WorkOrderItem."""
 
     item_name = serializers.CharField(source="inventory_item.name", read_only=True)
-    item_sku = serializers.CharField(source="inventory_item.sku", read_only=True)
+    item_sku = serializers.CharField(source="inventory_item.code", read_only=True)
     unit = serializers.CharField(source="inventory_item.unit", read_only=True)
 
     class Meta:
@@ -347,7 +347,7 @@ class RequestItemSerializer(serializers.ModelSerializer):
     """Serializer para RequestItem."""
 
     item_name = serializers.CharField(source="inventory_item.name", read_only=True)
-    item_sku = serializers.CharField(source="inventory_item.sku", read_only=True)
+    item_sku = serializers.CharField(source="inventory_item.code", read_only=True)
     unit = serializers.CharField(source="inventory_item.unit", read_only=True)
 
     class Meta:

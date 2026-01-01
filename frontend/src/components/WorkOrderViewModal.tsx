@@ -108,6 +108,7 @@ export function WorkOrderViewModal({
 
   // Verificar se a OS está completa mas não tem custos postados
   const isCompleted = currentWorkOrder?.status === 'COMPLETED';
+  const isCancelled = currentWorkOrder?.status === 'CANCELLED';
   const hasCosts = costsSummary.total > 0;
   const needsPostCosts = isCompleted && !hasCosts && !isLoadingCosts && !isProcessingCosts;
 
@@ -554,7 +555,7 @@ export function WorkOrderViewModal({
                         {/* Botões de ação */}
                         <div className="flex flex-col gap-3">
                           {/* Botão de concluir OS (só se não estiver concluída) */}
-                          {!isCompleted && (
+                          {!isCompleted && !isCancelled && (
                             <div className="flex justify-center">
                               <Button
                                 variant="default"

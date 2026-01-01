@@ -4,7 +4,8 @@ Views para Inventory
 
 from decimal import Decimal, InvalidOperation
 
-from django.db.models import Count, F, Sum
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import Count, F, Q, Sum
 from django.utils import timezone
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
@@ -106,7 +107,11 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
             elif stock_status == "OUT_OF_STOCK":
                 queryset = queryset.filter(quantity__lte=0)
             elif stock_status == "OK":
-                queryset = queryset.filter(quantity__gte=F("min_quantity"))
+                queryset = queryset.filter(
+                    quantity__gt=0, quantity__gte=F("min_quantity")
+                ).filter(
+                    Q(max_quantity__isnull=True) | Q(quantity__lte=F("max_quantity"))
+                )
 
         return queryset
 
@@ -197,18 +202,28 @@ class InventoryItemViewSet(viewsets.ModelViewSet):
                 {"error": "Quantidade inválida"}, status=status.HTTP_400_BAD_REQUEST
             )
 
+        if new_quantity < 0:
+            return Response(
+                {"error": "Quantidade deve ser maior ou igual a 0"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         note = request.data.get("note", "Ajuste manual de estoque")
 
         # Criar movimentação de ajuste
-        movement = InventoryMovement.objects.create(
-            item=item,
-            type=InventoryMovement.MovementType.ADJUSTMENT,
-            reason=InventoryMovement.Reason.ADJUSTMENT,
-            quantity=new_quantity,  # Para ajuste, quantity é o valor final
-            unit_cost=item.unit_cost,
-            note=note,
-            performed_by=request.user,
-        )
+        try:
+            movement = InventoryMovement.objects.create(
+                item=item,
+                type=InventoryMovement.MovementType.ADJUSTMENT,
+                reason=InventoryMovement.Reason.ADJUSTMENT,
+                quantity=new_quantity,  # Para ajuste, quantity é o valor final
+                unit_cost=item.unit_cost,
+                note=note,
+                performed_by=request.user,
+            )
+        except DjangoValidationError as exc:
+            detail = exc.message_dict or {"error": exc.messages}
+            return Response(detail, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
             {
@@ -251,13 +266,32 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
             return InventoryMovementCreateSerializer
         return InventoryMovementSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(performed_by=self.request.user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            movement = serializer.save()
+        except DjangoValidationError as exc:
+            detail = exc.message_dict or {"error": exc.messages}
+            return Response(detail, status=status.HTTP_400_BAD_REQUEST)
+        output = InventoryMovementSerializer(movement)
+        return Response(output.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["get"])
     def summary(self, request):
         """Resumo de movimentações por período."""
-        days = int(request.query_params.get("days", 30))
+        try:
+            days = int(request.query_params.get("days", 30))
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "Parametro days invalido"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if days <= 0:
+            return Response(
+                {"error": "Parametro days deve ser maior que zero"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         start_date = timezone.now() - timezone.timedelta(days=days)
 
         movements = self.queryset.filter(created_at__gte=start_date)
@@ -282,7 +316,18 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def consumption_by_category(self, request):
         """Retorna consumo (saídas) agrupado por categoria no período."""
-        days = int(request.query_params.get("days", 90))
+        try:
+            days = int(request.query_params.get("days", 90))
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "Parametro days invalido"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if days <= 0:
+            return Response(
+                {"error": "Parametro days deve ser maior que zero"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         start_date = timezone.now() - timezone.timedelta(days=days)
 
         # Filtrar apenas saídas (OUT) no período
@@ -302,7 +347,7 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
             {
                 "category_id": item["item__category__id"],
                 "category_name": item["item__category__name"] or "Sem Categoria",
-                "total_consumed": int(item["total_consumed"])
+                "total_consumed": float(item["total_consumed"])
                 if item["total_consumed"]
                 else 0,
             }
@@ -315,8 +360,19 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def top_consumed_items(self, request):
         """Retorna os itens mais consumidos no período."""
-        days = int(request.query_params.get("days", 90))
-        limit = int(request.query_params.get("limit", 5))
+        try:
+            days = int(request.query_params.get("days", 90))
+            limit = int(request.query_params.get("limit", 5))
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "Parametros days/limit invalidos"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if days <= 0 or limit <= 0:
+            return Response(
+                {"error": "Parametros days/limit devem ser maiores que zero"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         start_date = timezone.now() - timezone.timedelta(days=days)
 
         # Filtrar apenas saídas (OUT) no período
@@ -345,7 +401,7 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
                 "item_sku": item["item__code"],
                 "item_unit": item["item__unit"],
                 "category_name": item["item__category__name"] or "Sem Categoria",
-                "total_consumed": int(item["total_consumed"])
+                "total_consumed": float(item["total_consumed"])
                 if item["total_consumed"]
                 else 0,
             }
@@ -540,6 +596,12 @@ class InventoryCountViewSet(viewsets.ModelViewSet):
         except (ValueError, InvalidOperation):
             return Response(
                 {"error": "Quantidade inválida"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if count_item.counted_quantity < 0:
+            return Response(
+                {"error": "Quantidade contada deve ser maior ou igual a 0"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         count_item.is_counted = True

@@ -227,7 +227,8 @@ export function WorkOrderList({
 
             const isSelected = selectedWorkOrderId === wo.id;
             const scheduledDateObj = wo.scheduledDate ? (wo.scheduledDate.includes('T') ? new Date(wo.scheduledDate) : parseLocalDate(wo.scheduledDate)) : null;
-            const isOverdue = scheduledDateObj && scheduledDateObj < new Date() && wo.status !== 'COMPLETED';
+            const isOverdue = scheduledDateObj && scheduledDateObj < new Date() &&
+              !['COMPLETED', 'CANCELLED'].includes(wo.status);
             const isToday = scheduledDateObj && scheduledDateObj.toDateString() === new Date().toDateString();
             
             // Format date Gmail style (show time if today, date if not)

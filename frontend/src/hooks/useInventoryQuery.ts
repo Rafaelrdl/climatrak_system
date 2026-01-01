@@ -26,6 +26,8 @@ import type { ApiInventoryItem, ApiInventoryCategory } from '@/types/api';
 export const inventoryKeys = {
   all: ['inventory'] as const,
   categories: () => [...inventoryKeys.all, 'categories'] as const,
+  categoriesList: (params?: { is_active?: boolean; parent?: number | null }) =>
+    [...inventoryKeys.categories(), 'list', params] as const,
   categoryTree: () => [...inventoryKeys.categories(), 'tree'] as const,
   category: (id: number) => [...inventoryKeys.categories(), id] as const,
   items: () => [...inventoryKeys.all, 'items'] as const,
@@ -39,6 +41,8 @@ export const inventoryKeys = {
   movementsList: (params?: InventoryMovementParams) => [...inventoryKeys.movements(), 'list', params] as const,
   movementsSummary: (days: number) => [...inventoryKeys.movements(), 'summary', days] as const,
   counts: () => [...inventoryKeys.all, 'counts'] as const,
+  countsList: (params?: { status?: string }) =>
+    [...inventoryKeys.counts(), 'list', params] as const,
   count: (id: number) => [...inventoryKeys.counts(), id] as const,
 };
 
@@ -48,7 +52,7 @@ export const inventoryKeys = {
 
 export function useInventoryCategories(params?: { is_active?: boolean; parent?: number | null }) {
   return useQuery({
-    queryKey: inventoryKeys.categories(),
+    queryKey: inventoryKeys.categoriesList(params),
     queryFn: () => inventoryCategoriesService.getAll(params),
     enabled: isUserAuthenticated(),
   });
@@ -270,7 +274,7 @@ export function useCreateInventoryMovement() {
 
 export function useInventoryCounts(params?: { status?: string }) {
   return useQuery({
-    queryKey: inventoryKeys.counts(),
+    queryKey: inventoryKeys.countsList(params),
     queryFn: () => inventoryCountsService.getAll(params),
     enabled: isUserAuthenticated(),
   });

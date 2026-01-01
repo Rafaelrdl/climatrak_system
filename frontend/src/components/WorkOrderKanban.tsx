@@ -393,6 +393,12 @@ export function WorkOrderKanban({
       status: 'COMPLETED' as const,
       workOrders: workOrders.filter(wo => wo.status === 'COMPLETED'),
     },
+    {
+      id: 'CANCELLED',
+      title: 'Canceladas',
+      status: 'CANCELLED' as const,
+      workOrders: workOrders.filter(wo => wo.status === 'CANCELLED'),
+    },
   ], [workOrders]);
 
   const activeWorkOrder = activeId 

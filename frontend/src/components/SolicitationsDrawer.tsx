@@ -6,13 +6,14 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, ArrowRight, PlayCircle, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, ArrowRight, PlayCircle, CheckCircle, XCircle } from 'lucide-react';
 import { StatusBadge } from '@/shared/ui';
 import { toast } from 'sonner';
 import { IfCan } from '@/components/auth/IfCan';
 import type { Solicitation, SolicitationItem, StockItem } from '@/types';
 // Helper functions para status de solicitação
-const canAdvanceStatus = (status: string) => status !== 'Convertida em OS';
+const canAdvanceStatus = (status: string) =>
+  status !== 'Convertida em OS' && status !== 'Rejeitada';
 const getNextStatus = (status: string) => {
   if (status === 'Nova') return 'Em triagem';
   if (status === 'Em triagem') return 'Convertida em OS';
@@ -144,6 +145,8 @@ export function SolicitationsDrawer({
         return <ArrowRight className="h-4 w-4" />;
       case 'Convertida em OS':
         return <CheckCircle className="h-4 w-4" />;
+      case 'Rejeitada':
+        return <XCircle className="h-4 w-4" />;
       default:
         return null;
     }

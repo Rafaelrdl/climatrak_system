@@ -113,8 +113,8 @@ export interface WorkOrder {
   id: string;
   number: string;
   equipmentId: string;
-  type: 'PREVENTIVE' | 'CORRECTIVE' | 'REQUEST';
-  status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED';
+  type: 'PREVENTIVE' | 'CORRECTIVE' | 'EMERGENCY' | 'REQUEST';
+  status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   scheduledDate: string;
   assignedTo?: string;
   assignedToName?: string;
@@ -282,7 +282,7 @@ export interface LocationCostAnalysis {
   }[];
 }
 
-export type SolicitationStatus = 'Nova' | 'Em triagem' | 'Convertida em OS';
+export type SolicitationStatus = 'Nova' | 'Em triagem' | 'Convertida em OS' | 'Rejeitada';
 
 export interface SolicitationItem {
   id: string;

@@ -7,6 +7,7 @@ import {
   ArrowRight, 
   PlayCircle, 
   CheckCircle,
+  XCircle,
   MapPin,
   Package,
   User,
@@ -35,6 +36,7 @@ export function SolicitationModal({
   }
 
   const isConverted = solicitation.status === 'Convertida em OS';
+  const isRejected = solicitation.status === 'Rejeitada';
 
   const getStatusIcon = (status: Solicitation['status']) => {
     switch (status) {
@@ -44,6 +46,8 @@ export function SolicitationModal({
         return <ArrowRight className="h-4 w-4" />;
       case 'Convertida em OS':
         return <CheckCircle className="h-4 w-4" />;
+      case 'Rejeitada':
+        return <XCircle className="h-4 w-4" />;
       default:
         return null;
     }
@@ -162,7 +166,7 @@ export function SolicitationModal({
           <Button variant="outline" onClick={onClose}>
             Fechar
           </Button>
-          {!isConverted && (
+          {!isConverted && !isRejected && (
             <Button onClick={handleConvert} className="gap-2">
               <ArrowRightCircle className="h-4 w-4" />
               Converter em OS

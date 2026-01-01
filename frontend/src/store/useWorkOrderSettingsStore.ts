@@ -48,6 +48,7 @@ const defaultStatuses: WorkOrderStatusConfig[] = [
 const defaultTypes: WorkOrderTypeConfig[] = [
   { id: 'PREVENTIVE', label: 'Preventiva', color: '#3b82f6', isDefault: true },
   { id: 'CORRECTIVE', label: 'Corretiva', color: '#ef4444', isDefault: true },
+  { id: 'EMERGENCY', label: 'Emergencia', color: '#f97316', isDefault: true },
   { id: 'REQUEST', label: 'Solicitação', color: '#8b5cf6', isDefault: true },
 ];
 

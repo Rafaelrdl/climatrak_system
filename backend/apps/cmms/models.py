@@ -1146,6 +1146,7 @@ class TimeEntry(models.Model):
 
 class PartUsage(models.Model):
     """
+
     Registro de peça/material utilizado em uma Ordem de Serviço.
 
     Pode ser linkado a um item de inventário (com baixa automática)
@@ -1157,6 +1158,9 @@ class PartUsage(models.Model):
     - docs/product/02-personas-e-historias.md (US-T2)
     - docs/finance/02-regras-negocio.md
     """
+    class Source(models.TextChoices):
+        MANUAL = "MANUAL", "Manual"
+        WORK_ORDER_ITEM = "WORK_ORDER_ITEM", "Item da OS"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
@@ -1232,6 +1236,13 @@ class PartUsage(models.Model):
         help_text="Referência à movimentação de inventário",
     )
 
+    source = models.CharField(
+        max_length=20,
+        choices=Source.choices,
+        default=Source.MANUAL,
+        verbose_name="Origem",
+    )
+
     # Metadados
     created_by = models.ForeignKey(
         User,
@@ -1278,12 +1289,8 @@ class PartUsage(models.Model):
 
     def save(self, *args, **kwargs):
         # Se linkado a inventário e sem custo, pegar do inventário
-        if self.inventory_item and not self.unit_cost:
-            if (
-                hasattr(self.inventory_item, "average_cost")
-                and self.inventory_item.average_cost
-            ):
-                self.unit_cost = self.inventory_item.average_cost
+        if self.inventory_item and self.unit_cost is None:
+            self.unit_cost = self.inventory_item.unit_cost
 
         # Se linkado a inventário, preencher nome automaticamente
         if self.inventory_item and not self.part_name:

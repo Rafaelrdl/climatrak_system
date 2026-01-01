@@ -236,8 +236,9 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
                 id="edit-min-qty"
                 type="number"
                 min="0"
+                step="0.01"
                 value={formData.min_quantity}
-                onChange={(e) => setFormData(prev => ({ ...prev, min_quantity: parseInt(e.target.value) || 0 }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, min_quantity: parseFloat(e.target.value) || 0 }))}
                 required
               />
             </div>
@@ -249,8 +250,9 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
                 id="edit-max-qty"
                 type="number"
                 min="0"
+                step="0.01"
                 value={formData.max_quantity || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, max_quantity: e.target.value ? parseInt(e.target.value) : undefined }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, max_quantity: e.target.value ? parseFloat(e.target.value) : undefined }))}
                 placeholder="Opcional"
               />
             </div>

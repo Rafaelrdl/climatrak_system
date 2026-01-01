@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader, StatusBadge } from '@/shared/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import type { Solicitation } from '@/types';
 export function RequestsPage() {
   // React Query hooks
   const { data: solicitations = [], isLoading, error } = useSolicitations();
+  const navigate = useNavigate();
   
   // Mutations
   const convertMutation = useConvertSolicitationToWorkOrder();
@@ -45,15 +47,18 @@ export function RequestsPage() {
         scheduled_date: new Date().toISOString().split('T')[0],
       }
     }, {
-      onSuccess: (workOrder) => {
+      onSuccess: ({ work_order_id, work_order_number }) => {
         setSelectedSolicitation(null);
-        toast.success('Solicitação convertida em OS com sucesso!', {
-          description: `Ordem de serviço ${workOrder.number} criada.`,
+        const workOrderPath = work_order_id
+          ? `/cmms/work-orders/${work_order_id}`
+          : '/cmms/work-orders';
+
+        toast.success('Solicitacao convertida em OS com sucesso!', {
+          description: `Ordem de servico ${work_order_number} criada.`,
           action: {
             label: 'Ver OS',
             onClick: () => {
-              // Navigate to work orders page
-              window.location.href = '/work-orders';
+              navigate(workOrderPath);
             }
           }
         });
@@ -79,6 +84,10 @@ export function RequestsPage() {
       toast.info('Esta solicitação já foi convertida em OS.');
       return;
     }
+    if (solicitation.status === 'Rejeitada') {
+      toast.info('Esta solicitacao foi rejeitada e nao pode ser convertida.');
+      return;
+    }
     handleConvertToWorkOrder(solicitation);
   };
 
@@ -100,7 +109,8 @@ export function RequestsPage() {
     total: filteredSolicitations.length,
     nova: filteredSolicitations.filter(s => s.status === 'Nova').length,
     triagem: filteredSolicitations.filter(s => s.status === 'Em triagem').length,
-    convertida: filteredSolicitations.filter(s => s.status === 'Convertida em OS').length
+    convertida: filteredSolicitations.filter(s => s.status === 'Convertida em OS').length,
+    rejeitada: filteredSolicitations.filter(s => s.status === 'Rejeitada').length
   };
 
   // Show total vs filtered count
@@ -117,7 +127,7 @@ export function RequestsPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
@@ -169,6 +179,20 @@ export function RequestsPage() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Convertidas</p>
                 <div className="text-2xl font-bold text-green-600">{stats.convertida}</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
+                <span className="text-red-600 font-bold text-sm">{stats.rejeitada}</span>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Rejeitadas</p>
+                <div className="text-2xl font-bold text-red-600">{stats.rejeitada}</div>
               </div>
             </div>
           </CardContent>
@@ -317,16 +341,18 @@ export function RequestsPage() {
                                   size="icon"
                                   className="h-8 w-8 text-primary hover:text-primary"
                                   onClick={(e) => handleConvertClick(solicitation, e)}
-                                  disabled={solicitation.status === 'Convertida em OS'}
+                                  disabled={solicitation.status === 'Convertida em OS' || solicitation.status === 'Rejeitada'}
                                 >
                                   <ArrowRightCircle className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p>
-                                  {solicitation.status === 'Convertida em OS' 
-                                    ? 'Já convertida em OS' 
-                                    : 'Converter em Ordem de Serviço'}
+                                  {solicitation.status === 'Convertida em OS'
+                                    ? 'Ja convertida em OS'
+                                    : solicitation.status === 'Rejeitada'
+                                      ? 'Solicitacao rejeitada'
+                                      : 'Converter em Ordem de Servico'}
                                 </p>
                               </TooltipContent>
                             </Tooltip>

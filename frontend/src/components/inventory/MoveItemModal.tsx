@@ -19,14 +19,26 @@ interface MoveItemModalProps {
 }
 
 type MovementType = 'IN' | 'OUT';
-type ReasonType = 'PURCHASE' | 'RETURN' | 'ADJUSTMENT' | 'WORK_ORDER' | 'TRANSFER' | 'OTHER';
+type ReasonType =
+  | 'PURCHASE'
+  | 'RETURN_STOCK'
+  | 'RETURN_SUPPLIER'
+  | 'ADJUSTMENT'
+  | 'WORK_ORDER'
+  | 'TRANSFER'
+  | 'DAMAGE'
+  | 'EXPIRY'
+  | 'OTHER';
 
 const reasonLabels: Record<ReasonType, string> = {
   PURCHASE: 'Compra/Recebimento',
-  RETURN: 'Devolução',
+  RETURN_STOCK: 'Retorno ao Estoque',
+  RETURN_SUPPLIER: 'Devolucao ao Fornecedor',
   ADJUSTMENT: 'Ajuste de Estoque',
-  WORK_ORDER: 'Ordem de Serviço',
-  TRANSFER: 'Transferência',
+  WORK_ORDER: 'Ordem de Servico',
+  TRANSFER: 'Transferencia',
+  DAMAGE: 'Avaria',
+  EXPIRY: 'Vencimento',
   OTHER: 'Outro',
 };
 
@@ -194,10 +206,14 @@ export function MoveItemModal({ item, open, onOpenChange, onItemMoved }: MoveIte
             <Input
               id="move-qty"
               type="number"
-              min="1"
+              min="0.01"
+              step="0.01"
               max={formData.type === 'OUT' ? currentQty : undefined}
               value={formData.quantity}
-              onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                setFormData(prev => ({ ...prev, quantity: Number.isFinite(value) ? value : 0 }));
+              }}
               required
               className={isInsufficientStock ? 'border-destructive' : ''}
             />

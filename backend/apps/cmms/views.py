@@ -6,8 +6,11 @@ import logging
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -19,6 +22,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 logger = logging.getLogger(__name__)
 
 from apps.inventory.models import InventoryMovement
+from apps.accounts.permissions import RoleBasedPermission
 
 from .models import (
     ChecklistCategory,
@@ -31,6 +35,7 @@ from .models import (
     ProcedureCategory,
     ProcedureVersion,
     Request,
+    RequestItem,
     TimeEntry,
     WorkOrder,
     WorkOrderItem,
@@ -71,12 +76,40 @@ from .serializers import (
 )
 
 
+class ActionRolePermissionMixin:
+    """Define permissões por ação usando RoleBasedPermission."""
+
+    action_roles = {}
+
+    def get_permissions(self):
+        roles = self.action_roles.get(self.action)
+        if roles is None:
+            roles = RoleBasedPermission.ALL_ROLES
+        self.required_roles = roles
+        return [permission() for permission in self.permission_classes]
+
+
 class ChecklistCategoryViewSet(viewsets.ModelViewSet):
     """ViewSet para categorias de checklist."""
 
     queryset = ChecklistCategory.objects.all()
     serializer_class = ChecklistCategorySerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
+    action_roles = {
+        "create": ["owner", "admin", "operator"],
+        "update": ["owner", "admin", "operator", "technician"],
+        "partial_update": ["owner", "admin", "operator", "technician"],
+        "destroy": ["owner", "admin", "operator"],
+        "start": ["owner", "admin", "operator", "technician"],
+        "complete": ["owner", "admin", "operator", "technician"],
+        "cancel": ["owner", "admin", "operator"],
+        "photos": ["owner", "admin", "operator", "technician"],
+        "delete_photo": ["owner", "admin", "operator", "technician"],
+        "add_item": ["owner", "admin", "operator", "technician"],
+        "delete_item": ["owner", "admin", "operator", "technician"],
+        "close_with_event": ["owner", "admin", "operator"],
+        "post_costs": ["owner", "admin", "operator"],
+    }
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["name", "description"]
     ordering_fields = ["name", "created_at"]
@@ -96,7 +129,16 @@ class ChecklistTemplateViewSet(viewsets.ModelViewSet):
     """ViewSet para templates de checklist."""
 
     queryset = ChecklistTemplate.objects.select_related("category", "created_by")
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
+    action_roles = {
+        "create": ["owner", "admin", "operator", "technician", "requester"],
+        "update": ["owner", "admin", "operator", "technician", "requester"],
+        "partial_update": ["owner", "admin", "operator", "technician", "requester"],
+        "destroy": ["owner", "admin", "operator"],
+        "convert": ["owner", "admin", "operator"],
+        "add_item": ["owner", "admin", "operator", "technician", "requester"],
+        "remove_item": ["owner", "admin", "operator", "technician", "requester"],
+    }
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -194,6 +236,7 @@ class ChecklistTemplateViewSet(viewsets.ModelViewSet):
         checklist.increment_usage()
 
         return Response({"usage_count": checklist.usage_count})
+
 
 
 class WorkOrderViewSet(viewsets.ModelViewSet):
@@ -322,6 +365,7 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                             quantity=wo_item.quantity,
                             unit=wo_item.inventory_item.unit,
                             unit_cost=wo_item.inventory_item.unit_cost,
+                            source=PartUsage.Source.WORK_ORDER_ITEM,
                         )
                         items_converted += 1
                 if items_converted > 0:
@@ -489,6 +533,7 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                             quantity=wo_item.quantity,
                             unit=wo_item.inventory_item.unit,
                             unit_cost=wo_item.inventory_item.unit_cost,
+                            source=PartUsage.Source.WORK_ORDER_ITEM,
                         )
                         items_converted += 1
                 if items_converted > 0:
@@ -580,23 +625,50 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="items")
     def add_item(self, request, pk=None):
-        """Adiciona item de estoque à OS e registra saída do estoque."""
+        """Adiciona item de estoque a OS e registra saida do estoque."""
         work_order = self.get_object()
 
         serializer = WorkOrderItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        work_order_item = serializer.save(work_order=work_order)
 
-        # Registrar saída no estoque
-        InventoryMovement.objects.create(
-            item=work_order_item.inventory_item,
-            type=InventoryMovement.MovementType.OUT,
-            reason=InventoryMovement.Reason.WORK_ORDER,
-            quantity=work_order_item.quantity,
-            work_order=work_order,
-            reference=f"OS {work_order.number}",
-            performed_by=request.user,
-        )
+        try:
+            with transaction.atomic():
+                work_order_item = serializer.save(work_order=work_order)
+
+                movement = InventoryMovement.objects.create(
+                    item=work_order_item.inventory_item,
+                    type=InventoryMovement.MovementType.OUT,
+                    reason=InventoryMovement.Reason.WORK_ORDER,
+                    quantity=work_order_item.quantity,
+                    work_order=work_order,
+                    reference=f"OS {work_order.number}",
+                    performed_by=request.user,
+                )
+
+                part_usage, _ = PartUsage.objects.get_or_create(
+                    work_order=work_order,
+                    inventory_item=work_order_item.inventory_item,
+                    defaults={
+                        "quantity": work_order_item.quantity,
+                        "unit": work_order_item.inventory_item.unit,
+                        "unit_cost": work_order_item.inventory_item.unit_cost,
+                        "description": "Item da OS",
+                        "created_by": request.user,
+                        "source": PartUsage.Source.WORK_ORDER_ITEM,
+                    },
+                )
+
+                part_usage.quantity = work_order_item.quantity
+                part_usage.unit = work_order_item.inventory_item.unit
+                if part_usage.unit_cost is None:
+                    part_usage.unit_cost = work_order_item.inventory_item.unit_cost
+                part_usage.inventory_deducted = True
+                part_usage.inventory_movement_id = movement.id
+                part_usage.source = PartUsage.Source.WORK_ORDER_ITEM
+                part_usage.save()
+        except DjangoValidationError as exc:
+            detail = exc.message_dict or {"error": exc.messages}
+            return Response(detail, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -606,27 +678,36 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
         work_order = self.get_object()
 
         try:
-            work_order_item = WorkOrderItem.objects.get(
-                id=item_id, work_order=work_order
-            )
+            with transaction.atomic():
+                work_order_item = WorkOrderItem.objects.get(
+                    id=item_id, work_order=work_order
+                )
 
-            # Registrar devolução ao estoque
-            InventoryMovement.objects.create(
-                item=work_order_item.inventory_item,
-                type=InventoryMovement.MovementType.RETURN,
-                reason=InventoryMovement.Reason.RETURN_STOCK,
-                quantity=work_order_item.quantity,
-                work_order=work_order,
-                reference=f"Devolução OS {work_order.number}",
-                performed_by=request.user,
-            )
+                InventoryMovement.objects.create(
+                    item=work_order_item.inventory_item,
+                    type=InventoryMovement.MovementType.RETURN,
+                    reason=InventoryMovement.Reason.RETURN_STOCK,
+                    quantity=work_order_item.quantity,
+                    work_order=work_order,
+                    reference=f"Devolucao OS {work_order.number}",
+                    performed_by=request.user,
+                )
 
-            work_order_item.delete()
+                PartUsage.objects.filter(
+                    work_order=work_order,
+                    inventory_item=work_order_item.inventory_item,
+                    source=PartUsage.Source.WORK_ORDER_ITEM,
+                ).delete()
+
+                work_order_item.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except WorkOrderItem.DoesNotExist:
             return Response(
-                {"error": "Item não encontrado"}, status=status.HTTP_404_NOT_FOUND
+                {"error": "Item nao encontrado"}, status=status.HTTP_404_NOT_FOUND
             )
+        except DjangoValidationError as exc:
+            detail = exc.message_dict or {"error": exc.messages}
+            return Response(detail, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=["post"], url_path="close")
     def close_with_event(self, request, pk=None):
@@ -842,6 +923,7 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                         unit_cost=unit_cost,
                         description=f"Material registrado automaticamente (OS {work_order.number})",
                         created_by=request.user,
+                        source=PartUsage.Source.WORK_ORDER_ITEM,
                     )
                     created_entries.append(
                         f"PartUsage: {item.quantity} {part_usage.unit} de {part_usage.part_name}"
@@ -938,7 +1020,7 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class RequestViewSet(viewsets.ModelViewSet):
+class RequestViewSet(ActionRolePermissionMixin, viewsets.ModelViewSet):
     """ViewSet para Solicitações."""
 
     queryset = Request.objects.select_related(
@@ -961,6 +1043,27 @@ class RequestViewSet(viewsets.ModelViewSet):
     ordering_fields = ["number", "status", "created_at"]
     ordering = ["-created_at"]
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        location = self.request.query_params.get("location")
+        created_from = self.request.query_params.get("created_from")
+        created_to = self.request.query_params.get("created_to")
+
+        if location:
+            queryset = queryset.filter(Q(sector_id=location) | Q(subsection_id=location))
+
+        if created_from:
+            parsed_date = parse_date(created_from)
+            if parsed_date:
+                queryset = queryset.filter(created_at__date__gte=parsed_date)
+
+        if created_to:
+            parsed_date = parse_date(created_to)
+            if parsed_date:
+                queryset = queryset.filter(created_at__date__lte=parsed_date)
+
+        return queryset
+
     def get_serializer_class(self):
         if self.action == "list":
             return RequestListSerializer
@@ -968,6 +1071,35 @@ class RequestViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(requester=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        """Override update para registrar histÓrico de status."""
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        old_status = instance.status
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        new_status = serializer.instance.status
+        if new_status != old_status:
+            status_history = list(serializer.instance.status_history or [])
+            status_history.append(
+                {
+                    "from_status": old_status,
+                    "to_status": new_status,
+                    "changed_at": timezone.now().isoformat(),
+                    "changed_by": request.user.id if request.user else None,
+                    "changed_by_name": request.user.get_full_name()
+                    if request.user
+                    else None,
+                }
+            )
+            serializer.instance.status_history = status_history
+            serializer.instance.save(update_fields=["status_history", "updated_at"])
+
+        return Response(self.get_serializer(serializer.instance).data)
 
     @action(detail=True, methods=["post"])
     def convert(self, request, pk=None):
@@ -1571,36 +1703,59 @@ class PartUsageViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def deduct_inventory(self, request, pk=None):
         """
-        Realiza baixa no inventário para este uso de peça.
+        Realiza baixa no inventario para este uso de peca.
 
-        Apenas para peças linkadas a item de inventário e
-        que ainda não tiveram baixa realizada.
+        Apenas para pecas linkadas a item de inventario e
+        que ainda nao tiveram baixa realizada.
         """
         part_usage = self.get_object()
 
         if not part_usage.inventory_item:
             return Response(
-                {"error": "Esta peça não está linkada ao inventário."},
+                {"error": "Esta peca nao esta linkada ao inventario."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if part_usage.inventory_deducted:
             return Response(
-                {"error": "Baixa já foi realizada para esta peça."},
+                {"error": "Baixa ja foi realizada para esta peca."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Aqui integraria com o serviço de inventário
-        # Por enquanto, apenas marca como baixado
-        # TODO: Integrar com InventoryMovement
+        if part_usage.unit_cost is None:
+            part_usage.unit_cost = part_usage.inventory_item.unit_cost
 
-        part_usage.inventory_deducted = True
-        part_usage.save(update_fields=["inventory_deducted", "updated_at"])
+        try:
+            with transaction.atomic():
+                movement = InventoryMovement.objects.create(
+                    item=part_usage.inventory_item,
+                    type=InventoryMovement.MovementType.OUT,
+                    reason=InventoryMovement.Reason.WORK_ORDER,
+                    quantity=part_usage.quantity,
+                    unit_cost=part_usage.unit_cost,
+                    work_order=part_usage.work_order,
+                    reference=f"OS {part_usage.work_order.number}",
+                    performed_by=request.user,
+                )
+
+                part_usage.inventory_deducted = True
+                part_usage.inventory_movement_id = movement.id
+                part_usage.save(
+                    update_fields=[
+                        "inventory_deducted",
+                        "inventory_movement_id",
+                        "unit_cost",
+                        "updated_at",
+                    ]
+                )
+        except DjangoValidationError as exc:
+            detail = exc.message_dict or {"error": exc.messages}
+            return Response(detail, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
             {
                 "status": "success",
-                "message": "Baixa no inventário registrada com sucesso.",
+                "message": "Baixa no inventario registrada com sucesso.",
             }
         )
 

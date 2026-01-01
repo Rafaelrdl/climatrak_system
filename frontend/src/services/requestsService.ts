@@ -50,6 +50,21 @@ export interface ConvertToWorkOrderData {
 // Mappers
 // ============================================
 
+const mapStatus = (status: ApiRequest['status']): Solicitation['status'] => {
+  switch (status) {
+    case 'NEW':
+      return 'Nova';
+    case 'TRIAGING':
+      return 'Em triagem';
+    case 'CONVERTED':
+      return 'Convertida em OS';
+    case 'REJECTED':
+      return 'Rejeitada';
+    default:
+      return 'Nova';
+  }
+};
+
 const mapRequest = (req: ApiRequest): Solicitation => ({
   id: String(req.id),
   location_id: req.subsection ? String(req.subsection) : String(req.sector),
@@ -58,23 +73,24 @@ const mapRequest = (req: ApiRequest): Solicitation => ({
   equipment_name: req.asset_name || '',
   requester_user_id: String(req.requester),
   requester_user_name: req.requester_name,
-  status: req.status === 'NEW' ? 'Nova' :
-          req.status === 'TRIAGING' ? 'Em triagem' :
-          req.status === 'CONVERTED' ? 'Convertida em OS' : 'Nova',
+  status: mapStatus(req.status),
   note: req.note,
   items: req.items?.map((i): SolicitationItem => ({
     id: String(i.id),
-    stock_item_id: String(i.item),
+    stock_item_id: String(i.inventory_item),
     stock_item_name: i.item_name,
     unit: i.unit,
     qty: i.quantity,
   })) || [],
   status_history: req.status_history?.map((h): SolicitationStatusHistory => ({
     from: h.from_status === 'NEW' ? 'Nova' :
-          h.from_status === 'TRIAGING' ? 'Em triagem' : undefined,
+          h.from_status === 'TRIAGING' ? 'Em triagem' :
+          h.from_status === 'CONVERTED' ? 'Convertida em OS' :
+          h.from_status === 'REJECTED' ? 'Rejeitada' : undefined,
     to: h.to_status === 'NEW' ? 'Nova' :
         h.to_status === 'TRIAGING' ? 'Em triagem' :
-        h.to_status === 'CONVERTED' ? 'Convertida em OS' : 'Nova',
+        h.to_status === 'CONVERTED' ? 'Convertida em OS' :
+        h.to_status === 'REJECTED' ? 'Rejeitada' : 'Nova',
     at: h.changed_at,
   })) || [],
   created_at: req.created_at,
@@ -125,7 +141,7 @@ export const requestsService = {
       asset: data.equipment_id ? Number(data.equipment_id) : null,
       note: data.note,
       items: data.items?.map(i => ({
-        item: Number(i.stock_item_id),
+        inventory_item: Number(i.stock_item_id),
         quantity: i.qty,
       })),
     };
@@ -150,7 +166,6 @@ export const requestsService = {
     work_order_number: string;
   }> {
     const payload = {
-      type: data.type,
       priority: data.priority,
       scheduled_date: data.scheduled_date,
       assigned_to: data.assigned_to ? Number(data.assigned_to) : null,
@@ -176,18 +191,18 @@ export const requestsService = {
   async addItem(requestId: string, itemId: string, quantity: number): Promise<SolicitationItem> {
     const response = await api.post<{
       id: number;
-      item: number;
+      inventory_item: number;
       item_name: string;
       quantity: number;
       unit: string;
     }>(`/cmms/requests/${requestId}/items/`, {
-      item: Number(itemId),
+      inventory_item: Number(itemId),
       quantity,
     });
     
     return {
       id: String(response.data.id),
-      stock_item_id: String(response.data.item),
+      stock_item_id: String(response.data.inventory_item),
       stock_item_name: response.data.item_name,
       qty: response.data.quantity,
       unit: response.data.unit,

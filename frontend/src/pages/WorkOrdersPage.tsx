@@ -135,7 +135,8 @@ export function WorkOrdersPage() {
       id, 
       data: { 
         checklist_responses: checklist.map(item => ({
-          question_id: item.id,
+          item_id: item.id,
+          question: item.question,
           response: item.response,
           observations: item.observations
         }))
@@ -254,6 +255,7 @@ export function WorkOrdersPage() {
                   <SelectItem value="OPEN">Abertas</SelectItem>
                   <SelectItem value="IN_PROGRESS">Em Execução</SelectItem>
                   <SelectItem value="COMPLETED">Concluídas</SelectItem>
+                  <SelectItem value="CANCELLED">Canceladas</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={originFilter} onValueChange={setOriginFilter}>

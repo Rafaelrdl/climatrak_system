@@ -257,7 +257,7 @@ export interface ApiPhoto {
  */
 export interface ApiWorkOrderItem {
   id: number;
-  item: number;
+  inventory_item: number;
   item_name: string;
   item_sku: string;
   quantity: number;
@@ -307,7 +307,7 @@ export interface ApiWorkOrder {
  */
 export interface ApiRequestItem {
   id: number;
-  item: number;
+  inventory_item: number;
   item_name: string;
   item_sku: string;
   quantity: number;
@@ -344,7 +344,7 @@ export interface ApiRequest {
   note: string;
   items: ApiRequestItem[];
   status_history: ApiStatusChange[];
-  work_order: number | null;
+  work_order_id?: number | null;
   work_order_number: string | null;
   created_at: string;
   updated_at: string;
@@ -789,77 +789,3 @@ export interface ApiHelpProgress {
   liked: boolean;
 }
 
-// ============================================================================
-// INVENTORY TYPES
-// ============================================================================
-
-/**
- * Inventory Category
- * Corresponde ao model InventoryCategory em apps/inventory/models.py
- */
-export interface ApiInventoryCategory {
-  id: number;
-  name: string;
-  code: string | null;
-  description: string;
-  parent: number | null;
-  parent_name: string | null;
-  is_active: boolean;
-  children: ApiInventoryCategory[];
-  items_count: number;
-  created_at: string;
-  updated_at: string;
-}
-
-/**
- * Inventory Item
- * Corresponde ao model InventoryItem em apps/inventory/models.py
- */
-export interface ApiInventoryItem {
-  id: number;
-  code: string;
-  name: string;
-  description: string;
-  category: number;
-  category_name: string;
-  unit: string;
-  quantity: number;
-  minimum_quantity: number;
-  unit_cost: number;
-  total_cost: number;
-  is_active: boolean;
-  location: string;
-  supplier: string;
-  notes: string;
-  created_at: string;
-  updated_at: string;
-}
-
-/**
- * Inventory Movement
- * Corresponde ao model InventoryMovement em apps/inventory/models.py
- */
-export interface ApiInventoryMovement {
-  id: number;
-  type: 'IN' | 'OUT' | 'ADJUSTMENT' | 'TRANSFER' | 'RETURN';
-  type_display: string;
-  reason: string;
-  reason_display: string;
-  item: number;
-  item_name: string;
-  item_code: string;
-  quantity: number;
-  quantity_before: number;
-  quantity_after: number;
-  unit_cost: number | null;
-  total_cost: number | null;
-  total_value: number | null;
-  work_order: number | null;
-  work_order_number: string | null;
-  reference: string;
-  invoice_number: string;
-  note: string;
-  performed_by: number;
-  performed_by_name: string;
-  created_at: string;
-}

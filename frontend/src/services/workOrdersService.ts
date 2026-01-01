@@ -17,7 +17,7 @@
 
 import { api } from '@/lib/api';
 import type { WorkOrder, ChecklistResponse, UploadedPhoto, WorkOrderStockItem } from '@/types';
-import type { ApiWorkOrder, PaginatedResponse } from '@/types/api';
+import type { ApiChecklistResponse, ApiWorkOrder, PaginatedResponse } from '@/types/api';
 
 // ============================================
 // Helpers
@@ -52,7 +52,7 @@ const normalizeFileUrl = (url: string | undefined | null): string => {
 
 export interface WorkOrderFilters {
   status?: ('OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED')[];
-  type?: ('PREVENTIVE' | 'CORRECTIVE' | 'EMERGENCY')[];
+  type?: ('PREVENTIVE' | 'CORRECTIVE' | 'EMERGENCY' | 'REQUEST')[];
   priority?: ('LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL')[];
   asset?: string;
   assigned_to?: string;
@@ -65,9 +65,9 @@ export interface WorkOrderFilters {
 }
 
 export interface CompleteWorkOrderData {
-  execution_description: string;
-  actual_hours: number;
-  checklist_responses?: ChecklistResponse[];
+  execution_description?: string;
+  actual_hours?: number;
+  checklist_responses?: ApiChecklistResponse[];
 }
 
 export interface WorkOrderStats {
@@ -80,6 +80,7 @@ export interface WorkOrderStats {
     preventive: number;
     corrective: number;
     emergency: number;
+    request?: number;
   };
   by_priority: {
     low: number;
@@ -101,7 +102,7 @@ const mapStatus = (status: ApiWorkOrder['status']): WorkOrder['status'] => {
     'OPEN': 'OPEN',
     'IN_PROGRESS': 'IN_PROGRESS',
     'COMPLETED': 'COMPLETED',
-    'CANCELLED': 'OPEN', // Cancelled não existe no frontend, mapear para OPEN
+    'CANCELLED': 'CANCELLED',
   };
   return mapping[status] || 'OPEN';
 };
@@ -112,7 +113,8 @@ const mapStatus = (status: ApiWorkOrder['status']): WorkOrder['status'] => {
 const mapType = (type: ApiWorkOrder['type']): WorkOrder['type'] => {
   if (type === 'REQUEST') return 'REQUEST';
   if (type === 'PREVENTIVE') return 'PREVENTIVE';
-  return 'CORRECTIVE'; // CORRECTIVE e EMERGENCY viram CORRECTIVE
+  if (type === 'EMERGENCY') return 'EMERGENCY';
+  return 'CORRECTIVE';
 };
 
 /**

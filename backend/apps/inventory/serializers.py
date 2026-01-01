@@ -225,7 +225,7 @@ class InventoryMovementCreateSerializer(serializers.Serializer):
     type = serializers.ChoiceField(choices=InventoryMovement.MovementType.choices)
     reason = serializers.ChoiceField(choices=InventoryMovement.Reason.choices)
     quantity = serializers.DecimalField(
-        max_digits=12, decimal_places=2, min_value=Decimal("0.01")
+        max_digits=12, decimal_places=2, min_value=Decimal("0")
     )
     unit_cost = serializers.DecimalField(
         max_digits=12, decimal_places=2, required=False, allow_null=True
@@ -237,16 +237,39 @@ class InventoryMovementCreateSerializer(serializers.Serializer):
     )
     note = serializers.CharField(required=False, allow_blank=True)
 
+    def validate(self, attrs):
+        movement_type = attrs.get("type")
+        quantity = attrs.get("quantity")
+        work_order_id = attrs.get("work_order_id")
+
+        if movement_type == InventoryMovement.MovementType.ADJUSTMENT:
+            if quantity is not None and quantity < 0:
+                raise serializers.ValidationError(
+                    {"quantity": "Quantidade nao pode ser negativa."}
+                )
+        else:
+            if quantity is not None and quantity <= 0:
+                raise serializers.ValidationError(
+                    {"quantity": "Quantidade deve ser maior que zero."}
+                )
+
+        if work_order_id:
+            from apps.cmms.models import WorkOrder
+
+            if not WorkOrder.objects.filter(id=work_order_id).exists():
+                raise serializers.ValidationError(
+                    {"work_order_id": "Ordem de servico nao encontrada."}
+                )
+
+        return attrs
+
     def create(self, validated_data):
         # Converter work_order_id para work_order se fornecido
         work_order_id = validated_data.pop("work_order_id", None)
         if work_order_id:
-            try:
-                from apps.cmms.models import WorkOrder
+            from apps.cmms.models import WorkOrder
 
-                validated_data["work_order"] = WorkOrder.objects.get(id=work_order_id)
-            except Exception:
-                pass
+            validated_data["work_order"] = WorkOrder.objects.get(id=work_order_id)
 
         validated_data["performed_by"] = self.context["request"].user
         return InventoryMovement.objects.create(**validated_data)

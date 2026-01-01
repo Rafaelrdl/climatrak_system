@@ -237,8 +237,9 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
                 id="quantity"
                 type="number"
                 min="0"
+                step="0.01"
                 value={formData.quantity}
-                onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 0 }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
               />
             </div>
 
@@ -249,8 +250,9 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
                 id="min-qty"
                 type="number"
                 min="0"
+                step="0.01"
                 value={formData.min_quantity}
-                onChange={(e) => setFormData(prev => ({ ...prev, min_quantity: parseInt(e.target.value) || 0 }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, min_quantity: parseFloat(e.target.value) || 0 }))}
                 required
               />
             </div>
@@ -262,8 +264,9 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
                 id="max-qty"
                 type="number"
                 min="0"
+                step="0.01"
                 value={formData.max_quantity || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, max_quantity: e.target.value ? parseInt(e.target.value) : undefined }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, max_quantity: e.target.value ? parseFloat(e.target.value) : undefined }))}
                 placeholder="Opcional"
               />
             </div>

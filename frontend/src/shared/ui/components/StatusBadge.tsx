@@ -10,7 +10,6 @@
  * <StatusBadge status="online" type="connection" />
  * ```
  */
-
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { type VariantProps } from 'class-variance-authority';
@@ -26,7 +25,6 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { ReactNode } from 'react';
-
 const statusTokenClasses = {
   info: 'bg-[color:var(--status-info-bg)] text-[color:var(--status-info-fg)] border-[color:var(--status-info-border)]',
   warning: 'bg-[color:var(--status-warning-bg)] text-[color:var(--status-warning-fg)] border-[color:var(--status-warning-border)]',
@@ -36,7 +34,6 @@ const statusTokenClasses = {
   neutralMuted: 'bg-[color:var(--status-neutral-bg)] text-[color:var(--status-neutral-muted-fg)] border-[color:var(--status-neutral-border)]',
   accent: 'bg-[color:var(--status-accent-bg)] text-[color:var(--status-accent-fg)] border-[color:var(--status-accent-border)]',
 };
-
 // Configuração de status por categoria
 const statusConfigs = {
   // Status de Ordem de Serviço
@@ -72,7 +69,6 @@ const statusConfigs = {
       className: statusTokenClasses.danger
     },
   },
-
   // Status de Equipamento/Ativo
   equipment: {
     OK: {
@@ -106,7 +102,6 @@ const statusConfigs = {
       className: statusTokenClasses.neutral
     },
   },
-
   // Níveis de Prioridade
   priority: {
     LOW: { 
@@ -134,7 +129,6 @@ const statusConfigs = {
       className: statusTokenClasses.danger
     },
   },
-
   // Tipos de Manutenção
   maintenanceType: {
     PREVENTIVE: { 
@@ -149,6 +143,18 @@ const statusConfigs = {
       icon: Wrench,
       className: statusTokenClasses.warning
     },
+    EMERGENCY: {
+      label: 'Emergencia',
+      variant: 'destructive' as const,
+      icon: AlertTriangle,
+      className: statusTokenClasses.danger
+    },
+    REQUEST: {
+      label: 'Solicitacao',
+      variant: 'outline' as const,
+      icon: AlertCircle,
+      className: statusTokenClasses.accent
+    },
     PREDICTIVE: { 
       label: 'Preditiva', 
       variant: 'outline' as const, 
@@ -156,7 +162,6 @@ const statusConfigs = {
       className: statusTokenClasses.accent
     },
   },
-
   // Status de Solicitação
   request: {
     'Nova': { 
@@ -177,8 +182,13 @@ const statusConfigs = {
       icon: CheckCircle2,
       className: statusTokenClasses.success
     },
+    'Rejeitada': {
+      label: 'Rejeitada',
+      variant: 'destructive' as const,
+      icon: XCircle,
+      className: statusTokenClasses.danger
+    },
   },
-
   // Status de Alerta (TrakSense Monitor)
   alert: {
     ACTIVE: { 
@@ -200,7 +210,6 @@ const statusConfigs = {
       className: statusTokenClasses.success
     },
   },
-
   // Status de Conexão (TrakSense Monitor)
   connection: {
     ONLINE: { 
@@ -223,11 +232,9 @@ const statusConfigs = {
     },
   },
 } as const;
-
 type StatusType = keyof typeof statusConfigs;
 type StatusValue<T extends StatusType> = keyof typeof statusConfigs[T];
 type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline';
-
 export interface StatusBadgeProps {
   /** Valor do status */
   status: string;
@@ -244,7 +251,6 @@ export interface StatusBadgeProps {
   /** Ícone customizado */
   icon?: ReactNode;
 }
-
 export function StatusBadge({ 
   status, 
   type,
@@ -270,17 +276,14 @@ export function StatusBadge({
       }
     }
   }
-
   const badgeVariant = variant || config?.variant || 'outline';
   const label = config?.label || status;
   const Icon = config?.icon;
-
   const sizeClasses = {
     sm: 'text-xs px-2 py-0.5',
     md: 'text-xs px-2.5 py-0.5',
     lg: 'text-sm px-3 py-1',
   };
-
   return (
     <Badge 
       variant={badgeVariant}
@@ -301,6 +304,5 @@ export function StatusBadge({
     </Badge>
   );
 }
-
 // Export tipo para uso externo
 export type { StatusType };
