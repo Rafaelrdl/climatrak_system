@@ -429,9 +429,9 @@ class Invite(models.Model):
 
             if inviter_email and invited_by is None:
                 with schema_context(self.tenant.schema_name):
-                invited_by = UserModel.objects.filter(
-                    email__iexact=inviter_email
-                ).first()
+                    invited_by = UserModel.objects.filter(
+                        email__iexact=inviter_email
+                    ).first()
 
         from django_tenants.utils import schema_context
 
