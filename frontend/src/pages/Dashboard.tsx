@@ -18,7 +18,9 @@ import {
   User,
   LayoutDashboard,
   DollarSign,
-  Settings2
+  Settings2,
+  Calendar,
+  Package
 } from 'lucide-react';
 import { useDashboardKPIs, useChartData } from '@/hooks/useDataTemp';
 import { useWorkOrders, useWorkOrderStats } from '@/hooks/useWorkOrdersQuery';
@@ -26,6 +28,7 @@ import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useSectors } from '@/hooks/useLocationsQuery';
 import { useDashboardFiltering } from '@/hooks/useDashboardFiltering';
 import { useAbility } from '@/hooks/useAbility';
+import { useCurrentUser } from '@/data/usersStore';
 import { useSLAStore, calculateSLAStatus } from '@/store/useSLAStore';
 import { useMemo } from 'react';
 
@@ -33,6 +36,9 @@ export function Dashboard() {
   const [kpis] = useDashboardKPIs();
   const [chartData] = useChartData();
   const { role } = useAbility();
+  const currentUser = useCurrentUser();
+  const currentUserId = currentUser?.id;
+  const currentUserName = currentUser?.name;
   
   // Usar as mesmas ordens de serviço do sistema (React Query)
   const { data: workOrders = [] } = useWorkOrders();
@@ -57,6 +63,14 @@ export function Dashboard() {
     const today = new Date();
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(today.getDate() + 7);
+    const matchesTechnician = (wo: (typeof workOrders)[number]) => {
+      if (!currentUserId && !currentUserName) return false;
+      return (
+        wo.assignedTo === currentUserId ||
+        wo.assignedTo === currentUserName ||
+        wo.assignedToName === currentUserName
+      );
+    };
     
     return (workOrders || [])
       .filter(wo => {
@@ -69,14 +83,14 @@ export function Dashboard() {
         // Filtrar baseado no papel do usuário
         if (role === 'technician') {
           // Técnico vê apenas as atribuídas a ele
-          return isUpcoming && isWithinRange && wo.assignedTo === 'José Silva'; // Substituir pelo usuário atual
+          return isUpcoming && isWithinRange && matchesTechnician(wo);
         }
         
         return isUpcoming && isWithinRange;
       })
       .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
       .slice(0, 5); // Limitar a 5 para não poluir o dashboard
-  }, [workOrders, role]);
+  }, [workOrders, role, currentUserId, currentUserName]);
 
   // Calcular evolução de OS por dia da semana baseado nos dados reais da API
   const weeklyEvolutionData = useMemo(() => {
@@ -254,14 +268,6 @@ export function Dashboard() {
         ...(role === 'admin' ? [
           { key: 'totalCost', value: 25000, label: 'Custo Total', sensitive: true },
           { key: 'budgetUtilization', value: 78, label: 'Utilização do Orçamento (%)', sensitive: true }
-        ] : []),
-        ...(role === 'technician' ? [
-          { key: 'myAssignedWork', value: 8, label: 'Minhas OS', sensitive: false },
-          { key: 'completedThisWeek', value: 12, label: 'Concluídas esta semana', sensitive: false }
-        ] : []),
-        ...(role === 'requester' ? [
-          { key: 'myRequests', value: 3, label: 'Minhas Solicitações', sensitive: false },
-          { key: 'pendingApprovals', value: 1, label: 'Aguardando Aprovação', sensitive: false }
         ] : [])
       ],
       workOrdersOverTime: chartData?.workOrderEvolution?.map((item: any) => ({
@@ -288,6 +294,8 @@ export function Dashboard() {
       upcomingMaintenance: upcomingWorkOrders.map(wo => {
         const eq = equipment.find(e => e.id === wo.equipmentId);
         const sector = sectors.find(s => s.id === eq?.sectorId);
+        const workOrderNumber = wo.number || wo.id;
+        const equipmentLabel = eq?.tag || eq?.model || wo.equipmentId || 'Equipamento';
         
         const getTypeLabel = (type: string) => {
           switch(type) {
@@ -299,11 +307,14 @@ export function Dashboard() {
         
         return {
           id: wo.id,
-          equipmentName: eq?.tag || wo.number,
+          workOrderNumber,
+          equipmentName: equipmentLabel,
           type: getTypeLabel(wo.type),
           scheduledDate: wo.scheduledDate,
           responsible: wo.assignedTo || 'Não atribuído',
           priority: wo.priority,
+          assignedTo: wo.assignedTo,
+          sectorId: eq?.sectorId,
           sectorName: sector?.name || 'Setor não definido'
         };
       }),
@@ -325,8 +336,8 @@ export function Dashboard() {
     filtered: 0
   };
 
-  // Verificar se é admin ou owner para mostrar abas
-  const showTabs = role === 'admin' || role === 'owner';
+  // Verificar se é admin, owner ou operator para mostrar abas
+  const showTabs = role === 'admin' || role === 'owner' || role === 'operator';
 
   // ==================== Componentes Reutilizáveis ====================
   
@@ -374,14 +385,6 @@ export function Dashboard() {
             trendValue = "+5h";
             suffix = "h";
             description = "Tempo médio entre falhas";
-            break;
-          case 'myAssignedWork':
-          case 'myRequests':
-            Icon = User;
-            variant = "primary";
-            description = kpi.key === 'myAssignedWork' 
-              ? "Ordens atribuídas a você" 
-              : "Suas solicitações ativas";
             break;
           case 'totalCost':
             Icon = TrendingUp;
@@ -590,7 +593,7 @@ export function Dashboard() {
             <TableBody>
               {upcomingMaintenance.map((maintenance) => (
                 <TableRow key={maintenance.id}>
-                  <TableCell className="font-medium">{maintenance.equipmentName}</TableCell>
+                  <TableCell className="font-medium">{maintenance.workOrderNumber || maintenance.id}</TableCell>
                   <TableCell>
                     <div>
                       <div className="font-medium">{maintenance.equipmentName}</div>
@@ -618,12 +621,15 @@ export function Dashboard() {
     </Card>
   );
 
-  // ==================== Render para Admin/Owner com Abas ====================
+  // ==================== Render para Admin/Owner/Operator com Abas ====================
   if (showTabs) {
     // KPIs operacionais para a aba Visão Geral
     const operationalKPIs = filteredKPIs.filter(kpi => 
       ['openWorkOrders', 'overdueWorkOrders', 'criticalEquipment', 'mttr', 'mtbf'].includes(kpi.key)
     );
+
+    // Verificar se é admin/owner para mostrar aba financeira
+    const isAdminOrOwner = role === 'admin' || role === 'owner';
 
     return (
       <div className="space-y-6">
@@ -640,14 +646,29 @@ export function Dashboard() {
               <LayoutDashboard className="h-4 w-4" />
               Visão Geral
             </TabsTrigger>
-            <TabsTrigger value="finance" className="gap-2">
-              <DollarSign className="h-4 w-4" />
-              Financeiro
-            </TabsTrigger>
-            <TabsTrigger value="operations" className="gap-2">
-              <Settings2 className="h-4 w-4" />
-              Operacional
-            </TabsTrigger>
+            {isAdminOrOwner && (
+              <TabsTrigger value="finance" className="gap-2">
+                <DollarSign className="h-4 w-4" />
+                Financeiro
+              </TabsTrigger>
+            )}
+            {isAdminOrOwner ? (
+              <TabsTrigger value="operations" className="gap-2">
+                <Settings2 className="h-4 w-4" />
+                Operacional
+              </TabsTrigger>
+            ) : (
+              <>
+                <TabsTrigger value="plans" className="gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Planos
+                </TabsTrigger>
+                <TabsTrigger value="inventory" className="gap-2">
+                  <Package className="h-4 w-4" />
+                  Estoque
+                </TabsTrigger>
+              </>
+            )}
           </TabsList>
 
           {/* ==================== ABA VISÃO GERAL ==================== */}
@@ -671,30 +692,61 @@ export function Dashboard() {
             {availableWidgets.includes('upcomingMaintenance') && <UpcomingMaintenanceTable />}
           </TabsContent>
 
-          {/* ==================== ABA FINANCEIRO ==================== */}
-          <TabsContent value="finance" className="space-y-6 mt-0">
-            <div className="text-sm text-muted-foreground mb-2">
-              Acompanhamento de orçamento, variância e economia
-            </div>
+          {/* ==================== ABA FINANCEIRO (Admin/Owner only) ==================== */}
+          {isAdminOrOwner && (
+            <TabsContent value="finance" className="space-y-6 mt-0">
+              <div className="text-sm text-muted-foreground mb-2">
+                Acompanhamento de orçamento, variância e economia
+              </div>
 
-            {/* Widgets específicos do Finance (do RoleDashboardSection) */}
-            <RoleDashboardSection variant="finance" />
-          </TabsContent>
+              {/* Widgets específicos do Finance (do RoleDashboardSection) */}
+              <RoleDashboardSection variant="finance" />
+            </TabsContent>
+          )}
 
-          {/* ==================== ABA OPERACIONAL ==================== */}
-          <TabsContent value="operations" className="space-y-6 mt-0">
-            <div className="text-sm text-muted-foreground mb-2">
-              Gestão de planos preventivos, estoque e desempenho da equipe
-            </div>
-            
-            {/* Widgets de Planos e Estoque (do RoleDashboardSection) */}
-            <RoleDashboardSection variant="operations" />
+          {/* ==================== ABA OPERACIONAL (Admin/Owner) ==================== */}
+          {isAdminOrOwner && (
+            <TabsContent value="operations" className="space-y-6 mt-0">
+              <div className="text-sm text-muted-foreground mb-2">
+                Gestão de planos preventivos, estoque e desempenho da equipe
+              </div>
+              
+              {/* Widgets de Planos e Estoque (do RoleDashboardSection) */}
+              <RoleDashboardSection variant="operations" />
 
-            {/* Desempenho por Técnico */}
-            {availableWidgets.includes('technicianPerformanceChart') && (
-              <TechnicianPerformanceChart />
-            )}
-          </TabsContent>
+              {/* Desempenho por Técnico */}
+              {availableWidgets.includes('technicianPerformanceChart') && (
+                <TechnicianPerformanceChart />
+              )}
+            </TabsContent>
+          )}
+
+          {/* ==================== ABA PLANOS (Operator only) ==================== */}
+          {role === 'operator' && (
+            <TabsContent value="plans" className="space-y-6 mt-0">
+              <div className="text-sm text-muted-foreground mb-2">
+                Acompanhamento de planos preventivos e manutenções programadas
+              </div>
+              
+              {/* Widgets de Planos Preventivos */}
+              <RoleDashboardSection variant="plans" />
+
+              {/* Próximas Manutenções */}
+              {availableWidgets.includes('upcomingMaintenance') && <UpcomingMaintenanceTable />}
+            </TabsContent>
+          )}
+
+          {/* ==================== ABA ESTOQUE (Operator only) ==================== */}
+          {role === 'operator' && (
+            <TabsContent value="inventory" className="space-y-6 mt-0">
+              <div className="text-sm text-muted-foreground mb-2">
+                Monitoramento de itens em estoque e alertas de reposição
+              </div>
+              
+              {/* Widgets de Estoque */}
+              <RoleDashboardSection variant="inventory" />
+            </TabsContent>
+          )}
         </Tabs>
 
         <WelcomeGuide />

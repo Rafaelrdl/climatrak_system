@@ -463,6 +463,280 @@ export function OperatorWidgets({
   );
 }
 
+// ==================== Operator Plan Widgets (Separado) ====================
+
+interface OperatorPlanWidgetsProps {
+  planData?: PlanComplianceData;
+  isLoading?: boolean;
+}
+
+export function OperatorPlanWidgets({ planData, isLoading }: OperatorPlanWidgetsProps) {
+  const complianceRate = planData 
+    ? (planData.executedThisMonth / (planData.executedThisMonth + planData.pendingThisMonth || 1)) * 100
+    : 0;
+  
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Cumprimento de Planos Preventivos */}
+      <Card className="border-l-4 border-l-blue-500">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Calendar className="h-4 w-4" />
+            Planos Preventivos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <StatValue 
+                value={complianceRate.toFixed(0)} 
+                suffix="%" 
+                loading={isLoading}
+                className={cn(
+                  complianceRate >= 90 ? 'text-emerald-600' : 
+                  complianceRate >= 70 ? 'text-amber-600' : 'text-red-600'
+                )}
+              />
+              <Badge variant={complianceRate >= 90 ? 'default' : 'secondary'}>
+                {planData?.executedThisMonth || 0}/{(planData?.executedThisMonth || 0) + (planData?.pendingThisMonth || 0)}
+              </Badge>
+            </div>
+            <MiniProgressBar 
+              value={complianceRate} 
+              variant={complianceRate >= 90 ? 'success' : complianceRate >= 70 ? 'warning' : 'danger'} 
+              loading={isLoading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Execuções no mês
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Planos em Atraso */}
+      <Card className={cn(
+        "border-l-4",
+        (planData?.overdueCount || 0) > 0 ? 'border-l-red-500' : 'border-l-emerald-500'
+      )}>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <AlertTriangle className="h-4 w-4" />
+            Planos em Atraso
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <StatValue 
+              value={planData?.overdueCount || 0} 
+              loading={isLoading}
+              className={planData?.overdueCount ? 'text-red-600' : 'text-emerald-600'}
+            />
+            <p className="text-xs text-muted-foreground">
+              {planData?.overdueCount === 0 ? 'Nenhum plano atrasado 🎉' : 'Requer atenção imediata'}
+            </p>
+            {planData?.overdueCount ? (
+              <Button variant="link" size="sm" className="px-0 h-auto text-red-600" asChild>
+                <Link to="/cmms/plans">Ver planos atrasados →</Link>
+              </Button>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Planos Ativos */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <CheckCircle2 className="h-4 w-4" />
+            Planos Ativos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <StatValue 
+              value={planData?.activePlans || 0} 
+              loading={isLoading}
+            />
+            <p className="text-xs text-muted-foreground">
+              De {planData?.totalPlans || 0} planos cadastrados
+            </p>
+            <Button variant="link" size="sm" className="px-0 h-auto" asChild>
+              <Link to="/cmms/plans">Gerenciar planos →</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pendentes este Mês */}
+      <Card className="border-l-4 border-l-amber-500">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Clock className="h-4 w-4" />
+            Pendentes no Mês
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <StatValue 
+              value={planData?.pendingThisMonth || 0} 
+              loading={isLoading}
+              className="text-amber-600"
+            />
+            <p className="text-xs text-muted-foreground">
+              Execuções programadas
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ==================== Operator Inventory Widgets (Separado) ====================
+
+interface OperatorInventoryWidgetsProps {
+  inventoryData?: InventoryAlertData;
+  isLoading?: boolean;
+}
+
+export function OperatorInventoryWidgets({ inventoryData, isLoading }: OperatorInventoryWidgetsProps) {
+  const hasAlerts = (inventoryData?.lowStockCount || 0) > 0 || 
+                    (inventoryData?.outOfStockCount || 0) > 0 || 
+                    (inventoryData?.criticalItemsCount || 0) > 0;
+  
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Alertas de Estoque */}
+      <Card className={cn(
+        "border-l-4",
+        hasAlerts ? 'border-l-amber-500' : 'border-l-emerald-500'
+      )}>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <AlertTriangle className="h-4 w-4" />
+            Alertas de Estoque
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Estoque Baixo:</span>
+                {isLoading ? (
+                  <Skeleton className="h-5 w-8" />
+                ) : (
+                  <Badge variant={(inventoryData?.lowStockCount || 0) > 0 ? 'outline' : 'secondary'}>
+                    {inventoryData?.lowStockCount || 0}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Sem Estoque:</span>
+                {isLoading ? (
+                  <Skeleton className="h-5 w-8" />
+                ) : (
+                  <Badge variant={(inventoryData?.outOfStockCount || 0) > 0 ? 'destructive' : 'secondary'}>
+                    {inventoryData?.outOfStockCount || 0}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Críticos:</span>
+                {isLoading ? (
+                  <Skeleton className="h-5 w-8" />
+                ) : (
+                  <Badge variant={(inventoryData?.criticalItemsCount || 0) > 0 ? 'destructive' : 'secondary'}>
+                    {inventoryData?.criticalItemsCount || 0}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Itens em Estoque Baixo */}
+      <Card className={cn(
+        "border-l-4",
+        (inventoryData?.lowStockCount || 0) > 0 ? 'border-l-amber-500' : 'border-l-muted'
+      )}>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Package className="h-4 w-4" />
+            Estoque Baixo
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <StatValue 
+              value={inventoryData?.lowStockCount || 0} 
+              loading={isLoading}
+              className={(inventoryData?.lowStockCount || 0) > 0 ? 'text-amber-600' : ''}
+            />
+            <p className="text-xs text-muted-foreground">
+              Itens abaixo do mínimo
+            </p>
+            {(inventoryData?.lowStockCount || 0) > 0 && (
+              <Button variant="link" size="sm" className="px-0 h-auto text-amber-600" asChild>
+                <Link to="/cmms/inventory?filter=low_stock">Ver itens →</Link>
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Valor em Estoque */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <BarChart3 className="h-4 w-4" />
+            Valor em Estoque
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <StatValue 
+              value={inventoryData ? `R$ ${(inventoryData.totalValue / 1000).toFixed(1)}k` : '-'} 
+              loading={isLoading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Valor total imobilizado
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Total de Itens */}
+      <Card className="border-l-4 border-l-blue-500">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Package className="h-4 w-4" />
+            Total de Itens
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <StatValue 
+              value={inventoryData?.totalItems || 0} 
+              loading={isLoading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Itens cadastrados
+            </p>
+            <Button variant="link" size="sm" className="px-0 h-auto" asChild>
+              <Link to="/cmms/inventory">Gerenciar estoque →</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ==================== Technician Widgets ====================
 
 interface TechnicianWidgetsProps {

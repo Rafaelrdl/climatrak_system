@@ -55,7 +55,7 @@ export function useAdminDashboardData() {
   const { role } = useAbility();
   const isAdmin = role === 'admin' || role === 'owner';
   
-  const currentMonth = useMemo(() => getCurrentMonth(), []);
+  const currentMonth = useMemo(() => (isAdmin ? getCurrentMonth() : ''), [isAdmin]);
   
   const {
     data: financeSummary,

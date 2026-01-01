@@ -15,6 +15,8 @@ import { useRoleDashboardData } from '@/hooks/useDashboardData';
 import {
   AdminFinanceWidgets,
   OperatorWidgets,
+  OperatorPlanWidgets,
+  OperatorInventoryWidgets,
   TechnicianWidgets,
   RequesterWidgets,
   ViewerWidgets,
@@ -26,11 +28,13 @@ interface RoleDashboardSectionProps {
   className?: string;
   /** 
    * Variante para controlar qual seção renderizar (usado pelo Dashboard.tsx com abas).
-   * - 'finance': Apenas widgets financeiros
-   * - 'operations': Apenas widgets operacionais
+   * - 'finance': Apenas widgets financeiros (Admin/Owner)
+   * - 'operations': Widgets operacionais completos - planos + estoque (Admin/Owner)
+   * - 'plans': Apenas widgets de planos preventivos (Operator)
+   * - 'inventory': Apenas widgets de estoque (Operator)
    * - undefined: Renderização padrão baseada no papel
    */
-  variant?: 'finance' | 'operations';
+  variant?: 'finance' | 'operations' | 'plans' | 'inventory';
 }
 
 export function RoleDashboardSection({ className, variant }: RoleDashboardSectionProps) {
@@ -70,7 +74,30 @@ export function RoleDashboardSection({ className, variant }: RoleDashboardSectio
     );
   }
   
-  // Se variant foi passado mas o papel não é admin/owner, não renderiza nada
+  // Variantes para Operator (abas separadas de Planos e Estoque)
+  if (variant === 'plans' && role === 'operator') {
+    return (
+      <div className={className}>
+        <OperatorPlanWidgets 
+          planData={operatorData.planData}
+          isLoading={operatorData.isLoadingPlans}
+        />
+      </div>
+    );
+  }
+  
+  if (variant === 'inventory' && role === 'operator') {
+    return (
+      <div className={className}>
+        <OperatorInventoryWidgets 
+          inventoryData={operatorData.inventoryData}
+          isLoading={operatorData.isLoadingInventory}
+        />
+      </div>
+    );
+  }
+  
+  // Se variant foi passado mas o papel não corresponde, não renderiza nada
   if (variant) {
     return null;
   }
@@ -165,14 +192,6 @@ export function RoleDashboardSection({ className, variant }: RoleDashboardSectio
             statsData={viewerData.statsData}
             isLoading={viewerData.isLoading}
           />
-          
-          {/* Info sobre acesso somente leitura */}
-          <Alert className="mt-4">
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              Você está em modo de visualização. Contate um administrador se precisar de mais permissões.
-            </AlertDescription>
-          </Alert>
         </div>
       </div>
     );
