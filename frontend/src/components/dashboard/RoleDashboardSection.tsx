@@ -3,6 +3,11 @@
  * 
  * Renderiza os widgets apropriados baseado no papel do usuário.
  * Integra com os hooks de dados e componentes de widgets.
+ * 
+ * Para Admin/Owner: Usa sistema de abas para separar
+ * - Visão Geral (KPIs operacionais do sistema)
+ * - Financeiro (Budget, Variance, Economia)
+ * - Operacional (Planos, Estoque)
  */
 
 import { useAbility } from '@/hooks/useAbility';
@@ -15,7 +20,8 @@ import {
   ViewerWidgets,
 } from './RoleSpecificWidgets';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Info, LayoutDashboard, DollarSign, Settings2 } from 'lucide-react';
 
 interface RoleDashboardSectionProps {
   className?: string;
@@ -31,72 +37,114 @@ export function RoleDashboardSection({ className }: RoleDashboardSectionProps) {
     viewerData,
   } = useRoleDashboardData();
   
-  // Owner: Mostrar widgets de admin/finance + operator
+  // Owner: Mostrar widgets de admin/finance + operator em abas
   if (role === 'owner') {
     return (
       <div className={className}>
-        <div className="space-y-6">
-          {/* Finance Overview - Owner tem acesso completo */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              Visão Financeira
-            </h3>
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="overview" className="gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              Visão Geral
+            </TabsTrigger>
+            <TabsTrigger value="finance" className="gap-2">
+              <DollarSign className="h-4 w-4" />
+              Financeiro
+            </TabsTrigger>
+            <TabsTrigger value="operations" className="gap-2">
+              <Settings2 className="h-4 w-4" />
+              Operacional
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="overview" className="mt-0">
+            <div className="text-sm text-muted-foreground mb-4">
+              Resumo consolidado das principais métricas do sistema
+            </div>
+            <ViewerWidgets 
+              statsData={viewerData.statsData}
+              isLoading={viewerData.isLoading}
+            />
+          </TabsContent>
+          
+          <TabsContent value="finance" className="mt-0">
+            <div className="text-sm text-muted-foreground mb-4">
+              Acompanhamento de orçamento, variância e economia
+            </div>
             <AdminFinanceWidgets 
               budgetData={adminData.budgetData} 
               isLoading={adminData.isLoading}
             />
-          </div>
+          </TabsContent>
           
-          {/* Operacional Overview */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-blue-500" />
-              Operacional
-            </h3>
+          <TabsContent value="operations" className="mt-0">
+            <div className="text-sm text-muted-foreground mb-4">
+              Gestão de planos preventivos e controle de estoque
+            </div>
             <OperatorWidgets 
               planData={operatorData.planData}
               inventoryData={operatorData.inventoryData}
               isLoadingPlans={operatorData.isLoadingPlans}
               isLoadingInventory={operatorData.isLoadingInventory}
             />
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </div>
     );
   }
   
-  // Admin: Mostrar widgets de finance + operator (sem billing controls)
+  // Admin: Mostrar widgets de finance + operator em abas (sem billing controls)
   if (role === 'admin') {
     return (
       <div className={className}>
-        <div className="space-y-6">
-          {/* Finance Overview */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              Visão Financeira
-            </h3>
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="overview" className="gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              Visão Geral
+            </TabsTrigger>
+            <TabsTrigger value="finance" className="gap-2">
+              <DollarSign className="h-4 w-4" />
+              Financeiro
+            </TabsTrigger>
+            <TabsTrigger value="operations" className="gap-2">
+              <Settings2 className="h-4 w-4" />
+              Operacional
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="overview" className="mt-0">
+            <div className="text-sm text-muted-foreground mb-4">
+              Resumo consolidado das principais métricas do sistema
+            </div>
+            <ViewerWidgets 
+              statsData={viewerData.statsData}
+              isLoading={viewerData.isLoading}
+            />
+          </TabsContent>
+          
+          <TabsContent value="finance" className="mt-0">
+            <div className="text-sm text-muted-foreground mb-4">
+              Acompanhamento de orçamento, variância e economia
+            </div>
             <AdminFinanceWidgets 
               budgetData={adminData.budgetData} 
               isLoading={adminData.isLoading}
             />
-          </div>
+          </TabsContent>
           
-          {/* Operacional Overview */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-blue-500" />
-              Gestão Operacional
-            </h3>
+          <TabsContent value="operations" className="mt-0">
+            <div className="text-sm text-muted-foreground mb-4">
+              Gestão de planos preventivos e controle de estoque
+            </div>
             <OperatorWidgets 
               planData={operatorData.planData}
               inventoryData={operatorData.inventoryData}
               isLoadingPlans={operatorData.isLoadingPlans}
               isLoadingInventory={operatorData.isLoadingInventory}
             />
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </div>
     );
   }
