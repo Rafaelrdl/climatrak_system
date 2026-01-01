@@ -1,8 +1,7 @@
-import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Calendar, Clock, User } from 'lucide-react'
+import { ArrowRight, Calendar, Clock } from 'lucide-react'
 
 const blogPosts = [
   {

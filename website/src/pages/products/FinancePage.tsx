@@ -7,8 +7,6 @@ import {
   ArrowRight, 
   Check, 
   DollarSign, 
-  TrendingUp, 
-  TrendingDown,
   PiggyBank,
   FileText,
   Target,
@@ -20,15 +18,10 @@ import {
   Download,
   Filter,
   Calendar,
-  Building2,
   Wrench,
   Activity,
-  ArrowUpRight,
-  ArrowDownRight,
-  Eye,
   Clock,
   CheckCircle2,
-  AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 

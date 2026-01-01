@@ -17,8 +17,6 @@ import {
   AlertTriangle,
   Settings,
   Eye,
-  TrendingUp,
-  TrendingDown,
   ChevronRight,
   LayoutDashboard,
   Zap,

@@ -92,7 +92,7 @@ export function DemoPage() {
               </div>
               
               <div className="grid grid-cols-3 gap-4">
-                {demoSteps.map((step, index) => (
+                {demoSteps.map((step) => (
                   <div key={step.title} className="text-center">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
                       <step.icon className="w-6 h-6 text-primary" />

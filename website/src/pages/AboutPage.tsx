@@ -169,7 +169,7 @@ export function AboutPage() {
             <div className="relative">
               <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" />
               <div className="space-y-8">
-                {timeline.map((item, index) => (
+                {timeline.map((item) => (
                   <div key={item.year} className="relative pl-12">
                     <div className="absolute left-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                       <Rocket className="w-4 h-4 text-white" />
