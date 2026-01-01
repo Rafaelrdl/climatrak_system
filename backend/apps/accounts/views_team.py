@@ -2,16 +2,21 @@
 Views for team management (memberships and invites).
 """
 import logging
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import connection
 from django.db.models import Count
+from django.db.utils import OperationalError, ProgrammingError
 from django.template.loader import render_to_string
+from django_tenants.utils import get_public_schema_name, schema_context
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from apps.tenants.models import Domain, Tenant
 
 from .models import Invite, TenantMembership
 from .permissions import CanManageTeam
@@ -26,6 +31,66 @@ from .serializers_team import (
 
 logger = logging.getLogger(__name__)
 
+
+def _build_invite_accept_url(invite):
+    frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173").rstrip(
+        "/"
+    )
+    parsed = urlparse(frontend_url)
+    scheme = parsed.scheme or "http"
+    port = f":{parsed.port}" if parsed.port else ""
+    with schema_context(get_public_schema_name()):
+        tenant_domain = (
+            Domain.objects.filter(tenant_id=invite.tenant_id)
+            .order_by("-is_primary", "domain")
+            .values_list("domain", flat=True)
+            .first()
+        )
+    if tenant_domain:
+        if port and ":" not in tenant_domain:
+            tenant_domain = f"{tenant_domain}{port}"
+        return f"{scheme}://{tenant_domain}"
+    return frontend_url
+
+
+def _find_invite_by_token(token):
+    public_schema = get_public_schema_name()
+    current_schema = getattr(connection, "schema_name", public_schema)
+
+    def _lookup(schema_name):
+        try:
+            with schema_context(schema_name):
+                return (
+                    Invite.objects.select_related("tenant", "invited_by")
+                    .filter(token=token)
+                    .first()
+                )
+        except (OperationalError, ProgrammingError) as exc:
+            logger.warning(
+                "Invite lookup failed in schema %s: %s", schema_name, str(exc)
+            )
+            return None
+
+    if current_schema != public_schema:
+        return _lookup(current_schema), current_schema
+
+    invite = _lookup(public_schema)
+    if invite:
+        return invite, public_schema
+
+    with schema_context(public_schema):
+        tenant_schemas = list(
+            Tenant.objects.exclude(schema_name=public_schema).values_list(
+                "schema_name", flat=True
+            )
+        )
+
+    for schema_name in tenant_schemas:
+        invite = _lookup(schema_name)
+        if invite:
+            return invite, schema_name
+
+    return None, None
 
 class TeamMemberViewSet(viewsets.ModelViewSet):
     """
@@ -253,7 +318,7 @@ class InviteViewSet(viewsets.ModelViewSet):
         In development, emails go to console or Mailpit.
         """
         # Build acceptance URL
-        accept_url = f"{settings.FRONTEND_URL}/accept-invite?token={invite.token}"
+        accept_url = f"{_build_invite_accept_url(invite)}/accept-invite?token={invite.token}"
 
         # Email context
         context = {
@@ -314,19 +379,18 @@ class PublicInviteValidateView(APIView):
                 {"detail": "Token is required."}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        try:
-            invite = Invite.objects.select_related("tenant", "invited_by").get(
-                token=token
-            )
-        except Invite.DoesNotExist:
+        invite, invite_schema = _find_invite_by_token(token)
+        if not invite:
             return Response(
                 {"detail": "Invalid invite token."}, status=status.HTTP_404_NOT_FOUND
             )
+        invite_schema = invite_schema or get_public_schema_name()
 
         if not invite.is_valid:
             if invite.is_expired:
-                invite.status = "expired"
-                invite.save()
+                with schema_context(invite_schema):
+                    invite.status = "expired"
+                    invite.save(update_fields=["status"])
                 return Response(
                     {"detail": "This invite has expired."},
                     status=status.HTTP_400_BAD_REQUEST,
@@ -374,19 +438,18 @@ class PublicInviteAcceptView(APIView):
             )
 
         # Get invite
-        try:
-            invite = Invite.objects.select_related("tenant", "invited_by").get(
-                token=token
-            )
-        except Invite.DoesNotExist:
+        invite, invite_schema = _find_invite_by_token(token)
+        if not invite:
             return Response(
                 {"detail": "Invalid invite token."}, status=status.HTTP_404_NOT_FOUND
             )
+        invite_schema = invite_schema or connection.schema_name
 
         if not invite.is_valid:
             if invite.is_expired:
-                invite.status = "expired"
-                invite.save()
+                with schema_context(invite_schema):
+                    invite.status = "expired"
+                    invite.save(update_fields=["status"])
             return Response(
                 {"detail": "This invite is no longer valid."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -397,7 +460,6 @@ class PublicInviteAcceptView(APIView):
 
         from apps.public_identity.models import TenantUserIndex
 
-        origin_schema = connection.schema_name
         try:
             # Check if user exists in ANY tenant
             with schema_context("public"):
@@ -459,11 +521,14 @@ class PublicInviteAcceptView(APIView):
                             if not user_in_tenant.is_active:
                                 user_in_tenant.is_active = True
                                 user_in_tenant.save(update_fields=["is_active"])
+                            invite.mark_accepted(
+                                user_in_tenant, invite_schema=invite_schema
+                            )
                             membership_role = existing_membership.role
                         else:
                             # Create membership for existing user
                             membership = invite.accept(
-                                user_in_tenant, invite_schema=origin_schema
+                                user_in_tenant, invite_schema=invite_schema
                             )
                             if not user_in_tenant.is_active:
                                 user_in_tenant.is_active = True
@@ -485,7 +550,7 @@ class PublicInviteAcceptView(APIView):
 
                         # Create membership
                         membership = invite.accept(
-                            user_in_tenant, invite_schema=origin_schema
+                            user_in_tenant, invite_schema=invite_schema
                         )
                         membership_role = membership.role
 
@@ -557,7 +622,7 @@ class PublicInviteAcceptView(APIView):
                 )
 
                 # Accept invite and create membership (also in tenant schema)
-                membership = invite.accept(user, invite_schema=origin_schema)
+                membership = invite.accept(user, invite_schema=invite_schema)
 
                 # Get user data before leaving schema context
                 user_id = user.id

@@ -20,11 +20,6 @@ export default defineConfig({
     proxy: {
       // 🔐 Public endpoints - go directly to public schema (localhost:8000)
       // Order matters! Most specific first.
-      '/api/invites': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-      },
       '/api/auth/password-reset': {
         target: 'http://localhost:8000',
         changeOrigin: true,

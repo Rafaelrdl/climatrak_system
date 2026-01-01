@@ -5,13 +5,15 @@ Nova arquitetura: Acesso aos dados de Assets, Devices, Sensors e Sites
 é feito através do TenantAdmin, garantindo contexto correto do tenant.
 """
 
+from urllib.parse import urlparse
+
 from django.contrib import admin, messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
 from django.utils.html import format_html
 
 from django_tenants.admin import TenantAdminMixin
-from django_tenants.utils import schema_context
+from django_tenants.utils import get_public_schema_name, schema_context
 
 from .models import Domain, Tenant
 
@@ -815,8 +817,26 @@ class TenantAdmin(TenantAdminMixin, admin.ModelAdmin):
 
         try:
             # Build acceptance URL
-            frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173")
-            accept_url = f"{frontend_url}/accept-invite?token={invite.token}"
+            frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173").rstrip(
+                "/"
+            )
+            parsed = urlparse(frontend_url)
+            scheme = parsed.scheme or "http"
+            port = f":{parsed.port}" if parsed.port else ""
+            with schema_context(get_public_schema_name()):
+                tenant_domain = (
+                    Domain.objects.filter(tenant_id=invite.tenant_id)
+                    .order_by("-is_primary", "domain")
+                    .values_list("domain", flat=True)
+                    .first()
+                )
+            if tenant_domain:
+                if port and ":" not in tenant_domain:
+                    tenant_domain = f"{tenant_domain}{port}"
+                base_url = f"{scheme}://{tenant_domain}"
+            else:
+                base_url = frontend_url
+            accept_url = f"{base_url}/accept-invite?token={invite.token}"
 
             # Email context
             context = {

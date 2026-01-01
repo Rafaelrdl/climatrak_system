@@ -322,6 +322,41 @@ class Invite(models.Model):
         """Check if invite has expired."""
         return self.expires_at <= timezone.now()
 
+    def _resolve_invite_schema(self, invite_schema=None):
+        from django_tenants.utils import get_public_schema_name, schema_context
+
+        if invite_schema:
+            return invite_schema
+
+        public_schema = get_public_schema_name()
+
+        with schema_context(public_schema):
+            if self.__class__.objects.filter(pk=self.pk).exists():
+                return public_schema
+
+        with schema_context(self.tenant.schema_name):
+            if self.__class__.objects.filter(pk=self.pk).exists():
+                return self.tenant.schema_name
+
+        return public_schema
+
+    def mark_accepted(self, user=None, invite_schema=None):
+        from django.contrib.auth import get_user_model
+        from django_tenants.utils import schema_context
+
+        resolved_invite_schema = self._resolve_invite_schema(invite_schema)
+        UserModel = get_user_model()
+
+        with schema_context(resolved_invite_schema):
+            accepted_by = None
+            if user and user.email:
+                accepted_by = UserModel.objects.filter(email__iexact=user.email).first()
+
+            self.status = "accepted"
+            self.accepted_by = accepted_by
+            self.accepted_at = timezone.now()
+            self.save(update_fields=["status", "accepted_by", "accepted_at"])
+
     def accept(self, user, invite_schema=None):
         """
         Accept the invite and create membership.
@@ -360,6 +395,8 @@ class Invite(models.Model):
         if existing:
             raise ValidationError("You are already a member of this organization.")
 
+        resolved_invite_schema = self._resolve_invite_schema(invite_schema)
+
         # Create membership
         invited_by = None
         inviter_email = None
@@ -370,22 +407,6 @@ class Invite(models.Model):
 
             UserModel = get_user_model()
             public_schema = get_public_schema_name()
-
-            resolved_invite_schema = invite_schema
-            if resolved_invite_schema is None:
-                # Prefer public if invite exists there; fallback to tenant schema.
-                resolved_invite_schema = public_schema
-                with schema_context(public_schema):
-                    invite_in_public = self.__class__.objects.filter(
-                        pk=self.pk
-                    ).exists()
-                if not invite_in_public:
-                    with schema_context(self.tenant.schema_name):
-                        invite_in_tenant = self.__class__.objects.filter(
-                            pk=self.pk
-                        ).exists()
-                    if invite_in_tenant:
-                        resolved_invite_schema = self.tenant.schema_name
 
             if resolved_invite_schema == public_schema:
                 with schema_context(public_schema):
@@ -408,9 +429,9 @@ class Invite(models.Model):
 
             if inviter_email and invited_by is None:
                 with schema_context(self.tenant.schema_name):
-                    invited_by = UserModel.objects.filter(
-                        email__iexact=inviter_email
-                    ).first()
+                invited_by = UserModel.objects.filter(
+                    email__iexact=inviter_email
+                ).first()
 
         from django_tenants.utils import schema_context
 
@@ -424,22 +445,7 @@ class Invite(models.Model):
             )
 
         # Mark invite as accepted
-        from django.contrib.auth import get_user_model
-
-        from django_tenants.utils import get_public_schema_name, schema_context
-
-        public_schema = get_public_schema_name()
-        UserModel = get_user_model()
-
-        accepted_by = None
-        with schema_context(public_schema):
-            if user and user.email:
-                accepted_by = UserModel.objects.filter(email__iexact=user.email).first()
-
-            self.status = "accepted"
-            self.accepted_by = accepted_by
-            self.accepted_at = timezone.now()
-            self.save()
+        self.mark_accepted(user, invite_schema=resolved_invite_schema)
 
         return membership
 
