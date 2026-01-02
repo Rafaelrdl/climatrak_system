@@ -342,7 +342,9 @@ class AdjustmentForLockedTests(TenantTestCase):
 
         self.assertIsNotNone(adjustment.pk)
         self.assertEqual(adjustment.amount, Decimal("-200.00"))
-        self.assertEqual(adjustment.transaction_type, CostTransaction.TransactionType.ADJUSTMENT)
+        self.assertEqual(
+            adjustment.transaction_type, CostTransaction.TransactionType.ADJUSTMENT
+        )
 
         # Original permanece inalterado
         self.original_tx.refresh_from_db()
@@ -560,9 +562,9 @@ class LedgerSourceOfTruthTests(TenantTestCase):
         # Total deve refletir todos os custos
         from django.db.models import Sum
 
-        total = CostTransaction.objects.filter(
-            cost_center=self.cost_center
-        ).aggregate(total=Sum("amount"))["total"]
+        total = CostTransaction.objects.filter(cost_center=self.cost_center).aggregate(
+            total=Sum("amount")
+        )["total"]
 
         self.assertEqual(total, Decimal("600.00"))
 

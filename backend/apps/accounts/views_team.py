@@ -93,6 +93,7 @@ def _find_invite_by_token(token):
 
     return None, None
 
+
 class TeamMemberViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing team members (memberships).
@@ -369,7 +370,9 @@ class InviteViewSet(viewsets.ModelViewSet):
         In development, emails go to console or Mailpit.
         """
         # Build acceptance URL
-        accept_url = f"{_build_invite_accept_url(invite)}/accept-invite?token={invite.token}"
+        accept_url = (
+            f"{_build_invite_accept_url(invite)}/accept-invite?token={invite.token}"
+        )
 
         # Email context
         context = {
@@ -613,7 +616,6 @@ class PublicInviteAcceptView(APIView):
                 )
 
             if user_index and existing_user:
-
                 # Now check/create in the INVITED tenant schema
                 with schema_context(invite.tenant.schema_name):
                     # Check if user exists in THIS tenant

@@ -1158,6 +1158,7 @@ class PartUsage(models.Model):
     - docs/product/02-personas-e-historias.md (US-T2)
     - docs/finance/02-regras-negocio.md
     """
+
     class Source(models.TextChoices):
         MANUAL = "MANUAL", "Manual"
         WORK_ORDER_ITEM = "WORK_ORDER_ITEM", "Item da OS"

@@ -68,9 +68,7 @@ class SchemaIsolationTests(TenantTestCase):
             ).count()
             # Usuário criado no tenant NÃO deve existir no public
             self.assertEqual(
-                public_user_count,
-                0,
-                "Usuário do tenant vazou para schema public!"
+                public_user_count, 0, "Usuário do tenant vazou para schema public!"
             )
 
     def test_query_respects_current_schema(self):
@@ -110,7 +108,9 @@ class SchemaIsolationTests(TenantTestCase):
 
         # No public schema, o count deve ser diferente
         with schema_context("public"):
-            public_count = User.objects.filter(email="isolated_test@example.com").count()
+            public_count = User.objects.filter(
+                email="isolated_test@example.com"
+            ).count()
             self.assertEqual(public_count, 0)
 
     def test_cross_tenant_query_not_possible_directly(self):
@@ -152,7 +152,7 @@ class TenantConfigurationTests(TestCase):
         self.assertIn(
             "apps.finance",
             tenant_apps,
-            "apps.finance DEVE estar em TENANT_APPS para isolamento!"
+            "apps.finance DEVE estar em TENANT_APPS para isolamento!",
         )
 
     @pytest.mark.tenant
@@ -162,7 +162,7 @@ class TenantConfigurationTests(TestCase):
         self.assertIn(
             "apps.accounts",
             tenant_apps,
-            "apps.accounts DEVE estar em TENANT_APPS para isolamento!"
+            "apps.accounts DEVE estar em TENANT_APPS para isolamento!",
         )
 
     @pytest.mark.tenant
@@ -172,7 +172,7 @@ class TenantConfigurationTests(TestCase):
         self.assertIn(
             "apps.cmms",
             tenant_apps,
-            "apps.cmms DEVE estar em TENANT_APPS para isolamento!"
+            "apps.cmms DEVE estar em TENANT_APPS para isolamento!",
         )
 
     @pytest.mark.tenant
@@ -182,7 +182,7 @@ class TenantConfigurationTests(TestCase):
         self.assertIn(
             "apps.assets",
             tenant_apps,
-            "apps.assets DEVE estar em TENANT_APPS para isolamento!"
+            "apps.assets DEVE estar em TENANT_APPS para isolamento!",
         )
 
     @pytest.mark.tenant
@@ -192,7 +192,7 @@ class TenantConfigurationTests(TestCase):
         self.assertIn(
             "apps.alerts",
             tenant_apps,
-            "apps.alerts DEVE estar em TENANT_APPS para isolamento!"
+            "apps.alerts DEVE estar em TENANT_APPS para isolamento!",
         )
 
     @pytest.mark.tenant
@@ -212,7 +212,7 @@ class TenantConfigurationTests(TestCase):
 
         self.assertTrue(
             in_shared or in_tenant,
-            "apps.core_events deve estar em SHARED_APPS ou TENANT_APPS"
+            "apps.core_events deve estar em SHARED_APPS ou TENANT_APPS",
         )
 
 
@@ -292,8 +292,7 @@ class TenantCreationTests(TenantTestCase):
         required_attrs = ["schema_name"]
         for attr in required_attrs:
             self.assertTrue(
-                hasattr(self.tenant, attr),
-                f"Tenant missing required attribute: {attr}"
+                hasattr(self.tenant, attr), f"Tenant missing required attribute: {attr}"
             )
 
     def test_can_create_user_in_tenant(self):
@@ -311,11 +310,12 @@ class TenantCreationTests(TenantTestCase):
     def test_tenant_schema_is_valid_postgres_identifier(self):
         """Schema name deve ser identificador PostgreSQL válido."""
         import re
+
         # PostgreSQL identifiers: letras, dígitos, underscores, começam com letra ou underscore
-        pattern = r'^[a-zA-Z_][a-zA-Z0-9_]*$'
+        pattern = r"^[a-zA-Z_][a-zA-Z0-9_]*$"
         self.assertTrue(
             re.match(pattern, self.tenant.schema_name),
-            f"Schema name '{self.tenant.schema_name}' não é identificador PostgreSQL válido"
+            f"Schema name '{self.tenant.schema_name}' não é identificador PostgreSQL válido",
         )
 
 
@@ -355,9 +355,7 @@ class TenantDataLeakagePreventionTests(TenantTestCase):
         )
 
         # Verificar que existe no tenant atual
-        self.assertTrue(
-            CostTransaction.objects.filter(pk=tx.pk).exists()
-        )
+        self.assertTrue(CostTransaction.objects.filter(pk=tx.pk).exists())
 
         # No schema public, não deve existir
         with schema_context("public"):
@@ -367,7 +365,7 @@ class TenantDataLeakagePreventionTests(TenantTestCase):
                 exists_in_public = CostTransaction.objects.filter(pk=tx.pk).exists()
                 self.assertFalse(
                     exists_in_public,
-                    "VAZAMENTO DE DADOS: CostTransaction encontrada no schema public!"
+                    "VAZAMENTO DE DADOS: CostTransaction encontrada no schema public!",
                 )
             except Exception:
                 # Tabela pode não existir no public, o que é esperado
@@ -383,8 +381,8 @@ class TenantDataLeakagePreventionTests(TenantTestCase):
 
         # Verificar que o model tem o campo tenant_id
         self.assertTrue(
-            hasattr(OutboxEvent, 'tenant_id'),
-            "OutboxEvent DEVE ter campo tenant_id para rastreabilidade"
+            hasattr(OutboxEvent, "tenant_id"),
+            "OutboxEvent DEVE ter campo tenant_id para rastreabilidade",
         )
 
     def test_user_email_unique_per_tenant(self):
@@ -401,9 +399,7 @@ class TenantDataLeakagePreventionTests(TenantTestCase):
         )
 
         # Deve existir no tenant
-        self.assertTrue(
-            User.objects.filter(email="shared_email@example.com").exists()
-        )
+        self.assertTrue(User.objects.filter(email="shared_email@example.com").exists())
 
         # No public, não deve existir (emails são tenant-specific)
         with schema_context("public"):
@@ -451,8 +447,7 @@ class RawSQLIsolationTests(TenantTestCase):
         # Nota: a tabela é 'users' (definida em accounts/models.py db_table)
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT COUNT(*) FROM users WHERE email = %s",
-                ["raw_test@example.com"]
+                "SELECT COUNT(*) FROM users WHERE email = %s", ["raw_test@example.com"]
             )
             count = cursor.fetchone()[0]
 

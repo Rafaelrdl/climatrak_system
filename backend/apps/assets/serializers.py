@@ -65,9 +65,7 @@ class SiteSerializer(serializers.ModelSerializer):
         if hasattr(obj, "active_asset_count"):
             return obj.active_asset_count
         # Fallback to query (for cases where annotation isn't available)
-        return obj.assets.filter(
-            status__in=["OK", "MAINTENANCE", "ALERT"]
-        ).count()
+        return obj.assets.filter(status__in=["OK", "MAINTENANCE", "ALERT"]).count()
 
 
 class AssetListSerializer(serializers.ModelSerializer):
@@ -317,7 +315,11 @@ class AssetSerializer(serializers.ModelSerializer):
                         }
                     )
         # Mantém consistência entre setor e subseção
-        sector = data.get("sector") if "sector" in data else getattr(self.instance, "sector", None)
+        sector = (
+            data.get("sector")
+            if "sector" in data
+            else getattr(self.instance, "sector", None)
+        )
         subsection = (
             data.get("subsection")
             if "subsection" in data
@@ -330,9 +332,7 @@ class AssetSerializer(serializers.ModelSerializer):
 
         if sector and subsection and subsection.sector_id != sector.id:
             raise serializers.ValidationError(
-                {
-                    "subsection": "Subseção não pertence ao setor informado."
-                }
+                {"subsection": "Subseção não pertence ao setor informado."}
             )
         return data
 

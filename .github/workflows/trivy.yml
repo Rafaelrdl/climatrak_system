@@ -83,9 +83,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🏗️ Build Backend Docker image
-        working-directory: backend
         run: |
-          docker build -t climatrak-backend:scan -f docker/Dockerfile .
+          docker build -t climatrak-backend:scan -f infra/api/Dockerfile backend/
 
       - name: 🔒 Run Trivy vulnerability scanner (Image)
         uses: aquasecurity/trivy-action@master

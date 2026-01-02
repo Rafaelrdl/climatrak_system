@@ -13,7 +13,9 @@ from .models import Company
 def cache_company_name(sender, instance, **kwargs):
     if instance.pk:
         instance._previous_name = (
-            Company.objects.filter(pk=instance.pk).values_list("name", flat=True).first()
+            Company.objects.filter(pk=instance.pk)
+            .values_list("name", flat=True)
+            .first()
         )
 
 
@@ -25,9 +27,7 @@ def sync_company_site(sender, instance, **kwargs):
         return
 
     previous_name = getattr(instance, "_previous_name", None)
-    site = Site.objects.filter(
-        Q(name=instance.name) | Q(company=instance.name)
-    ).first()
+    site = Site.objects.filter(Q(name=instance.name) | Q(company=instance.name)).first()
 
     if not site and previous_name:
         site = Site.objects.filter(

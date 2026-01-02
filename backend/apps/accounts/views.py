@@ -488,5 +488,3 @@ def health_check(request):
             "timestamp": timezone.now().isoformat(),
         }
     )
-
-

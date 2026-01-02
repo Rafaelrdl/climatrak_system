@@ -238,7 +238,6 @@ class ChecklistTemplateViewSet(viewsets.ModelViewSet):
         return Response({"usage_count": checklist.usage_count})
 
 
-
 class WorkOrderViewSet(viewsets.ModelViewSet):
     """ViewSet para Ordens de Serviço."""
 
@@ -1050,7 +1049,9 @@ class RequestViewSet(ActionRolePermissionMixin, viewsets.ModelViewSet):
         created_to = self.request.query_params.get("created_to")
 
         if location:
-            queryset = queryset.filter(Q(sector_id=location) | Q(subsection_id=location))
+            queryset = queryset.filter(
+                Q(sector_id=location) | Q(subsection_id=location)
+            )
 
         if created_from:
             parsed_date = parse_date(created_from)

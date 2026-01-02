@@ -817,9 +817,9 @@ class TenantAdmin(TenantAdminMixin, admin.ModelAdmin):
 
         try:
             # Build acceptance URL
-            frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173").rstrip(
-                "/"
-            )
+            frontend_url = getattr(
+                settings, "FRONTEND_URL", "http://localhost:5173"
+            ).rstrip("/")
             parsed = urlparse(frontend_url)
             scheme = parsed.scheme or "http"
             port = f":{parsed.port}" if parsed.port else ""

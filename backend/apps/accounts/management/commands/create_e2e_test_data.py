@@ -70,17 +70,13 @@ class Command(BaseCommand):
                 user.set_password(password)
                 user.save()
                 created_count += 1
-                self.stdout.write(
-                    self.style.SUCCESS(f"Created user: {user.email}")
-                )
+                self.stdout.write(self.style.SUCCESS(f"Created user: {user.email}"))
             else:
                 self.stdout.write(
                     self.style.WARNING(f"User already exists: {user.email}")
                 )
 
-        self.stdout.write(
-            self.style.SUCCESS(f"\n✅ Created {created_count} test users")
-        )
+        self.stdout.write(self.style.SUCCESS(f"\n✅ Created {created_count} test users"))
         self.stdout.write("\nTest credentials:")
         self.stdout.write("  Admin:    admin@climatrak.test / TestAdmin123!")
         self.stdout.write("  Operator: operator@climatrak.test / TestOperator123!")
