@@ -26,9 +26,8 @@ import {
   useToggleChecklistActive,
 } from '@/hooks/useChecklistsQuery';
 import { Procedure, ProcedureCategory, ProcedureStatus } from '@/models/procedure';
-import { ChecklistTemplate, ChecklistCategory } from '@/models/checklist';
+import { ChecklistTemplate } from '@/models/checklist';
 import type { ApiProcedureListItem, ApiProcedureCategory } from '@/types/api';
-import type { ApiChecklistTemplate, ApiChecklistCategory } from '@/services/checklistsService';
 
 // Helper para converter do formato API para o formato local (para compatibilidade com componentes existentes)
 function apiProcedureToLocal(apiProcedure: ApiProcedureListItem): Procedure {
@@ -58,36 +57,6 @@ function apiCategoryToLocal(apiCategory: ApiProcedureCategory): ProcedureCategor
     id: String(apiCategory.id),
     name: apiCategory.name,
     color: apiCategory.color || '#6b7280',
-  };
-}
-
-// Helper para converter checklist da API para formato local
-function apiChecklistToLocal(api: ApiChecklistTemplate): ChecklistTemplate {
-  return {
-    id: String(api.id),
-    name: api.name,
-    description: api.description,
-    category_id: api.category ? String(api.category) : null,
-    items: (api.items || []).map((item, index) => ({
-      id: item.id,
-      description: item.label,
-      type: item.type,
-      required: item.required,
-      order: item.order ?? index + 1,
-    })),
-    is_active: api.is_active,
-    usage_count: api.usage_count,
-    created_at: api.created_at,
-    updated_at: api.updated_at,
-  };
-}
-
-function apiChecklistCategoryToLocal(api: ApiChecklistCategory): ChecklistCategory {
-  return {
-    id: String(api.id),
-    name: api.name,
-    description: api.description,
-    color: api.color,
   };
 }
 
