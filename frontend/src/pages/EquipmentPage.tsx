@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { LocationTree } from '@/components/LocationTree';
 import { LocationDetails } from '@/components/LocationDetails';
 import { LocationFormModal } from '@/components/LocationFormModal';
 import { EquipmentSearch } from '@/components/EquipmentSearch';
-import { EquipmentStatusTracking } from '@/components/EquipmentStatusTracking';
 import { EquipmentEditModal } from '@/components/EquipmentEditModal';
 import { AssetUtilizationDashboard } from '@/components/AssetUtilizationDashboard';
 import { Input } from '@/components/ui/input';
@@ -99,10 +99,6 @@ function AssetsContent() {
   const [activeTab, setActiveTab] = useState('search');
   // Lista de equipamentos filtrados para exibição
   const [filteredEquipment, setFilteredEquipment] = useState<Equipment[]>(filteredEquipmentData);
-  // Equipamento selecionado para rastreamento de status
-  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
-  // Controla a abertura do modal de rastreamento de status
-  const [isStatusTrackingOpen, setIsStatusTrackingOpen] = useState(false);
   // Controla a abertura do modal de edição de equipamento
   const [isEquipmentEditModalOpen, setIsEquipmentEditModalOpen] = useState(false);
   // Equipamento sendo editado
@@ -473,16 +469,18 @@ function AssetsContent() {
     setIsLocationModalOpen(true);
   };
 
+  // Hook de navegação
+  const navigate = useNavigate();
+
   /**
    * SELECIONAR EQUIPAMENTO PARA RASTREAMENTO
    * 
-   * Define o equipamento selecionado e abre o modal de rastreamento de status.
+   * Navega para a página de status e histórico do equipamento.
    * 
    * @param selectedEquipment - Equipamento selecionado
    */
   const handleEquipmentSelect = (selectedEquipment: Equipment) => {
-    setSelectedEquipment(selectedEquipment);
-    setIsStatusTrackingOpen(true);
+    navigate(`/cmms/ativos/${selectedEquipment.id}/status`);
   };
 
   /**
@@ -641,19 +639,6 @@ function AssetsContent() {
           </Tabs>
         </div>
       </div>
-
-      {/* ========== MODAL DE RASTREAMENTO DE STATUS DO EQUIPAMENTO ========== */}
-      {/* Exibe detalhes e permite rastrear o status de um equipamento específico */}
-      {selectedEquipment && (
-        <EquipmentStatusTracking
-          equipment={selectedEquipment}
-          isOpen={isStatusTrackingOpen}
-          onClose={() => {
-            setIsStatusTrackingOpen(false);
-            setSelectedEquipment(null);
-          }}
-        />
-      )}
 
       {/* ========== MODAL DE CRIAÇÃO DE EQUIPAMENTO ========== */}
       {/* Formulário completo para adicionar um novo ativo */}

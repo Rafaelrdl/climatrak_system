@@ -24,7 +24,6 @@ export { WorkOrderDetailView } from '@/components/WorkOrderDetailView';
 // Equipment components
 export { EquipmentEditModal } from '@/components/EquipmentEditModal';
 export { EquipmentSearch } from '@/components/EquipmentSearch';
-export { EquipmentStatusTracking } from '@/components/EquipmentStatusTracking';
 
 // Plans components
 export { PlanFormModal } from '@/components/PlanFormModal';
