@@ -6,6 +6,9 @@ Testes unitários para:
 - Models Ledger (CostTransaction, LedgerAdjustment)
 - Serializers
 - ViewSets/Endpoints
+
+NOTE: Finance is a TENANT_APP, so all tests must use TenantTestCase
+to ensure tables are created in the test tenant schema.
 """
 
 from datetime import date, timedelta
@@ -13,8 +16,8 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from django.test import TestCase
 from django.utils import timezone
+from django_tenants.test.cases import TenantTestCase
 
 from apps.finance.models import (
     BudgetEnvelope,
@@ -33,7 +36,7 @@ from apps.finance.serializers import (
 )
 
 
-class CostCenterModelTests(TestCase):
+class CostCenterModelTests(TenantTestCase):
     """Testes para model CostCenter."""
 
     def test_create_cost_center(self):
@@ -89,7 +92,7 @@ class CostCenterModelTests(TestCase):
         self.assertEqual(cc.tags, ["hvac", "crítico"])
 
 
-class RateCardModelTests(TestCase):
+class RateCardModelTests(TenantTestCase):
     """Testes para model RateCard."""
 
     def test_create_rate_card(self):
@@ -148,7 +151,7 @@ class RateCardModelTests(TestCase):
         self.assertIsNone(result)
 
 
-class BudgetPlanModelTests(TestCase):
+class BudgetPlanModelTests(TenantTestCase):
     """Testes para model BudgetPlan."""
 
     def test_create_budget_plan(self):
@@ -195,7 +198,7 @@ class BudgetPlanModelTests(TestCase):
             )
 
 
-class BudgetEnvelopeModelTests(TestCase):
+class BudgetEnvelopeModelTests(TenantTestCase):
     """Testes para model BudgetEnvelope."""
 
     def setUp(self):
@@ -264,7 +267,7 @@ class BudgetEnvelopeModelTests(TestCase):
             )
 
 
-class BudgetMonthModelTests(TestCase):
+class BudgetMonthModelTests(TenantTestCase):
     """Testes para model BudgetMonth."""
 
     def setUp(self):
@@ -349,7 +352,7 @@ class BudgetMonthModelTests(TestCase):
         self.assertIsNone(month.locked_at)
 
 
-class CostCenterSerializerTests(TestCase):
+class CostCenterSerializerTests(TenantTestCase):
     """Testes para CostCenterSerializer."""
 
     def test_serialize_cost_center(self):
@@ -374,7 +377,7 @@ class CostCenterSerializerTests(TestCase):
         self.assertEqual(cc.name, "New CC")
 
 
-class RateCardSerializerTests(TestCase):
+class RateCardSerializerTests(TenantTestCase):
     """Testes para RateCardSerializer."""
 
     def test_serialize_rate_card(self):
@@ -410,7 +413,7 @@ class RateCardSerializerTests(TestCase):
 # Em ambiente real, usar TenantTestCase ou similar do django-tenants
 
 
-class FinanceAPITests(TestCase):
+class FinanceAPITests(TenantTestCase):
     """
     Testes de API Finance.
 
@@ -446,7 +449,7 @@ class FinanceAPITests(TestCase):
 # =============================================================================
 
 
-class CostTransactionModelTests(TestCase):
+class CostTransactionModelTests(TenantTestCase):
     """Testes para model CostTransaction."""
 
     def setUp(self):
@@ -652,7 +655,7 @@ class CostTransactionModelTests(TestCase):
         self.assertEqual(len(tx.meta["hours_breakdown"]), 2)
 
 
-class LedgerAdjustmentModelTests(TestCase):
+class LedgerAdjustmentModelTests(TenantTestCase):
     """Testes para model LedgerAdjustment."""
 
     def setUp(self):
@@ -780,7 +783,7 @@ class LedgerAdjustmentModelTests(TestCase):
         self.assertIsNotNone(adjustment.adjustment_transaction)
 
 
-class CostTransactionSerializerTests(TestCase):
+class CostTransactionSerializerTests(TenantTestCase):
     """Testes para CostTransactionSerializer."""
 
     def setUp(self):
