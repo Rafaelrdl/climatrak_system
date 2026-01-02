@@ -34,7 +34,7 @@ from apps.finance.models import CostCenter, CostTransaction
 class OutboxIdempotencyTests(TenantTestCase):
     """
     Testes de idempotência da Outbox.
-    
+
     REGRA: Consumer processa 1 vez mesmo com reentrega.
     """
 
@@ -47,7 +47,7 @@ class OutboxIdempotencyTests(TenantTestCase):
     def test_duplicate_idempotency_key_raises_integrity_error(self):
         """
         Chave de idempotência duplicada no mesmo tenant deve falhar.
-        
+
         Garante unicidade: (tenant_id, idempotency_key)
         """
         key = "unique-key-test"
@@ -77,7 +77,7 @@ class OutboxIdempotencyTests(TenantTestCase):
     def test_same_key_different_tenant_allowed(self):
         """
         Mesma chave em tenants diferentes deve ser permitida.
-        
+
         Idempotência é por tenant, não global.
         """
         key = "cross-tenant-key"
@@ -111,7 +111,7 @@ class OutboxIdempotencyTests(TenantTestCase):
     def test_publish_idempotent_returns_existing_on_duplicate(self):
         """
         publish_idempotent deve retornar evento existente sem criar novo.
-        
+
         Implementa padrão get_or_create para at-least-once.
         """
         key = "idempotent-test"
@@ -146,7 +146,7 @@ class OutboxIdempotencyTests(TenantTestCase):
 class ConsumerRedeliveryTests(TenantTestCase):
     """
     Testes para garantir que reentrega não causa duplicação.
-    
+
     REGRA: Consumer processa 1 vez mesmo com reentrega.
     """
 
@@ -159,7 +159,7 @@ class ConsumerRedeliveryTests(TenantTestCase):
     def test_processed_event_is_not_reprocessed(self):
         """
         Evento já processado não deve ser reprocessado.
-        
+
         Task deve verificar status antes de executar handler.
         """
         # Criar evento e marcar como processado
@@ -234,7 +234,7 @@ class ConsumerRedeliveryTests(TenantTestCase):
 class RetryNoSideEffectTests(TenantTestCase):
     """
     Testes para garantir que retry não duplica efeitos colaterais.
-    
+
     REGRA: Retry não duplica efeitos colaterais.
     """
 
@@ -251,7 +251,7 @@ class RetryNoSideEffectTests(TenantTestCase):
     def test_cost_engine_idempotent_on_retry(self):
         """
         Cost Engine deve ser idempotente em reprocessamento.
-        
+
         Processar mesmo evento 2x não deve criar transações duplicadas.
         """
         from apps.finance.cost_engine import CostEngineService
@@ -305,7 +305,7 @@ class RetryNoSideEffectTests(TenantTestCase):
     def test_event_publishing_idempotent_on_retry(self):
         """
         Publicação de eventos deve ser idempotente.
-        
+
         Se handler falha após publicar evento, reprocessamento não duplica.
         """
         key = f"retry-publish-{uuid.uuid4()}"
@@ -341,7 +341,7 @@ class RetryNoSideEffectTests(TenantTestCase):
 class AtLeastOnceDeliveryTests(TenantTestCase):
     """
     Testes para garantir at-least-once não duplica ledger.
-    
+
     REGRA: "At least once" do mundo real ≠ duplicação de ledger.
     """
 
@@ -358,7 +358,7 @@ class AtLeastOnceDeliveryTests(TenantTestCase):
     def test_ledger_idempotency_key_prevents_duplicates(self):
         """
         idempotency_key no CostTransaction previne duplicação no ledger.
-        
+
         Mesmo que handler seja chamado múltiplas vezes.
         """
         key = f"wo:{uuid.uuid4()}:labor"
@@ -398,7 +398,7 @@ class AtLeastOnceDeliveryTests(TenantTestCase):
     def test_unique_constraint_enforces_idempotency(self):
         """
         UniqueConstraint no banco previne race conditions.
-        
+
         Garantia em nível de banco, não apenas aplicação.
         Nota: Django valida antes de enviar ao banco, então pode ser
         IntegrityError (banco) ou ValidationError (Django validation).
@@ -434,7 +434,7 @@ class AtLeastOnceDeliveryTests(TenantTestCase):
     def test_deterministic_idempotency_key_generation(self):
         """
         Chave de idempotência deve ser determinística.
-        
+
         Mesma entrada sempre gera mesma chave.
         """
         work_order_id = str(uuid.uuid4())
@@ -465,7 +465,7 @@ class AtLeastOnceDeliveryTests(TenantTestCase):
         }
 
         # Processar 3 vezes (simulando múltiplas entregas)
-        for i in range(3):
+        for _ in range(3):
             CostEngineService.process_work_order_closed(
                 event_data=event_data,
                 tenant_id=self.tenant_id,

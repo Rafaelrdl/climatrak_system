@@ -37,7 +37,7 @@ User = get_user_model()
 class LedgerIdempotencyKeyTests(TenantTestCase):
     """
     Testes para idempotency_key determinístico.
-    
+
     REGRA: idempotency_key determinístico: mesma entrada → 1 transação.
     """
 
@@ -58,7 +58,7 @@ class LedgerIdempotencyKeyTests(TenantTestCase):
     def test_generate_idempotency_key_is_deterministic(self):
         """
         Mesma entrada deve gerar mesma chave sempre.
-        
+
         Formato: wo:{work_order_id}:{transaction_type}
         """
         wo_id = "12345678-1234-1234-1234-123456789abc"
@@ -111,7 +111,7 @@ class LedgerIdempotencyKeyTests(TenantTestCase):
     def test_unique_constraint_prevents_duplicate_keys(self):
         """
         Constraint de banco deve prevenir duplicação.
-        
+
         Nota: Django valida constraints antes de enviar ao banco,
         então pode ser IntegrityError ou ValidationError.
         """
@@ -171,7 +171,7 @@ class LedgerIdempotencyKeyTests(TenantTestCase):
 class MonthlyLockTests(TenantTestCase):
     """
     Testes para lock mensal de transações.
-    
+
     REGRA: Mês locked: tentativa de editar → falha.
     """
 
@@ -188,7 +188,7 @@ class MonthlyLockTests(TenantTestCase):
             email="lock@test.com",
             password="testpass123",
         )
-        
+
         # Criar transação de teste
         self.transaction = CostTransaction.objects.create(
             idempotency_key=f"wo:{uuid.uuid4()}:labor",
@@ -285,7 +285,7 @@ class MonthlyLockTests(TenantTestCase):
 class AdjustmentForLockedTests(TenantTestCase):
     """
     Testes para criar adjustment em vez de editar locked.
-    
+
     REGRA: Correção: criar adjustment (não editar locked).
     """
 
@@ -319,7 +319,7 @@ class AdjustmentForLockedTests(TenantTestCase):
     def test_can_create_adjustment_for_correction(self):
         """
         Pode criar adjustment para corrigir transação locked.
-        
+
         Padrão: Em vez de editar, criar nova transação de ajuste.
         """
         # Valor original era 1000, deveria ser 800
@@ -481,7 +481,7 @@ class BudgetMonthLockTests(TenantTestCase):
 class LedgerSourceOfTruthTests(TenantTestCase):
     """
     Testes para garantir que Ledger é fonte da verdade.
-    
+
     REGRA: Ledger (CostTransaction) é fonte da verdade.
     """
 
@@ -623,7 +623,7 @@ class CostTransactionValidationTests(TenantTestCase):
         # Este teste verifica a regra de negócio no modelo
         # Nota: WorkOrder FK é opcional no modelo, então a validação
         # ocorre apenas se work_order estiver preenchido
-        
+
         # Criar transação sem work_order - deve funcionar sem idempotency_key
         tx = CostTransaction.objects.create(
             cost_center=self.cost_center,

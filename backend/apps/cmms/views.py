@@ -21,8 +21,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 logger = logging.getLogger(__name__)
 
-from apps.inventory.models import InventoryMovement
 from apps.accounts.permissions import RoleBasedPermission
+from apps.inventory.models import InventoryMovement
 
 from .models import (
     ChecklistCategory,

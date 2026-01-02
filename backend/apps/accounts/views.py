@@ -180,6 +180,7 @@ class CookieTokenRefreshView(TokenRefreshView):
 
         # Enforce tenant lock for refresh when running on a tenant schema
         from django.db import connection
+
         from django_tenants.utils import get_public_schema_name
 
         current_schema = getattr(connection, "schema_name", get_public_schema_name())

@@ -10,11 +10,12 @@ from django.db import connection, transaction
 from django.db.models import Count
 from django.db.utils import OperationalError, ProgrammingError
 from django.template.loader import render_to_string
-from django_tenants.utils import get_public_schema_name, schema_context
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from django_tenants.utils import get_public_schema_name, schema_context
 
 from apps.tenants.models import Domain, Tenant
 

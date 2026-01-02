@@ -163,6 +163,8 @@ class JWTCookieAuthentication(JWTAuthentication):
     def _has_active_membership(self, user, schema_name: str) -> bool:
         from apps.public_identity.models import (
             TenantMembership as PublicTenantMembership,
+        )
+        from apps.public_identity.models import (
             compute_email_hash,
         )
         from apps.tenants.models import Tenant

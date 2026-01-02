@@ -17,6 +17,8 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test import RequestFactory, TestCase, override_settings
+from rest_framework import status
+from rest_framework.test import APIClient
 
 import pytest
 from django_tenants.test.cases import TenantTestCase
@@ -26,8 +28,6 @@ from django_tenants.utils import (
     get_tenant_model,
     schema_context,
 )
-from rest_framework import status
-from rest_framework.test import APIClient
 
 User = get_user_model()
 Tenant = get_tenant_model()
@@ -36,7 +36,7 @@ Tenant = get_tenant_model()
 class SchemaIsolationTests(TenantTestCase):
     """
     Testes para garantir que dados não vazam entre schemas.
-    
+
     REGRA: Query nunca atravessa schema.
     """
 
@@ -48,7 +48,7 @@ class SchemaIsolationTests(TenantTestCase):
     def test_user_created_in_tenant_not_visible_in_public(self):
         """
         Usuário criado em tenant não deve ser visível no schema public.
-        
+
         Garante isolamento: dados do tenant não vazam para public.
         """
         # Cria usuário no tenant de teste (self.tenant é criado por TenantTestCase)
@@ -76,7 +76,7 @@ class SchemaIsolationTests(TenantTestCase):
     def test_query_respects_current_schema(self):
         """
         Queries devem respeitar o schema atual da conexão.
-        
+
         Verifica que connection.schema_name corresponde ao tenant ativo.
         """
         # No contexto do tenant de teste
@@ -92,7 +92,7 @@ class SchemaIsolationTests(TenantTestCase):
     def test_tenant_specific_model_isolation(self):
         """
         Modelos tenant-specific devem ser isolados por schema.
-        
+
         Cria dados em dois contextos e verifica que não se misturam.
         """
         # Criar dados no tenant atual
@@ -116,7 +116,7 @@ class SchemaIsolationTests(TenantTestCase):
     def test_cross_tenant_query_not_possible_directly(self):
         """
         Não deve ser possível acessar dados de outro tenant sem trocar contexto.
-        
+
         Verifica que ORM do Django está corretamente configurado.
         """
         # Usuário do tenant atual
@@ -141,7 +141,7 @@ class SchemaIsolationTests(TenantTestCase):
 class TenantConfigurationTests(TestCase):
     """
     Testes para validar configuração de apps tenant vs shared.
-    
+
     REGRA: Apps sensíveis devem estar em TENANT_APPS para isolamento.
     """
 
@@ -199,7 +199,7 @@ class TenantConfigurationTests(TestCase):
     def test_core_events_is_shared(self):
         """
         Core Events (Outbox) pode ser shared ou tenant.
-        
+
         Se shared, eventos devem ter tenant_id explícito.
         Se tenant, eventos são isolados por schema.
         """
@@ -219,7 +219,7 @@ class TenantConfigurationTests(TestCase):
 class TenantHeaderMiddlewareTests(TenantTestCase):
     """
     Testes para o middleware X-Tenant header.
-    
+
     REGRA: Endpoints respeitam tenant derivado do host/subdomínio/header.
     """
 
@@ -247,7 +247,7 @@ class TenantHeaderMiddlewareTests(TenantTestCase):
     def test_request_without_tenant_header_uses_domain_resolution(self):
         """
         Requisição sem X-Tenant deve usar resolução por domínio.
-        
+
         No TenantTestCase, o domínio é automaticamente o tenant de teste.
         """
         # O TenantClient já está configurado com o tenant correto
@@ -261,7 +261,7 @@ class TenantHeaderMiddlewareTests(TenantTestCase):
     def test_authenticated_request_respects_tenant_context(self):
         """
         Requisições autenticadas devem operar no schema correto.
-        
+
         Usuário criado no tenant de teste deve ser encontrado.
         """
         self.api_client.force_authenticate(user=self.user)
@@ -277,7 +277,7 @@ class TenantHeaderMiddlewareTests(TenantTestCase):
 class TenantCreationTests(TenantTestCase):
     """
     Testes para criação de tenant com fixtures/seed.
-    
+
     REGRA: Fixtures/seed criam tenant + owner corretamente.
     """
 
@@ -322,19 +322,21 @@ class TenantCreationTests(TenantTestCase):
 class TenantDataLeakagePreventionTests(TenantTestCase):
     """
     Testes de prevenção de vazamento de dados entre tenants.
-    
+
     Cenários críticos que NUNCA devem acontecer.
     """
 
     def test_finance_data_isolation(self):
         """
         Dados financeiros são críticos e DEVEM ser isolados.
-        
+
         CostTransaction de um tenant não pode aparecer em outro.
         """
-        from apps.finance.models import CostCenter, CostTransaction
         from decimal import Decimal
+
         from django.utils import timezone
+
+        from apps.finance.models import CostCenter, CostTransaction
 
         # Criar dados no tenant atual
         cc = CostCenter.objects.create(
@@ -374,7 +376,7 @@ class TenantDataLeakagePreventionTests(TenantTestCase):
     def test_outbox_events_have_tenant_id(self):
         """
         Eventos Outbox DEVEM ter tenant_id para rastreabilidade.
-        
+
         Mesmo se OutboxEvent for shared, tenant_id permite filtrar.
         """
         from apps.core_events.models import OutboxEvent
@@ -388,7 +390,7 @@ class TenantDataLeakagePreventionTests(TenantTestCase):
     def test_user_email_unique_per_tenant(self):
         """
         Email de usuário deve ser único por tenant, não globalmente.
-        
+
         Permite que "admin@company.com" exista em múltiplos tenants.
         """
         # Criar usuário no tenant atual
@@ -414,7 +416,7 @@ class TenantDataLeakagePreventionTests(TenantTestCase):
 class RawSQLIsolationTests(TenantTestCase):
     """
     Testes para garantir que queries raw SQL também respeitam schema.
-    
+
     REGRA: Mesmo queries raw devem operar no schema correto.
     """
 
@@ -433,8 +435,8 @@ class RawSQLIsolationTests(TenantTestCase):
     def test_raw_insert_goes_to_correct_schema(self):
         """
         INSERT via raw SQL deve ir para o schema correto.
-        
-        Nota: O sistema ClimaTrak tem um índice de usuários no schema public 
+
+        Nota: O sistema ClimaTrak tem um índice de usuários no schema public
         (TenantUserIndex via public_identity app) para permitir login centralizado.
         Porém, os dados COMPLETOS do usuário só existem no schema do tenant.
         """
@@ -464,8 +466,8 @@ class RawSQLIsolationTests(TenantTestCase):
                 # Verificar que se existe users no public, é apenas índice
                 cursor.execute(
                     """
-                    SELECT COUNT(*) FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
+                    SELECT COUNT(*) FROM information_schema.tables
+                    WHERE table_schema = 'public'
                     AND table_name IN ('public_tenant_user_index', 'public_tenant_memberships')
                     """
                 )

@@ -342,6 +342,7 @@ class Invite(models.Model):
 
     def mark_accepted(self, user=None, invite_schema=None):
         from django.contrib.auth import get_user_model
+
         from django_tenants.utils import schema_context
 
         resolved_invite_schema = self._resolve_invite_schema(invite_schema)

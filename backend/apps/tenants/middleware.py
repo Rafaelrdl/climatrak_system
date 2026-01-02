@@ -25,7 +25,11 @@ from django.conf import settings
 from django.db import connection
 from django.http import JsonResponse
 
-from django_tenants.utils import get_public_schema_name, get_tenant_model, schema_context
+from django_tenants.utils import (
+    get_public_schema_name,
+    get_tenant_model,
+    schema_context,
+)
 
 logger = logging.getLogger(__name__)
 
