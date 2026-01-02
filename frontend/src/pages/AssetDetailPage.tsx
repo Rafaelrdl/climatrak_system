@@ -719,6 +719,7 @@ export function AssetDetailPage() {
                 unit="%"
                 status={getHealthStatus(assetKPIs.health)}
                 icon={<Heart className="w-5 h-5" />}
+                description="Score geral do ativo"
               />
               <StatCard
                 label="Uptime"
@@ -726,20 +727,23 @@ export function AssetDetailPage() {
                 unit="%"
                 status={getUptimeStatus(maintenanceMetrics.uptime)}
                 icon={<TrendingUp className="w-5 h-5" />}
+                description="Tempo em operação"
               />
               <StatCard
                 label="MTBF"
                 value={maintenanceMetrics.mtbf.toLocaleString('pt-BR')}
                 unit="h"
+                status={maintenanceMetrics.mtbf >= 4320 ? 'online' : maintenanceMetrics.mtbf >= 720 ? 'warning' : 'critical'}
                 icon={<Clock className="w-5 h-5" />}
-                description={maintenanceMetrics.totalFailures === 0 ? 'Sem falhas' : `${maintenanceMetrics.totalFailures} falha(s)`}
+                description={maintenanceMetrics.totalFailures === 0 ? 'Sem falhas no período' : `${maintenanceMetrics.totalFailures} falha(s)`}
               />
               <StatCard
                 label="MTTR"
-                value={formatMTTR(maintenanceMetrics.mttr)}
-                unit=""
+                value={maintenanceMetrics.mttr.toFixed(1)}
+                unit="h"
+                status={maintenanceMetrics.mttr === 0 ? 'online' : maintenanceMetrics.mttr <= 4 ? 'online' : maintenanceMetrics.mttr <= 24 ? 'warning' : 'critical'}
                 icon={<Wrench className="w-5 h-5" />}
-                description={maintenanceMetrics.totalFailures === 0 ? 'Sem falhas' : `${maintenanceMetrics.totalFailures} reparo(s)`}
+                description={maintenanceMetrics.totalFailures === 0 ? 'Sem reparos' : `${maintenanceMetrics.totalFailures} reparo(s)`}
               />
               <StatCard
                 label="Disponibilidade"
