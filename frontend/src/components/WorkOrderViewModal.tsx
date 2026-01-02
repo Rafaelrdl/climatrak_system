@@ -109,7 +109,7 @@ export function WorkOrderViewModal({
   // Verificar se a OS está completa mas não tem custos postados
   const isCompleted = currentWorkOrder?.status === 'COMPLETED';
   const isCancelled = currentWorkOrder?.status === 'CANCELLED';
-  const hasCosts = costsSummary.total > 0;
+  const hasCosts = costTransactions.length > 0;
   const needsPostCosts = isCompleted && !hasCosts && !isLoadingCosts && !isProcessingCosts;
 
   // Função para formatar valores monetários
@@ -147,7 +147,7 @@ export function WorkOrderViewModal({
   const selectedEquipment = equipment.find(e => e.id === currentWorkOrder.equipmentId);
   const selectedSector = sectors.find(s => s.id === selectedEquipment?.sectorId);
   const selectedCompany = companies.find(c => c.id === selectedSector?.companyId);
-  const assignedTechnician = technicians.find(t => String(t.id) === currentWorkOrder.assignedTo);
+  const assignedTechnician = technicians.find(t => String(t.user.id) === currentWorkOrder.assignedTo);
 
   // Mapear ícones para cada status
   const getStatusIcon = (statusId: string) => {

@@ -84,7 +84,7 @@ function WorkOrderCard({
     : '';
 
   // Obter configuração de tipo
-  const typeConfig = settings.types.find(t => t.value === workOrder.type);
+  const typeConfig = settings.types.find(t => t.id === workOrder.type);
   
   // Definir cor baseada na prioridade
   const getPriorityColor = () => {
@@ -448,8 +448,8 @@ export function WorkOrderKanban({
     const overId = over.id as string;
 
     
-    // overId será 'OPEN', 'IN_PROGRESS', ou 'COMPLETED'
-    if (['OPEN', 'IN_PROGRESS', 'COMPLETED'].includes(overId)) {
+    // overId pode ser 'OPEN', 'IN_PROGRESS', 'COMPLETED' ou 'CANCELLED'
+    if (['OPEN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].includes(overId)) {
       const newStatus = overId as WorkOrder['status'];
       
       if (activeWorkOrder.status !== newStatus) {

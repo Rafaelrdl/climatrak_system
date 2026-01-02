@@ -84,7 +84,7 @@ export function WorkOrderList({
   const [workOrderToDelete, setWorkOrderToDelete] = useState<WorkOrder | null>(null);
   
   // Estado para loading de impressão
-  const [printingOrderId, setPrintingOrderId] = useState<number | null>(null);
+  const [printingOrderId, setPrintingOrderId] = useState<string | null>(null);
 
   const currentUser = getCurrentUser();
   
@@ -416,6 +416,10 @@ export function WorkOrderList({
         {workOrders.map((wo) => {
           const eq = equipment.find(e => e.id === wo.equipmentId);
           const sector = sectors.find(s => s.id === eq?.sectorId);
+          const scheduledDate = wo.scheduledDate
+            ? (wo.scheduledDate.includes('T') ? new Date(wo.scheduledDate) : parseLocalDate(wo.scheduledDate))
+                .toLocaleDateString('pt-BR')
+            : '-';
           
           // Calcula status do SLA - não aplicável para OSs preventivas
           const slaStatus = slaSettings.enabled && wo.createdAt && wo.type !== 'PREVENTIVE'
@@ -467,9 +471,7 @@ export function WorkOrderList({
               <TableCell>
                 <StatusBadge status={wo.priority} />
               </TableCell>
-              <TableCell>
-                {(wo.scheduledDate.includes('T') ? new Date(wo.scheduledDate) : parseLocalDate(wo.scheduledDate)).toLocaleDateString('pt-BR')}
-              </TableCell>
+              <TableCell>{scheduledDate}</TableCell>
               <TableCell>{wo.assignedToName || wo.assignedTo || '-'}</TableCell>
               <TableCell>
                 <StatusBadge status={wo.status} />
