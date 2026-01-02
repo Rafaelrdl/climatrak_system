@@ -40,6 +40,10 @@ from apps.finance.serializers import (
 class CostCenterModelTests(TenantTestCase):
     """Testes para model CostCenter."""
 
+    def setUp(self):
+        """Limpa dados antes de cada teste."""
+        CostCenter.objects.all().delete()
+
     def test_create_cost_center(self):
         """Deve criar centro de custo básico."""
         cc = CostCenter.objects.create(
@@ -155,6 +159,10 @@ class RateCardModelTests(TenantTestCase):
 class BudgetPlanModelTests(TenantTestCase):
     """Testes para model BudgetPlan."""
 
+    def setUp(self):
+        """Limpa dados antes de cada teste."""
+        BudgetPlan.objects.all().delete()
+
     def test_create_budget_plan(self):
         """Deve criar plano orçamentário."""
         plan = BudgetPlan.objects.create(
@@ -203,6 +211,10 @@ class BudgetEnvelopeModelTests(TenantTestCase):
     """Testes para model BudgetEnvelope."""
 
     def setUp(self):
+        BudgetEnvelope.objects.all().delete()
+        BudgetMonth.objects.all().delete()
+        BudgetPlan.objects.all().delete()
+        CostCenter.objects.all().delete()
         self.cost_center = CostCenter.objects.create(code="CC-001", name="Test")
         self.plan = BudgetPlan.objects.create(
             code="BUDGET-2024",
@@ -272,6 +284,10 @@ class BudgetMonthModelTests(TenantTestCase):
     """Testes para model BudgetMonth."""
 
     def setUp(self):
+        BudgetMonth.objects.all().delete()
+        BudgetEnvelope.objects.all().delete()
+        BudgetPlan.objects.all().delete()
+        CostCenter.objects.all().delete()
         self.cost_center = CostCenter.objects.create(code="CC-001", name="Test")
         self.plan = BudgetPlan.objects.create(
             code="BUDGET-2024",
@@ -328,8 +344,14 @@ class BudgetMonthModelTests(TenantTestCase):
 
         User = get_user_model()
 
-        # Criar usuário para o teste (ajustar conforme modelo)
-        # Este teste pode precisar de ajustes dependendo do User model
+        # Criar usuário real para o teste
+        user = User.objects.create_user(
+            email="test_lock@example.com",
+            password="testpass123",
+            first_name="Test",
+            last_name="User",
+        )
+
         month = BudgetMonth.objects.create(
             envelope=self.envelope,
             month=date(2024, 1, 1),
@@ -337,12 +359,6 @@ class BudgetMonthModelTests(TenantTestCase):
         )
 
         self.assertFalse(month.is_locked)
-
-        # Mock do user para teste
-        class MockUser:
-            pass
-
-        user = MockUser()
 
         month.lock(user)
         self.assertTrue(month.is_locked)
@@ -454,7 +470,21 @@ class CostTransactionModelTests(TenantTestCase):
     """Testes para model CostTransaction."""
 
     def setUp(self):
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+
+        CostTransaction.objects.all().delete()
+        CostCenter.objects.all().delete()
+        User.objects.filter(email="test_costx@example.com").delete()
+
         self.cost_center = CostCenter.objects.create(code="CC-001", name="Test CC")
+        self.test_user = User.objects.create_user(
+            email="test_costx@example.com",
+            password="testpass123",
+            first_name="Test",
+            last_name="User",
+        )
 
     def test_create_transaction(self):
         """Deve criar transação de custo básica."""
@@ -561,12 +591,7 @@ class CostTransactionModelTests(TenantTestCase):
 
         self.assertFalse(tx.is_locked)
 
-        class MockUser:
-            pass
-
-        user = MockUser()
-
-        tx.lock(user)
+        tx.lock(self.test_user)
         tx.refresh_from_db()
 
         self.assertTrue(tx.is_locked)
@@ -660,7 +685,22 @@ class LedgerAdjustmentModelTests(TenantTestCase):
     """Testes para model LedgerAdjustment."""
 
     def setUp(self):
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+
+        LedgerAdjustment.objects.all().delete()
+        CostTransaction.objects.all().delete()
+        CostCenter.objects.all().delete()
+        User.objects.filter(email="test_ledger@example.com").delete()
+
         self.cost_center = CostCenter.objects.create(code="CC-001", name="Test CC")
+        self.test_user = User.objects.create_user(
+            email="test_ledger@example.com",
+            password="testpass123",
+            first_name="Test",
+            last_name="User",
+        )
         self.original_tx = CostTransaction.objects.create(
             transaction_type=CostTransaction.TransactionType.LABOR,
             category=CostTransaction.Category.PREVENTIVE,
@@ -682,12 +722,6 @@ class LedgerAdjustmentModelTests(TenantTestCase):
             cost_center=self.cost_center,
         )
 
-        # Mock user
-        class MockUser:
-            pass
-
-        user = MockUser()
-
         # Criar registro de ajuste
         adjustment = LedgerAdjustment.objects.create(
             original_transaction=self.original_tx,
@@ -696,7 +730,7 @@ class LedgerAdjustmentModelTests(TenantTestCase):
             reason="Correção de valor lançado incorretamente devido a erro de digitação.",
             original_amount=self.original_tx.amount,
             adjustment_amount=Decimal("-200.00"),
-            created_by=user,
+            created_by=self.test_user,
         )
 
         self.assertEqual(adjustment.adjustment_type, "correction")
@@ -714,9 +748,6 @@ class LedgerAdjustmentModelTests(TenantTestCase):
             cost_center=self.cost_center,
         )
 
-        class MockUser:
-            pass
-
         with self.assertRaises(ValidationError):
             LedgerAdjustment.objects.create(
                 original_transaction=self.original_tx,
@@ -724,7 +755,7 @@ class LedgerAdjustmentModelTests(TenantTestCase):
                 adjustment_type=LedgerAdjustment.AdjustmentType.CORRECTION,
                 reason="Curto",  # Menos de 10 caracteres
                 adjustment_amount=Decimal("-100.00"),
-                created_by=MockUser(),
+                created_by=self.test_user,
             )
 
     def test_adjustment_types(self):
@@ -745,16 +776,13 @@ class LedgerAdjustmentModelTests(TenantTestCase):
                 cost_center=self.cost_center,
             )
 
-            class MockUser:
-                pass
-
             adjustment = LedgerAdjustment.objects.create(
                 original_transaction=self.original_tx,
                 adjustment_transaction=adjustment_tx,
                 adjustment_type=adj_type,
                 reason="Motivo do ajuste com pelo menos 10 caracteres.",
                 adjustment_amount=Decimal("-50.00"),
-                created_by=MockUser(),
+                created_by=self.test_user,
             )
             self.assertIsNotNone(adjustment.id)
 
@@ -768,16 +796,13 @@ class LedgerAdjustmentModelTests(TenantTestCase):
             cost_center=self.cost_center,
         )
 
-        class MockUser:
-            pass
-
         adjustment = LedgerAdjustment.objects.create(
             original_transaction=None,  # Sem original
             adjustment_transaction=adjustment_tx,
             adjustment_type=LedgerAdjustment.AdjustmentType.OTHER,
             reason="Ajuste avulso para correção de saldo inicial.",
             adjustment_amount=Decimal("500.00"),
-            created_by=MockUser(),
+            created_by=self.test_user,
         )
 
         self.assertIsNone(adjustment.original_transaction)
@@ -788,6 +813,9 @@ class CostTransactionSerializerTests(TenantTestCase):
     """Testes para CostTransactionSerializer."""
 
     def setUp(self):
+        # Limpar dados entre testes
+        CostTransaction.objects.all().delete()
+        CostCenter.objects.all().delete()
         self.cost_center = CostCenter.objects.create(code="CC-001", name="Test CC")
 
     def test_serialize_transaction(self):
