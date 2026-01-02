@@ -493,6 +493,7 @@ export function WorkOrderKanban({
             <div className="rotate-3 scale-105 opacity-90">
               <WorkOrderCard
                 workOrder={activeWorkOrder}
+                equipmentById={equipmentById}
                 onStartWorkOrder={onStartWorkOrder}
                 onEditWorkOrder={onEditWorkOrder}
               />
