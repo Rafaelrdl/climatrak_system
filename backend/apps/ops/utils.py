@@ -1,6 +1,7 @@
 """
 Utility functions for Control Center operations.
 """
+
 import logging
 
 from django.core.cache import cache
@@ -54,9 +55,9 @@ def get_cached_tenants():
                 "slug": getattr(
                     t, "slug", t.schema_name
                 ),  # Fallback to schema_name if no slug
-                "created_at": t.created_on.isoformat()
-                if hasattr(t, "created_on")
-                else None,
+                "created_at": (
+                    t.created_on.isoformat() if hasattr(t, "created_on") else None
+                ),
             }
         )
 

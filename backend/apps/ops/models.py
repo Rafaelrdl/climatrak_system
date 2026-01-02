@@ -1,6 +1,7 @@
 """
 Models for Control Center (Ops Panel)
 """
+
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -304,9 +305,9 @@ class AuditLog(models.Model):
 
         return cls.objects.create(
             user=request.user if request.user.is_authenticated else None,
-            username=request.user.username
-            if request.user.is_authenticated
-            else "anonymous",
+            username=(
+                request.user.username if request.user.is_authenticated else "anonymous"
+            ),
             action=action,
             tenant_slug=tenant_slug,
             filters=filters or {},

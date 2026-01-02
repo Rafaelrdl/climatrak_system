@@ -6,6 +6,7 @@ Provides convenient endpoints for:
 - Historical data for specific devices/sensors
 - Device summary with all sensors
 """
+
 import json
 from datetime import timedelta
 
@@ -95,9 +96,11 @@ class LatestReadingsView(APIView):
         return Response(
             {
                 "device_id": device_id,
-                "timestamp": last_update.isoformat()
-                if hasattr(last_update, "isoformat")
-                else last_update,
+                "timestamp": (
+                    last_update.isoformat()
+                    if hasattr(last_update, "isoformat")
+                    else last_update
+                ),
                 "count": len(data),
                 "readings": serializer.data,
             }
@@ -364,9 +367,9 @@ class DeviceHistoryView(APIView):
         return Response(
             {
                 "device_id": device_id,
-                "sensor_ids": sensor_ids
-                if sensor_ids
-                else None,  # Return list of requested sensors
+                "sensor_ids": (
+                    sensor_ids if sensor_ids else None
+                ),  # Return list of requested sensors
                 "interval": interval,
                 "from": ts_from.isoformat(),
                 "to": ts_to.isoformat(),
@@ -498,9 +501,11 @@ class DeviceSummaryView(APIView):
                     "sensor_name": reading_data[
                         "sensor_id"
                     ],  # Por enquanto usa o ID como nome
-                    "sensor_type": labels.get("type", "unknown")
-                    if isinstance(labels, dict)
-                    else "unknown",
+                    "sensor_type": (
+                        labels.get("type", "unknown")
+                        if isinstance(labels, dict)
+                        else "unknown"
+                    ),
                     "unit": labels.get("unit", "") if isinstance(labels, dict) else "",
                     "is_online": is_online,
                     "last_value": reading_data["value"],
@@ -515,21 +520,29 @@ class DeviceSummaryView(APIView):
         for row in stats_24h_rows:
             stats_dict = dict(zip(stats_24h_columns, row, strict=False))
             stats_by_sensor[stats_dict["sensor_id"]] = {
-                "avg": float(stats_dict["avg_value"])
-                if stats_dict["avg_value"] is not None
-                else None,
-                "min": float(stats_dict["min_value"])
-                if stats_dict["min_value"] is not None
-                else None,
-                "max": float(stats_dict["max_value"])
-                if stats_dict["max_value"] is not None
-                else None,
-                "stddev": float(stats_dict["stddev_value"])
-                if stats_dict["stddev_value"] is not None
-                else None,
-                "count": int(stats_dict["count"])
-                if stats_dict["count"] is not None
-                else 0,
+                "avg": (
+                    float(stats_dict["avg_value"])
+                    if stats_dict["avg_value"] is not None
+                    else None
+                ),
+                "min": (
+                    float(stats_dict["min_value"])
+                    if stats_dict["min_value"] is not None
+                    else None
+                ),
+                "max": (
+                    float(stats_dict["max_value"])
+                    if stats_dict["max_value"] is not None
+                    else None
+                ),
+                "stddev": (
+                    float(stats_dict["stddev_value"])
+                    if stats_dict["stddev_value"] is not None
+                    else None
+                ),
+                "count": (
+                    int(stats_dict["count"]) if stats_dict["count"] is not None else 0
+                ),
             }
 
         # Attach statistics to sensors
@@ -798,18 +811,26 @@ class AssetTelemetryHistoryView(APIView):
                 result.append(
                     {
                         "sensor_id": row_dict["sensor_id"],
-                        "ts": row_dict["bucket"].isoformat()
-                        if hasattr(row_dict["bucket"], "isoformat")
-                        else row_dict["bucket"],
-                        "avg_value": float(row_dict["avg_value"])
-                        if row_dict["avg_value"] is not None
-                        else None,
-                        "min_value": float(row_dict["min_value"])
-                        if row_dict["min_value"] is not None
-                        else None,
-                        "max_value": float(row_dict["max_value"])
-                        if row_dict["max_value"] is not None
-                        else None,
+                        "ts": (
+                            row_dict["bucket"].isoformat()
+                            if hasattr(row_dict["bucket"], "isoformat")
+                            else row_dict["bucket"]
+                        ),
+                        "avg_value": (
+                            float(row_dict["avg_value"])
+                            if row_dict["avg_value"] is not None
+                            else None
+                        ),
+                        "min_value": (
+                            float(row_dict["min_value"])
+                            if row_dict["min_value"] is not None
+                            else None
+                        ),
+                        "max_value": (
+                            float(row_dict["max_value"])
+                            if row_dict["max_value"] is not None
+                            else None
+                        ),
                         "count": row_dict["count"],
                     }
                 )

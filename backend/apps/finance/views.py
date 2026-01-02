@@ -548,12 +548,12 @@ class CostTransactionViewSet(viewsets.ModelViewSet):
             {
                 "by_month": [
                     {
-                        "month": item["month"].strftime("%Y-%m")
-                        if item["month"]
-                        else None,
-                        "month_name": item["month"].strftime("%B/%Y")
-                        if item["month"]
-                        else None,
+                        "month": (
+                            item["month"].strftime("%Y-%m") if item["month"] else None
+                        ),
+                        "month_name": (
+                            item["month"].strftime("%B/%Y") if item["month"] else None
+                        ),
                         "total_amount": item["total_amount"] or Decimal("0.00"),
                         "transaction_count": item["transaction_count"],
                     }
@@ -955,12 +955,16 @@ class CommitmentViewSet(viewsets.ModelViewSet):
             {
                 "by_month": [
                     {
-                        "budget_month": item["budget_month"].isoformat()
-                        if item["budget_month"]
-                        else None,
-                        "month_name": item["budget_month"].strftime("%B/%Y")
-                        if item["budget_month"]
-                        else None,
+                        "budget_month": (
+                            item["budget_month"].isoformat()
+                            if item["budget_month"]
+                            else None
+                        ),
+                        "month_name": (
+                            item["budget_month"].strftime("%B/%Y")
+                            if item["budget_month"]
+                            else None
+                        ),
                         "total_amount": item["total_amount"] or Decimal("0.00"),
                         "count": item["count"],
                     }
@@ -1068,9 +1072,9 @@ class SavingsEventViewSet(viewsets.ModelViewSet):
 
         return Response(
             {
-                "period_start": dates["start"].date().isoformat()
-                if dates["start"]
-                else None,
+                "period_start": (
+                    dates["start"].date().isoformat() if dates["start"] else None
+                ),
                 "period_end": dates["end"].date().isoformat() if dates["end"] else None,
                 "total_savings": totals["total_savings"] or Decimal("0.00"),
                 "count": totals["count"] or 0,
@@ -1150,9 +1154,9 @@ class SavingsEventViewSet(viewsets.ModelViewSet):
                 "by_month": [
                     {
                         "month": item["month"].isoformat() if item["month"] else None,
-                        "month_name": item["month"].strftime("%B/%Y")
-                        if item["month"]
-                        else None,
+                        "month_name": (
+                            item["month"].strftime("%B/%Y") if item["month"] else None
+                        ),
                         "total_savings": item["total_savings"] or Decimal("0.00"),
                         "count": item["count"],
                     }
@@ -1667,9 +1671,11 @@ class EnergyTariffViewSet(viewsets.ModelViewSet):
                 "tariff_name": tariff.name,
                 "time": f"{hour:02d}:{minute:02d}",
                 "bandeira": bandeira,
-                "is_peak": tariff.peak_start <= rate_time <= tariff.peak_end
-                if tariff.peak_start <= tariff.peak_end
-                else rate_time >= tariff.peak_start or rate_time <= tariff.peak_end,
+                "is_peak": (
+                    tariff.peak_start <= rate_time <= tariff.peak_end
+                    if tariff.peak_start <= tariff.peak_end
+                    else rate_time >= tariff.peak_start or rate_time <= tariff.peak_end
+                ),
                 "effective_rate": float(effective_rate),
             }
         )

@@ -172,7 +172,7 @@ class PartUsageModelTests(BaseCMSSTestCase):
         usage = PartUsage(
             work_order=self.work_order,
             quantity=Decimal("1"),
-            unit="UN"
+            unit="UN",
             # Sem part_name nem inventory_item
         )
 
@@ -430,7 +430,7 @@ class PartUsageAPITests(BaseCMSSTestCase):
         data = {
             "work_order": str(self.work_order.id),
             "quantity": "1",
-            "unit": "UN"
+            "unit": "UN",
             # Sem part_name nem inventory_item
         }
 

@@ -9,6 +9,7 @@ References:
 - schema_context: https://django-tenants.readthedocs.io/en/latest/use.html
 - CSRF protection: https://docs.djangoproject.com/en/5.2/howto/csrf/
 """
+
 import csv
 import datetime as dt
 
@@ -293,15 +294,15 @@ def telemetry_drilldown(request):
             if stats_row:
                 stats = {
                     "total_count": stats_row[0],
-                    "avg_value": float(stats_row[1])
-                    if stats_row[1] is not None
-                    else None,
-                    "min_value": float(stats_row[2])
-                    if stats_row[2] is not None
-                    else None,
-                    "max_value": float(stats_row[3])
-                    if stats_row[3] is not None
-                    else None,
+                    "avg_value": (
+                        float(stats_row[1]) if stats_row[1] is not None else None
+                    ),
+                    "min_value": (
+                        float(stats_row[2]) if stats_row[2] is not None else None
+                    ),
+                    "max_value": (
+                        float(stats_row[3]) if stats_row[3] is not None else None
+                    ),
                     "earliest_ts": stats_row[4],
                     "latest_ts": stats_row[5],
                 }
@@ -352,9 +353,9 @@ def telemetry_export_csv(request):
 
     # Create CSV response
     response = HttpResponse(content_type="text/csv")
-    response[
-        "Content-Disposition"
-    ] = f'attachment; filename="telemetry_{tenant_slug}_{dt.datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+    response["Content-Disposition"] = (
+        f'attachment; filename="telemetry_{tenant_slug}_{dt.datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+    )
 
     writer = csv.writer(response)
     writer.writerow(

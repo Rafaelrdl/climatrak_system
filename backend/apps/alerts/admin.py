@@ -1,6 +1,7 @@
 """
 Admin para o sistema de Alertas e Regras
 """
+
 from django.contrib import admin
 
 from .models import Alert, NotificationPreference, Rule, RuleParameter

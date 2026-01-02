@@ -1,6 +1,7 @@
 """
 Comando para testar manualmente a verificação de status de sensores.
 """
+
 from django.core.management.base import BaseCommand
 
 from apps.assets.tasks import check_sensors_online_status, update_device_online_status

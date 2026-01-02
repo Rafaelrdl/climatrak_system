@@ -3,6 +3,7 @@ Forms for the Ops panel.
 
 All forms include validation and sanitization for telemetry filters.
 """
+
 import re
 from datetime import datetime
 

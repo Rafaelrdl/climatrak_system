@@ -301,9 +301,11 @@ class CostEngineService:
                 # Buscar no RateCard
                 rate_card = RateCard.get_rate_for_role(
                     role=entry.get("role_code") or role,
-                    date=occurred_at.date()
-                    if hasattr(occurred_at, "date")
-                    else occurred_at,
+                    date=(
+                        occurred_at.date()
+                        if hasattr(occurred_at, "date")
+                        else occurred_at
+                    ),
                 )
                 rate = rate_card.cost_per_hour if rate_card else Decimal("0")
 

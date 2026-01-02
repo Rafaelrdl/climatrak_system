@@ -4,6 +4,7 @@ Parser para gateways LoRaWAN Khomp com formato SenML.
 Este parser processa payloads no formato SenML (Sensor Measurement Lists)
 conforme RFC 8428, usado pelos gateways Khomp.
 """
+
 import datetime
 import json
 import logging

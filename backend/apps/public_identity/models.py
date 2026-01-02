@@ -623,9 +623,9 @@ class TenantInvite(models.Model):
             tenant=tenant,
             email=email.lower().strip(),
             role=role,
-            invited_by_email_hash=compute_email_hash(invited_by_email)
-            if invited_by_email
-            else None,
+            invited_by_email_hash=(
+                compute_email_hash(invited_by_email) if invited_by_email else None
+            ),
             message=message,
             expires_at=timezone.now() + timedelta(days=expires_days),
         )

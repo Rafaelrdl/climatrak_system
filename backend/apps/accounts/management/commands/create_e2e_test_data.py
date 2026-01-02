@@ -76,7 +76,9 @@ class Command(BaseCommand):
                     self.style.WARNING(f"User already exists: {user.email}")
                 )
 
-        self.stdout.write(self.style.SUCCESS(f"\n✅ Created {created_count} test users"))
+        self.stdout.write(
+            self.style.SUCCESS(f"\n✅ Created {created_count} test users")
+        )
         self.stdout.write("\nTest credentials:")
         self.stdout.write("  Admin:    admin@climatrak.test / TestAdmin123!")
         self.stdout.write("  Operator: operator@climatrak.test / TestOperator123!")

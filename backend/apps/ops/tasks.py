@@ -1,6 +1,7 @@
 """
 Celery tasks for async operations in Control Center
 """
+
 import csv
 import logging
 from datetime import timedelta
@@ -153,9 +154,7 @@ def export_telemetry_async(self, export_job_id):
 
         # Retry on transient errors
         if self.request.retries < self.max_retries:
-            raise self.retry(
-                exc=exc, countdown=60 * (2**self.request.retries)
-            ) from exc
+            raise self.retry(exc=exc, countdown=60 * (2**self.request.retries)) from exc
 
         raise
 

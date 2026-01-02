@@ -236,9 +236,9 @@ class OutboxEventIndexesTest(TenantTestCase):
                 occurred_at=timezone.now(),
                 payload={"data": {"index": i}},
                 idempotency_key=f"key-{i}",
-                status=OutboxEventStatus.PENDING
-                if i < 3
-                else OutboxEventStatus.PROCESSED,
+                status=(
+                    OutboxEventStatus.PENDING if i < 3 else OutboxEventStatus.PROCESSED
+                ),
             )
 
     def test_query_pending_by_tenant(self):

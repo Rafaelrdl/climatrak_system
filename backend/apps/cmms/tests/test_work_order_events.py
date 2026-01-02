@@ -4,6 +4,7 @@ Tests for work_order.closed event publication (FIN-003)
 NOTA: Usa django_tenants.test.cases.TenantTestCase para garantir que os testes
 rodem em um schema de tenant isolado (modelos cmms e finance são tenant-specific).
 """
+
 import uuid
 from decimal import Decimal
 from unittest.mock import patch

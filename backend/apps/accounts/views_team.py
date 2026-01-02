@@ -1,6 +1,7 @@
 """
 Views for team management (memberships and invites).
 """
+
 import logging
 from urllib.parse import urlparse
 
@@ -379,9 +380,9 @@ class InviteViewSet(viewsets.ModelViewSet):
             "invite": invite,
             "accept_url": accept_url,
             "tenant_name": invite.tenant.name,
-            "invited_by_name": invite.invited_by.full_name
-            if invite.invited_by
-            else "Team",
+            "invited_by_name": (
+                invite.invited_by.full_name if invite.invited_by else "Team"
+            ),
             "role": invite.get_role_display(),
         }
 
@@ -461,9 +462,9 @@ class PublicInviteValidateView(APIView):
                 "role": invite.role,
                 "tenant_name": invite.tenant.name,
                 "tenant_slug": invite.tenant.schema_name,
-                "invited_by_name": invite.invited_by.full_name
-                if invite.invited_by
-                else "Team",
+                "invited_by_name": (
+                    invite.invited_by.full_name if invite.invited_by else "Team"
+                ),
                 "expires_at": invite.expires_at.isoformat(),
             }
         )

@@ -4,6 +4,7 @@ Sistema de parsers de payload para diferentes formatos de dispositivos IoT.
 Este módulo fornece uma arquitetura plugável para processar diferentes
 formatos de payload MQTT de diversos fabricantes e modelos de dispositivos.
 """
+
 import importlib
 import logging
 from abc import ABC, abstractmethod

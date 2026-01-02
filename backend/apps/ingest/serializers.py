@@ -1,6 +1,7 @@
 """
 DRF Serializers for Telemetry API.
 """
+
 from rest_framework import serializers
 
 from .models import Reading, Telemetry

@@ -521,9 +521,9 @@ class AssetCompleteSerializer(serializers.ModelSerializer):
                     "sensor_name": sensor.name,
                     "value": float(last_reading.value) if last_reading.value else None,
                     "unit": sensor.unit or "",
-                    "timestamp": last_reading.ts.isoformat()
-                    if last_reading.ts
-                    else None,
+                    "timestamp": (
+                        last_reading.ts.isoformat() if last_reading.ts else None
+                    ),
                     "is_online": sensor.is_online,
                 }
 

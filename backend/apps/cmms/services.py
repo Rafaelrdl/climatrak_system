@@ -156,13 +156,13 @@ class WorkOrderService:
             "work_order_id": str(work_order.id),
             "work_order_number": work_order.number,
             "asset_id": str(work_order.asset_id),
-            "cost_center_id": str(work_order.cost_center_id)
-            if work_order.cost_center_id
-            else None,
+            "cost_center_id": (
+                str(work_order.cost_center_id) if work_order.cost_center_id else None
+            ),
             "category": category,
-            "completed_at": work_order.completed_at.isoformat()
-            if work_order.completed_at
-            else None,
+            "completed_at": (
+                work_order.completed_at.isoformat() if work_order.completed_at else None
+            ),
             "labor": cls._get_labor_entries(work_order),
             "parts": cls._get_parts_entries(work_order),
             "third_party": cls._get_third_party_entries(work_order),
@@ -185,9 +185,9 @@ class WorkOrderService:
                 "role": time_entry.role,
                 "role_code": time_entry.role_code or None,
                 "hours": float(time_entry.hours),
-                "hourly_rate": float(time_entry.hourly_rate)
-                if time_entry.hourly_rate
-                else None,
+                "hourly_rate": (
+                    float(time_entry.hourly_rate) if time_entry.hourly_rate else None
+                ),
                 "work_date": str(time_entry.work_date),
             }
 
@@ -211,16 +211,18 @@ class WorkOrderService:
         for part_usage in work_order.part_usages.all():
             entry = {
                 "part_usage_id": str(part_usage.id),
-                "part_id": str(part_usage.inventory_item_id)
-                if part_usage.inventory_item_id
-                else None,
+                "part_id": (
+                    str(part_usage.inventory_item_id)
+                    if part_usage.inventory_item_id
+                    else None
+                ),
                 "part_number": part_usage.part_number or None,
                 "part_name": part_usage.part_name or None,
                 "qty": float(part_usage.quantity),
                 "unit": part_usage.unit,
-                "unit_cost": float(part_usage.unit_cost)
-                if part_usage.unit_cost
-                else None,
+                "unit_cost": (
+                    float(part_usage.unit_cost) if part_usage.unit_cost else None
+                ),
             }
 
             # Calcular custo se tiver unit_cost
@@ -248,9 +250,11 @@ class WorkOrderService:
                 "description": external_cost.description,
                 "amount": float(external_cost.amount),
                 "invoice_number": external_cost.invoice_number or None,
-                "invoice_date": str(external_cost.invoice_date)
-                if external_cost.invoice_date
-                else None,
+                "invoice_date": (
+                    str(external_cost.invoice_date)
+                    if external_cost.invoice_date
+                    else None
+                ),
             }
             entries.append(entry)
 

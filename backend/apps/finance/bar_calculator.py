@@ -269,9 +269,9 @@ class BARCalculator:
             {
                 "asset_id": str(snap.asset_id),
                 "asset_name": str(snap.asset) if snap.asset else "N/A",
-                "cost_center_name": snap.cost_center.name
-                if snap.cost_center
-                else "N/A",
+                "cost_center_name": (
+                    snap.cost_center.name if snap.cost_center else "N/A"
+                ),
                 "risk_score": float(snap.risk_score),
                 "risk_level": snap.risk_level,
                 "failure_probability": float(snap.failure_probability),
@@ -323,11 +323,11 @@ class BARCalculator:
             change_percent = 0 if current_bar == 0 else 100
 
         return {
-            "direction": "up"
-            if change_percent > 0
-            else "down"
-            if change_percent < 0
-            else "stable",
+            "direction": (
+                "up"
+                if change_percent > 0
+                else "down" if change_percent < 0 else "stable"
+            ),
             "change_percent": round(change_percent, 2),
             "history": bar_by_date,
         }
@@ -376,9 +376,9 @@ class BARCalculator:
                 "asset_id": str(snap.asset_id),
                 "asset_name": str(snap.asset) if snap.asset else "N/A",
                 "cost_center_id": str(snap.cost_center_id),
-                "cost_center_name": snap.cost_center.name
-                if snap.cost_center
-                else "N/A",
+                "cost_center_name": (
+                    snap.cost_center.name if snap.cost_center else "N/A"
+                ),
                 "risk_score": float(snap.risk_score),
                 "failure_probability": float(snap.failure_probability),
                 "mtbf_days": snap.mtbf_days,

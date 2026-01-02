@@ -3,6 +3,7 @@ Ops panel URL configuration.
 
 All routes are staff-only and run on the public schema.
 """
+
 from django.urls import path
 
 from . import views

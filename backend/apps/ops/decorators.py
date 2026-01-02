@@ -1,6 +1,7 @@
 """
 Decorators for Control Center views.
 """
+
 import time
 from functools import wraps
 

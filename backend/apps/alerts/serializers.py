@@ -1,6 +1,7 @@
 """
 Serializers para o sistema de Alertas e Regras
 """
+
 from rest_framework import serializers
 
 from .models import Alert, NotificationPreference, Rule, RuleParameter

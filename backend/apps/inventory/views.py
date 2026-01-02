@@ -347,9 +347,9 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
             {
                 "category_id": item["item__category__id"],
                 "category_name": item["item__category__name"] or "Sem Categoria",
-                "total_consumed": float(item["total_consumed"])
-                if item["total_consumed"]
-                else 0,
+                "total_consumed": (
+                    float(item["total_consumed"]) if item["total_consumed"] else 0
+                ),
             }
             for item in consumption
             if item["total_consumed"] and item["total_consumed"] > 0
@@ -401,9 +401,9 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
                 "item_sku": item["item__code"],
                 "item_unit": item["item__unit"],
                 "category_name": item["item__category__name"] or "Sem Categoria",
-                "total_consumed": float(item["total_consumed"])
-                if item["total_consumed"]
-                else 0,
+                "total_consumed": (
+                    float(item["total_consumed"]) if item["total_consumed"] else 0
+                ),
             }
             for item in consumption
         ]

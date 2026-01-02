@@ -108,9 +108,9 @@ class AutoSavingsEngine:
                         ]
                     )
             else:
-                result[
-                    "error"
-                ] = f"Tipo de baseline '{baseline.baseline_type}' não suportado"
+                result["error"] = (
+                    f"Tipo de baseline '{baseline.baseline_type}' não suportado"
+                )
 
         except Exception as e:
             logger.exception(
@@ -183,9 +183,9 @@ class AutoSavingsEngine:
                         ]
                     )
             else:
-                result[
-                    "error"
-                ] = f"Tipo de baseline '{baseline.baseline_type}' não suportado"
+                result["error"] = (
+                    f"Tipo de baseline '{baseline.baseline_type}' não suportado"
+                )
 
         except Exception as e:
             logger.exception(
@@ -280,15 +280,15 @@ class AutoSavingsEngine:
             return result
 
         if baseline.before_days < cls.MIN_DAYS_FOR_BASELINE:
-            result[
-                "error"
-            ] = f"Período 'antes' insuficiente ({baseline.before_days} dias, mínimo {cls.MIN_DAYS_FOR_BASELINE})"
+            result["error"] = (
+                f"Período 'antes' insuficiente ({baseline.before_days} dias, mínimo {cls.MIN_DAYS_FOR_BASELINE})"
+            )
             return result
 
         if baseline.after_days < cls.MIN_DAYS_FOR_BASELINE:
-            result[
-                "error"
-            ] = f"Período 'depois' insuficiente ({baseline.after_days} dias, mínimo {cls.MIN_DAYS_FOR_BASELINE})"
+            result["error"] = (
+                f"Período 'depois' insuficiente ({baseline.after_days} dias, mínimo {cls.MIN_DAYS_FOR_BASELINE})"
+            )
             return result
 
         try:

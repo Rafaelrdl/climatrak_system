@@ -389,30 +389,34 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                 "work_order_id": str(work_order.id),
                 "work_order_number": work_order.number,
                 "asset_id": str(work_order.asset_id),
-                "cost_center_id": str(work_order.cost_center_id)
-                if work_order.cost_center_id
-                else None,
+                "cost_center_id": (
+                    str(work_order.cost_center_id)
+                    if work_order.cost_center_id
+                    else None
+                ),
                 "category": category,
-                "completed_at": work_order.completed_at.isoformat()
-                if work_order.completed_at
-                else timezone.now().isoformat(),
+                "completed_at": (
+                    work_order.completed_at.isoformat()
+                    if work_order.completed_at
+                    else timezone.now().isoformat()
+                ),
                 "labor": [
                     {
                         "time_entry_id": str(te.id),
                         "role": te.role,
                         "hours": float(te.hours),
-                        "hourly_rate": float(te.hourly_rate)
-                        if te.hourly_rate
-                        else 75.0,
+                        "hourly_rate": (
+                            float(te.hourly_rate) if te.hourly_rate else 75.0
+                        ),
                     }
                     for te in work_order.time_entries.all()
                 ],
                 "parts": [
                     {
                         "part_usage_id": str(pu.id),
-                        "part_id": str(pu.inventory_item_id)
-                        if pu.inventory_item_id
-                        else None,
+                        "part_id": (
+                            str(pu.inventory_item_id) if pu.inventory_item_id else None
+                        ),
                         "part_number": pu.part_number,
                         "part_name": pu.part_name,
                         "qty": float(pu.quantity),
@@ -794,9 +798,9 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
             {
                 "work_order": serializer.data,
                 "event_published": result.get("event_published", False),
-                "event_id": str(result.get("event_id"))
-                if result.get("event_id")
-                else None,
+                "event_id": (
+                    str(result.get("event_id")) if result.get("event_id") else None
+                ),
             }
         )
 
@@ -883,9 +887,11 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                     technician=work_order.assigned_to,
                     role=role,
                     hours=hours,
-                    work_date=work_order.completed_at.date()
-                    if work_order.completed_at
-                    else timezone.now().date(),
+                    work_date=(
+                        work_order.completed_at.date()
+                        if work_order.completed_at
+                        else timezone.now().date()
+                    ),
                     description=f"Mão de obra registrada automaticamente (OS {work_order.number})",
                     created_by=request.user,
                 )
@@ -911,12 +917,14 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                     part_usage = PartUsage.objects.create(
                         work_order=work_order,
                         inventory_item=item.inventory_item,
-                        part_name=item.inventory_item.name
-                        if item.inventory_item
-                        else "Item desconhecido",
-                        part_number=item.inventory_item.code
-                        if item.inventory_item
-                        else "",
+                        part_name=(
+                            item.inventory_item.name
+                            if item.inventory_item
+                            else "Item desconhecido"
+                        ),
+                        part_number=(
+                            item.inventory_item.code if item.inventory_item else ""
+                        ),
                         quantity=item.quantity,
                         unit=item.inventory_item.unit if item.inventory_item else "UN",
                         unit_cost=unit_cost,
@@ -1092,9 +1100,9 @@ class RequestViewSet(ActionRolePermissionMixin, viewsets.ModelViewSet):
                     "to_status": new_status,
                     "changed_at": timezone.now().isoformat(),
                     "changed_by": request.user.id if request.user else None,
-                    "changed_by_name": request.user.get_full_name()
-                    if request.user
-                    else None,
+                    "changed_by_name": (
+                        request.user.get_full_name() if request.user else None
+                    ),
                 }
             )
             serializer.instance.status_history = status_history
@@ -1229,9 +1237,9 @@ class MaintenancePlanViewSet(viewsets.ModelViewSet):
             {
                 "work_orders_created": len(work_order_ids),
                 "work_order_ids": work_order_ids,
-                "next_execution": plan.next_execution.isoformat()
-                if plan.next_execution
-                else None,
+                "next_execution": (
+                    plan.next_execution.isoformat() if plan.next_execution else None
+                ),
             }
         )
 
@@ -1290,9 +1298,11 @@ class MaintenancePlanViewSet(viewsets.ModelViewSet):
                     {
                         "plan_id": item["id"],
                         "plan_name": item["name"],
-                        "next_date": item["next_execution"].isoformat()
-                        if item["next_execution"]
-                        else None,
+                        "next_date": (
+                            item["next_execution"].isoformat()
+                            if item["next_execution"]
+                            else None
+                        ),
                     }
                     for item in next_executions
                 ],

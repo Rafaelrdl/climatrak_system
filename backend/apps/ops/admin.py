@@ -1,6 +1,7 @@
 """
 Django Admin configuration for Control Center (ops app).
 """
+
 from django.contrib import admin, messages
 from django.utils.html import format_html
 

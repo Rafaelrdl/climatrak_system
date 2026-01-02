@@ -1,6 +1,7 @@
 """
 Celery tasks for Assets monitoring and maintenance.
 """
+
 import logging
 from datetime import timedelta
 

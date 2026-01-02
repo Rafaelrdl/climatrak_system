@@ -420,9 +420,7 @@ class TenantAdmin(TenantAdminMixin, admin.ModelAdmin):
             if request.method == "POST" and "confirm" in request.POST:
                 site_name = site.name
                 site.delete()
-                messages.success(
-                    request, f"🗑️ Site '{site_name}' excluído com sucesso!"
-                )
+                messages.success(request, f"🗑️ Site '{site_name}' excluído com sucesso!")
                 return redirect("admin:tenant_sites", tenant_id=tenant_id)
 
             context = {
@@ -843,12 +841,14 @@ class TenantAdmin(TenantAdminMixin, admin.ModelAdmin):
                 "invite": invite,
                 "accept_url": accept_url,
                 "tenant_name": invite.tenant.name,
-                "invited_by_name": invite.invited_by.full_name
-                if invite.invited_by
-                else "Equipe",
-                "role": invite.get_role_display()
-                if hasattr(invite, "get_role_display")
-                else invite.role,
+                "invited_by_name": (
+                    invite.invited_by.full_name if invite.invited_by else "Equipe"
+                ),
+                "role": (
+                    invite.get_role_display()
+                    if hasattr(invite, "get_role_display")
+                    else invite.role
+                ),
                 "message": invite.message,
             }
 

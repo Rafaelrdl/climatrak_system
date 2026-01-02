@@ -4,6 +4,7 @@ Parser para o formato padrão TrakSense.
 Este é o formato usado pela maioria dos dispositivos configurados
 para enviar dados diretamente para o TrakSense via EMQX.
 """
+
 import datetime
 import logging
 from typing import Any, Dict

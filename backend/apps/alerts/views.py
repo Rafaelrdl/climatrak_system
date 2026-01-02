@@ -1,6 +1,7 @@
 """
 Views para o sistema de Alertas e Regras
 """
+
 import logging
 
 from django.utils import timezone

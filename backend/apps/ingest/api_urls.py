@@ -1,6 +1,7 @@
 """
 URL routing for Telemetry API.
 """
+
 from django.urls import path
 
 from .api_views import ReadingListView, TelemetryListView, TimeSeriesAggregateView
