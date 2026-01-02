@@ -186,7 +186,7 @@ export function TeamPage() {
         data: { status: newStatus } 
       });
       toast.success(`Usuário ${newStatus === 'active' ? 'ativado' : 'desativado'} com sucesso`);
-    } catch (error: any) {
+    } catch {
       toast.error('Erro ao alterar status do usuário');
     }
   }, [teamMembers, updateMemberMutation]);
@@ -205,7 +205,7 @@ export function TeamPage() {
         data: { role: newRole as any } 
       });
       toast.success('Permissão alterada com sucesso');
-    } catch (error: any) {
+    } catch {
       toast.error('Erro ao alterar permissão do usuário');
     }
   }, [teamMembers, updateMemberMutation]);
@@ -224,7 +224,7 @@ export function TeamPage() {
         data: { position: newPosition } 
       });
       toast.success('Cargo alterado com sucesso');
-    } catch (error: any) {
+    } catch {
       toast.error('Erro ao alterar cargo do usuário');
     }
   }, [teamMembers, updateMemberMutation]);
@@ -256,7 +256,7 @@ export function TeamPage() {
 
       await deleteMemberMutation.mutateAsync(member.id);
       toast.success('Usuário excluído com sucesso');
-    } catch (error: any) {
+    } catch {
       toast.error('Erro ao excluir usuário');
     } finally {
       setDeleteDialog({ open: false, userId: null, userName: '' });

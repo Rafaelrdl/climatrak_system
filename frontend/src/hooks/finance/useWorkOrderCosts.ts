@@ -11,7 +11,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { financeService } from '@/services/finance/financeService';
 import { financeKeys } from './keys';
-import type { CostTransaction, TransactionType } from '@/types/finance';
+import type { CostTransaction } from '@/types/finance';
 
 interface WorkOrderCostsSummary {
   labor: number;

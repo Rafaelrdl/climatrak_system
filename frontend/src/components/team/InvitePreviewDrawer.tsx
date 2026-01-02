@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Copy, CheckCheck, Clock, Mail, User } from 'lucide-react';
+import { Copy, CheckCheck, Clock, Mail, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -42,7 +42,7 @@ export function InvitePreviewDrawer({ invite, onClose }: InvitePreviewDrawerProp
       }, 2000);
       
       toast.success('Link copiado para a área de transferência');
-    } catch (error) {
+    } catch {
       toast.error('Erro ao copiar link');
     }
   };

@@ -62,8 +62,6 @@ export function DeltaBadge({
 }: DeltaBadgeProps) {
   const isPositive = inverted ? value < 0 : value > 0;
   const isNegative = inverted ? value > 0 : value < 0;
-  const isNeutral = value === 0;
-
   const Icon = isPositive ? TrendingUp : isNegative ? TrendingDown : Minus;
 
   const variantClasses = isPositive

@@ -6,10 +6,10 @@
  */
 
 import { useState } from 'react';
-import { 
-  Clock, 
-  Target, 
-  Activity, 
+import {
+  Clock,
+  Target,
+  Activity,
   AlertTriangle,
   Wrench,
   TrendingUp,
@@ -20,8 +20,6 @@ import {
   RefreshCw,
   Download,
   ChevronRight,
-  BarChart3,
-  Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,14 +30,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PageHeader } from '@/shared/ui';
 import { KPICard as LegacyKPICard } from '@/components/KPICard';
-import { MetricsToolbar } from '@/components/metrics/MetricsToolbar';
 import { useMetrics } from '@/hooks/useMetrics';
-import { KPIGrid, KPICard, KPICardSkeleton } from '@/components/metrics/KPICard';
-import { 
-  LineChart, 
-  MultiLineChart, 
-  PieChart, 
-  BarChart, 
+import { KPIGrid, KPICardSkeleton } from '@/components/metrics/KPICard';
+import {
+  LineChart,
+  MultiLineChart,
+  PieChart,
   GaugeChart,
   HeatmapChart,
   RadarChart,

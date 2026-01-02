@@ -89,7 +89,7 @@ export function OnboardingProgressCard() {
 
         {/* Steps List */}
         <div className="space-y-3">
-          {steps.map((step, index) => (
+          {steps.map((step) => (
             <div
               key={step.key}
               className={`flex items-center space-x-3 p-2 rounded-lg transition-colors ${

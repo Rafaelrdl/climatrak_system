@@ -26,7 +26,7 @@ import {
   FolderTree,
   Settings,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -59,14 +59,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -86,7 +79,6 @@ import {
   useDeleteRateCard,
 } from '@/hooks/finance';
 import { useAbility } from '@/hooks/useAbility';
-import { cn } from '@/lib/utils';
 import type { CostCenter, RateCard } from '@/types/finance';
 
 // ==================== Constants ====================

@@ -6,7 +6,6 @@
  */
 
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useAbility } from '@/hooks/useAbility';
 import { useFinanceSummary } from '@/hooks/finance';
 import { usePlanStats } from '@/hooks/usePlansQuery';
@@ -14,7 +13,6 @@ import { useInventoryStats, useLowStockItems, useCriticalItems } from '@/hooks/u
 import { useWorkOrders, useWorkOrderStats } from '@/hooks/useWorkOrdersQuery';
 import { useRequests, useRequestStatusCounts } from '@/hooks/useRequestsQuery';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
-import { isUserAuthenticated } from '@/hooks/useAuth';
 import { usersStore } from '@/data/usersStore';
 import type {
   BudgetComplianceData,
@@ -173,7 +171,6 @@ export function useTechnicianDashboardData() {
   
   // Buscar todas as OS
   const { data: workOrders = [], isLoading: isLoadingWO } = useWorkOrders();
-  const { data: woStats } = useWorkOrderStats();
   
   // Filtrar por técnico atual
   const statsData = useMemo<TechnicianStatsData | undefined>(() => {

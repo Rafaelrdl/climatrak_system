@@ -32,7 +32,7 @@ const detectTenantSlug = (): string => {
         return subdomain;
       }
     }
-  } catch (error) {
+  } catch {
     // Ignorar erro de window em testes
   }
 
@@ -43,7 +43,7 @@ const detectTenantSlug = (): string => {
       cachedTenantSlug = storedSchema;
       return storedSchema;
     }
-  } catch (error) {
+  } catch {
     // Ignorar erro de parse
   }
 
@@ -62,7 +62,7 @@ const detectTenantSlug = (): string => {
         return decoded.tenant_slug;
       }
     }
-  } catch (error) {
+  } catch {
     // Token inválido ou não existe
   }
 
@@ -76,7 +76,7 @@ const detectTenantSlug = (): string => {
         return parsed.tenantSlug;
       }
     }
-  } catch (error) {
+  } catch {
     // Ignorar erro de parse
   }
 

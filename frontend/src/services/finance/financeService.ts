@@ -11,7 +11,6 @@ import type {
   RateCard,
   BudgetPlan,
   Envelope,
-  EnvelopeMonth,
   CostTransaction,
   ManualTransactionInput,
   Commitment,

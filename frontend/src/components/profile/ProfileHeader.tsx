@@ -1,4 +1,4 @@
-import { User, Mail, Phone, Shield, Calendar, BadgeCheck, Camera, Crown, UserCog, Wrench, Eye, UserPlus } from 'lucide-react';
+import { User, Mail, Phone, Shield, Calendar, Camera, Crown, UserCog, Wrench, Eye, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';

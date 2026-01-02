@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useDataFiltering } from './useDataFiltering';
 import { useAbility } from './useAbility';
 import type { Role } from '@/acl/abilities';
@@ -41,7 +40,7 @@ interface DashboardData {
 
 export function useDashboardFiltering() {
   const { role, can } = useAbility();
-  const { filterDashboardData, userContext } = useDataFiltering();
+  const { userContext } = useDataFiltering();
 
   /**
    * Filters KPIs based on role permissions

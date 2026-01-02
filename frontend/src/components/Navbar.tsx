@@ -5,11 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { 
-  HelpCircle,
+import {
   Menu,
   MoreHorizontal,
-  Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavbarOverflow } from '@/hooks/useNavbarOverflow';
@@ -64,7 +62,6 @@ interface MobileNavbarProps {
 export function MobileNavbar({ isOpen, onOpenChange }: MobileNavbarProps) {
   const location = useLocation();
   const { navigation, moduleName, theme } = useModuleNavigation();
-  const isMonitor = location.pathname.startsWith('/monitor');
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -168,7 +165,6 @@ interface DesktopNavbarProps extends React.HTMLAttributes<HTMLElement> {
 export function DesktopNavbar({ className, ...props }: DesktopNavbarProps) {
   const location = useLocation();
   const { navigation } = useModuleNavigation();
-  const isMonitor = location.pathname.startsWith('/monitor');
   
   // Hook dinâmico Priority+ Nav V2 (medição real do DOM)
   const { 

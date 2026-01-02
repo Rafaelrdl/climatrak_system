@@ -50,7 +50,7 @@ export function MTTRBySectorChart({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {data.map((item, index) => {
+          {data.map((item) => {
             const widthPercent = maxValue > 0 ? (item.mttr_hours / maxValue) * 100 : 0;
             
             return (

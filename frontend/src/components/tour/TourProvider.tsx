@@ -209,8 +209,6 @@ interface StartTourButtonProps {
 
 export function StartTourButton({ 
   className, 
-  variant = 'outline', 
-  size = 'default',
   children,
   tourId
 }: StartTourButtonProps) {

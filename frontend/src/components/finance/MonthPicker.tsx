@@ -67,7 +67,7 @@ export function MonthPicker({
 }: MonthPickerProps) {
   const [open, setOpen] = useState(false);
   
-  const { year: currentYear, month: currentMonth } = value 
+  const { year: currentYear } = value 
     ? parseMonth(value) 
     : { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
   

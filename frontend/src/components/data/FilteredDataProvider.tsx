@@ -94,7 +94,6 @@ export function FilteredDataProvider({
     data, 
     dataType, 
     filterOptions, 
-    role,
     filterWorkOrders,
     filterAssets,
     filterInventoryItems,

@@ -183,7 +183,7 @@ export function SecurityForm({ security, onSave }: SecurityFormProps) {
       }, 2000);
       
       toast.success('Código copiado');
-    } catch (error) {
+    } catch {
       toast.error('Erro ao copiar código');
     }
   }, []);
@@ -193,7 +193,7 @@ export function SecurityForm({ security, onSave }: SecurityFormProps) {
       const allCodes = formData.recovery_codes?.join('\n') || '';
       await navigator.clipboard.writeText(allCodes);
       toast.success('Todos os códigos copiados');
-    } catch (error) {
+    } catch {
       toast.error('Erro ao copiar códigos');
     }
   }, [formData.recovery_codes]);

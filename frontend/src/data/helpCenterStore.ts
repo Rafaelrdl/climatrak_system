@@ -1,12 +1,10 @@
-import { 
-  HelpCategory, 
-  HelpContent, 
-  HelpSearchResult, 
-  UserProgress, 
-  HelpAnalytics,
+import {
+  HelpCategory,
+  HelpContent,
+  HelpSearchResult,
+  UserProgress,
   ContentType,
   DifficultyLevel,
-  HelpCategoryType 
 } from '@/models/helpCenter';
 
 // Mock data imports

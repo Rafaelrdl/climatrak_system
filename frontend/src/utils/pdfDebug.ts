@@ -1,5 +1,4 @@
 // Debug utility for PDF.js configuration
-import { pdfjs } from 'react-pdf';
 
 export function debugPDFConfig() {
   // PDF.js debug logging removed

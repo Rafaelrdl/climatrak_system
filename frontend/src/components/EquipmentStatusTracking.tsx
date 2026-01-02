@@ -16,18 +16,15 @@ import {
   DollarSign,
   FileText,
   History,
-  MapPin,
   Settings,
   Shield,
-  Thermometer,
-  TrendingDown,
   TrendingUp,
   Wrench,
   Zap,
   Bell,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 import type { Equipment, MaintenanceHistory, MaintenanceAlert, WorkOrder } from '@/types';
 
@@ -178,16 +175,6 @@ export function EquipmentStatusTracking({ equipment, isOpen, onClose }: Equipmen
 
     setWorkOrders(orders);
   }, [equipment, isOpen]);
-
-  const getStatusColor = (status: Equipment['status']) => {
-    switch (status) {
-      case 'OK': return 'text-green-600';
-      case 'MAINTENANCE': return 'text-yellow-600';
-      case 'ALERT': return 'text-orange-600';
-      case 'STOPPED': return 'text-red-600';
-      default: return 'text-muted-foreground';
-    }
-  };
 
   const getStatusBadge = (status: Equipment['status']) => {
     switch (status) {

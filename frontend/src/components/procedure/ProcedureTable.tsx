@@ -194,7 +194,6 @@ export function ProcedureTable({
               </thead>
               <tbody>
                 {procedures.map((procedure) => {
-                  const category = categories.find(cat => cat.id === procedure.category_id);
                   return (
                     <tr key={procedure.id} className="border-b hover:bg-muted/50 transition-colors">
                       <td className="p-4">

@@ -10,13 +10,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { 
-  History, 
-  Eye, 
-  GitCompare, 
-  RotateCcw, 
+import {
+  History,
+  GitCompare,
+  RotateCcw,
   FileText,
-  Download 
+  Download,
 } from 'lucide-react';
 import { ProcedureVersion } from '@/models/procedure';
 import { rollbackToVersion, getFileBlob, getCategoryById } from '@/data/proceduresStore';

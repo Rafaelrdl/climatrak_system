@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Building2, MapPin, Users, Search, BarChart3, Activity, Info, Calendar, FileText } from 'lucide-react';
+import { Building2, MapPin, Users, Search, BarChart3, Activity, Info } from 'lucide-react';
 import { useEquipments, equipmentKeys } from '@/hooks/useEquipmentQuery';
 import { useSectors, useSubsections, useCompanies } from '@/hooks/useLocationsQuery';
 import { useSitesQuery } from '@/apps/monitor/hooks/useSitesQuery';
@@ -51,7 +51,7 @@ function AssetsContent() {
   // ========== HOOKS PARA DADOS ==========
   // React Query hooks
   const queryClient = useQueryClient();
-  const { data: equipment = [], refetch: refetchEquipments, isLoading, isFetching } = useEquipments();
+  const { data: equipment = [] } = useEquipments();
   const { data: sectors = [] } = useSectors();
   const { data: subSections = [] } = useSubsections();
   const { data: companies = [] } = useCompanies();

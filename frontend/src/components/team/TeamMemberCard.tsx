@@ -1,14 +1,12 @@
-import { useState } from 'react';
-import { 
-  MoreHorizontal, 
-  Mail, 
-  UserCheck, 
-  UserX, 
-  RotateCcw, 
-  Shield, 
+import {
+  MoreHorizontal,
+  Mail,
+  UserCheck,
+  UserX,
+  RotateCcw,
+  Shield,
   Calendar,
   Clock,
-  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

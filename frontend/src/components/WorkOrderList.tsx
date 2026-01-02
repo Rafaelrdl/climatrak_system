@@ -24,7 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Play, Edit, ClipboardList, AlertTriangle, User, FileText, UserPlus, Eye, Trash2, Calendar, Loader2 } from 'lucide-react';
+import { Edit, ClipboardList, AlertTriangle, User, FileText, UserPlus, Eye, Trash2, Calendar, Loader2 } from 'lucide-react';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useSectors, useCompanies } from '@/hooks/useLocationsQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';

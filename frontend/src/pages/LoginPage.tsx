@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AlertCircle, Eye, EyeOff, Mail, Lock, Shield, BarChart3, Wrench, ThermometerSnowflake, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { toast } from 'sonner';
@@ -12,7 +12,6 @@ import ClimatrakLogoUrl from '@/assets/images/logo_climatrak.svg';
 type LoginStep = 'email' | 'password';
 
 export function LoginPage() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const emailParam = searchParams.get('email');
   
@@ -132,7 +131,7 @@ export function LoginPage() {
     setIsLoading(true);
     
     try {
-      const result = await tenantLogin(formData.email, formData.password);
+      await tenantLogin(formData.email, formData.password);
       
       toast.success('Login realizado com sucesso!');
       

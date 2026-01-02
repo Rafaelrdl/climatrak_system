@@ -101,7 +101,7 @@ export function useEquipmentHealth(filters?: MetricFilter) {
 /**
  * Hook para previsões de ML
  */
-export function useMLPredictions(filters?: MetricFilter) {
+export function useMLPredictions() {
   return useQuery({
     queryKey: metricKeys.predictions(),
     queryFn: () => metricsService.getMLPredictions(),

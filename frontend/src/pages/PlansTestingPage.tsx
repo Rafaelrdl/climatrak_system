@@ -5,16 +5,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { 
-  TestTube, 
-  Settings2, 
-  BarChart3, 
-  Users, 
+import {
+  TestTube,
+  Settings2,
+  BarChart3,
   Wrench,
   Info,
   CheckCircle,
   AlertCircle,
-  PlayCircle
+  PlayCircle,
 } from 'lucide-react';
 import { PlansTestingSuite } from '@/components/PlansTestingSuite';
 import { PlanTestScenarios } from '@/components/PlanTestScenarios';

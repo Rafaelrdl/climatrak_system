@@ -20,7 +20,6 @@ import {
   PiggyBank,
   ArrowRight,
   AlertCircle,
-  Loader2,
   Plus,
   FileText,
   CheckSquare,

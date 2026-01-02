@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Plus, FileText, AlertCircle, Loader2, ClipboardList, CheckSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +28,6 @@ import {
 import { Procedure, ProcedureCategory, ProcedureStatus } from '@/models/procedure';
 import { ChecklistTemplate, ChecklistCategory } from '@/models/checklist';
 import type { ApiProcedureListItem, ApiProcedureCategory } from '@/types/api';
-import { toast } from 'sonner';
 
 // Helper para converter do formato API para o formato local (para compatibilidade com componentes existentes)
 function apiProcedureToLocal(apiProcedure: ApiProcedureListItem): Procedure {
@@ -158,7 +157,6 @@ export function ProceduresPage() {
   const { 
     data: apiChecklists = [], 
     isLoading: loadingChecklists,
-    refetch: refetchChecklists,
   } = useChecklists();
 
   const { 

@@ -1,14 +1,3 @@
-import type { 
-  User, 
-  Company, 
-  Sector, 
-  SubSection,
-  Equipment, 
-  WorkOrder, 
-  MaintenancePlan, 
-  StockItem,
-  DashboardKPIs 
-} from '@/types';
 import { 
   MOCK_COMPANIES,
   MOCK_SECTORS,

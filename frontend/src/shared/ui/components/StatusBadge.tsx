@@ -12,7 +12,6 @@
  */
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { type VariantProps } from 'class-variance-authority';
 import { 
   Circle, 
   CheckCircle2, 
@@ -233,7 +232,6 @@ const statusConfigs = {
   },
 } as const;
 type StatusType = keyof typeof statusConfigs;
-type StatusValue<T extends StatusType> = keyof typeof statusConfigs[T];
 type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline';
 export interface StatusBadgeProps {
   /** Valor do status */

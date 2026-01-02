@@ -7,8 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, CheckSquare, Eye, ListChecks } from 'lucide-react';
+import { Trash2, CheckSquare, Eye, ListChecks } from 'lucide-react';
 import { toast } from 'sonner';
 import type { MaintenancePlan } from '@/models/plan';
 import { plansService } from '@/services/plansService';
@@ -66,26 +65,6 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
   const [selectedChecklist, setSelectedChecklist] = useState<ChecklistTemplate | null>(null);
   const [isViewingChecklist, setIsViewingChecklist] = useState(false);
 
-  // Função para inferir localização a partir dos equipamentos
-  const inferLocationFromEquipments = (equipmentIds: string[]) => {
-    if (equipmentIds.length === 0 || equipment.length === 0) {
-      return { location_id: '', location_name: '' };
-    }
-    
-    // Pega o primeiro equipamento para inferir a localização
-    const firstEquipmentId = equipmentIds[0];
-    const firstEquipment = equipment.find(eq => eq.id === firstEquipmentId);
-    
-    if (firstEquipment?.sectorId) {
-      const sector = sectors.find(s => s.id === firstEquipment.sectorId);
-      if (sector) {
-        return { location_id: sector.id, location_name: sector.name };
-      }
-    }
-    
-    return { location_id: '', location_name: '' };
-  };
-
   // Load plan data when editing
   useEffect(() => {
     if (plan) {
@@ -131,6 +110,23 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
 
   // Efeito separado para inferir localização quando os dados de equipamentos/setores carregarem
   useEffect(() => {
+    const inferLocationFromEquipments = (equipmentIds: string[]) => {
+      if (equipmentIds.length === 0 || equipment.length === 0) {
+        return { location_id: '', location_name: '' };
+      }
+
+      const firstEquipmentId = equipmentIds[0];
+      const firstEquipment = equipment.find(eq => eq.id === firstEquipmentId);
+
+      if (firstEquipment?.sectorId) {
+        const sector = sectors.find(s => s.id === firstEquipment.sectorId);
+        if (sector) {
+          return { location_id: sector.id, location_name: sector.name };
+        }
+      }
+
+      return { location_id: '', location_name: '' };
+    };
     if (plan && equipment.length > 0 && sectors.length > 0) {
       const equipmentIds = plan.assets || plan.scope?.equipment_ids || [];
       console.log('[PlanFormModal] Inferindo localização:', {
@@ -871,7 +867,7 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
                           Itens do checklist ({selectedChecklist.items?.length || 0}):
                         </div>
                         <div className="space-y-2 max-h-32 overflow-y-auto">
-                          {(selectedChecklist.items || []).slice(0, 5).map((item, index) => (
+                          {(selectedChecklist.items || []).slice(0, 5).map((item) => (
                             <div key={item.id} className="flex items-center gap-2 text-sm">
                               <div className="w-4 h-4 border border-muted-foreground rounded-sm bg-background flex items-center justify-center">
                                 <div className="w-2 h-2 bg-muted-foreground rounded-full opacity-50" />

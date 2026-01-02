@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { ArrowLeft, ArrowRight, FileText, History, RotateCcw, Eye } from 'lucide-react';
+import { ArrowRight, FileText, History, RotateCcw, Eye } from 'lucide-react';
 import { 
   ProcedureVersion, 
   VersionComparison as VersionComparisonType,
@@ -40,12 +40,6 @@ export function VersionComparison({
   const [isRollingBack, setIsRollingBack] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      loadVersions();
-    }
-  }, [isOpen, procedureId]);
-
-  useEffect(() => {
     if (fromVersionId && toVersionId && fromVersionId !== toVersionId) {
       const comp = compareVersions(fromVersionId, toVersionId);
       setComparison(comp);
@@ -54,7 +48,7 @@ export function VersionComparison({
     }
   }, [fromVersionId, toVersionId]);
 
-  const loadVersions = () => {
+  const loadVersions = useCallback(() => {
     const versionList = listVersions(procedureId);
     setVersions(versionList);
     
@@ -66,7 +60,13 @@ export function VersionComparison({
       setToVersionId(versionList[0].id);
       setFromVersionId('');
     }
-  };
+  }, [procedureId]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadVersions();
+    }
+  }, [isOpen, loadVersions]);
 
   const handleRollback = async (versionId: string) => {
     try {

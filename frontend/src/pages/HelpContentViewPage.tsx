@@ -121,11 +121,6 @@ export function HelpContentViewPage() {
     updateProgress(100);
   };
 
-  const handleVideoProgress = (progress: number) => {
-    setVideoProgress(progress);
-    updateProgress(progress);
-  };
-
   const handleStepComplete = (stepId: string) => {
     const newCompleted = new Set(completedSteps);
     if (newCompleted.has(stepId)) {

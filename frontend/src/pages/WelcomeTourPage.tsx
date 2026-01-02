@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -232,34 +232,34 @@ export function WelcomeTourPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentStep, isFirstStep, isLastStep, currentStepData]);
+  }, [currentStepData, handleNext, handlePrevious, handleSkipTour, handleVisitPage, isFirstStep]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (isLastStep) {
       handleFinishTour();
     } else {
       setCurrentStep(prev => prev + 1);
     }
-  };
+  }, [handleFinishTour, isLastStep]);
 
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     if (!isFirstStep) {
       setCurrentStep(prev => prev - 1);
     }
-  };
+  }, [isFirstStep]);
 
   const handleGoToStep = (stepIndex: number) => {
     setCurrentStep(stepIndex);
   };
 
-  const handleVisitPage = () => {
+  const handleVisitPage = useCallback(() => {
     const step = availableSteps[currentStep];
     if (step.route) {
       navigate(step.route);
     }
-  };
+  }, [availableSteps, currentStep, navigate]);
 
-  const handleFinishTour = () => {
+  const handleFinishTour = useCallback(() => {
     // Mark tour as completed in localStorage (tenant+user specific)
     markOnboardingCompleted('tourCompleted');
     
@@ -273,12 +273,12 @@ export function WelcomeTourPage() {
     const event = new CustomEvent('tourCompleted', { detail: { completed: true } });
     window.dispatchEvent(event);
     navigate('/');
-  };
+  }, [navigate]);
 
-  const handleSkipTour = () => {
+  const handleSkipTour = useCallback(() => {
     markOnboardingCompleted('tourCompleted');
     navigate('/');
-  };
+  }, [navigate]);
 
   const toggleAutoPlay = () => {
     setIsAutoPlaying(prev => !prev);

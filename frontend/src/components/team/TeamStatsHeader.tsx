@@ -1,4 +1,4 @@
-import { Users, UserPlus, UserCheck, Clock, Mail, TrendingUp, Shield } from 'lucide-react';
+import { Users, UserPlus, UserCheck, Clock, Mail, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 

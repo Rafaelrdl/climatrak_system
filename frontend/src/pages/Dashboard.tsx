@@ -8,19 +8,18 @@ import { DataFilterInfo } from '@/components/data/FilteredDataProvider';
 import { OnboardingProgressCard } from '@/components/onboarding/OnboardingProgressCard';
 import { WelcomeGuide } from '@/components/tour/WelcomeGuide';
 import { RoleDashboardSection, DashboardStatCard } from '@/components/dashboard';
-import { 
-  ClipboardList, 
-  AlertTriangle, 
-  AlertCircle, 
-  Clock, 
+import {
+  ClipboardList,
+  AlertTriangle,
+  AlertCircle,
+  Clock,
   Activity,
   TrendingUp,
-  User,
   LayoutDashboard,
   DollarSign,
   Settings2,
   Calendar,
-  Package
+  Package,
 } from 'lucide-react';
 import { useDashboardKPIs, useChartData } from '@/hooks/useDataTemp';
 import { useWorkOrders, useWorkOrderStats } from '@/hooks/useWorkOrdersQuery';

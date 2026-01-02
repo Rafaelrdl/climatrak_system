@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { MetricsSummary, MetricsRange } from '@/models/metrics';
+import type { MetricsRange } from '@/models/metrics';
 import { getMetricsSummary, exportMetricsToCSV, exportPageToPDF } from '@/data/metricsStore';
 import { toast } from 'sonner';
 

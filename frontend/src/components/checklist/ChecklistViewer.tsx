@@ -6,7 +6,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,18 +16,16 @@ import {
   List,
   Camera,
   Calendar,
-  User,
   Tag,
   Edit,
   Copy,
 } from 'lucide-react';
-import { 
-  ChecklistTemplate, 
-  ChecklistItem, 
+import {
+  ChecklistTemplate,
   ChecklistItemType,
-  ChecklistCategory 
+  ChecklistCategory,
 } from '@/models/checklist';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface ChecklistViewerProps {

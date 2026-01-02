@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Info, HelpCircle } from 'lucide-react';
+import { AlertTriangle, Info } from 'lucide-react';
 
 export interface ConfirmDialogProps {
   /** Estado de abertura do diálogo */

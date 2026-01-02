@@ -130,7 +130,7 @@ export function NewProcedureModal({ onProcedureCreated }: NewProcedureModalProps
       });
       
       setOpen(false);
-    } catch (error) {
+    } catch {
       toast.error('Erro ao criar procedimento');
     } finally {
       setIsSubmitting(false);

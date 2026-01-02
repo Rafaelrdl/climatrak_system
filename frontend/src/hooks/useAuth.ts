@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
  * Verifica se o usuário está autenticado (sync check)

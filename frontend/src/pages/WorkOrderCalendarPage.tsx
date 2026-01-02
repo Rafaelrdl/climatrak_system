@@ -70,7 +70,7 @@ export function WorkOrderCalendarPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [editingOrder, setEditingOrder] = useState<WorkOrder | null>(null);
   
-  const { data: workOrders = [], isLoading } = useWorkOrders();
+  const { data: workOrders = [] } = useWorkOrders();
   const { data: equipment = [] } = useEquipments();
   const updateMutation = useUpdateWorkOrder();
 

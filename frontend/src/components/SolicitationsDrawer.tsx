@@ -10,7 +10,7 @@ import { Plus, Trash2, ArrowRight, PlayCircle, CheckCircle, XCircle } from 'luci
 import { StatusBadge } from '@/shared/ui';
 import { toast } from 'sonner';
 import { IfCan } from '@/components/auth/IfCan';
-import type { Solicitation, SolicitationItem, StockItem } from '@/types';
+import type { Solicitation, StockItem } from '@/types';
 // Helper functions para status de solicitação
 const canAdvanceStatus = (status: string) =>
   status !== 'Convertida em OS' && status !== 'Rejeitada';

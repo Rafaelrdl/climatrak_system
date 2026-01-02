@@ -1,11 +1,10 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Mail, Bell, Clock, Calendar, Globe, Check, AlertCircle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import type { User } from '@/models/user';
 

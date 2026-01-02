@@ -42,7 +42,8 @@ export function debugProceduresState() {
   const procedures = JSON.parse(localStorage.getItem('procedures:db') || '[]');
   const categories = JSON.parse(localStorage.getItem('procedure_categories:db') || '[]');
   
-  // Debug state information removed
+  console.log('[proceduresDevUtils] procedures:', procedures);
+  console.log('[proceduresDevUtils] categories:', categories);
 }
 
 // Make utilities available in development

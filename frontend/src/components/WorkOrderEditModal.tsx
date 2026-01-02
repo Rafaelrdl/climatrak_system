@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,14 +9,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  ClipboardList, 
-  CalendarClock, 
-  Wrench, 
-  Building, 
-  Package, 
-  AlertTriangle, 
-  Plus, 
+import {
+  ClipboardList,
+  CalendarClock,
+  Wrench,
+  Building,
+  Package,
+  AlertTriangle,
+  Plus,
   Trash2,
   Save,
   X,
@@ -29,8 +29,7 @@ import {
   Camera,
   Upload,
   ClipboardCheck,
-  Loader2,
-  PenTool
+  PenTool,
 } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { SignaturePad, type SignaturePadRef } from '@/components/ui/signature-pad';
@@ -42,7 +41,7 @@ import { useWorkOrder } from '@/hooks/useWorkOrdersQuery';
 import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
 import { printWorkOrder } from '@/utils/printWorkOrder';
 import { workOrdersService } from '@/services/workOrdersService';
-import type { WorkOrder, WorkOrderStockItem, ChecklistResponse, UploadedPhoto, StockItem } from '@/types';
+import type { WorkOrder, ChecklistResponse, UploadedPhoto, StockItem } from '@/types';
 import type { ApiInventoryItem } from '@/types/api';
 import { cn } from '@/lib/utils';
 
@@ -411,7 +410,7 @@ export function WorkOrderEditModal({
       
       // Upload de fotos novas para o backend
       const uploadedNewPhotos: UploadedPhoto[] = [];
-      for (const [photoId, file] of newPhotoFiles.entries()) {
+      for (const [, file] of newPhotoFiles.entries()) {
         try {
           const uploadedPhoto = await workOrdersService.uploadPhoto(workOrder.id, file, file.name);
           uploadedNewPhotos.push(uploadedPhoto);

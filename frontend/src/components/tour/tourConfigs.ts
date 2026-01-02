@@ -1,18 +1,3 @@
-import { 
-  LayoutDashboard, 
-  Wrench, 
-  ClipboardList, 
-  MessageSquare, 
-  Calendar,
-  TrendingUp,
-  Package,
-  FileText,
-  Bell,
-  User,
-  Settings,
-  HelpCircle,
-  Sparkles
-} from 'lucide-react';
 import type { TourConfig, TourStep } from './InteractiveTour';
 import type { UserRole } from '@/models/user';
 import { markOnboardingCompleted } from '@/lib/onboardingStorage';
@@ -34,8 +19,6 @@ const allRoles: UserRole[] = ['owner', 'admin', 'operator', 'technician', 'reque
 // Roles de gestão - para steps com KPIs e métricas avançadas
 const managementRoles: UserRole[] = ['owner', 'admin', 'operator'];
 
-// Roles operacionais - para steps de execução e manutenção
-const operationalRoles: UserRole[] = ['owner', 'admin', 'operator', 'technician'];
 
 // ==================== MAIN WELCOME TOUR ====================
 

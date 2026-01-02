@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, FileSpreadsheet, Printer } from 'lucide-react';
+import { FileSpreadsheet, Printer } from 'lucide-react';
 import type { MetricsRange } from '@/models/metrics';
 
 interface MetricsToolbarProps {

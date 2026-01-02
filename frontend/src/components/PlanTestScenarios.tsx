@@ -3,19 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { 
+import {
   PlayCircle,
   CheckCircle2,
   AlertTriangle,
   Users,
   Settings2,
-  Calendar,
-  Wrench
+  Wrench,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PlanFormModal } from '@/components/PlanFormModal';
 import { useCompanies, useSectors } from '@/hooks/useLocationsQuery';
-import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useMaintenancePlansNew } from '@/hooks/useMaintenancePlans';
 import { generateWorkOrdersFromPlan } from '@/data/workOrdersStore';
 import type { MaintenancePlan } from '@/models/plan';
@@ -38,7 +36,6 @@ interface TestScenario {
 export function PlanTestScenarios() {
   const { data: companies = [] } = useCompanies();
   const { data: sectors = [] } = useSectors();
-  const { data: equipment = [] } = useEquipments();
   const [plans, setPlans] = useMaintenancePlansNew();
   
   const [isModalOpen, setIsModalOpen] = useState(false);

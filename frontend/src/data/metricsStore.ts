@@ -10,29 +10,6 @@ const STORAGE_KEYS = {
   SECTORS: 'traknor-sectors',
 };
 
-/**
- * Carrega dados do localStorage ou usa seeds como fallback
- */
-function loadEntity<T>(key: string, seed: T[]): T[] {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : seed;
-  } catch (error) {
-    console.warn(`Erro ao carregar ${key} do localStorage:`, error);
-    return seed;
-  }
-}
-
-/**
- * Salva dados no localStorage
- */
-function saveEntity<T>(key: string, data: T[]): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (error) {
-    console.warn(`Erro ao salvar ${key} no localStorage:`, error);
-  }
-}
 
 /**
  * Carrega todos os dados necessários para métricas
@@ -190,7 +167,7 @@ function calculateMTTRBySector(workOrders: WorkOrder[], equipment: Equipment[], 
   
   // Converte para array e calcula MTTR médio
   return Object.entries(sectorMTTR)
-    .map(([sectorId, data]) => ({
+    .map(([, data]) => ({
       sector_name: data.name,
       mttr_hours: Math.round((data.totalHours / data.count) * 10) / 10,
       wo_count: data.count

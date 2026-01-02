@@ -24,7 +24,6 @@ import {
   getProcedureStats,
   type ProcedureCategoryInput,
   type ProcedureFilters,
-  type ProcedureInput,
   type ProcedureUpdateInput,
   type CreateVersionInput,
 } from '@/services/proceduresService';

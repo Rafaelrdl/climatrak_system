@@ -9,12 +9,12 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  ExternalLink, 
-  Heart, 
-  Clock, 
-  Gauge, 
+import {
+  ArrowLeft,
+  ExternalLink,
+  Heart,
+  Clock,
+  Gauge,
   Zap,
   Activity,
   Loader2,
@@ -24,7 +24,6 @@ import {
   AlertTriangle,
   RefreshCw,
   Thermometer,
-  Droplets,
   Antenna,
   Wrench,
   FileText,
@@ -32,7 +31,7 @@ import {
   User,
   CheckCircle2,
   XCircle,
-  Play
+  Play,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

@@ -1,7 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCurrentUser } from '@/data/usersStore';
-import { useCurrentRole } from '@/data/authStore';
 import { 
   getOnboardingState as getStoredOnboardingState, 
   markOnboardingCompleted as markCompleted,
@@ -19,9 +18,8 @@ export function useOnboardingFlow() {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = useCurrentUser();
-  const [currentRole] = useCurrentRole();
 
-  const getOnboardingState = (): OnboardingState => {
+  const getOnboardingState = useCallback((): OnboardingState => {
     const stored = getStoredOnboardingState();
     return {
       inviteAccepted: stored.inviteAccepted,
@@ -29,18 +27,18 @@ export function useOnboardingFlow() {
       tourCompleted: stored.tourCompleted,
       firstTimeGuideCompleted: stored.firstTimeGuideCompleted,
     };
-  };
+  }, []);
 
-  const isNewUser = (): boolean => {
+  const isNewUser = useCallback((): boolean => {
     if (!currentUser) return false;
     
     const userCreatedAt = new Date(currentUser.created_at);
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
     return userCreatedAt > oneDayAgo;
-  };
+  }, [currentUser]);
 
-  const shouldRedirectToOnboarding = (): string | null => {
+  const shouldRedirectToOnboarding = useCallback((): string | null => {
     const state = getOnboardingState();
     const isUserNew = isNewUser();
     
@@ -70,7 +68,7 @@ export function useOnboardingFlow() {
     // }
 
     return null;
-  };
+  }, [getOnboardingState, isNewUser, location.pathname]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -79,7 +77,7 @@ export function useOnboardingFlow() {
     if (redirectPath) {
       navigate(redirectPath, { replace: true });
     }
-  }, [currentUser, location.pathname, navigate]);
+  }, [currentUser, location.pathname, navigate, shouldRedirectToOnboarding]);
 
   const markStepCompleted = (step: keyof OnboardingState) => {
     markCompleted(step);

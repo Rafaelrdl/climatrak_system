@@ -29,7 +29,7 @@ const mockUserContext = {
 };
 
 export function useDataFiltering() {
-  const { role, can } = useAbility();
+  const { role } = useAbility();
 
   return useMemo(() => {
     // Priority levels for filtering
@@ -216,8 +216,7 @@ export function useDataFiltering() {
      * Filters metrics data based on role permissions
      */
     function filterMetricsData<T extends { sectorId?: string; departmentId?: string; sensitive?: boolean }>(
-      data: T[], 
-      options: FilterOptions = {}
+      data: T[]
     ): T[] {
       return data.filter(item => {
         // Owner, Admin, and Operator can see all metrics
@@ -375,5 +374,5 @@ export function useDataFiltering() {
       maskSensitiveData,
       userContext: mockUserContext,
     };
-  }, [role, can]);
+  }, [role]);
 }

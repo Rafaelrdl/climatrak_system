@@ -9,7 +9,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { plansService, type PlanFilters, type CreatePlanData } from '@/services/plansService';
 import { workOrderKeys } from '@/hooks/useWorkOrdersQuery';
 import { isUserAuthenticated } from '@/hooks/useAuth';
-import type { MaintenancePlan } from '@/types';
 
 // ============================================
 // Query Keys

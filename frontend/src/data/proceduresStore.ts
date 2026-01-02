@@ -1,9 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
-import { 
-  Procedure, 
-  ProcedureCategory, 
-  ProcedureFileRef, 
-  ProcedureStatus, 
+import {
+  Procedure,
+  ProcedureCategory,
+  ProcedureFileRef,
+  ProcedureStatus,
   ProcedureVersion,
   VersionChangeType,
   ProcedureDiff,
@@ -13,7 +13,6 @@ import {
   AnnotationThread,
   ProcedureWithAnnotations,
   AnnotationType,
-  CommentStatus
 } from '@/models/procedure';
 import proceduresData from '@/mocks/procedures.json';
 import categoriesData from '@/mocks/procedure_categories.json';

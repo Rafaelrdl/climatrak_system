@@ -1,5 +1,4 @@
 import * as React from "react"
-import { ComponentProps } from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -8,7 +7,7 @@ export interface InputProps
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, id, name, ...props }, ref) => {
-    // Gerar ID automático se não fornecido - Essencial para GitHub Spark Preview
+    // Gerar ID automatico se nao fornecido - Essencial para GitHub Spark Preview
     const autoId = React.useId();
     const inputId = id || autoId;
     const inputName = name || inputId;

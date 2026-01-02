@@ -14,25 +14,18 @@ import { useSearchParams } from 'react-router-dom';
 import {
   Plus,
   Filter,
-  X,
-  FileText,
-  Calendar,
-  Building2,
   Wrench,
   ClipboardList,
   AlertCircle,
   Loader2,
   ChevronRight,
-  Receipt,
   ExternalLink,
-  Download,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
@@ -56,7 +49,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { MoneyCell, DeltaBadge, DataTable, type Column, type PaginationState } from '@/components/finance';
+import { MoneyCell, DataTable, type Column, type PaginationState } from '@/components/finance';
 import { FilterBar } from '@/shared/ui';
 import { useLedger, useCreateTransaction, useCostCenters } from '@/hooks/finance';
 import { useAbility } from '@/hooks/useAbility';

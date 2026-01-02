@@ -20,7 +20,7 @@ import type { Solicitation } from '@/types';
 
 export function RequestsPage() {
   // React Query hooks
-  const { data: solicitations = [], isLoading, error } = useSolicitations();
+  const { data: solicitations = [], isLoading } = useSolicitations();
   const navigate = useNavigate();
   
   // Mutations
@@ -118,7 +118,7 @@ export function RequestsPage() {
       if (selectedSolicitation?.id === rejectTarget.id) {
         setSelectedSolicitation(null);
       }
-    } catch (error) {
+    } catch {
       toast.error('Erro ao rejeitar solicitacao.');
     }
   };

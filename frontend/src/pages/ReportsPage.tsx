@@ -6,19 +6,18 @@
  */
 
 import { useState } from 'react';
-import { 
-  FileText, 
-  Download, 
-  Eye, 
-  Calendar, 
-  Filter, 
-  TrendingUp, 
+import {
+  FileText,
+  Download,
+  Eye,
+  Calendar,
+  Filter,
   BarChart3,
   ClipboardCheck,
   Thermometer,
   Zap,
   AlertCircle,
-  Clock
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

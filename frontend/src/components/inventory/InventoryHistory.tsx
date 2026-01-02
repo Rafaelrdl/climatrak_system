@@ -30,7 +30,7 @@ import {
 import { format, parseISO, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { ApiInventoryMovement } from '@/types/api';
-import { useInventoryMovements, useInventoryMovementsSummary } from '@/hooks/useInventoryQuery';
+import { useInventoryMovements } from '@/hooks/useInventoryQuery';
 import type { InventoryMovementParams } from '@/services/inventoryService';
 import { parsePaginatedResponse } from '@/shared/api';
 
@@ -97,7 +97,6 @@ export function InventoryHistory({ className }: InventoryHistoryProps) {
 
   // Hooks da API
   const { data: movementsData, isLoading, error } = useInventoryMovements(queryParams);
-  const { data: summaryData } = useInventoryMovementsSummary(parseInt(dateRange));
   
   // Processar dados
   const parsedMovements = useMemo(

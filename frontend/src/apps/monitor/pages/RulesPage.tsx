@@ -57,19 +57,6 @@ const getSeverityColor = (severity?: Severity | string) => {
   return colors[severityKey] || colors['MEDIUM'];
 };
 
-// Helper para labels de operadores
-const getOperatorLabel = (op: string) => {
-  const labels: Record<string, string> = {
-    '>': 'Maior que',
-    '>=': 'Maior ou igual',
-    '<': 'Menor que',
-    '<=': 'Menor ou igual',
-    '==': 'Igual',
-    '!=': 'Diferente',
-  };
-  return labels[op] || op;
-};
-
 export function RulesPage() {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);

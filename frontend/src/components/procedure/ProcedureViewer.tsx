@@ -1,21 +1,19 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import ReactMarkdown from 'react-markdown';
 // Import PDF configuration utility
 import { configurePDFWorker, configurePDFWorkerWithFallback } from '@/utils/pdfConfig';
-import { 
-  ZoomIn, 
-  ZoomOut, 
-  RotateCcw, 
-  ChevronLeft, 
-  ChevronRight, 
+import {
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  ChevronLeft,
+  ChevronRight,
   Download,
-  X,
   History,
   FileText,
   GitCompare,
   MessageSquare,
-  Highlighter
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,8 +28,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Procedure, ProcedureCategory, DocumentAnnotation, Comment, AnnotationType } from '@/models/procedure';
-import { 
-  getFileBlob, 
+import {
+  getFileBlob,
   listVersions,
   listAnnotations,
   listComments,
@@ -41,7 +39,6 @@ import {
   createComment,
   updateComment,
   deleteComment,
-  getProcedureWithAnnotations
 } from '@/data/proceduresStore';
 import { VersionHistory } from '@/components/procedure/VersionHistory';
 import { VersionComparison } from '@/components/procedure/VersionComparison';
@@ -84,7 +81,6 @@ export function ProcedureViewer({
   // Version management state
   const [versions, setVersions] = useState(listVersions(procedure?.id));
   const [showVersionComparison, setShowVersionComparison] = useState(false);
-  const [comparisonVersions, setComparisonVersions] = useState({ from: '', to: '' });
   const [activeTab, setActiveTab] = useState('document');
   
   // Annotation state
@@ -98,7 +94,6 @@ export function ProcedureViewer({
   const [showResolved, setShowResolved] = useState(true);
   const [isCreatingAnnotation, setIsCreatingAnnotation] = useState(false);
   
-  const viewerRef = useRef<HTMLDivElement>(null);
   const documentRef = useRef<HTMLDivElement>(null);
 
   const category = procedure?.category_id 
@@ -125,9 +120,9 @@ export function ProcedureViewer({
       setIsAnnotationMode(false);
       setIsCreatingAnnotation(false);
     };
-  }, [procedure, isOpen]);
+  }, [procedure, isOpen, loadFile, loadAnnotations]);
 
-  const loadFile = async () => {
+  const loadFile = useCallback(async () => {
     if (!procedure) return;
     
     setIsLoading(true);
@@ -153,9 +148,9 @@ export function ProcedureViewer({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [procedure]);
 
-  const loadAnnotations = () => {
+  const loadAnnotations = useCallback(() => {
     if (!procedure) return;
     
     const procedureAnnotations = listAnnotations(procedure.id, procedure.version);
@@ -163,7 +158,7 @@ export function ProcedureViewer({
     
     setAnnotations(procedureAnnotations);
     setComments(procedureComments);
-  };
+  }, [procedure]);
 
   // Annotation handlers
   const handleCreateAnnotation = (annotation: Omit<DocumentAnnotation, 'id' | 'created_at' | 'updated_at'>) => {
@@ -353,7 +348,7 @@ export function ProcedureViewer({
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!isOpen) return;
     
     switch (e.key) {
@@ -361,37 +356,42 @@ export function ProcedureViewer({
         onClose();
         break;
       case 'ArrowLeft':
-        if (activeTab === 'document') handlePrevPage();
+        if (activeTab === 'document') {
+          setPageNumber(prev => Math.max(prev - 1, 1));
+        }
         break;
       case 'ArrowRight':
-        if (activeTab === 'document') handleNextPage();
+        if (activeTab === 'document' && numPages) {
+          setPageNumber(prev => Math.min(prev + 1, numPages));
+        }
         break;
       case '+':
       case '=':
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
-          if (activeTab === 'document') handleZoomIn();
+          if (activeTab === 'document') {
+            setScale(prev => Math.min(prev + 0.25, 3.0));
+          }
         }
         break;
       case '-':
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
-          if (activeTab === 'document') handleZoomOut();
+          if (activeTab === 'document') {
+            setScale(prev => Math.max(prev - 0.25, 0.5));
+          }
         }
         break;
       case '0':
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
-          if (activeTab === 'document') handleResetZoom();
+          if (activeTab === 'document') {
+            setScale(1.0);
+          }
         }
         break;
     }
-  };
-
-  const handleVersionCompare = (fromVersionId: string, toVersionId: string) => {
-    setComparisonVersions({ from: fromVersionId, to: toVersionId });
-    setShowVersionComparison(true);
-  };
+  }, [activeTab, isOpen, numPages, onClose]);
 
   const handleProcedureUpdate = () => {
     setVersions(listVersions(procedure?.id));
@@ -402,7 +402,7 @@ export function ProcedureViewer({
       document.addEventListener('keydown', handleKeyDown);
       return () => document.removeEventListener('keydown', handleKeyDown);
     }
-  }, [isOpen, numPages]);
+  }, [isOpen, handleKeyDown]);
 
   if (!procedure) {
     return null;
@@ -592,7 +592,6 @@ export function ProcedureViewer({
                 size="sm"
                 onClick={() => {
                   if (versions.length >= 2) {
-                    setComparisonVersions({ from: versions[1].id, to: versions[0].id });
                     setShowVersionComparison(true);
                   }
                 }}
@@ -690,7 +689,7 @@ export function ProcedureViewer({
 
                                       
                                       try {
-                                        const workerSrc = configurePDFWorkerWithFallback();
+                                        configurePDFWorkerWithFallback();
 
                                         
                                         // Give a moment for the worker to be ready, then retry
@@ -698,7 +697,7 @@ export function ProcedureViewer({
                                           loadFile();
                                         }, 1000);
                                         return; // Don't set error yet, let retry happen
-                                      } catch (configError) {
+                                      } catch {
                                         console.error('Worker reconfiguration failed, switching to fallback viewer');
                                         setUseFallbackViewer(true);
                                         return;
@@ -860,8 +859,7 @@ export function ProcedureViewer({
                   <VersionHistory
                     versions={versions}
                     currentVersion={procedure.version}
-                    onVersionCompare={(fromVersionId, toVersionId) => {
-                      setComparisonVersions({ from: fromVersionId, to: toVersionId });
+                    onVersionCompare={() => {
                       setShowVersionComparison(true);
                     }}
                     onProcedureUpdate={() => {

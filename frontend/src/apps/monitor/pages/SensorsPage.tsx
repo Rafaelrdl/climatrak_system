@@ -23,7 +23,7 @@ import { useMonitorStore } from '../store/monitorStore';
 import type { DeviceStatusFilter } from '../types/device';
 
 export function SensorsPage() {
-  const { currentSite, setCurrentSite, setSites, availableSites } = useMonitorStore();
+  const { currentSite, setCurrentSite, setSites } = useMonitorStore();
   const [deviceStatusFilter, setDeviceStatusFilter] = useState<DeviceStatusFilter>('all');
 
   // React Query: buscar sites disponíveis

@@ -12,12 +12,11 @@ import {
   CheckCircle,
   Sparkles,
   SkipForward,
-  RotateCcw,
   Lightbulb,
   ArrowUp,
   ArrowDown,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
 } from 'lucide-react';
 import { useCurrentRole } from '@/data/authStore';
 import type { UserRole } from '@/models/user';
@@ -514,7 +513,7 @@ export function InteractiveTour({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, currentStepIndex, isLastStep]);
+  }, [isOpen, handleClose, handleNext, handlePrevious]);
 
   // Save progress
   useEffect(() => {
@@ -523,42 +522,42 @@ export function InteractiveTour({
     }
   }, [currentStepIndex, config.persistProgress, config.storageKey]);
 
-  const handleNext = () => {
-    if (isLastStep) {
-      handleComplete();
-    } else {
-      setCurrentStepIndex(prev => prev + 1);
-      config.onStepChange?.(currentStepIndex + 1, availableSteps[currentStepIndex + 1]);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (!isFirstStep) {
-      setCurrentStepIndex(prev => prev - 1);
-      config.onStepChange?.(currentStepIndex - 1, availableSteps[currentStepIndex - 1]);
-    }
-  };
-
-  const handleSkip = () => {
-    if (config.storageKey) {
-      localStorage.setItem(`tour:${config.storageKey}:skipped`, 'true');
-    }
-    config.onSkip?.();
+  const handleClose = useCallback(() => {
     onClose();
-  };
+  }, [onClose]);
 
-  const handleComplete = () => {
+  const handleComplete = useCallback(() => {
     if (config.storageKey) {
       localStorage.setItem(`tour:${config.storageKey}:completed`, 'true');
       localStorage.removeItem(`tour:${config.storageKey}:step`);
     }
     config.onComplete?.();
     onClose();
-  };
+  }, [config, onClose]);
 
-  const handleClose = () => {
+  const handleSkip = useCallback(() => {
+    if (config.storageKey) {
+      localStorage.setItem(`tour:${config.storageKey}:skipped`, 'true');
+    }
+    config.onSkip?.();
     onClose();
-  };
+  }, [config, onClose]);
+
+  const handleNext = useCallback(() => {
+    if (isLastStep) {
+      handleComplete();
+    } else {
+      setCurrentStepIndex(prev => prev + 1);
+      config.onStepChange?.(currentStepIndex + 1, availableSteps[currentStepIndex + 1]);
+    }
+  }, [availableSteps, config, currentStepIndex, handleComplete, isLastStep]);
+
+  const handlePrevious = useCallback(() => {
+    if (!isFirstStep) {
+      setCurrentStepIndex(prev => prev - 1);
+      config.onStepChange?.(currentStepIndex - 1, availableSteps[currentStepIndex - 1]);
+    }
+  }, [availableSteps, config, currentStepIndex, isFirstStep]);
 
   if (!isOpen || !currentStep) return null;
 

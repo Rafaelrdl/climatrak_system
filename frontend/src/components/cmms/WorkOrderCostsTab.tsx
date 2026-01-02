@@ -150,7 +150,6 @@ function LoadingSkeleton() {
 
 export function WorkOrderCostsTab({
   workOrderId,
-  workOrderNumber,
   onPostCosts,
 }: WorkOrderCostsTabProps) {
   const { transactions, summary, isLoading, isError, error } = useWorkOrderCosts(workOrderId);

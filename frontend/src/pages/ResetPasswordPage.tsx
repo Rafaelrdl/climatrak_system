@@ -1,21 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AxiosError } from 'axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  Lock, 
-  Eye, 
-  EyeOff, 
+import {
+  Lock,
+  Eye,
+  EyeOff,
   CheckCircle2,
   XCircle,
   Loader2,
   ArrowLeft,
-  Snowflake,
   Shield,
-  Key
+  Key,
 } from 'lucide-react';
 import { validateResetToken, confirmPasswordReset } from '@/services/authService';
 import climatrakLogo from '@/assets/images/logo_climatrak.svg';

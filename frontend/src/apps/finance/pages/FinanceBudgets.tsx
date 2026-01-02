@@ -15,23 +15,19 @@ import { useState, useMemo, useEffect } from 'react';
 import {
   Plus,
   Calendar,
-  Edit2,
-  Trash2,
   ChevronRight,
   Loader2,
   Save,
   X,
   AlertCircle,
   FileSpreadsheet,
-  Lock,
-  Unlock,
   Check,
   TrendingUp,
   DollarSign,
   PiggyBank,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,7 +48,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Table,

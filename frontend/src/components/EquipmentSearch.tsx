@@ -7,19 +7,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { 
-  Search, 
-  Filter, 
-  X, 
-  AlertCircle, 
-  Clock, 
+import {
+  Search,
+  Filter,
+  X,
+  AlertCircle,
   Wrench,
   MapPin,
   Calendar,
   Zap,
   Settings,
   Plus,
-  Pencil
+  Pencil,
 } from 'lucide-react';
 import type { Equipment, EquipmentFilter } from '@/types';
 
@@ -241,20 +240,6 @@ export function EquipmentSearch({
         : status === 'ALERT'
           ? 'outline'
           : 'destructive';
-
-  const getMaintenanceStatus = (equipment: Equipment) => {
-    const maintenanceDate = new Date(equipment.nextMaintenance);
-    const now = new Date();
-    const diffDays = Math.ceil((maintenanceDate.getTime() - now.getTime()) / (1000 * 3600 * 24));
-    
-    if (diffDays < 0) {
-      return { status: 'overdue', text: `${Math.abs(diffDays)}d overdue`, variant: 'destructive' as const };
-    } else if (diffDays <= 7) {
-      return { status: 'upcoming', text: `${diffDays}d remaining`, variant: 'outline' as const };
-    } else {
-      return { status: 'scheduled', text: `${diffDays}d remaining`, variant: 'secondary' as const };
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -509,8 +494,6 @@ export function EquipmentSearch({
       {/* Equipment Results */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredEquipment.map(eq => {
-          const maintenanceStatus = getMaintenanceStatus(eq);
-          
           return (
             <Card 
               key={eq.id}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Package, MapPin, AlertTriangle, Calendar, DollarSign, Tag, Boxes, User } from 'lucide-react';
+import { Package, MapPin, AlertTriangle, Calendar, Tag, Boxes, User } from 'lucide-react';
 import type { InventoryItem, InventoryCategory } from '@/models/inventory';
 
 interface ViewItemModalProps {

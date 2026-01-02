@@ -3,18 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  X, 
-  Sparkles, 
-  ArrowRight, 
-  BarChart3, 
+import {
+  X,
+  Sparkles,
+  ArrowRight,
+  BarChart3,
   Wrench,
   ClipboardList,
   MessageSquare,
   Calendar,
   Package,
-  FileText,
-  TrendingUp
 } from 'lucide-react';
 import { useCurrentRole } from '@/data/authStore';
 import { isOnboardingCompleted, markOnboardingCompleted, removeOnboardingValue } from '@/lib/onboardingStorage';

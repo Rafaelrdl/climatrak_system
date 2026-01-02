@@ -35,7 +35,7 @@ import {
 } from '@dnd-kit/core';
 import { PageHeader, StatusBadge } from '@/shared/ui';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -251,8 +251,8 @@ export function WorkOrderSchedulingPage() {
   const [editWorkOrder, setEditWorkOrder] = useState<WorkOrder | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
-  const { data: workOrders = [], isLoading: isLoadingWO } = useWorkOrders();
-  const { data: technicians = [], isLoading: isLoadingTech } = useTechnicians();
+  const { data: workOrders = [] } = useWorkOrders();
+  const { data: technicians = [] } = useTechnicians();
   const { data: equipment = [] } = useEquipments();
   const updateMutation = useUpdateWorkOrder();
 
@@ -394,7 +394,6 @@ export function WorkOrderSchedulingPage() {
     }
   };
 
-  const isLoading = isLoadingWO || isLoadingTech;
 
   return (
     <div className="space-y-6">

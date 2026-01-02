@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Activity, AlertCircle, Gauge } from 'lucide-react';
+import { ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';

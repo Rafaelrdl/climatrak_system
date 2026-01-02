@@ -10,7 +10,6 @@
  * - viewer: Visão geral consolidada (somente leitura)
  */
 
-import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   DollarSign,
@@ -21,24 +20,18 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
-  Wrench,
   ClipboardList,
   Target,
   Activity,
   PiggyBank,
   BarChart3,
   FileText,
-  User,
-  Users,
-  Loader2,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import type { Role } from '@/acl/abilities';
 
 // ==================== Types ====================
 

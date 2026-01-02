@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { 
   useCompanies, 
   useSectors, 
-  useSubsections,
   useCreateCompany,
   useUpdateCompany,
   useCreateSector,
@@ -18,7 +17,7 @@ import {
   useUpdateSubsection
 } from '@/hooks/useLocationsQuery';
 import { useLocation as useLocationContext } from '@/contexts/LocationContext';
-import { Building2, MapPin, Users, Phone, Mail, Calendar, FileText, LayoutGrid } from 'lucide-react';
+import { Building2, MapPin, LayoutGrid } from 'lucide-react';
 import type { Company, Sector, SubSection } from '@/types';
 
 // Interface para as props do modal
@@ -44,7 +43,6 @@ export function LocationFormModal({
   // React Query hooks para dados
   const { data: companies = [] } = useCompanies();
   const { data: sectors = [] } = useSectors();
-  const { data: subSections = [] } = useSubsections();
   const { selectedNode, setSelectedNode } = useLocationContext();
   
   // Mutations para criar/atualizar localizações

@@ -19,7 +19,6 @@ import type {
   CostMetrics,
   SLAMetrics,
   HeatmapData,
-  DistributionItem,
   TrendDataPoint,
 } from '@/types/metrics';
 

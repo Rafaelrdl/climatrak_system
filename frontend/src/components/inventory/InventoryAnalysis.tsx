@@ -30,9 +30,6 @@ export function InventoryAnalysis({ className = '' }: InventoryAnalysisProps) {
   const { data: consumption = [], isLoading: isLoadingConsumption } = useConsumptionByCategory(days);
   const { data: topItems = [], isLoading: isLoadingTopItems } = useTopConsumedItems(days, 5);
   const { data: categoriesData } = useInventoryCategories();
-  
-  // Garantir que categories é sempre um array
-  const categories = Array.isArray(categoriesData) ? categoriesData : [];
 
   const handleRangeChange = (value: AnalysisRange) => {
     setSelectedRange(value);
@@ -41,12 +38,13 @@ export function InventoryAnalysis({ className = '' }: InventoryAnalysisProps) {
   // Preparar dados para o gráfico de donut
   const chartData = useMemo(() => {
     if (!Array.isArray(consumption)) return [];
+    const categories = Array.isArray(categoriesData) ? categoriesData : [];
     return consumption.map(item => ({
       label: item.category_name,
       value: item.total_consumed,
       color: categories.find(c => c.id === item.category_id)?.color
     }));
-  }, [consumption, categories]);
+  }, [consumption, categoriesData]);
 
   const totalConsumption = useMemo(() => {
     return consumption.reduce((sum, item) => sum + item.total_consumed, 0);

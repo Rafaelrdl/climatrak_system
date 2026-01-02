@@ -8,8 +8,6 @@ import { Calendar, Plus, Edit, Play, CheckCircle, Loader2, Trash2 } from 'lucide
 import { PlanFormModal } from '@/components/PlanFormModal';
 import { 
   useMaintenancePlans, 
-  useCreatePlan, 
-  useUpdatePlan,
   useDeletePlan,
   useGenerateWorkOrders,
   planKeys
@@ -28,8 +26,6 @@ export function PlansPage() {
   const { data: plans = [], isLoading, error } = useMaintenancePlans();
   
   // Mutations (mantidos para compatibilidade futura com API)
-  const createMutation = useCreatePlan();
-  const updateMutation = useUpdatePlan();
   const deleteMutation = useDeletePlan();
   const generateMutation = useGenerateWorkOrders();
   
@@ -62,7 +58,7 @@ export function PlansPage() {
     }
   };
 
-  const handlePlanSave = (savedPlan: MaintenancePlan) => {
+  const handlePlanSave = () => {
     // O plano já foi salvo pelo PlanFormModal no store local
     // Apenas invalidar as queries para atualizar a lista
     queryClient.invalidateQueries({ queryKey: planKeys.lists() });

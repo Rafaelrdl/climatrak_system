@@ -12,7 +12,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
-import { workOrdersService, type WorkOrderFilters, type CompleteWorkOrderData, type WorkOrderStats } from '@/services/workOrdersService';
+import { workOrdersService, type WorkOrderFilters, type CompleteWorkOrderData } from '@/services/workOrdersService';
 import { isUserAuthenticated } from '@/hooks/useAuth';
 import type { WorkOrder } from '@/types';
 

@@ -11,12 +11,11 @@
  */
 
 import { useState, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { PageHeader, StatusBadge, Card, CardContent, ConfirmDialog } from '@/shared/ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -69,7 +68,6 @@ import {
   useAlertsQuery, 
   useAlertsStatisticsQuery,
   useAcknowledgeAlertMutation,
-  useResolveAlertMutation,
   useLinkWorkOrderMutation,
   useDeleteAlertMutation
 } from '../hooks';
@@ -130,7 +128,6 @@ const formatMessageNumbers = (message: string): string => {
 };
 
 export function AlertsList() {
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSeverity, setFilterSeverity] = useState<AlertSeverity | null>(null);
   const [filterStatus, setFilterStatus] = useState<AlertFilters['status'] | null>(null);
@@ -162,7 +159,6 @@ export function AlertsList() {
   
   // Mutations para ações
   const acknowledgeMutation = useAcknowledgeAlertMutation();
-  const resolveMutation = useResolveAlertMutation();
   const linkWorkOrderMutation = useLinkWorkOrderMutation();
   const createWorkOrderMutation = useCreateWorkOrder();
   const deleteAlertMutation = useDeleteAlertMutation();
@@ -198,10 +194,6 @@ export function AlertsList() {
   };
 
   // Handler para resolver um alerta
-  const handleResolve = (alert: Alert) => {
-    resolveMutation.mutate({ id: alert.id });
-  };
-
   // Handler para abrir dialog de exclusão
   const handleDelete = (alert: Alert) => {
     setAlertToDelete(alert);

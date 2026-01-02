@@ -65,7 +65,7 @@ describe('Version Comparison Functionality', () => {
     });
 
     // Update the procedure
-    const updatedProcedure = updateProcedure({
+    updateProcedure({
       ...testProcedure,
       title: 'Updated Test Procedure',
       description: 'Updated description',
@@ -183,7 +183,7 @@ describe('Version Comparison Functionality', () => {
     });
 
     // Update the procedure
-    const updatedProcedure = updateProcedure({
+    updateProcedure({
       ...testProcedure,
       title: 'Updated Title',
       description: 'Updated description',

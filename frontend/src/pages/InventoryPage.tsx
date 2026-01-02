@@ -21,12 +21,10 @@ import { IfCan } from '@/components/auth/IfCan';
 import { useRoleBasedData, DataFilterInfo } from '@/components/data/FilteredDataProvider';
 import { useAbility } from '@/hooks/useAbility';
 import type { InventoryItem, InventoryCategory } from '@/models/inventory';
-import { 
-  useInventoryItems, 
+import {
+  useInventoryItems,
   useInventoryCategories,
-  useCreateInventoryItem,
-  useUpdateInventoryItem,
-  useDeleteInventoryItem
+  useDeleteInventoryItem,
 } from '@/hooks/useInventoryQuery';
 import type { ApiInventoryItem, ApiInventoryCategory } from '@/types/api';
 import { parsePaginatedResponse } from '@/shared/api';
@@ -84,7 +82,7 @@ export function InventoryPage() {
   
   // React Query hooks
   const { data: itemsData, isLoading: loadingItems, error: itemsError } = useInventoryItems();
-  const { data: categoriesData, isLoading: loadingCategories } = useInventoryCategories();
+  const { data: categoriesData } = useInventoryCategories();
   
   // Mutations
   const deleteMutation = useDeleteInventoryItem();
@@ -151,12 +149,12 @@ export function InventoryPage() {
   const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null);
 
   // Handlers
-  const handleItemCreated = (newItem: InventoryItem) => {
+  const handleItemCreated = () => {
     // React Query will automatically invalidate and refetch
     toast.success('Item adicionado ao inventário');
   };
 
-  const handleItemUpdated = (updatedItem: InventoryItem) => {
+  const handleItemUpdated = () => {
     // React Query will automatically invalidate and refetch
     toast.success('Item atualizado');
   };

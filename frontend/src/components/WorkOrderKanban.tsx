@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Play, Edit, User, Calendar, AlertCircle, CheckCircle2, Clock, Eye, GripVertical, XCircle } from 'lucide-react';
+import { Play, Edit, User, Calendar, AlertCircle, CheckCircle2, Clock, GripVertical, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEquipments } from '@/hooks/useEquipmentQuery';

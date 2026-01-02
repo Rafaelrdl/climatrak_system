@@ -27,10 +27,6 @@ export function InventoryTabs({ tabs, defaultValue = 'table', className = '' }: 
     }
   });
   
-  const [focusedIndex, setFocusedIndex] = useState<number>(() => 
-    tabs.findIndex(tab => tab.value === activeTab)
-  );
-
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, activeTab);
@@ -39,9 +35,8 @@ export function InventoryTabs({ tabs, defaultValue = 'table', className = '' }: 
     }
   }, [activeTab]);
 
-  const handleTabClick = (value: TabValue, index: number) => {
+  const handleTabClick = (value: TabValue) => {
     setActiveTab(value);
-    setFocusedIndex(index);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -49,7 +44,6 @@ export function InventoryTabs({ tabs, defaultValue = 'table', className = '' }: 
       case 'ArrowLeft': {
         event.preventDefault();
         const prevIndex = index > 0 ? index - 1 : tabs.length - 1;
-        setFocusedIndex(prevIndex);
         // Focus the previous tab button
         const prevButton = event.currentTarget.parentElement?.children[prevIndex] as HTMLButtonElement;
         prevButton?.focus();
@@ -58,7 +52,6 @@ export function InventoryTabs({ tabs, defaultValue = 'table', className = '' }: 
       case 'ArrowRight': {
         event.preventDefault();
         const nextIndex = index < tabs.length - 1 ? index + 1 : 0;
-        setFocusedIndex(nextIndex);
         // Focus the next tab button
         const nextButton = event.currentTarget.parentElement?.children[nextIndex] as HTMLButtonElement;
         nextButton?.focus();
@@ -66,7 +59,6 @@ export function InventoryTabs({ tabs, defaultValue = 'table', className = '' }: 
       }
       case 'Home': {
         event.preventDefault();
-        setFocusedIndex(0);
         const firstButton = event.currentTarget.parentElement?.children[0] as HTMLButtonElement;
         firstButton?.focus();
         break;
@@ -74,7 +66,6 @@ export function InventoryTabs({ tabs, defaultValue = 'table', className = '' }: 
       case 'End': {
         event.preventDefault();
         const lastIndex = tabs.length - 1;
-        setFocusedIndex(lastIndex);
         const lastButton = event.currentTarget.parentElement?.children[lastIndex] as HTMLButtonElement;
         lastButton?.focus();
         break;
@@ -83,13 +74,10 @@ export function InventoryTabs({ tabs, defaultValue = 'table', className = '' }: 
       case ' ': {
         event.preventDefault();
         setActiveTab(tabs[index].value);
-        setFocusedIndex(index);
         break;
       }
     }
   };
-
-  const activeTabContent = tabs.find(tab => tab.value === activeTab)?.content;
 
   return (
     <div className={className}>
@@ -114,7 +102,7 @@ export function InventoryTabs({ tabs, defaultValue = 'table', className = '' }: 
                 ? 'text-primary border-primary bg-primary/5'
                 : 'text-muted-foreground border-transparent'
             )}
-            onClick={() => handleTabClick(tab.value, index)}
+            onClick={() => handleTabClick(tab.value)}
             onKeyDown={(e) => handleKeyDown(e, index)}
           >
             {tab.label}

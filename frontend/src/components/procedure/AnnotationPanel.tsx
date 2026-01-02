@@ -1,25 +1,20 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import {
   MessageSquare,
-  Plus,
-  Filter,
   Search,
   Check,
-  Archive,
   AlertTriangle,
   HelpCircle,
   Highlighter,
   FileText,
   Edit3,
   MoreVertical,
-  Reply,
   Trash2,
-  Eye,
-  EyeOff
+  EyeOff,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -29,7 +24,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-  DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
 import {
   Select,
@@ -50,12 +44,11 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { 
-  DocumentAnnotation, 
-  Comment, 
-  AnnotationThread, 
+import {
+  DocumentAnnotation,
+  Comment,
+  AnnotationThread,
   AnnotationType,
-  CommentStatus 
 } from '@/models/procedure';
 
 interface AnnotationPanelProps {
@@ -102,11 +95,9 @@ export function AnnotationPanel({
   versionNumber,
   annotations,
   comments,
-  onCreateAnnotation,
   onUpdateAnnotation,
   onDeleteAnnotation,
   onCreateComment,
-  onUpdateComment,
   onDeleteComment,
   onAnnotationClick,
   className = ''
@@ -123,7 +114,6 @@ export function AnnotationPanel({
 
   const [searchQuery, setSearchQuery] = useState('');
   const [newCommentContent, setNewCommentContent] = useState('');
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
@@ -147,9 +137,6 @@ export function AnnotationPanel({
       unread_count: 0 // TODO: Implement read tracking
     };
   });
-
-  // Standalone comments (not linked to annotations)
-  const standaloneComments = comments.filter(comment => !comment.annotation_id);
 
   // Filter threads based on current filters
   const filteredThreads = annotationThreads.filter(thread => {
@@ -204,7 +191,6 @@ export function AnnotationPanel({
     });
 
     setNewCommentContent('');
-    setReplyingTo(null);
     toast.success('Comentário adicionado');
   };
 

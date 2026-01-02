@@ -7,7 +7,6 @@ import { WidgetConfig } from './WidgetConfig';
 import { ConfirmDialog } from '@/shared/ui/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { KPICard } from '@/components/KPICard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -20,32 +19,28 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { 
-  GripVertical, 
-  X, 
+import {
+  GripVertical,
+  X,
   Settings,
-  Activity, 
-  AlertTriangle, 
+  Activity,
+  AlertTriangle,
   TrendingUp,
   TrendingDown,
   Minus,
-  Clock,
-  ClipboardList,
   Server,
   BarChart3,
-  PieChart,
   LineChart as LineChartIcon,
-  Gauge,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 
 // Importar mapa de ícones do arquivo separado
 import { kpiIconMap } from './kpiIcons';
 
 // Hooks para dados reais
-import { useWorkOrders, useWorkOrderStats } from '@/hooks/useWorkOrdersQuery';
+import { useWorkOrders } from '@/hooks/useWorkOrdersQuery';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useSensorData, evaluateFormula, useMultiSensorHistory } from '@/hooks/useSensorData';
 
@@ -78,7 +73,6 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
 
   // Dados reais do sistema
   const { data: workOrders = [] } = useWorkOrders();
-  const { data: workOrderStats } = useWorkOrderStats();
   const { data: equipment = [] } = useEquipments();
 
   // Dados do sensor configurado
@@ -158,7 +152,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
     }
 
     return { grid, min, max };
-  }, [widget.type, multiSensorHistory.series, sensorTag, assetTag]);
+  }, [widget.type, multiSensorHistory.series]);
 
 
   //   seriesCount: multiSensorHistory.series.length,
@@ -1843,15 +1837,6 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
       const percent = Math.min(100, Math.max(0, rawPercent));
 
       const label = widget.config?.label || formatSensorLabel(sensorTag);
-      const unit = widget.config?.unit || sensorData.unit || '';
-
-      // Determinar cor baseada no valor em relação ao range
-      let gaugeColor = 'border-primary';
-      if (displayValue > max) {
-        gaugeColor = 'border-red-500'; // Vermelho se acima do máximo
-      } else if (displayValue < min) {
-        gaugeColor = 'border-blue-500'; // Azul se abaixo do mínimo
-      }
 
       return (
         <div className="h-full flex flex-col items-center justify-center px-4 py-2">
@@ -2276,122 +2261,6 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
       </div>
     );
   }
-
-  function renderWorkOrdersSummary() {
-    const stats = {
-      open: workOrderStats?.open ?? workOrders.filter(wo => wo.status === 'OPEN').length,
-      inProgress: workOrderStats?.in_progress ?? workOrders.filter(wo => wo.status === 'IN_PROGRESS').length,
-      completed: workOrderStats?.completed ?? workOrders.filter(wo => wo.status === 'COMPLETED').length,
-    };
-
-    return (
-      <div className="h-full flex flex-col">
-        <div className="flex items-center gap-2 mb-4">
-          <ClipboardList className="w-5 h-5 text-primary" />
-          <span className="font-medium">Resumo de OS</span>
-        </div>
-        <div className="flex-1 grid grid-cols-3 gap-2">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
-            <div className="text-2xl font-bold text-yellow-700">{stats.open}</div>
-            <div className="text-xs text-yellow-600">Abertas</div>
-          </div>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-            <div className="text-2xl font-bold text-blue-700">{stats.inProgress}</div>
-            <div className="text-xs text-blue-600">Em Andamento</div>
-          </div>
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-            <div className="text-2xl font-bold text-green-700">{stats.completed}</div>
-            <div className="text-xs text-green-600">Concluídas</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function renderEquipmentStatus() {
-    const stats = {
-      functioning: equipment.filter(eq => eq.status === 'OK').length,
-      maintenance: equipment.filter(eq => eq.status === 'MAINTENANCE').length,
-      stopped: equipment.filter(eq => eq.status === 'STOPPED' || eq.status === 'ALERT').length,
-    };
-    const total = stats.functioning + stats.maintenance + stats.stopped;
-
-    return (
-      <div className="h-full flex flex-col">
-        <div className="flex items-center gap-2 mb-4">
-          <Server className="w-5 h-5 text-primary" />
-          <span className="font-medium">Status dos Equipamentos</span>
-        </div>
-        <div className="flex-1 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-green-500" />
-              <span className="text-sm">Funcionando</span>
-            </div>
-            <span className="font-medium">{stats.functioning}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-yellow-500" />
-              <span className="text-sm">Em Manutenção</span>
-            </div>
-            <span className="font-medium">{stats.maintenance}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <XCircle className="w-4 h-4 text-red-500" />
-              <span className="text-sm">Parado</span>
-            </div>
-            <span className="font-medium">{stats.stopped}</span>
-          </div>
-          <div className="pt-2 border-t">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Total</span>
-              <span className="font-bold">{total}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function renderMaintenanceSchedule() {
-    const upcomingWO = workOrders
-      .filter(wo => wo.status === 'OPEN' || wo.status === 'IN_PROGRESS')
-      .slice(0, 4);
-
-    return (
-      <div className="h-full flex flex-col">
-        <div className="flex items-center gap-2 mb-4">
-          <Clock className="w-5 h-5 text-primary" />
-          <span className="font-medium">Próximas Manutenções</span>
-        </div>
-        <div className="flex-1 space-y-2 overflow-auto">
-          {upcomingWO.map(wo => (
-            <div key={wo.id} className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg">
-              <div className="w-2 h-2 rounded-full bg-primary" />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate">{wo.number}</div>
-                <div className="text-xs text-muted-foreground">
-                  {new Date(wo.scheduledDate).toLocaleDateString('pt-BR')}
-                </div>
-              </div>
-              <Badge variant="outline" className="text-xs">
-                {wo.priority === 'CRITICAL' ? 'Crítica' :
-                 wo.priority === 'HIGH' ? 'Alta' : 'Normal'}
-              </Badge>
-            </div>
-          ))}
-          {upcomingWO.length === 0 && (
-            <div className="text-center text-sm text-muted-foreground py-4">
-              Nenhuma manutenção agendada
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   function renderTextDisplay() {
     return (
       <div className="h-full flex items-center justify-center">

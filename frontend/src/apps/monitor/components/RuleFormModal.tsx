@@ -8,7 +8,7 @@
  * - Ações de notificação
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -127,7 +127,7 @@ export function RuleFormModal({ open, onOpenChange, editingRule }: RuleFormModal
   };
 
   // Encontrar deviceId a partir do parameter_key (variável tag)
-  const findDeviceIdByParameterKey = (parameterKey: string): number | undefined => {
+  const findDeviceIdByParameterKey = useCallback((parameterKey: string): number | undefined => {
     for (const device of devices) {
       const variable = device.variables.find(v => v.tag === parameterKey);
       if (variable) {
@@ -135,7 +135,7 @@ export function RuleFormModal({ open, onOpenChange, editingRule }: RuleFormModal
       }
     }
     return undefined;
-  };
+  }, [devices]);
 
   // Reset/Preencher formulário quando modal abre
   useEffect(() => {
@@ -184,7 +184,7 @@ export function RuleFormModal({ open, onOpenChange, editingRule }: RuleFormModal
         setParameters([]);
       }
     }
-  }, [open, editingRule, devices]);
+  }, [open, editingRule, findDeviceIdByParameterKey]);
 
   // Adicionar novo parâmetro
   const addParameter = () => {
