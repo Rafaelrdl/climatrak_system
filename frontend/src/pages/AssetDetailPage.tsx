@@ -88,6 +88,7 @@ import { useAssetDetailsQuery, useAssetSensorsQuery } from '@/apps/monitor/hooks
 import { useAlertsQuery } from '@/apps/monitor/hooks/useAlertsQuery';
 import { useWorkOrdersByAsset } from '@/hooks/useWorkOrdersQuery';
 import { useEquipment } from '@/hooks/useEquipmentQuery';
+import { useMaintenanceMetrics, formatMTBF, formatMTTR, getMTBFStatusColor, getMTTRStatusColor } from '@/hooks/useMaintenanceMetrics';
 import { telemetryService } from '@/apps/monitor/services';
 import { MultiSeriesTelemetryChart } from '@/apps/monitor/components/charts/MultiSeriesTelemetryChart';
 import { WorkOrderViewModal } from '@/components/WorkOrderViewModal';
@@ -140,10 +141,11 @@ interface StatCardProps {
     direction: 'up' | 'down' | 'stable';
     value: string;
   };
+  description?: string;
   onClick?: () => void;
 }
 
-function StatCard({ label, value, unit, status, icon, trend, onClick }: StatCardProps) {
+function StatCard({ label, value, unit, status, icon, trend, description, onClick }: StatCardProps) {
   const statusStyle = status ? statusConfig[status] : null;
 
   return (
@@ -192,6 +194,11 @@ function StatCard({ label, value, unit, status, icon, trend, onClick }: StatCard
                 {trend.direction === 'down' && <TrendingUp className="h-3 w-3 rotate-180" />}
                 <span>{trend.value}</span>
               </div>
+            )}
+            {description && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {description}
+              </p>
             )}
           </div>
           <div className={cn(
@@ -427,24 +434,12 @@ export function AssetDetailPage() {
     setMaintenanceAlerts(alerts);
   }, [asset]);
 
-  // Funções de cálculo de métricas de manutenção (usando dados reais)
-  const calculateUptime = () => {
-    const totalHours = 8760; // 1 year default
-    const downtimeHours = completedWorkOrders.reduce((total: number, wo: any) => total + (wo.actual_hours || 0), 0);
-    return Math.max(0, ((totalHours - downtimeHours) / totalHours) * 100);
-  };
-
-  const calculateMTBF = () => {
-    const correctiveMaintenances = completedWorkOrders.filter((wo: any) => wo.type === 'CORRECTIVE').length;
-    const operatingHours = 8760;
-    return correctiveMaintenances > 0 ? Math.round(operatingHours / correctiveMaintenances) : operatingHours;
-  };
-
-  const calculateMTTR = () => {
-    const correctiveMaintenances = completedWorkOrders.filter((wo: any) => wo.type === 'CORRECTIVE');
-    const totalRepairTime = correctiveMaintenances.reduce((total: number, wo: any) => total + (wo.actual_hours || 0), 0);
-    return correctiveMaintenances.length > 0 ? Math.round(totalRepairTime / correctiveMaintenances.length * 10) / 10 : 0;
-  };
+  // Funções de cálculo de métricas de manutenção (usando hook centralizado)
+  const maintenanceMetrics = useMaintenanceMetrics(workOrders, {
+    installationDate: asset?.installation_date,
+    analysisPeriodDays: 365,
+    dailyOperatingHours: 24,
+  });
 
   const acknowledgeAlert = (alertId: string) => {
     setMaintenanceAlerts(prev => prev.map(alert => 
@@ -717,7 +712,7 @@ export function AssetDetailPage() {
 
           {/* KPIs - Grid responsivo otimizado */}
           {assetKPIs && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <StatCard
                 label="Saúde Geral"
                 value={assetKPIs.health.toFixed(0)}
@@ -727,22 +722,40 @@ export function AssetDetailPage() {
               />
               <StatCard
                 label="Uptime"
-                value={calculateUptime().toFixed(1)}
+                value={maintenanceMetrics.uptime.toFixed(1)}
                 unit="%"
-                status={getUptimeStatus(calculateUptime())}
+                status={getUptimeStatus(maintenanceMetrics.uptime)}
                 icon={<TrendingUp className="w-5 h-5" />}
               />
               <StatCard
                 label="MTBF"
-                value={calculateMTBF().toLocaleString('pt-BR')}
+                value={maintenanceMetrics.mtbf.toLocaleString('pt-BR')}
                 unit="h"
                 icon={<Clock className="w-5 h-5" />}
+                description={maintenanceMetrics.totalFailures === 0 ? 'Sem falhas' : `${maintenanceMetrics.totalFailures} falha(s)`}
               />
               <StatCard
                 label="MTTR"
-                value={calculateMTTR().toFixed(1)}
-                unit="h"
+                value={formatMTTR(maintenanceMetrics.mttr)}
+                unit=""
                 icon={<Wrench className="w-5 h-5" />}
+                description={maintenanceMetrics.totalFailures === 0 ? 'Sem falhas' : `${maintenanceMetrics.totalFailures} reparo(s)`}
+              />
+              <StatCard
+                label="Disponibilidade"
+                value={maintenanceMetrics.availability.toFixed(1)}
+                unit="%"
+                status={maintenanceMetrics.availability >= 99 ? 'online' : maintenanceMetrics.availability >= 95 ? 'warning' : 'critical'}
+                icon={<Activity className="w-5 h-5" />}
+                description="MTBF / (MTBF + MTTR)"
+              />
+              <StatCard
+                label="Confiabilidade"
+                value={maintenanceMetrics.reliability.toFixed(1)}
+                unit="%"
+                status={maintenanceMetrics.reliability >= 90 ? 'online' : maintenanceMetrics.reliability >= 70 ? 'warning' : 'critical'}
+                icon={<Gauge className="w-5 h-5" />}
+                description="Prob. não falhar"
               />
             </div>
           )}
