@@ -8,9 +8,14 @@ import os
 from pathlib import Path
 
 # Override environment variables before importing base to prevent validation errors
-os.environ.setdefault("DJANGO_SECRET_KEY", os.getenv("SECRET_KEY", "test-secret-key-for-ci-only-not-for-production"))
+os.environ.setdefault(
+    "DJANGO_SECRET_KEY",
+    os.getenv("SECRET_KEY", "test-secret-key-for-ci-only-not-for-production"),
+)
 os.environ.setdefault("INGESTION_SECRET", "test-ingestion-secret-for-ci-only")
-os.environ.setdefault("DEBUG", "True")  # Set DEBUG to True initially to bypass validation
+os.environ.setdefault(
+    "DEBUG", "True"
+)  # Set DEBUG to True initially to bypass validation
 
 from .base import *  # noqa: E402, F401, F403
 
@@ -44,9 +49,10 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL:
     # Parse DATABASE_URL (e.g., postgres://user:pass@host:port/dbname)
     import re
+
     match = re.match(
         r"postgres(?:ql)?://(?P<user>[^:]+):(?P<password>[^@]+)@(?P<host>[^:]+):(?P<port>\d+)/(?P<name>.+)",
-        DATABASE_URL
+        DATABASE_URL,
     )
     if match:
         DATABASES = {
