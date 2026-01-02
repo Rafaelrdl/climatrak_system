@@ -363,7 +363,7 @@ jobs:
       # Notificar falhas no Slack (opcional)
       - name: 🔔 Notify on Failure
         if: failure()
-        uses: slackapi/slack-github-action@v1.26.0
+        uses: slackapi/slack-github-action@v2.1.1
         with:
           payload: |
             {
