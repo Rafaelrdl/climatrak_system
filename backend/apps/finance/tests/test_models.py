@@ -80,7 +80,9 @@ class CostCenterModelTests(TenantTestCase):
         """Código deve ser único."""
         CostCenter.objects.create(code="CC-001", name="First")
 
-        with self.assertRaises(IntegrityError):  # IntegrityError
+        # Django pode levantar ValidationError (validate_unique)
+        # ou IntegrityError (banco de dados) dependendo do caminho de validação
+        with self.assertRaises((IntegrityError, ValidationError)):
             CostCenter.objects.create(code="CC-001", name="Second")
 
     def test_tags_default(self):
@@ -186,7 +188,9 @@ class BudgetPlanModelTests(TenantTestCase):
             end_date=date(2024, 12, 31),
         )
 
-        with self.assertRaises(IntegrityError):
+        # Django pode levantar ValidationError (validate_unique)
+        # ou IntegrityError (banco de dados) dependendo do caminho de validação
+        with self.assertRaises((IntegrityError, ValidationError)):
             BudgetPlan.objects.create(
                 code="BUDGET-2024",
                 name="Second",
@@ -331,7 +335,9 @@ class BudgetMonthModelTests(TenantTestCase):
             planned_amount=Decimal("10000.00"),
         )
 
-        with self.assertRaises(IntegrityError):
+        # Django pode levantar ValidationError (validate_unique)
+        # ou IntegrityError (banco de dados) dependendo do caminho de validação
+        with self.assertRaises((IntegrityError, ValidationError)):
             BudgetMonth.objects.create(
                 envelope=self.envelope,
                 month=date(2024, 1, 1),
@@ -346,6 +352,7 @@ class BudgetMonthModelTests(TenantTestCase):
 
         # Criar usuário real para o teste
         user = User.objects.create_user(
+            username="test_lock_user",
             email="test_lock@example.com",
             password="testpass123",
             first_name="Test",
@@ -480,6 +487,7 @@ class CostTransactionModelTests(TenantTestCase):
 
         self.cost_center = CostCenter.objects.create(code="CC-001", name="Test CC")
         self.test_user = User.objects.create_user(
+            username="test_costx_user",
             email="test_costx@example.com",
             password="testpass123",
             first_name="Test",
@@ -696,6 +704,7 @@ class LedgerAdjustmentModelTests(TenantTestCase):
 
         self.cost_center = CostCenter.objects.create(code="CC-001", name="Test CC")
         self.test_user = User.objects.create_user(
+            username="test_ledger_user",
             email="test_ledger@example.com",
             password="testpass123",
             first_name="Test",

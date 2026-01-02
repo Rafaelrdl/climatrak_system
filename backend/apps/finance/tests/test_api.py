@@ -53,10 +53,32 @@ class BaseFinanceAPITestCase(TenantTestCase):
         super().setUp()
         self.factory = APIRequestFactory()
 
+        # Limpar dados entre testes
+        from apps.finance.models import (
+            BudgetEnvelope,
+            BudgetMonth,
+            BudgetPlan,
+            CostCenter,
+            CostTransaction,
+            LedgerAdjustment,
+            RateCard,
+        )
+
+        LedgerAdjustment.objects.all().delete()
+        CostTransaction.objects.all().delete()
+        BudgetMonth.objects.all().delete()
+        BudgetEnvelope.objects.all().delete()
+        BudgetPlan.objects.all().delete()
+        RateCard.objects.all().delete()
+        CostCenter.objects.all().delete()
+
         # Criar usuário de teste
         from django.contrib.auth import get_user_model
 
         User = get_user_model()
+
+        # Limpar usuários de teste antigos
+        User.objects.filter(email="test@example.com").delete()
 
         self.user = User.objects.create_user(
             username="test_finance",
