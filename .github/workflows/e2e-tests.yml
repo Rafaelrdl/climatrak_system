@@ -100,7 +100,7 @@ jobs:
         working-directory: backend
         run: |
           python manage.py migrate --run-syncdb
-          python manage.py loaddata fixtures/test_users.json || true
+          python manage.py create_e2e_test_data --clean
       
       - name: 🚀 Start Backend Server
         working-directory: backend
@@ -204,7 +204,7 @@ jobs:
         working-directory: backend
         run: |
           python manage.py migrate --run-syncdb
-          python manage.py loaddata fixtures/test_users.json || true
+          python manage.py create_e2e_test_data --clean
       
       - name: 🚀 Start Backend Server
         working-directory: backend
@@ -305,8 +305,9 @@ jobs:
         working-directory: backend
         run: |
           python manage.py migrate --run-syncdb
-          # Carregar fixtures de teste
-          python manage.py loaddata fixtures/test_users.json || true
+          # Criar dados de teste E2E
+          python manage.py create_e2e_test_data --clean
+          # Carregar fixtures adicionais (se existirem)
           python manage.py loaddata fixtures/test_tenants.json || true
           python manage.py loaddata fixtures/test_assets.json || true
       

@@ -1,0 +1,141 @@
+# ============================================================================
+# Dependabot Configuration - ClimaTrak System
+# ============================================================================
+# Keeps dependencies up to date for security and compatibility
+# - pip: backend Python packages
+# - npm: frontend Node.js packages
+# - github-actions: GitHub Actions workflows
+
+version: 2
+updates:
+  # ============================================================================
+  # Backend (Python/pip)
+  # ============================================================================
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "Rafaelrdl"
+    labels:
+      - "dependencies"
+      - "backend"
+      - "python"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      django:
+        patterns:
+          - "django*"
+          - "drf*"
+          - "djangorestframework*"
+        update-types:
+          - "minor"
+          - "patch"
+      testing:
+        patterns:
+          - "pytest*"
+          - "factory*"
+          - "faker"
+        update-types:
+          - "minor"
+          - "patch"
+      linting:
+        patterns:
+          - "ruff"
+          - "black"
+          - "mypy"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ============================================================================
+  # Frontend (Node.js/npm)
+  # ============================================================================
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "Rafaelrdl"
+    labels:
+      - "dependencies"
+      - "frontend"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      react:
+        patterns:
+          - "react*"
+          - "@types/react*"
+        update-types:
+          - "minor"
+          - "patch"
+      radix:
+        patterns:
+          - "@radix-ui/*"
+        update-types:
+          - "minor"
+          - "patch"
+      testing:
+        patterns:
+          - "vitest*"
+          - "@vitest/*"
+          - "cypress*"
+          - "@testing-library/*"
+        update-types:
+          - "minor"
+          - "patch"
+      build:
+        patterns:
+          - "vite*"
+          - "@vitejs/*"
+          - "typescript*"
+          - "eslint*"
+        update-types:
+          - "minor"
+          - "patch"
+      tanstack:
+        patterns:
+          - "@tanstack/*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ============================================================================
+  # GitHub Actions
+  # ============================================================================
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "Rafaelrdl"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"

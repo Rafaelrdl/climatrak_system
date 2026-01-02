@@ -226,7 +226,52 @@ npm test
 **Frontend:**
 
 - `npm test` (Vitest)
-- (Opcional) Cypress E2E
+- `npm run cy:smoke` (Cypress E2E smoke tests)
+- `npm run cy:critical` (Cypress E2E critical tests)
+
+---
+
+## CI/CD & QA
+
+O projeto utiliza GitHub Actions para CI/CD automatizado:
+
+### Workflows
+
+| Workflow | Trigger | Descrição |
+|----------|---------|-----------|
+| `backend-ci.yml` | PR, push main/develop | Lint (ruff), tests (pytest), migrations check |
+| `frontend-ci.yml` | PR, push main/develop | ESLint, TypeScript check, build, Vitest |
+| `e2e-tests.yml` | PR, nightly | Cypress smoke/critical tests |
+| `codeql.yml` | PR, push, weekly | Security analysis (Python, JS/TS) |
+| `trivy.yml` | PR, push, daily | Vulnerability, misconfiguration, secrets scan |
+| `dependabot.yml` | Weekly | Auto-update dependencies (pip, npm, actions) |
+
+### Executando CI Localmente
+
+```bash
+# Backend
+cd backend
+make ci-local  # ou: make lint && make test
+
+# Frontend
+cd frontend
+npm run lint
+npx tsc --noEmit
+npm test
+npm run build
+
+# E2E (requer stack rodando)
+cd frontend
+npm run cy:smoke
+```
+
+### Security Scanning
+
+- **CodeQL**: Análise estática de segurança para Python e TypeScript
+- **Trivy**: Scan de vulnerabilidades, secrets e misconfigurations
+- **Dependabot**: PRs automáticos para atualização de dependências
+
+Os resultados aparecem na aba **Security** do repositório.
 
 ---
 

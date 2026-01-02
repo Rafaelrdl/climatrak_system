@@ -1,0 +1,161 @@
+# ============================================================================
+# Trivy Security Scan - ClimaTrak System
+# ============================================================================
+# Scans for vulnerabilities, misconfigurations, and secrets
+# - Repository filesystem scan
+# - Docker image scan (if available)
+# - IaC (Infrastructure as Code) scan
+
+name: Trivy Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run every day at 04:00 UTC
+    - cron: '0 4 * * *'
+
+jobs:
+  # ============================================================================
+  # Repository Scan (Filesystem)
+  # ============================================================================
+  repo-scan:
+    name: 🔍 Repository Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔒 Run Trivy vulnerability scanner (Repo)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          scanners: 'vuln,misconfig,secret'
+          format: 'sarif'
+          output: 'trivy-repo-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '0'  # Don't fail on findings, report only
+          ignore-unfixed: true
+          
+      - name: 📤 Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-repo-results.sarif'
+          category: 'trivy-repo'
+
+      - name: 🚨 Run Trivy (Fail on Critical/High)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          scanners: 'vuln,secret'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'  # Fail on critical/high findings
+          ignore-unfixed: true
+          skip-dirs: 'node_modules,.git,dist,build,__pycache__,.venv'
+
+  # ============================================================================
+  # Docker Image Scan (Backend)
+  # ============================================================================
+  image-scan-backend:
+    name: 🐳 Backend Image Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name != 'pull_request'  # Only on push/schedule
+    
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Build Backend Docker image
+        working-directory: backend
+        run: |
+          docker build -t climatrak-backend:scan -f docker/Dockerfile .
+
+      - name: 🔒 Run Trivy vulnerability scanner (Image)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'image'
+          image-ref: 'climatrak-backend:scan'
+          format: 'sarif'
+          output: 'trivy-backend-image.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '0'
+          ignore-unfixed: true
+
+      - name: 📤 Upload Trivy image scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-backend-image.sarif'
+          category: 'trivy-backend-image'
+
+  # ============================================================================
+  # IaC (Infrastructure as Code) Scan
+  # ============================================================================
+  iac-scan:
+    name: 🏗️ IaC Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔒 Run Trivy IaC scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-iac-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '0'
+          skip-dirs: 'node_modules,.git'
+
+      - name: 📤 Upload Trivy IaC scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-iac-results.sarif'
+          category: 'trivy-iac'
+
+  # ============================================================================
+  # Summary Report
+  # ============================================================================
+  summary:
+    name: 📊 Security Summary
+    runs-on: ubuntu-latest
+    needs: [repo-scan, iac-scan]
+    if: always()
+    
+    steps:
+      - name: 📋 Generate Summary
+        run: |
+          echo "## 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Scan Type | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Repository | ${{ needs.repo-scan.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| IaC | ${{ needs.iac-scan.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View detailed results in the **Security** tab." >> $GITHUB_STEP_SUMMARY

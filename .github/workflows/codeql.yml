@@ -1,0 +1,71 @@
+# ============================================================================
+# CodeQL Security Analysis - ClimaTrak System
+# ============================================================================
+# Scans Python (backend) and JavaScript/TypeScript (frontend) for security issues
+# Runs on PRs, pushes to main/develop, and weekly schedule
+
+name: CodeQL Analysis
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run every Monday at 03:00 UTC
+    - cron: '0 3 * * 1'
+
+jobs:
+  analyze:
+    name: 🔐 CodeQL Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: python
+            build-mode: none
+            source-path: backend
+          - language: javascript-typescript
+            build-mode: none
+            source-path: frontend
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          # Custom queries for better coverage
+          queries: +security-extended,security-and-quality
+
+      # Build step only if needed (currently none for interpreted languages)
+      - if: matrix.build-mode == 'manual'
+        name: 🏗️ Build
+        run: |
+          echo "Build step for manual mode"
+
+      - name: 🔍 Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+          output: sarif-results
+          upload: failure-only
+
+      - name: 📤 Upload SARIF results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: sarif-results
+          wait-for-processing: true
