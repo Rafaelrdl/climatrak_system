@@ -31,7 +31,7 @@ from .views import (
     BaselineViewSet,
     BudgetEnvelopeViewSet,
     BudgetMonthViewSet,
-    BudgetPlanViewSet,  # V2
+    BudgetPlanViewSet,
     BudgetSummaryViewSet,
     CommitmentViewSet,
     CostCenterViewSet,

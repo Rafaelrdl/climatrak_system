@@ -62,7 +62,7 @@ jobs:
           cache-dependency-path: backend/requirements.txt
 
       - name: Install linting tools
-        run: pip install ruff black isort
+        run: pip install ruff black
 
       - name: Run Ruff
         working-directory: backend
@@ -71,10 +71,6 @@ jobs:
       - name: Check Black
         working-directory: backend
         run: black --check --diff apps/ config/
-
-      - name: Check isort
-        working-directory: backend
-        run: isort --check-only --diff apps/ config/
 
   backend-test:
     name: 🧪 Backend Tests

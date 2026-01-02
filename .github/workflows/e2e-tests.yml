@@ -360,9 +360,15 @@ jobs:
             frontend/cypress/videos
           retention-days: 14
       
-      # Notificar falhas no Slack (opcional)
+      # Notificar falhas no Slack (apenas para eventos internos, não de forks)
+      # O secret SLACK_WEBHOOK_URL só está disponível para runs do mesmo repositório
       - name: 🔔 Notify on Failure
-        if: failure()
+        if: |
+          failure() && (
+            github.event_name == 'schedule' ||
+            github.event_name == 'workflow_dispatch' ||
+            (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+          )
         uses: slackapi/slack-github-action@v1.26.0
         with:
           payload: |
