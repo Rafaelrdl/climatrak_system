@@ -538,7 +538,9 @@ class CostTransactionModelTests(TenantTestCase):
             idempotency_key=key,
         )
 
-        with self.assertRaises(IntegrityError):  # IntegrityError
+        # Django pode levantar ValidationError (validate_unique)
+        # ou IntegrityError (banco de dados) dependendo do caminho de validação
+        with self.assertRaises((IntegrityError, ValidationError)):
             CostTransaction.objects.create(
                 transaction_type=CostTransaction.TransactionType.LABOR,
                 category=CostTransaction.Category.PREVENTIVE,

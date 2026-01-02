@@ -130,7 +130,8 @@ class CostCenterAPITests(BaseFinanceAPITestCase):
         """Deve criar centro de custo filho."""
         parent = CostCenter.objects.create(code="CC-PARENT", name="Parent")
 
-        data = {"code": "CC-CHILD", "name": "Child", "parent": str(parent.id)}
+        # O serializer espera parent_id, não parent
+        data = {"code": "CC-CHILD", "name": "Child", "parent_id": str(parent.id)}
 
         request = self.factory.post("/api/finance/cost-centers/", data, format="json")
         force_authenticate(request, user=self.user)
@@ -139,7 +140,7 @@ class CostCenterAPITests(BaseFinanceAPITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["level"], 1)
-        self.assertEqual(str(response.data["parent"]), str(parent.id))
+        self.assertEqual(str(response.data["parent_id"]), str(parent.id))
 
     def test_retrieve_cost_center(self):
         """GET /api/finance/cost-centers/{id}/ deve retornar detalhes."""
