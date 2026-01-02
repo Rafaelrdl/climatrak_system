@@ -7,8 +7,10 @@ Used for running tests in CI/CD and locally.
 import os
 from pathlib import Path
 
-# Override SECRET_KEY before importing base to prevent validation error
+# Override environment variables before importing base to prevent validation errors
 os.environ.setdefault("DJANGO_SECRET_KEY", os.getenv("SECRET_KEY", "test-secret-key-for-ci-only-not-for-production"))
+os.environ.setdefault("INGESTION_SECRET", "test-ingestion-secret-for-ci-only")
+os.environ.setdefault("DEBUG", "True")  # Set DEBUG to True initially to bypass validation
 
 from .base import *  # noqa: E402, F401, F403
 
