@@ -87,9 +87,12 @@ import { cn } from '@/lib/utils';
 import { useAssetDetailsQuery, useAssetSensorsQuery } from '@/apps/monitor/hooks/useAssetsQuery';
 import { useAlertsQuery } from '@/apps/monitor/hooks/useAlertsQuery';
 import { useWorkOrdersByAsset } from '@/hooks/useWorkOrdersQuery';
+import { useEquipment } from '@/hooks/useEquipmentQuery';
 import { telemetryService } from '@/apps/monitor/services';
 import { MultiSeriesTelemetryChart } from '@/apps/monitor/components/charts/MultiSeriesTelemetryChart';
 import { WorkOrderViewModal } from '@/components/WorkOrderViewModal';
+import { WorkOrderModal } from '@/components/WorkOrderModal';
+import { EquipmentEditModal } from '@/components/EquipmentEditModal';
 import type { MaintenanceHistory, MaintenanceAlert, WorkOrder } from '@/types';
 
 // ============================================================================
@@ -300,11 +303,20 @@ export function AssetDetailPage() {
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
+  // Estado para modal de criação de OS
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  // Estado para modal de edição de ativo
+  const [isEditAssetModalOpen, setIsEditAssetModalOpen] = useState(false);
+
   // Queries
   const { data: asset, isLoading: isLoadingAsset, error } = useAssetDetailsQuery(assetId);
   const { data: sensors = [] } = useAssetSensorsQuery(assetId);
   const { data: allAlerts = [] } = useAlertsQuery();
   const { data: workOrders = [], isLoading: isLoadingWorkOrders } = useWorkOrdersByAsset(assetId?.toString());
+  
+  // Buscar equipamento do CMMS (para o modal de edição)
+  const { data: equipment } = useEquipment(assetId?.toString());
 
   // Filtrar alertas do asset
   const assetAlerts = useMemo(() => {
@@ -674,7 +686,7 @@ export function AssetDetailPage() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <Button>
+              <Button onClick={() => setIsCreateModalOpen(true)}>
                 <Wrench className="h-4 w-4 mr-2" />
                 Criar OS
               </Button>
@@ -685,7 +697,7 @@ export function AssetDetailPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsEditAssetModalOpen(true)}>
                     <Settings className="h-4 w-4 mr-2" />
                     Editar Ativo
                   </DropdownMenuItem>
@@ -1955,6 +1967,24 @@ export function AssetDetailPage() {
         </div>
       </div>
 
+      {/* Modal de Criação de OS */}
+      <WorkOrderModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        initialValues={{
+          equipmentId: asset?.id ? String(asset.id) : undefined,
+          companyId: asset?.company_id ? String(asset.company_id) : undefined,
+          sectorId: (asset?.sector_id || asset?.sector) ? String(asset.sector_id || asset.sector) : undefined,
+          subsectionId: (asset?.subsection_id || asset?.subsection) ? String(asset.subsection_id || asset.subsection) : undefined,
+        }}
+        onSave={(newWorkOrder) => {
+          console.log('OS criada:', newWorkOrder);
+          setIsCreateModalOpen(false);
+          // Recarregar work orders
+          window.location.reload();
+        }}
+      />
+
       {/* Modal de Visualização de OS */}
       <WorkOrderViewModal
         workOrder={selectedWorkOrder}
@@ -1963,6 +1993,13 @@ export function AssetDetailPage() {
           setIsViewModalOpen(false);
           setSelectedWorkOrder(null);
         }}
+      />
+
+      {/* Modal de Edição de Ativo */}
+      <EquipmentEditModal
+        equipment={equipment || null}
+        open={isEditAssetModalOpen}
+        onOpenChange={setIsEditAssetModalOpen}
       />
     </div>
   );

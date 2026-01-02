@@ -131,18 +131,18 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
 
   // Filtrar setores pela empresa selecionada
   const filteredSectors = companyId
-    ? allSectors.filter((s) => s.companyId === companyId)
+    ? allSectors.filter((s) => String(s.companyId) === String(companyId))
     : allSectors;
 
   // Filtrar subsetores pelo setor selecionado
   const filteredSubsections = sectorId
-    ? allSubsections.filter((ss) => ss.sectorId === sectorId)
+    ? allSubsections.filter((ss) => String(ss.sectorId) === String(sectorId))
     : allSubsections;
 
   // Obter nomes para exibição na prévia
-  const selectedCompany = companies.find((c) => c.id === companyId);
-  const selectedSector = allSectors.find((s) => s.id === sectorId);
-  const selectedSubsection = allSubsections.find((ss) => ss.id === subsectorId);
+  const selectedCompany = companies.find((c) => String(c.id) === String(companyId));
+  const selectedSector = allSectors.find((s) => String(s.id) === String(sectorId));
+  const selectedSubsection = allSubsections.find((ss) => String(ss.id) === String(subsectorId));
 
   // Especificações Técnicas
   const [voltage, setVoltage] = useState('');

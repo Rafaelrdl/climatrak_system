@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -22,11 +22,18 @@ interface WorkOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (workOrder: Omit<WorkOrder, 'id' | 'number'>) => void;
+  /** Valores iniciais para pré-preencher o formulário (usado quando abre de uma página de ativo) */
+  initialValues?: {
+    equipmentId?: string;
+    companyId?: string;
+    sectorId?: string;
+    subsectionId?: string;
+  };
 }
 
 type Step = 'basic' | 'preview';
 
-export function WorkOrderModal({ isOpen, onClose, onSave }: WorkOrderModalProps) {
+export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkOrderModalProps) {
   const { data: equipment = [] } = useEquipments();
   const { data: technicians = [] } = useTechnicians();
   const { data: companies = [] } = useCompanies();
@@ -75,6 +82,9 @@ export function WorkOrderModal({ isOpen, onClose, onSave }: WorkOrderModalProps)
     status: 'OPEN' as WorkOrder['status']
   });
 
+  // Ref para controlar se já inicializamos os valores
+  const initializedRef = useRef(false);
+
   const resetForm = () => {
     setFormData({
       equipmentId: '',
@@ -89,7 +99,49 @@ export function WorkOrderModal({ isOpen, onClose, onSave }: WorkOrderModalProps)
     setSelectedSectorId('');
     setSelectedSubsectionId('');
     setCurrentStep('basic');
+    initializedRef.current = false;
   };
+
+  // Preencher empresa quando o modal abre
+  useEffect(() => {
+    if (isOpen && initialValues?.companyId && !initializedRef.current) {
+      setSelectedCompanyId(initialValues.companyId);
+    }
+    if (!isOpen) {
+      initializedRef.current = false;
+    }
+  }, [isOpen, initialValues?.companyId]);
+
+  // Preencher setor após os setores serem carregados
+  useEffect(() => {
+    if (isOpen && initialValues?.sectorId && sectors.length > 0 && !selectedSectorId) {
+      const sectorExists = sectors.some(s => String(s.id) === String(initialValues.sectorId));
+      if (sectorExists) {
+        setSelectedSectorId(initialValues.sectorId);
+      }
+    }
+  }, [isOpen, initialValues?.sectorId, sectors, selectedSectorId]);
+
+  // Preencher subsetor após os subsetores serem carregados
+  useEffect(() => {
+    if (isOpen && initialValues?.subsectionId && subsections.length > 0 && !selectedSubsectionId) {
+      const subsectionExists = subsections.some(s => String(s.id) === String(initialValues.subsectionId));
+      if (subsectionExists) {
+        setSelectedSubsectionId(initialValues.subsectionId);
+      }
+    }
+  }, [isOpen, initialValues?.subsectionId, subsections, selectedSubsectionId]);
+
+  // Preencher equipamento após os equipamentos filtrados estarem disponíveis
+  useEffect(() => {
+    if (isOpen && initialValues?.equipmentId && filteredEquipment.length > 0 && !formData.equipmentId) {
+      const equipmentExists = filteredEquipment.some(eq => String(eq.id) === String(initialValues.equipmentId));
+      if (equipmentExists) {
+        setFormData(prev => ({ ...prev, equipmentId: initialValues.equipmentId! }));
+        initializedRef.current = true;
+      }
+    }
+  }, [isOpen, initialValues?.equipmentId, filteredEquipment, formData.equipmentId]);
 
   const handleClose = () => {
     resetForm();
