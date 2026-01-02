@@ -45,7 +45,7 @@ pydantic-settings==2.7.1
 # Development & Linting
 black==24.10.0
 isort==5.13.2
-ruff==0.8.6
+ruff==0.14.10
 
 # Testing
 pytest==8.3.4
