@@ -5,11 +5,12 @@
  * Combina funcionalidades de CMMS (manutenção) e Monitor (telemetria).
  * 
  * Tabs:
- * - Informações: Dados básicos, localização, especificações técnicas
+ * - Visão Geral: Informações básicas, métricas de performance e resumo de manutenção
  * - Monitoramento: Sensores em tempo real
  * - Telemetria: Gráficos de séries temporais
- * - Manutenção: Ordens de serviço e histórico
- * - Alertas: Histórico de alertas
+ * - Manutenção: Ordens de serviço
+ * - Histórico: Histórico detalhado de manutenções
+ * - Alertas: Histórico de alertas (manutenção e IoT)
  * - Documentos: Manuais e documentos técnicos
  */
 
@@ -23,9 +24,7 @@ import {
   Zap,
   Activity,
   Loader2,
-  Info,
   MapPin,
-  Package,
   AlertTriangle,
   RefreshCw,
   Thermometer,
@@ -39,17 +38,26 @@ import {
   Play,
   Plus,
   Upload,
+  Settings,
+  TrendingUp,
+  History,
+  DollarSign,
+  Bell,
+  AlertCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAssetDetailsQuery, useAssetSensorsQuery } from '@/apps/monitor/hooks/useAssetsQuery';
 import { useAlertsQuery } from '@/apps/monitor/hooks/useAlertsQuery';
 import { useWorkOrdersByAsset } from '@/hooks/useWorkOrdersQuery';
 import { telemetryService } from '@/apps/monitor/services';
 import { MultiSeriesTelemetryChart } from '@/apps/monitor/components/charts/MultiSeriesTelemetryChart';
+import type { MaintenanceHistory, MaintenanceAlert } from '@/types';
 
 // ============================================================================
 // KPI Card Component
@@ -90,6 +98,27 @@ function KPICard({ label, value, unit, status, icon }: KPICardProps) {
 }
 
 // ============================================================================
+// Helper Functions para Alertas de Manutenção
+// ============================================================================
+const getPriorityColor = (priority: MaintenanceAlert['priority']) => {
+  switch (priority) {
+    case 'LOW': return 'text-blue-600';
+    case 'MEDIUM': return 'text-yellow-600';
+    case 'HIGH': return 'text-orange-600';
+    case 'CRITICAL': return 'text-red-600';
+  }
+};
+
+const getPriorityIcon = (priority: MaintenanceAlert['priority']) => {
+  switch (priority) {
+    case 'LOW': return <Bell className="h-4 w-4" />;
+    case 'MEDIUM': return <AlertCircle className="h-4 w-4" />;
+    case 'HIGH': return <AlertTriangle className="h-4 w-4" />;
+    case 'CRITICAL': return <XCircle className="h-4 w-4" />;
+  }
+};
+
+// ============================================================================
 // Main Component
 // ============================================================================
 export function AssetDetailPage() {
@@ -102,6 +131,10 @@ export function AssetDetailPage() {
   const [telemetryPeriod, setTelemetryPeriod] = useState<'24h' | '7d' | '30d'>('24h');
   const [telemetryData, setTelemetryData] = useState<any>(null);
   const [isLoadingTelemetry, setIsLoadingTelemetry] = useState(false);
+
+  // Estado para alertas de manutenção e histórico
+  const [maintenanceAlerts, setMaintenanceAlerts] = useState<MaintenanceAlert[]>([]);
+  const [maintenanceHistory, setMaintenanceHistory] = useState<MaintenanceHistory[]>([]);
 
   // Queries
   const { data: asset, isLoading: isLoadingAsset, error } = useAssetDetailsQuery(assetId);
@@ -175,6 +208,115 @@ export function AssetDetailPage() {
 
     fetchTelemetryData();
   }, [asset?.tag, selectedMetrics, sensors, telemetryPeriod]);
+
+  // Gerar dados mock de histórico de manutenção
+  useEffect(() => {
+    if (!asset) return;
+
+    // Mock maintenance history - em produção virá da API
+    const history: MaintenanceHistory[] = [
+      {
+        id: '1',
+        equipmentId: String(asset.id),
+        workOrderId: 'OS-2024-001',
+        type: 'PREVENTIVE',
+        performedBy: 'João Silva',
+        date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        description: 'Manutenção preventiva trimestral',
+        partsUsed: ['Filtro de ar', 'Óleo lubrificante'],
+        cost: 150,
+        duration: 2,
+        status: 'COMPLETED',
+        findings: 'Equipamento em bom estado, filtros substituídos conforme cronograma.',
+        recommendations: 'Próxima manutenção em 90 dias'
+      },
+      {
+        id: '2',
+        equipmentId: String(asset.id),
+        workOrderId: 'OS-2024-002',
+        type: 'CORRECTIVE',
+        performedBy: 'Maria Santos',
+        date: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+        description: 'Correção de vazamento no condensador',
+        partsUsed: ['Vedação', 'Gás refrigerante R410A'],
+        cost: 320,
+        duration: 4,
+        status: 'COMPLETED',
+        findings: 'Vazamento localizado na conexão do condensador.',
+        recommendations: 'Monitorar temperatura de operação'
+      },
+      {
+        id: '3',
+        equipmentId: String(asset.id),
+        workOrderId: 'OS-2024-003',
+        type: 'PREVENTIVE',
+        performedBy: 'Carlos Lima',
+        date: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
+        description: 'Limpeza e inspeção geral',
+        partsUsed: ['Produto de limpeza'],
+        cost: 80,
+        duration: 1.5,
+        status: 'COMPLETED',
+        findings: 'Limpeza realizada, serpentinas em bom estado.',
+        recommendations: 'Manter cronograma de limpeza'
+      }
+    ];
+
+    setMaintenanceHistory(history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+
+    // Mock maintenance alerts
+    const alerts: MaintenanceAlert[] = [];
+    const now = new Date();
+    
+    // Simular alerta se última manutenção foi há mais de 90 dias
+    if (asset.last_maintenance) {
+      const lastMaintenance = new Date(asset.last_maintenance);
+      const daysSinceLastMaintenance = Math.ceil((now.getTime() - lastMaintenance.getTime()) / (1000 * 3600 * 24));
+      
+      if (daysSinceLastMaintenance > 90) {
+        alerts.push({
+          id: '1',
+          equipmentId: String(asset.id),
+          type: 'OVERDUE',
+          priority: 'HIGH',
+          message: `Manutenção preventiva em atraso há ${daysSinceLastMaintenance - 90} dias`,
+          dueDate: new Date(lastMaintenance.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+          daysOverdue: daysSinceLastMaintenance - 90,
+          isAcknowledged: false,
+          createdAt: now.toISOString()
+        });
+      }
+    }
+
+    setMaintenanceAlerts(alerts);
+  }, [asset]);
+
+  // Funções de cálculo de métricas de manutenção
+  const calculateUptime = () => {
+    const totalHours = 8760; // 1 year default
+    const downtimeHours = maintenanceHistory.reduce((total, record) => total + record.duration, 0);
+    return Math.max(0, ((totalHours - downtimeHours) / totalHours) * 100);
+  };
+
+  const calculateMTBF = () => {
+    const correctiveMaintenances = maintenanceHistory.filter(h => h.type === 'CORRECTIVE').length;
+    const operatingHours = 8760;
+    return correctiveMaintenances > 0 ? Math.round(operatingHours / correctiveMaintenances) : operatingHours;
+  };
+
+  const calculateMTTR = () => {
+    const correctiveMaintenances = maintenanceHistory.filter(h => h.type === 'CORRECTIVE');
+    const totalRepairTime = correctiveMaintenances.reduce((total, record) => total + record.duration, 0);
+    return correctiveMaintenances.length > 0 ? Math.round(totalRepairTime / correctiveMaintenances.length * 10) / 10 : 0;
+  };
+
+  const acknowledgeAlert = (alertId: string) => {
+    setMaintenanceAlerts(prev => prev.map(alert => 
+      alert.id === alertId ? { ...alert, isAcknowledged: true } : alert
+    ));
+  };
+
+  const totalMaintenanceCosts = maintenanceHistory.reduce((total, record) => total + record.cost, 0);
 
   // Calcular KPIs
   const assetKPIs = useMemo(() => {
@@ -280,10 +422,23 @@ export function AssetDetailPage() {
             icon={<Heart className="w-4 h-4" />}
           />
           <KPICard
-            label="Horas Operação"
-            value={assetKPIs.operatingHours.toLocaleString('pt-BR')}
+            label="Uptime"
+            value={calculateUptime().toFixed(1)}
+            unit="%"
+            status={calculateUptime() >= 95 ? 'good' : calculateUptime() >= 85 ? 'warning' : 'critical'}
+            icon={<TrendingUp className="w-4 h-4" />}
+          />
+          <KPICard
+            label="MTBF"
+            value={calculateMTBF().toLocaleString('pt-BR')}
             unit="h"
             icon={<Clock className="w-4 h-4" />}
+          />
+          <KPICard
+            label="MTTR"
+            value={calculateMTTR().toFixed(1)}
+            unit="h"
+            icon={<Wrench className="w-4 h-4" />}
           />
           <KPICard
             label="ΔP Filtro"
@@ -293,31 +448,18 @@ export function AssetDetailPage() {
             icon={<Gauge className="w-4 h-4" />}
           />
           <KPICard
-            label="Estado Compressor"
-            value={assetKPIs.compressorState}
-            status={assetKPIs.compressorState === 'ON' ? 'good' : 'warning'}
-            icon={<Activity className="w-4 h-4" />}
-          />
-          <KPICard
             label="Potência Atual"
             value={assetKPIs.currentPower.toFixed(0)}
             unit="kW"
             icon={<Zap className="w-4 h-4" />}
           />
-          <KPICard
-            label="Vibração"
-            value={assetKPIs.vibration.toFixed(1)}
-            unit="mm/s"
-            status={assetKPIs.vibration > 5 ? 'critical' : assetKPIs.vibration > 3 ? 'warning' : 'good'}
-            icon={<Activity className="w-4 h-4" />}
-          />
         </div>
       )}
 
       {/* Tabs */}
-      <Tabs defaultValue="info" className="space-y-4">
+      <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="info">Informações</TabsTrigger>
+          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           {hasIoTMonitoring && (
             <>
               <TabsTrigger value="monitoring">Monitoramento</TabsTrigger>
@@ -325,51 +467,139 @@ export function AssetDetailPage() {
             </>
           )}
           <TabsTrigger value="maintenance">Manutenção</TabsTrigger>
+          <TabsTrigger value="history">Histórico</TabsTrigger>
           <TabsTrigger value="alerts">Alertas</TabsTrigger>
           <TabsTrigger value="documents">Documentos</TabsTrigger>
         </TabsList>
 
         {/* ================================================================ */}
-        {/* Aba Informações */}
+        {/* Aba Visão Geral */}
         {/* ================================================================ */}
-        <TabsContent value="info" className="space-y-6">
-          {/* Informações Básicas */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Info className="w-5 h-5 text-primary" />
-                Informações Básicas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Tag</label>
-                  <p className="text-base font-semibold mt-1">{asset.tag}</p>
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Informações do Equipamento */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Settings className="w-5 h-5 text-primary" />
+                  Informações do Equipamento
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Status</label>
+                    <div className="mt-1">{getStatusBadge(asset.status)}</div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Tipo</label>
+                    <p className="mt-1 font-medium">{asset.asset_type}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Marca/Modelo</label>
+                    <p className="mt-1 font-medium">{asset.manufacturer || '-'} {asset.model || ''}</p>
+                  </div>
+                  {asset.serial_number && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Série</label>
+                      <p className="mt-1 font-medium">{asset.serial_number}</p>
+                    </div>
+                  )}
+                  {asset.specifications?.capacity && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Capacidade</label>
+                      <p className="mt-1 font-medium">
+                        {String(asset.specifications.capacity)} {String(asset.specifications.capacity_unit || 'TR')}
+                      </p>
+                    </div>
+                  )}
+                  {asset.installation_date && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Instalação</label>
+                      <p className="mt-1 font-medium">
+                        {new Date(asset.installation_date).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  )}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Métricas de Performance */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  Métricas de Performance
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Tipo</label>
-                  <p className="text-base font-semibold mt-1">{asset.asset_type}</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium">Uptime</label>
+                    <span className="text-sm font-medium">{calculateUptime().toFixed(1)}%</span>
+                  </div>
+                  <Progress value={calculateUptime()} className="h-2" />
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Status</label>
-                  <div className="mt-1">{getStatusBadge(asset.status)}</div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">MTBF</label>
+                    <p className="mt-1 text-lg font-semibold">{calculateMTBF()}h</p>
+                    <p className="text-xs text-muted-foreground">Tempo Médio Entre Falhas</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">MTTR</label>
+                    <p className="mt-1 text-lg font-semibold">{calculateMTTR()}h</p>
+                    <p className="text-xs text-muted-foreground">Tempo Médio de Reparo</p>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Pontuação de Saúde</label>
-                  <p className="text-base font-semibold mt-1">{(asset.health_score || 100).toFixed(0)}%</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Horas de Operação</label>
-                  <p className="text-base font-semibold mt-1">0 h</p>
-                </div>
+
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Última Manutenção</label>
-                  <p className="text-base font-semibold mt-1">
+                  <p className="mt-1 text-lg font-semibold">
                     {asset.last_maintenance 
                       ? new Date(asset.last_maintenance).toLocaleDateString('pt-BR')
                       : 'N/A'}
                   </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Resumo de Manutenções */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Wrench className="w-5 h-5 text-primary" />
+                Resumo de Manutenções
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-4">
+                <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {maintenanceHistory.filter(h => h.type === 'PREVENTIVE').length}
+                  </div>
+                  <p className="text-sm text-muted-foreground">Preventivas</p>
+                </div>
+                <div className="text-center p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {maintenanceHistory.filter(h => h.type === 'CORRECTIVE').length}
+                  </div>
+                  <p className="text-sm text-muted-foreground">Corretivas</p>
+                </div>
+                <div className="text-center p-4 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                  <div className="text-2xl font-bold text-red-600">
+                    {maintenanceHistory.filter(h => h.type === 'EMERGENCY').length}
+                  </div>
+                  <p className="text-sm text-muted-foreground">Emergenciais</p>
+                </div>
+                <div className="text-center p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">
+                    R$ {totalMaintenanceCosts.toFixed(2)}
+                  </div>
+                  <p className="text-sm text-muted-foreground">Custo Total</p>
                 </div>
               </div>
             </CardContent>
@@ -407,61 +637,6 @@ export function AssetDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Especificações Técnicas */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Package className="w-5 h-5 text-primary" />
-                Especificações Técnicas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {asset.manufacturer && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Fabricante</label>
-                    <p className="text-base font-semibold mt-1">{asset.manufacturer}</p>
-                  </div>
-                )}
-                {asset.model && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Modelo</label>
-                    <p className="text-base font-semibold mt-1">{asset.model}</p>
-                  </div>
-                )}
-                {asset.serial_number && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Número de Série</label>
-                    <p className="text-base font-semibold mt-1">{asset.serial_number}</p>
-                  </div>
-                )}
-                {asset.specifications?.capacity && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Capacidade</label>
-                    <p className="text-base font-semibold mt-1">
-                      {String(asset.specifications.capacity)} {String(asset.specifications.capacity_unit || 'TR')}
-                    </p>
-                  </div>
-                )}
-                {asset.specifications?.voltage && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Tensão</label>
-                    <p className="text-base font-semibold mt-1">{String(asset.specifications.voltage)}V</p>
-                  </div>
-                )}
-                {asset.specifications?.refrigerant && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Refrigerante</label>
-                    <p className="text-base font-semibold mt-1">{String(asset.specifications.refrigerant)}</p>
-                  </div>
-                )}
-                {!asset.manufacturer && !asset.model && !asset.serial_number && !asset.specifications && (
-                  <p className="text-muted-foreground col-span-full">Nenhuma especificação técnica cadastrada</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Banner de Monitoramento IoT */}
           {hasIoTMonitoring && (
             <Card className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20">
@@ -481,12 +656,6 @@ export function AssetDetailPage() {
                   <Button 
                     variant="outline"
                     className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-300"
-                    onClick={() => {
-                      const tabsElement = document.querySelector('[data-state="active"][value="monitoring"]');
-                      if (tabsElement) {
-                        tabsElement.scrollIntoView({ behavior: 'smooth' });
-                      }
-                    }}
                   >
                     <Activity className="h-4 w-4 mr-2" />
                     Ver Sensores
@@ -759,21 +928,182 @@ export function AssetDetailPage() {
         </TabsContent>
 
         {/* ================================================================ */}
+        {/* Aba Histórico de Manutenção */}
+        {/* ================================================================ */}
+        <TabsContent value="history" className="space-y-4">
+          {maintenanceHistory.length === 0 ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <History className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">Nenhum histórico encontrado</h3>
+                <p className="text-muted-foreground">
+                  Este equipamento ainda não possui registros de manutenção.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {maintenanceHistory.map(record => (
+                <Card key={record.id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <History className="h-4 w-4" />
+                        {record.workOrderId}
+                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={
+                          record.type === 'PREVENTIVE' ? 'default' :
+                          record.type === 'CORRECTIVE' ? 'secondary' : 
+                          record.type === 'REQUEST' ? 'outline' : 'destructive'
+                        }>
+                          {record.type === 'PREVENTIVE' ? 'Preventiva' :
+                           record.type === 'CORRECTIVE' ? 'Corretiva' :
+                           record.type === 'REQUEST' ? 'Solicitação' : 'Emergencial'}
+                        </Badge>
+                        <Badge variant={record.status === 'COMPLETED' ? 'default' : 'outline'}>
+                          {record.status === 'COMPLETED' ? 'Concluída' : 
+                           record.status === 'PARTIAL' ? 'Parcial' : 'Cancelada'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <h4 className="font-medium mb-2">Detalhes</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span>{new Date(record.date).toLocaleDateString('pt-BR')}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            <span>{record.duration}h de duração</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            <span>R$ {record.cost.toFixed(2)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span>{record.performedBy}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="font-medium mb-2">Peças Utilizadas</h4>
+                        <div className="space-y-1">
+                          {record.partsUsed.map((part, index) => (
+                            <div key={index} className="text-sm text-muted-foreground">
+                              • {part}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium mb-2">Descrição</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {record.description}
+                      </p>
+                    </div>
+
+                    {record.findings && (
+                      <div>
+                        <h4 className="font-medium mb-2">Observações</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {record.findings}
+                        </p>
+                      </div>
+                    )}
+
+                    {record.recommendations && (
+                      <div>
+                        <h4 className="font-medium mb-2">Recomendações</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {record.recommendations}
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ================================================================ */}
         {/* Aba Alertas */}
         {/* ================================================================ */}
-        <TabsContent value="alerts">
+        <TabsContent value="alerts" className="space-y-4">
+          {/* Alertas de Manutenção */}
+          {maintenanceAlerts.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Alertas de Manutenção
+              </h3>
+              {maintenanceAlerts.map(alert => (
+                <Alert 
+                  key={alert.id}
+                  className={`${alert.isAcknowledged ? 'opacity-60' : ''} ${
+                    alert.priority === 'CRITICAL' ? 'border-red-500 bg-red-50 dark:bg-red-950/20' :
+                    alert.priority === 'HIGH' ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/20' :
+                    alert.priority === 'MEDIUM' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20' :
+                    'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className={getPriorityColor(alert.priority)}>
+                        {getPriorityIcon(alert.priority)}
+                      </div>
+                      <div className="space-y-1">
+                        <AlertDescription className="font-medium">
+                          {alert.message}
+                        </AlertDescription>
+                        <p className="text-xs text-muted-foreground">
+                          Vencimento: {new Date(alert.dueDate).toLocaleDateString('pt-BR')}
+                          {alert.daysOverdue && ` (${alert.daysOverdue} dias em atraso)`}
+                        </p>
+                      </div>
+                    </div>
+                    {!alert.isAcknowledged && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => acknowledgeAlert(alert.id)}
+                      >
+                        Reconhecer
+                      </Button>
+                    )}
+                  </div>
+                </Alert>
+              ))}
+            </div>
+          )}
+
+          {/* Histórico de Alertas IoT */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5" />
-                Histórico de Alertas
+                Histórico de Alertas IoT
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {assetAlerts.length === 0 ? (
+              {assetAlerts.length === 0 && maintenanceAlerts.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500" />
+                  <h3 className="text-lg font-medium mb-2">Nenhum alerta ativo</h3>
+                  <p>Todos os alertas foram verificados ou não há problemas detectados.</p>
+                </div>
+              ) : assetAlerts.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <AlertTriangle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhum alerta registrado para este ativo</p>
+                  <p>Nenhum alerta IoT registrado para este ativo</p>
                 </div>
               ) : (
                 <div className="space-y-3">
