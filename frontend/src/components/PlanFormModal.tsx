@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trash2, CheckSquare, Eye, ListChecks } from 'lucide-react';
 import { toast } from 'sonner';
-import type { MaintenancePlan } from '@/models/plan';
+import type { MaintenancePlan } from '@/types';
 import { plansService } from '@/services/plansService';
 import { useCompanies, useSectors } from '@/hooks/useLocationsQuery';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
@@ -212,8 +212,14 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
     setIsSubmitting(true);
     
     try {
-      let savedPlan: MaintenancePlan;
       const isNewPlan = !plan;
+      
+      // Validar frequency antes de enviar (já validado no form, mas para segurança de tipo)
+      if (!formData.frequency) {
+        toast.error('Frequência é obrigatória');
+        setIsSubmitting(false);
+        return;
+      }
       
       // Preparar dados para a API
       const apiData = {
@@ -227,15 +233,12 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
         next_execution: formData.start_date || undefined, // Data de início = próxima execução
       };
       
-      if (plan) {
-        // Update existing plan via API
-        savedPlan = await plansService.update(plan.id, apiData);
-        toast.success('Plano atualizado com sucesso.');
-      } else {
-        // Create new plan via API
-        savedPlan = await plansService.create(apiData);
-        toast.success('Plano criado com sucesso.');
-      }
+      // Create ou update retornam MaintenancePlan com created_at/updated_at
+      const savedPlan = plan
+        ? await plansService.update(plan.id, apiData)
+        : await plansService.create(apiData);
+      
+      toast.success(plan ? 'Plano atualizado com sucesso.' : 'Plano criado com sucesso.');
       
       // Se é um novo plano com geração automática e a data de início já passou,
       // gerar as ordens de serviço automaticamente

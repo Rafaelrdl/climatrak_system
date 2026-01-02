@@ -37,7 +37,7 @@ export function PlansTestingPage() {
     plans: plans.length,
     activePlans: plans.filter(p => p.status === 'Ativo').length,
     plansWithMultipleEquipment: plans.filter(p => 
-      p.scope.equipment_ids && p.scope.equipment_ids.length > 1
+      p.scope?.equipment_ids && p.scope.equipment_ids.length > 1
     ).length,
     autoGenerationPlans: plans.filter(p => p.auto_generate).length
   };

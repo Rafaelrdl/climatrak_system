@@ -18,6 +18,7 @@ import type {
   CostCenter,
   RateCard,
   BudgetPlan,
+  Envelope,
 } from '@/types/finance';
 
 // ==================== Summary ====================
@@ -72,7 +73,7 @@ export function useCreateBudgetPlan() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (input: Pick<BudgetPlan, 'year' | 'currency' | 'status'>) =>
+    mutationFn: (input: Partial<BudgetPlan> & Pick<BudgetPlan, 'year' | 'currency'>) =>
       financeService.createBudgetPlan(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: financeKeys.budgets.all() });

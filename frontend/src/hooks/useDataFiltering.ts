@@ -32,6 +32,9 @@ export function useDataFiltering() {
   const { role } = useAbility();
 
   return useMemo(() => {
+    // Helper to check admin-level roles (avoids TS narrowing issues)
+    const isAdminLevel = ['owner', 'admin'].includes(role);
+    
     // Priority levels for filtering
     const priorityLevels = {
       'Baixa': 1,
@@ -220,10 +223,10 @@ export function useDataFiltering() {
     ): T[] {
       return data.filter(item => {
         // Owner, Admin, and Operator can see all metrics
-        if (role === 'owner' || role === 'admin' || role === 'operator') return true;
+        if (isAdminLevel || role === 'operator') return true;
 
         // Hide sensitive metrics from non-admin/owner users
-        if (item.sensitive && role !== 'owner' && role !== 'admin') return false;
+        if (item.sensitive && !isAdminLevel) return false;
 
         // Viewer can see all non-sensitive metrics (read-only)
         if (role === 'viewer') return !item.sensitive;
@@ -252,7 +255,7 @@ export function useDataFiltering() {
       const filtered = { ...dashboardData };
 
       // Owner and Admin sees everything
-      if (role === 'owner' || role === 'admin') return filtered;
+      if (isAdminLevel) return filtered;
 
       // Operator sees most data (operational focus)
       if (role === 'operator') {

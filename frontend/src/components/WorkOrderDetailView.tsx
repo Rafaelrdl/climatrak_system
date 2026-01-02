@@ -71,7 +71,7 @@ export function WorkOrderDetailView({
   const { data: companies = [] } = useCompanies();
   const { data: stockItemsData } = useStockItems();
   const stockItems = useMemo(() => 
-    (stockItemsData?.results || []).map(mapToStockItem), 
+    (Array.isArray(stockItemsData) ? stockItemsData : (stockItemsData as any)?.results || []).map(mapToStockItem), 
     [stockItemsData]
   );
   

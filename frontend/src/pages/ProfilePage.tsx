@@ -111,6 +111,11 @@ export function ProfilePage() {
   const currentUser = getCurrentUser();
   const currentTabInfo = tabTitles[activeTab];
 
+  // Early return if no user is logged in
+  if (!currentUser) {
+    return null;
+  }
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'dados':
@@ -144,7 +149,7 @@ export function ProfilePage() {
     <div className="space-y-6 pb-8">
       <PageHeader
         title="Meu Perfil"
-        subtitle="Gerencie suas informações pessoais, preferências e configurações de segurança"
+        description="Gerencie suas informações pessoais, preferências e configurações de segurança"
       />
 
       {/* Profile Header Card */}

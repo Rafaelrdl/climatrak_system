@@ -15,6 +15,10 @@ export interface DeviceHistoryResponse {
     data: Array<{
       timestamp: string;
       value: number;
+      avg_value?: number;
+      max_value?: number;
+      min_value?: number;
+      last_value?: number;
     }>;
   }>;
 }

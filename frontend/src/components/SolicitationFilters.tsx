@@ -161,7 +161,7 @@ export function SolicitationFilters({
                               setTimeout(handleDateRangeChange, 100);
                             }}
                             disabled={(date) =>
-                              date > new Date() || (dateTo && date > dateTo)
+                              date > new Date() || (dateTo ? date > dateTo : false)
                             }
                             initialFocus
                             locale={ptBR}
@@ -192,7 +192,7 @@ export function SolicitationFilters({
                               setTimeout(handleDateRangeChange, 100);
                             }}
                             disabled={(date) =>
-                              date > new Date() || (dateFrom && date < dateFrom)
+                              date > new Date() || (dateFrom ? date < dateFrom : false)
                             }
                             initialFocus
                             locale={ptBR}

@@ -57,7 +57,7 @@ export function PlanTestScenarios() {
       expectedResult: 'Plano criado com todos os equipamentos da TechCorp Industrial (mínimo 2 equipamentos)',
       company: 'TechCorp Industrial',
       equipmentCount: 2,
-      frequency: 'Mensal',
+      frequency: 'MONTHLY',
       autoGenerate: true,
       isCompleted: false
     },
@@ -78,7 +78,7 @@ export function PlanTestScenarios() {
       expectedResult: 'Plano criado apenas com equipamentos do Departamento de TI',
       sector: 'Departamento de TI',
       equipmentCount: 1,
-      frequency: 'Trimestral',
+      frequency: 'QUARTERLY',
       autoGenerate: false,
       isCompleted: false
     },
@@ -99,7 +99,7 @@ export function PlanTestScenarios() {
       expectedResult: 'Plano industrial com geração automática semanal e tarefas detalhadas',
       company: 'Industrial Corp',
       equipmentCount: 1,
-      frequency: 'Semanal',
+      frequency: 'WEEKLY',
       autoGenerate: true,
       isCompleted: false
     }
@@ -122,7 +122,7 @@ export function PlanTestScenarios() {
         if (!company) return false;
         
         // Check if plan is associated with the right company
-        if (createdPlan.scope.location_name !== company.name) {
+        if (createdPlan.scope?.location_name !== company.name) {
           return false;
         }
       }
@@ -132,13 +132,13 @@ export function PlanTestScenarios() {
         if (!sector) return false;
         
         // Check if plan is associated with the right sector
-        if (createdPlan.scope.location_name !== sector.name) {
+        if (createdPlan.scope?.location_name !== sector.name) {
           return false;
         }
       }
 
       // Validate equipment count
-      const equipmentIds = createdPlan.scope.equipment_ids || [];
+      const equipmentIds = createdPlan.scope?.equipment_ids || [];
       if (equipmentIds.length < scenario.equipmentCount) {
         return false;
       }
@@ -200,8 +200,8 @@ export function PlanTestScenarios() {
   const testWorkOrderGeneration = async (scenario: TestScenario) => {
     // Find the plan created for this scenario
     const scenarioPlans = plans.filter(p => {
-      if (scenario.company && p.scope.location_name === scenario.company) return true;
-      if (scenario.sector && p.scope.location_name === scenario.sector) return true;
+      if (scenario.company && p.scope?.location_name === scenario.company) return true;
+      if (scenario.sector && p.scope?.location_name === scenario.sector) return true;
       return false;
     });
 
@@ -214,7 +214,7 @@ export function PlanTestScenarios() {
     
     try {
       const workOrders = generateWorkOrdersFromPlan(planToTest);
-      const equipmentCount = planToTest.scope.equipment_ids?.length || 0;
+      const equipmentCount = planToTest.scope?.equipment_ids?.length || 0;
       
       if (workOrders.length === equipmentCount) {
         toast.success(`OSs geradas com sucesso!`, {

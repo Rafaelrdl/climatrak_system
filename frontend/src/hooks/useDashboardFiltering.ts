@@ -42,16 +42,19 @@ export function useDashboardFiltering() {
   const { role, can } = useAbility();
   const { userContext } = useDataFiltering();
 
+  // Helper to check admin-level roles (avoids TS narrowing issues)
+  const isAdminLevel = ['owner', 'admin'].includes(role);
+
   /**
    * Filters KPIs based on role permissions
    */
   function filterKPIs(kpis: DashboardKPI[]): DashboardKPI[] {
     return kpis.filter(kpi => {
       // Owner and Admin can see all KPIs
-      if (role === 'owner' || role === 'admin') return true;
+      if (isAdminLevel) return true;
 
       // Check if KPI is marked as sensitive
-      if (kpi.sensitive && role !== 'owner' && role !== 'admin') return false;
+      if (kpi.sensitive && !isAdminLevel) return false;
 
       // Check explicit role restrictions
       if (kpi.allowedRoles && !kpi.allowedRoles.includes(role)) return false;
@@ -92,10 +95,10 @@ export function useDashboardFiltering() {
   function filterChartData(data: ChartDataPoint[]): ChartDataPoint[] {
     return data.filter(point => {
       // Owner and Admin can see all data points
-      if (role === 'owner' || role === 'admin') return true;
+      if (isAdminLevel) return true;
 
       // Hide sensitive data points
-      if (point.sensitive && role !== 'owner' && role !== 'admin') return false;
+      if (point.sensitive && !isAdminLevel) return false;
 
       // Operator can see most data (like admin, but may have sector restrictions)
       if (role === 'operator') {
@@ -142,6 +145,8 @@ export function useDashboardFiltering() {
     // Requesters and viewers get very limited metrics
     if (role === 'requester' || role === 'viewer') {
       return {
+        mttr: filtered.mttr,
+        mtbf: filtered.mtbf,
         uptime: filtered.uptime,
       };
     }

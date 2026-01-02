@@ -362,21 +362,33 @@ export const MOCK_MAINTENANCE_PLANS: MaintenancePlan[] = [
     name: 'Plano Mensal - Climatizadores',
     description: 'Manutenção preventiva mensal para climatizadores centrais',
     frequency: 'MONTHLY',
-    isActive: true
+    isActive: true,
+    status: 'Ativo',
+    auto_generate: true,
+    created_at: '2024-01-15T10:00:00Z',
+    updated_at: '2024-01-15T10:00:00Z'
   },
   {
     id: '2',
     name: 'Plano Trimestral - Splits',
     description: 'Manutenção preventiva trimestral para aparelhos split',
     frequency: 'QUARTERLY',
-    isActive: true
+    isActive: true,
+    status: 'Ativo',
+    auto_generate: true,
+    created_at: '2024-01-10T15:30:00Z',
+    updated_at: '2024-01-10T15:30:00Z'
   },
   {
     id: '3',
     name: 'Plano Semestral - Chillers',
     description: 'Manutenção preventiva semestral para chillers industriais',
     frequency: 'SEMI_ANNUAL',
-    isActive: true
+    isActive: true,
+    status: 'Ativo',
+    auto_generate: false,
+    created_at: '2024-01-05T09:15:00Z',
+    updated_at: '2024-01-05T09:15:00Z'
   }
 ];
 

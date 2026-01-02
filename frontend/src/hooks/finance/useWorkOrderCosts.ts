@@ -65,8 +65,8 @@ export function useWorkOrderCosts(workOrderId: string | undefined): UseWorkOrder
     if (!transactions.length) return initial;
 
     const result = transactions.reduce((acc, tx) => {
-      // Converter string para número (backend retorna como string)
-      const amount = parseFloat(tx.amount) || 0;
+      // Amount já é número no tipo CostTransaction
+      const amount = typeof tx.amount === 'string' ? parseFloat(tx.amount) : (tx.amount || 0);
       const type = tx.transaction_type;
       
       // Mapear tipos de transação para as chaves corretas

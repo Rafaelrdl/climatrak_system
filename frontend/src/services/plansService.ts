@@ -75,8 +75,8 @@ const mapPlan = (plan: ApiMaintenancePlan): MaintenancePlan => ({
   asset_names: plan.asset_names || [],
   checklist_id: plan.checklist_template ? String(plan.checklist_template) : undefined,
   checklist_name: plan.checklist_template_name || null,
-  next_execution_date: plan.next_execution || null,
-  last_execution_date: plan.last_execution || null,
+  next_execution_date: plan.next_execution || undefined,
+  last_execution_date: plan.last_execution || undefined,
   auto_generate: plan.auto_generate ?? false,
   work_orders_generated: plan.work_orders_generated ?? 0,
   // Campos legados para compatibilidade com UI existente

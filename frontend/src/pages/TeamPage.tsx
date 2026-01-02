@@ -93,7 +93,8 @@ export function TeamPage() {
         sent_at: invite.created_at,
         expires_at: invite.expires_at,
         invited_by_user_id: invite.invited_by?.id ? String(invite.invited_by.id) : '',
-        accepted_at: undefined,
+        token: '',  // Not available from API
+        url: '',    // Not available from API
       }));
   }, [teamInvites]);
 
@@ -286,7 +287,6 @@ export function TeamPage() {
       <div className="space-y-6 pb-8">
         <PageHeader
           title="Equipe"
-          subtitle="Gerencie usuários e convites da sua organização"
         >
           <Button
             onClick={() => setShowInviteModal(true)}

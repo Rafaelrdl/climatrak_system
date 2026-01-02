@@ -305,6 +305,7 @@ export function ProcedureTable({
                             {procedure.status}
                           </Badge>
                         }>
+                          {null}
                         </IfCan>
                       </td>
                       

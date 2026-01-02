@@ -356,13 +356,13 @@ function TransactionDetailDialog({ transaction, open, onOpenChange }: Transactio
                   Informações Adicionais
                 </h3>
                 <div className="space-y-3">
-                  {transaction.meta.reason && (
+                  {Boolean(transaction.meta.reason) && (
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">Motivo</p>
                       <p className="text-sm leading-relaxed">{String(transaction.meta.reason)}</p>
                     </div>
                   )}
-                  {transaction.meta.invoice && (
+                  {Boolean(transaction.meta.invoice) && (
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">Nota Fiscal</p>
                       <p className="text-sm font-medium">{String(transaction.meta.invoice)}</p>

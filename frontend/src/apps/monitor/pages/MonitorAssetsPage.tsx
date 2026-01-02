@@ -287,7 +287,7 @@ export function MonitorAssetsPage() {
                 <tr key={asset.id} className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors">
                   <td className="py-4 px-6">
                     <div className="flex items-center space-x-3">
-                      <div className="text-2xl">{getTypeIcon(asset.type)}</div>
+                      <div className="text-2xl">{getTypeIcon(asset.type ?? asset.asset_type)}</div>
                       <div>
                         <Link
                           to={`/monitor/ativos/${asset.id}`}

@@ -573,7 +573,7 @@ export function WorkOrderViewModal({
                                   }
                                 }}
                               >
-                                <CheckCircle className="h-5 w-5" />
+                                <CheckCircle2 className="h-5 w-5" />
                                 Concluir Ordem de Serviço
                               </Button>
                             </div>

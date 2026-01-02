@@ -10,14 +10,14 @@ import { Plus, Trash2, ArrowRight, PlayCircle, CheckCircle, XCircle } from 'luci
 import { StatusBadge } from '@/shared/ui';
 import { toast } from 'sonner';
 import { IfCan } from '@/components/auth/IfCan';
-import type { Solicitation, StockItem } from '@/types';
+import type { Solicitation, SolicitationStatus, StockItem } from '@/types';
 // Helper functions para status de solicitação
 const canAdvanceStatus = (status: string) =>
   status !== 'Convertida em OS' && status !== 'Rejeitada';
-const getNextStatus = (status: string) => {
+const getNextStatus = (status: string): SolicitationStatus => {
   if (status === 'Nova') return 'Em triagem';
   if (status === 'Em triagem') return 'Convertida em OS';
-  return status;
+  return status as SolicitationStatus;
 };
 const advanceSolicitationStatus = (solicitation: any) => ({
   ...solicitation,
@@ -80,7 +80,7 @@ export function SolicitationsDrawer({
   }
 
   const handleAdvanceStatus = () => {
-    if (!canAdvanceStatus(solicitation)) {
+    if (!canAdvanceStatus(solicitation.status)) {
       toast.error('Transição de status inválida.');
       return;
     }
@@ -116,9 +116,7 @@ export function SolicitationsDrawer({
 
     const updatedSolicitation = addSolicitationItem(
       solicitation,
-      selectedStockItemId,
-      stockItem.description,
-      stockItem.unit,
+      stockItem,
       parseFloat(quantity)
     );
 
@@ -135,7 +133,7 @@ export function SolicitationsDrawer({
   };
 
   const nextStatus = getNextStatus(solicitation.status);
-  const canAdvance = canAdvanceStatus(solicitation);
+  const canAdvance = canAdvanceStatus(solicitation.status);
 
   const getStatusIcon = (status: Solicitation['status']) => {
     switch (status) {

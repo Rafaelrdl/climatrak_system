@@ -109,11 +109,13 @@ export function InventoryPage() {
   }), [role]);
 
   // Apply role-based filtering to inventory items
-  const { data: filteredInventoryData, stats: inventoryFilterStats } = useRoleBasedData(
-    items, 
+  const roleBasedResult = useRoleBasedData<InventoryItem>(
+    items as InventoryItem[], 
     'inventory',
     filterOptions
   );
+  const filteredInventoryData = roleBasedResult.data as InventoryItem[];
+  const inventoryFilterStats = roleBasedResult.stats;
   
   // Filter items when search/filters change
   const filteredItems = useMemo(() => {

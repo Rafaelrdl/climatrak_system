@@ -125,6 +125,7 @@ export function QuickSetupPage() {
           language: setupData.language,
           date_format: setupData.dateFormat,
           time_format: setupData.timeFormat,
+          alert_cooldown_minutes: 30,
           notifications: {
             email: setupData.emailNotifications,
             push: setupData.pushNotifications,

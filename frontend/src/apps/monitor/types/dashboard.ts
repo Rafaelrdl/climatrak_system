@@ -60,6 +60,9 @@ export type WidgetType =
   | 'card-button'
   | 'card-toggle'
   | 'card-status'
+  | 'work-orders-summary'
+  | 'equipment-status'
+  | 'maintenance-schedule'
   
   // Gráficos de linha
   | 'chart-line'
@@ -78,18 +81,30 @@ export type WidgetType =
   | 'gauge-circular'
   | 'gauge-tank'
   | 'gauge-thermometer'
+  | 'gauge-progress'
+  | 'technician-performance'
+  | 'sla-overview'
+  
+  // Indicadores
+  | 'indicator-status'
+  | 'indicator-trend'
+  | 'indicator-alert'
   
   // Tabelas
   | 'table-data'
   | 'table-alerts'
+  | 'table-simple'
+  | 'table-work-orders'
   
   // Mapas de calor
   | 'heatmap-time'
   | 'heatmap-matrix'
+  | 'heatmap-equipment'
   
   // Outros
   | 'text-display'
-  | 'iframe-embed';
+  | 'iframe-embed'
+  | 'photo-display';
 
 export interface WidgetDefinition {
   id: WidgetType;

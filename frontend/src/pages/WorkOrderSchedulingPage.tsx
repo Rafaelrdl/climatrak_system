@@ -377,7 +377,7 @@ export function WorkOrderSchedulingPage() {
         { 
           id: workOrderId, 
           data: { 
-            assignedTo: Number(techId),
+            assignedTo: String(techId),
             assignedToName: technician.user.full_name,
             scheduledDate: dateKey
           } 
@@ -651,6 +651,10 @@ export function WorkOrderSchedulingPage() {
           workOrder={editWorkOrder}
           isOpen={isEditModalOpen}
           onClose={() => {
+            setIsEditModalOpen(false);
+            setEditWorkOrder(null);
+          }}
+          onSave={() => {
             setIsEditModalOpen(false);
             setEditWorkOrder(null);
           }}

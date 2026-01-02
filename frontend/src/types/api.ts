@@ -247,6 +247,7 @@ export interface ApiPhoto {
   id: number;
   file: string;
   caption: string;
+  uploaded_at: string;
   uploaded_by: number | null;
   uploaded_by_name: string | null;
   created_at: string;

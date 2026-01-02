@@ -218,7 +218,9 @@ export interface SensorHistoryDataPoint {
 export interface SensorHistorySeries {
   sensorTag: string;
   label: string;
+  name?: string;
   color: string;
+  unit?: string;
   data: SensorHistoryDataPoint[];
 }
 

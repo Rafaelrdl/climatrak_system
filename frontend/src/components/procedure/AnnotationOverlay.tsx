@@ -27,7 +27,7 @@ interface AnnotationOverlayProps {
   onCreateAnnotation: (annotation: Omit<DocumentAnnotation, 'id' | 'created_at' | 'updated_at'>) => void;
   procedureId: string;
   versionNumber: number;
-  containerRef: React.RefObject<HTMLElement>;
+  containerRef: React.RefObject<HTMLElement | null>;
   isCreatingAnnotation: boolean;
   onCancelCreate: () => void;
   fileType: 'pdf' | 'md';

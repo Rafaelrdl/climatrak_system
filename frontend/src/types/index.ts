@@ -19,6 +19,8 @@ export interface Company {
   };
   responsible: string;
   role: string;
+  phone?: string;
+  email?: string;
   totalArea: number;
   occupants: number;
   hvacUnits: number;
@@ -43,6 +45,12 @@ export interface SubSection {
   id: string;
   name: string;
   sectorId: string;
+  responsible?: string;
+  phone?: string;
+  email?: string;
+  area?: number;
+  occupants?: number;
+  hvacUnits?: number;
   notes?: string;
 }
 
@@ -51,6 +59,7 @@ export interface Equipment {
   tag: string;
   model: string;
   brand: string;
+  manufacturer?: string;
   type: 'SPLIT' | 'CENTRAL' | 'VRF' | 'CHILLER';
   capacity: number;
   sectorId?: string;
@@ -85,19 +94,22 @@ export interface LocationNode {
 export interface MaintenancePlan {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   frequency: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'SEMI_ANNUAL' | 'ANNUAL';
-  isActive: boolean;
+  isActive?: boolean;
   // Campos da API
   assets?: string[];
   asset_tags?: string[];
   asset_names?: string[];
   checklist_id?: string;
+  checklist_template?: string;
   checklist_name?: string | null;
-  next_execution_date?: string | null;
-  last_execution_date?: string | null;
-  auto_generate?: boolean;
+  next_execution_date?: string;
+  last_execution_date?: string;
+  auto_generate: boolean;
   work_orders_generated?: number;
+  created_at?: string;
+  updated_at?: string;
   // Campos legados para compatibilidade
   scope?: {
     location_id?: string;
@@ -105,7 +117,7 @@ export interface MaintenancePlan {
     equipment_ids?: string[];
     equipment_names?: string[];
   };
-  status?: 'Ativo' | 'Inativo';
+  status: 'Ativo' | 'Inativo';
   start_date?: string;
 }
 
@@ -211,7 +223,7 @@ export interface MaintenanceHistory {
   id: string;
   equipmentId: string;
   workOrderId: string;
-  type: 'PREVENTIVE' | 'CORRECTIVE' | 'EMERGENCY';
+  type: 'PREVENTIVE' | 'CORRECTIVE' | 'EMERGENCY' | 'REQUEST';
   performedBy: string;
   date: string;
   description: string;

@@ -492,36 +492,6 @@ export function InteractiveTour({
     };
   }, [isOpen, updateTargetElement]);
 
-  // Keyboard navigation
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'Escape':
-          handleClose();
-          break;
-        case 'ArrowRight':
-        case 'Enter':
-          handleNext();
-          break;
-        case 'ArrowLeft':
-          handlePrevious();
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, handleClose, handleNext, handlePrevious]);
-
-  // Save progress
-  useEffect(() => {
-    if (config.persistProgress && config.storageKey) {
-      localStorage.setItem(`tour:${config.storageKey}:step`, String(currentStepIndex));
-    }
-  }, [currentStepIndex, config.persistProgress, config.storageKey]);
-
   const handleClose = useCallback(() => {
     onClose();
   }, [onClose]);
@@ -558,6 +528,36 @@ export function InteractiveTour({
       config.onStepChange?.(currentStepIndex - 1, availableSteps[currentStepIndex - 1]);
     }
   }, [availableSteps, config, currentStepIndex, isFirstStep]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case 'Escape':
+          handleClose();
+          break;
+        case 'ArrowRight':
+        case 'Enter':
+          handleNext();
+          break;
+        case 'ArrowLeft':
+          handlePrevious();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, handleClose, handleNext, handlePrevious]);
+
+  // Save progress
+  useEffect(() => {
+    if (config.persistProgress && config.storageKey) {
+      localStorage.setItem(`tour:${config.storageKey}:step`, String(currentStepIndex));
+    }
+  }, [currentStepIndex, config.persistProgress, config.storageKey]);
 
   if (!isOpen || !currentStep) return null;
 

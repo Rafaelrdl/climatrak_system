@@ -168,7 +168,7 @@ export function VersionHistory({
                     <div className="flex items-center gap-2">
                       v{version.version_number}
                       {isCurrentVersion && (
-                        <Badge variant="default" size="sm">
+                        <Badge variant="default" className="text-xs">
                           atual
                         </Badge>
                       )}

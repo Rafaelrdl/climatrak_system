@@ -10,6 +10,20 @@ const STORAGE_KEYS = {
   SECTORS: 'traknor-sectors',
 };
 
+/**
+ * Helper para carregar entidades do localStorage com fallback para dados mock
+ */
+function loadEntity<T>(key: string, fallback: T[]): T[] {
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      return JSON.parse(stored) as T[];
+    }
+  } catch {
+    // Ignora erros de parse
+  }
+  return fallback;
+}
 
 /**
  * Carrega todos os dados necessários para métricas

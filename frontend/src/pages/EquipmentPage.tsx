@@ -226,7 +226,7 @@ function AssetsContent() {
     
     // Especificações Elétricas
     nominalVoltage: undefined as number | undefined,    // Tensão nominal (V)
-    phases: 3 as 1 | 3,                                 // Fases (1 ou 3)
+    phases: 3 as 1 | 2 | 3,                             // Fases (1, 2 ou 3)
     nominalCurrent: undefined as number | undefined,    // Corrente nominal (A)
     powerFactor: undefined as number | undefined,       // Fator de potência (0-1)
     refrigerant: '',                                    // Fluido refrigerante

@@ -202,6 +202,48 @@ export function WelcomeTourPage() {
     return () => clearTimeout(autoTimer);
   }, [currentStep, isAutoPlaying, isLastStep]);
 
+  const handleFinishTour = useCallback(() => {
+    // Mark tour as completed in localStorage (tenant+user specific)
+    markOnboardingCompleted('tourCompleted');
+    
+    // Show completion toast
+    toast.success('🎉 Tour finalizado!', {
+      description: 'Bem-vindo ao TrakNor CMMS. Você agora está pronto para começar!',
+      duration: 4000,
+    });
+    
+    // Show completion message
+    const event = new CustomEvent('tourCompleted', { detail: { completed: true } });
+    window.dispatchEvent(event);
+    navigate('/');
+  }, [navigate]);
+
+  const handleSkipTour = useCallback(() => {
+    markOnboardingCompleted('tourCompleted');
+    navigate('/');
+  }, [navigate]);
+
+  const handleNext = useCallback(() => {
+    if (isLastStep) {
+      handleFinishTour();
+    } else {
+      setCurrentStep(prev => prev + 1);
+    }
+  }, [handleFinishTour, isLastStep]);
+
+  const handlePrevious = useCallback(() => {
+    if (!isFirstStep) {
+      setCurrentStep(prev => prev - 1);
+    }
+  }, [isFirstStep]);
+
+  const handleVisitPage = useCallback(() => {
+    const step = availableSteps[currentStep];
+    if (step.route) {
+      navigate(step.route);
+    }
+  }, [availableSteps, currentStep, navigate]);
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -234,51 +276,9 @@ export function WelcomeTourPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentStepData, handleNext, handlePrevious, handleSkipTour, handleVisitPage, isFirstStep]);
 
-  const handleNext = useCallback(() => {
-    if (isLastStep) {
-      handleFinishTour();
-    } else {
-      setCurrentStep(prev => prev + 1);
-    }
-  }, [handleFinishTour, isLastStep]);
-
-  const handlePrevious = useCallback(() => {
-    if (!isFirstStep) {
-      setCurrentStep(prev => prev - 1);
-    }
-  }, [isFirstStep]);
-
   const handleGoToStep = (stepIndex: number) => {
     setCurrentStep(stepIndex);
   };
-
-  const handleVisitPage = useCallback(() => {
-    const step = availableSteps[currentStep];
-    if (step.route) {
-      navigate(step.route);
-    }
-  }, [availableSteps, currentStep, navigate]);
-
-  const handleFinishTour = useCallback(() => {
-    // Mark tour as completed in localStorage (tenant+user specific)
-    markOnboardingCompleted('tourCompleted');
-    
-    // Show completion toast
-    toast.success('🎉 Tour finalizado!', {
-      description: 'Bem-vindo ao TrakNor CMMS. Você agora está pronto para começar!',
-      duration: 4000,
-    });
-    
-    // Show completion message
-    const event = new CustomEvent('tourCompleted', { detail: { completed: true } });
-    window.dispatchEvent(event);
-    navigate('/');
-  }, [navigate]);
-
-  const handleSkipTour = useCallback(() => {
-    markOnboardingCompleted('tourCompleted');
-    navigate('/');
-  }, [navigate]);
 
   const toggleAutoPlay = () => {
     setIsAutoPlaying(prev => !prev);

@@ -20,7 +20,7 @@ import type { Solicitation } from '@/types';
 
 export function RequestsPage() {
   // React Query hooks
-  const { data: solicitations = [], isLoading } = useSolicitations();
+  const { data: solicitations = [], isLoading, error } = useSolicitations();
   const navigate = useNavigate();
   
   // Mutations

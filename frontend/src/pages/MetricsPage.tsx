@@ -127,7 +127,7 @@ function MetricsHeader({
         {/* Filtro de Período */}
         <Select 
           value={filter.period} 
-          onValueChange={(value) => onFilterChange({ ...filter, period: value })}
+          onValueChange={(value) => onFilterChange({ ...filter, period: value as MetricFilter['period'] })}
         >
           <SelectTrigger className="w-44">
             <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -435,7 +435,7 @@ function EquipmentTab({ filter }: { filter: MetricFilter }) {
 // ============================================
 
 function PredictiveTab({ filter }: { filter: MetricFilter }) {
-  const { data: predictions, isLoading: predLoading } = useMLPredictions(filter);
+  const { data: predictions, isLoading: predLoading } = useMLPredictions();
   const { data: anomalies, isLoading: anomLoading } = useAnomalies(filter);
   
   return (

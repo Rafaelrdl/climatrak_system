@@ -9,7 +9,7 @@ export const MOCK_PLANS: MaintenancePlan[] = [
     id: 'plan-1',
     name: 'Plano Mensal - Climatizadores',
     description: 'Manutenção preventiva mensal para climatizadores centrais',
-    frequency: 'Mensal',
+    frequency: 'MONTHLY',
     scope: {
       location_id: '1',
       location_name: 'Setor Administrativo',
@@ -28,7 +28,7 @@ export const MOCK_PLANS: MaintenancePlan[] = [
     id: 'plan-2',
     name: 'Plano Trimestral - Splits',
     description: 'Manutenção preventiva trimestral para aparelhos split',
-    frequency: 'Trimestral',
+    frequency: 'QUARTERLY',
     scope: {
       location_id: '2',
       location_name: 'Departamento de TI',
@@ -46,7 +46,7 @@ export const MOCK_PLANS: MaintenancePlan[] = [
     id: 'plan-3',
     name: 'Plano Semestral - Chillers',
     description: 'Manutenção preventiva semestral para chillers industriais',
-    frequency: 'Semestral',
+    frequency: 'SEMI_ANNUAL',
     scope: {
       location_id: '3',
       location_name: 'Data Center',

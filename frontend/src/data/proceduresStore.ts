@@ -120,6 +120,25 @@ class FileStorage {
       request.onerror = () => reject(request.error);
     });
   }
+
+  async storeFileWithId(fileId: string, file: File, metadata: ProcedureFileRef): Promise<void> {
+    if (!this.db) await this.init();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([FILE_STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(FILE_STORE_NAME);
+      
+      const fileData = {
+        id: fileId,
+        blob: file,
+        metadata: metadata
+      };
+      
+      const request = store.put(fileData);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
 }
 
 const fileStorage = new FileStorage();
@@ -520,18 +539,8 @@ Após concluir todos os passos, registre a execução no sistema.
       const blob = new Blob([content], { type: mimeType });
       const file = new File([blob], procedure.file.name, { type: mimeType });
       
-      // Store in IndexedDB with the expected ID
-      await fileStorage.init();
-      const transaction = fileStorage.db!.transaction([FILE_STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(FILE_STORE_NAME);
-      
-      const fileData = {
-        id: procedure.file.id,
-        blob: file,
-        metadata: procedure.file
-      };
-      
-      store.put(fileData);
+      // Store in IndexedDB using the public method
+      await fileStorage.storeFileWithId(procedure.file.id, file, procedure.file);
     } catch (error) {
       console.warn(`Failed to create sample file for procedure ${procedure.id}:`, error);
     }

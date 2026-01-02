@@ -1663,7 +1663,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
           const lastValue = lastDataPoint ? lastDataPoint.value : 0;
 
           return {
-            name: series.label || series.name,
+            name: series.label || series.name || 'N/A',
             value: Math.abs(lastValue), // Usar valor absoluto para o gráfico de pizza
             color: series.color,
             unit: series.unit || ''
@@ -1760,7 +1760,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
           const lastValue = lastDataPoint ? lastDataPoint.value : 0;
 
           return {
-            name: series.label || series.name,
+            name: series.label || series.name || 'N/A',
             value: Math.abs(lastValue),
             color: series.color,
             unit: series.unit || ''

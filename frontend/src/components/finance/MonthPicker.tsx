@@ -69,7 +69,7 @@ export function MonthPicker({
   
   const { year: currentYear } = value 
     ? parseMonth(value) 
-    : { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+    : { year: new Date().getFullYear() };
   
   const [viewYear, setViewYear] = useState(currentYear);
 

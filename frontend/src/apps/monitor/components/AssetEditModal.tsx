@@ -49,15 +49,15 @@ const ASSET_TYPES: { value: AssetType; label: string }[] = [
 ];
 
 // Status disponíveis
-const ASSET_STATUSES: { value: AssetStatus; label: string }[] = [
+const ASSET_STATUSES: { value: AssetStatus; label: string; disabled?: boolean }[] = [
   { value: 'OK', label: 'Operacional' },
-  { value: 'MAINTENANCE', label: 'Em Manuten??o' },
+  { value: 'MAINTENANCE', label: 'Em Manutenção' },
   { value: 'STOPPED', label: 'Parado' },
 ];
 
-const ALERT_STATUS_OPTION = {
+const ALERT_STATUS_OPTION: { value: string; label: string; disabled?: boolean } = {
   value: 'ALERT',
-  label: 'Alerta (autom?tico)',
+  label: 'Alerta (automático)',
   disabled: true,
 };
 

@@ -258,7 +258,7 @@ export function AlertsList() {
         stockItems: []
       };
       
-      createWorkOrderMutation.mutate(workOrderData as WorkOrder, {
+      createWorkOrderMutation.mutate(workOrderData, {
         onSuccess: (newWorkOrder: WorkOrder) => {
           // Vincula a OS ao alerta (isso também reconhece o alerta automaticamente)
           linkWorkOrderMutation.mutate(

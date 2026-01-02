@@ -81,7 +81,7 @@ export function PlansPage() {
   };
 
   const handleGenerateWorkOrders = async (plan: MaintenancePlan) => {
-    const equipmentIds = plan.scope.equipment_ids || [];
+    const equipmentIds = plan.scope?.equipment_ids || [];
     if (equipmentIds.length === 0) {
       toast.error('Este plano não possui equipamentos selecionados.');
       return;

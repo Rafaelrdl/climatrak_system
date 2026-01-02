@@ -172,14 +172,14 @@ export function PlansTestingSuite() {
     try {
       // Find or create a test plan with multiple equipment
       const testPlan = plans.find(p => 
-        p.scope.equipment_ids && p.scope.equipment_ids.length > 1 && p.status === 'Ativo'
+        p.scope?.equipment_ids && p.scope.equipment_ids.length > 1 && p.status === 'Ativo'
       ) || plans.find(p => p.status === 'Ativo');
 
       if (!testPlan) {
         throw new Error('Nenhum plano ativo encontrado para teste');
       }
 
-      const equipmentIds = testPlan.scope.equipment_ids || [];
+      const equipmentIds = testPlan.scope?.equipment_ids || [];
       if (equipmentIds.length === 0) {
         throw new Error('Plano não possui equipamentos');
       }
@@ -226,7 +226,7 @@ export function PlansTestingSuite() {
         case 'test-03': {
           // Test multiple equipment selection
           const multiEquipmentPlans = plans.filter(p => 
-            p.scope.equipment_ids && p.scope.equipment_ids.length > 1
+            p.scope?.equipment_ids && p.scope.equipment_ids.length > 1
           );
           success = multiEquipmentPlans.length > 0;
           result = success 

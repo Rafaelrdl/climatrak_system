@@ -73,7 +73,7 @@ export function FilteredDataProvider({
         filtered = filterProcedures(data, filterOptions);
         break;
       case 'metrics':
-        filtered = filterMetricsData(data, filterOptions);
+        filtered = filterMetricsData(data);
         break;
       case 'solicitation':
         // Solicitations use similar filtering to work orders
@@ -231,7 +231,7 @@ export function useRoleBasedData<T>(
         filtered = filtering.filterProcedures(data as any, options) as T[];
         break;
       case 'metrics':
-        filtered = filtering.filterMetricsData(data as any, options) as T[];
+        filtered = filtering.filterMetricsData(data as any) as T[];
         break;
       default:
         filtered = data;

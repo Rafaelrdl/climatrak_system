@@ -25,37 +25,37 @@ export function calculateNextExecutionDate(startDate: string, frequency: Mainten
   
   // Calculate the next occurrence based on frequency
   switch (frequency) {
-    case 'Semanal':
+    case 'WEEKLY':
       // Find next weekly occurrence
       while (nextDate <= now) {
         nextDate.setDate(nextDate.getDate() + 7);
       }
       break;
-    case 'Mensal':
+    case 'MONTHLY':
       // Find next monthly occurrence
       while (nextDate <= now) {
         nextDate.setMonth(nextDate.getMonth() + 1);
       }
       break;
-    case 'Bimestral':
-      // Find next bi-monthly occurrence
+    case 'BIWEEKLY':
+      // Find next bi-weekly occurrence
       while (nextDate <= now) {
         nextDate.setMonth(nextDate.getMonth() + 2);
       }
       break;
-    case 'Trimestral':
+    case 'QUARTERLY':
       // Find next quarterly occurrence
       while (nextDate <= now) {
         nextDate.setMonth(nextDate.getMonth() + 3);
       }
       break;
-    case 'Semestral':
+    case 'SEMI_ANNUAL':
       // Find next semi-annual occurrence
       while (nextDate <= now) {
         nextDate.setMonth(nextDate.getMonth() + 6);
       }
       break;
-    case 'Anual':
+    case 'ANNUAL':
       // Find next annual occurrence
       while (nextDate <= now) {
         nextDate.setFullYear(nextDate.getFullYear() + 1);
@@ -129,7 +129,7 @@ export function createWorkOrder(data: WorkOrderCreationData): WorkOrder {
 export function generateWorkOrdersFromPlan(plan: MaintenancePlan, scheduledDate?: string): WorkOrder[] {
   console.log('[generateWorkOrdersFromPlan] Iniciando para plano:', plan.name);
   
-  const equipmentIds = plan.scope.equipment_ids || [];
+  const equipmentIds = plan.scope?.equipment_ids || [];
   if (equipmentIds.length === 0) {
     console.error('[generateWorkOrdersFromPlan] Nenhum equipamento no plano');
     throw new Error('Plano deve ter pelo menos um equipamento selecionado');
@@ -164,7 +164,7 @@ export function generateWorkOrdersFromPlan(plan: MaintenancePlan, scheduledDate?
   // Create one work order per equipment
   const workOrders: WorkOrder[] = [];
   
-  const equipmentNames = plan.scope.equipment_names || [];
+  const equipmentNames = plan.scope?.equipment_names || [];
   
   for (const equipmentId of equipmentIds) {
     const equipmentIndex = equipmentIds.indexOf(equipmentId);

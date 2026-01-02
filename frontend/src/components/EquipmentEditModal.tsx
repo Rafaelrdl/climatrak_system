@@ -57,15 +57,15 @@ const EQUIPMENT_TYPES = [
 ];
 
 // Opções de status do equipamento
-const STATUS_OPTIONS = [
-  { value: 'OK', label: '?? Operacional' },
-  { value: 'MAINTENANCE', label: '?? Em Manuten??o' },
-  { value: 'STOPPED', label: '?? Parado' },
+const STATUS_OPTIONS: { value: string; label: string; disabled?: boolean }[] = [
+  { value: 'OK', label: '🟢 Operacional' },
+  { value: 'MAINTENANCE', label: '🟠 Em Manutenção' },
+  { value: 'STOPPED', label: '🔴 Parado' },
 ];
 
-const ALERT_STATUS_OPTION = {
+const ALERT_STATUS_OPTION: { value: string; label: string; disabled?: boolean } = {
   value: 'ALERT',
-  label: '?? Alerta (autom?tico)',
+  label: '⚠️ Alerta (automático)',
   disabled: true,
 };
 

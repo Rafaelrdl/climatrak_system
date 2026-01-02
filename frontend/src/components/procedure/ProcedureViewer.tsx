@@ -100,28 +100,6 @@ export function ProcedureViewer({
     ? categories.find(cat => cat.id === procedure.category_id) 
     : null;
 
-  useEffect(() => {
-    if (procedure && isOpen) {
-      loadFile();
-      loadAnnotations();
-      setVersions(listVersions(procedure.id));
-    }
-    return () => {
-      setFileContent(null);
-      setFileBlob(null);
-      setError(null);
-      setPageNumber(1);
-      setScale(1.0);
-      setNumPages(null);
-      setActiveTab('document');
-      setUseFallbackViewer(false);
-      setAnnotations([]);
-      setComments([]);
-      setIsAnnotationMode(false);
-      setIsCreatingAnnotation(false);
-    };
-  }, [procedure, isOpen, loadFile, loadAnnotations]);
-
   const loadFile = useCallback(async () => {
     if (!procedure) return;
     
@@ -159,6 +137,28 @@ export function ProcedureViewer({
     setAnnotations(procedureAnnotations);
     setComments(procedureComments);
   }, [procedure]);
+
+  useEffect(() => {
+    if (procedure && isOpen) {
+      loadFile();
+      loadAnnotations();
+      setVersions(listVersions(procedure.id));
+    }
+    return () => {
+      setFileContent(null);
+      setFileBlob(null);
+      setError(null);
+      setPageNumber(1);
+      setScale(1.0);
+      setNumPages(null);
+      setActiveTab('document');
+      setUseFallbackViewer(false);
+      setAnnotations([]);
+      setComments([]);
+      setIsAnnotationMode(false);
+      setIsCreatingAnnotation(false);
+    };
+  }, [procedure, isOpen, loadFile, loadAnnotations]);
 
   // Annotation handlers
   const handleCreateAnnotation = (annotation: Omit<DocumentAnnotation, 'id' | 'created_at' | 'updated_at'>) => {
@@ -671,6 +671,7 @@ export function ProcedureViewer({
                               fallbackMessage="Não foi possível exibir este PDF devido a restrições de rede ou problemas de compatibilidade."
                             >
                               <div className="flex justify-center relative">
+                                {/* @ts-expect-error react-pdf types issue - Document accepts children */}
                                 <Document
                                   file={fileBlob}
                                   onLoadSuccess={({ numPages }) => {
@@ -726,25 +727,6 @@ export function ProcedureViewer({
                                       </div>
                                     </div>
                                   }
-                                  error={
-                                    <div className="text-center py-12">
-                                      <div className="text-destructive mb-4">
-                                        Não foi possível exibir o PDF no navegador.
-                                      </div>
-                                      <div className="text-sm text-muted-foreground mb-4">
-                                        Isso pode acontecer devido a restrições de rede ou problemas de compatibilidade.
-                                      </div>
-                                      <div className="space-y-2">
-                                        <Button onClick={() => setUseFallbackViewer(true)} variant="outline">
-                                          Usar visualizador alternativo
-                                        </Button>
-                                        <Button onClick={handleDownload} variant="default">
-                                          <Download className="mr-2 h-4 w-4" />
-                                          Baixar PDF
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  }
                                   options={{
                                     // Ensure worker is configured
                                     workerSrc: pdfjs.GlobalWorkerOptions.workerSrc,
@@ -754,7 +736,6 @@ export function ProcedureViewer({
                                     pageNumber={pageNumber}
                                     scale={scale}
                                     loading={<div>Carregando página...</div>}
-                                    error={<div className="text-destructive">Erro ao renderizar página</div>}
                                     renderTextLayer={false}
                                     renderAnnotationLayer={false}
                                   />

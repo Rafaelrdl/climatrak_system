@@ -23,11 +23,9 @@ export type {
 } from './rule';
 export type {
   AlertSeverity,
-  Alert,
-  AlertFilters,
-  AlertStatistics,
   AcknowledgeAlertRequest,
   ResolveAlertRequest,
 } from './alert';
+export { type Alert, type AlertFilters, type AlertStatistics } from './alert';
 export * from './dashboard';
 export * from './site';

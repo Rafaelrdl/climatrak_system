@@ -15,7 +15,7 @@ import type { User as UserType } from '@/models/user';
 interface ProfileDataFormProps {
   user: UserType;
   onSave: (data: Partial<UserType>) => void;
-  externalFileInputRef?: RefObject<HTMLInputElement>;
+  externalFileInputRef?: RefObject<HTMLInputElement | null>;
 }
 
 export function ProfileDataForm({ user, onSave, externalFileInputRef }: ProfileDataFormProps) {

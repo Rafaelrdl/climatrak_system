@@ -75,7 +75,7 @@ export { ViewItemModal } from '@/components/inventory/ViewItemModal';
 export { ProcedureTable } from '@/components/procedure/ProcedureTable';
 export { ProcedureModal } from '@/components/procedure/ProcedureModal';
 export { ProcedureViewer } from '@/components/procedure/ProcedureViewer';
-export { ProcedureFilters } from '@/components/procedure/ProcedureFilters';
+export { ProcedureFilters as ProcedureFiltersComponent } from '@/components/procedure/ProcedureFilters';
 export { VersionHistory } from '@/components/procedure/VersionHistory';
 export { VersionComparison } from '@/components/procedure/VersionComparison';
 export { AnnotationOverlay } from '@/components/procedure/AnnotationOverlay';

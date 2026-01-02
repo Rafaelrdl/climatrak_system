@@ -28,6 +28,7 @@ import {
 import { Procedure, ProcedureCategory, ProcedureStatus } from '@/models/procedure';
 import { ChecklistTemplate, ChecklistCategory } from '@/models/checklist';
 import type { ApiProcedureListItem, ApiProcedureCategory } from '@/types/api';
+import type { ApiChecklistTemplate, ApiChecklistCategory } from '@/services/checklistsService';
 
 // Helper para converter do formato API para o formato local (para compatibilidade com componentes existentes)
 function apiProcedureToLocal(apiProcedure: ApiProcedureListItem): Procedure {
@@ -87,7 +88,6 @@ function apiChecklistCategoryToLocal(api: ApiChecklistCategory): ChecklistCatego
     name: api.name,
     description: api.description,
     color: api.color,
-    icon: api.icon,
   };
 }
 
@@ -175,12 +175,12 @@ export function ProceduresPage() {
 
   // Convert API data to local format
   const checklistsData = useMemo(() => 
-    Array.isArray(apiChecklists) ? apiChecklists.map(apiChecklistToLocal) : [], 
+    Array.isArray(apiChecklists) ? apiChecklists : [], 
     [apiChecklists]
   );
 
   const checklistCategories = useMemo(() => 
-    Array.isArray(apiChecklistCategories) ? apiChecklistCategories.map(apiChecklistCategoryToLocal) : [], 
+    Array.isArray(apiChecklistCategories) ? apiChecklistCategories : [], 
     [apiChecklistCategories]
   );
 
@@ -242,16 +242,16 @@ export function ProceduresPage() {
   };
 
   const handleDuplicateChecklist = (checklist: ChecklistTemplate) => {
-    duplicateChecklistMutation.mutate(Number(checklist.id));
+    duplicateChecklistMutation.mutate(checklist.id);
     handleCloseChecklistModal();
   };
 
   const handleDeleteChecklist = (id: string) => {
-    deleteChecklistMutation.mutate(Number(id));
+    deleteChecklistMutation.mutate(id);
   };
 
   const handleToggleChecklistActive = (id: string, isActive: boolean) => {
-    toggleActiveMutation.mutate({ id: Number(id), isActive });
+    toggleActiveMutation.mutate({ id, isActive });
   };
 
   const handleSaveChecklist = (data: Omit<ChecklistTemplate, 'id' | 'created_at' | 'updated_at'>) => {
@@ -262,7 +262,7 @@ export function ProceduresPage() {
       category: data.category_id ? Number(data.category_id) : null,
       items: data.items.map((item, index) => ({
         id: item.id,
-        label: item.description,
+        description: item.description,
         type: item.type,
         required: item.required,
         order: index + 1,
@@ -276,7 +276,7 @@ export function ProceduresPage() {
     if (selectedChecklist) {
       // Update existing
       updateChecklistMutation.mutate({ 
-        id: Number(selectedChecklist.id), 
+        id: selectedChecklist.id, 
         data: apiData 
       });
     } else {
@@ -479,7 +479,7 @@ export function ProceduresPage() {
                     <CheckSquare className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{checklistStats.total_items}</div>
+                    <div className="text-2xl font-bold">{'total_items' in checklistStats ? checklistStats.total_items : checklistStats.totalItems}</div>
                     <p className="text-xs text-muted-foreground">
                       Tarefas cadastradas
                     </p>
@@ -490,11 +490,11 @@ export function ProceduresPage() {
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Utilizações</CardTitle>
                     <Badge variant="secondary" className="h-4">
-                      {checklistStats.total_usage}
+                      {'total_usage' in checklistStats ? checklistStats.total_usage : checklistStats.totalUsage}
                     </Badge>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{checklistStats.total_usage}</div>
+                    <div className="text-2xl font-bold">{'total_usage' in checklistStats ? checklistStats.total_usage : checklistStats.totalUsage}</div>
                     <p className="text-xs text-muted-foreground">
                       Vinculados a planos
                     </p>

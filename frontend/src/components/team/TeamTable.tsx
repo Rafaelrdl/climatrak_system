@@ -131,8 +131,8 @@ export function TeamTable({
       .map(invite => ({ type: 'invite' as const, data: invite })),
   ].sort((a, b) => {
     // Ordenar por data de criação, mais recentes primeiro
-    const dateA = new Date(a.data.created_at || a.data.sent_at).getTime();
-    const dateB = new Date(b.data.created_at || b.data.sent_at).getTime();
+    const dateA = new Date(a.type === 'user' ? (a.data as User).created_at : (a.data as Invite).sent_at).getTime();
+    const dateB = new Date(b.type === 'user' ? (b.data as User).created_at : (b.data as Invite).sent_at).getTime();
     return dateB - dateA;
   });
 
@@ -472,7 +472,7 @@ export function TeamTable({
                               <DropdownMenuItem
                                 onClick={() => handleAction(
                                   `toggle-${data.id}`,
-                                  () => onToggleUserStatus(data.id, data.status)
+                                  () => onToggleUserStatus(data.id, (data as User).status)
                                 )}
                                 disabled={loadingStates[`toggle-${data.id}`]}
                                 className={cn(

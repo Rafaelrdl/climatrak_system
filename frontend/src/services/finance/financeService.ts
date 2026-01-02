@@ -82,7 +82,7 @@ function normalizePaginatedResponse<T>(
     
     // Django paginated response
     if ('results' in obj) {
-      const djangoResp = obj as DjangoPaginatedResponse<T>;
+      const djangoResp = obj as unknown as DjangoPaginatedResponse<T>;
       const total = djangoResp.count ?? 0;
       return {
         data: djangoResp.results ?? [],
@@ -169,7 +169,7 @@ export async function getBudgetPlans(year?: number): Promise<BudgetPlan[]> {
 }
 
 export async function createBudgetPlan(
-  input: Pick<BudgetPlan, 'year' | 'currency' | 'status'>
+  input: Partial<BudgetPlan> & Pick<BudgetPlan, 'year' | 'currency'>
 ): Promise<BudgetPlan> {
   const { data } = await api.post<ApiResponse<BudgetPlan>>(`${BASE_URL}/budget-plans/`, input);
   return data.data ?? data as unknown as BudgetPlan;
