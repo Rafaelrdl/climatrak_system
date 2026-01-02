@@ -89,7 +89,8 @@ import { useAlertsQuery } from '@/apps/monitor/hooks/useAlertsQuery';
 import { useWorkOrdersByAsset } from '@/hooks/useWorkOrdersQuery';
 import { telemetryService } from '@/apps/monitor/services';
 import { MultiSeriesTelemetryChart } from '@/apps/monitor/components/charts/MultiSeriesTelemetryChart';
-import type { MaintenanceHistory, MaintenanceAlert } from '@/types';
+import { WorkOrderViewModal } from '@/components/WorkOrderViewModal';
+import type { MaintenanceHistory, MaintenanceAlert, WorkOrder } from '@/types';
 
 // ============================================================================
 // Status Colors & Configurations (seguindo Design System)
@@ -292,9 +293,12 @@ export function AssetDetailPage() {
   const [telemetryData, setTelemetryData] = useState<any>(null);
   const [isLoadingTelemetry, setIsLoadingTelemetry] = useState(false);
 
-  // Estado para alertas de manutenção e histórico
+  // Estado para alertas de manutenção
   const [maintenanceAlerts, setMaintenanceAlerts] = useState<MaintenanceAlert[]>([]);
-  const [maintenanceHistory, setMaintenanceHistory] = useState<MaintenanceHistory[]>([]);
+
+  // Estado para modal de visualização de OS
+  const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   // Queries
   const { data: asset, isLoading: isLoadingAsset, error } = useAssetDetailsQuery(assetId);
@@ -307,6 +311,17 @@ export function AssetDetailPage() {
     if (!asset?.tag) return [];
     return allAlerts.filter(a => a.asset_tag === asset.tag);
   }, [allAlerts, asset?.tag]);
+
+  // Filtrar work orders concluídas ou canceladas (histórico)
+  const completedWorkOrders = useMemo(() => {
+    return workOrders
+      .filter((wo: any) => wo.status === 'COMPLETED' || wo.status === 'CANCELLED')
+      .sort((a: any, b: any) => {
+        const dateA = new Date(a.completed_at || a.updated_at || a.created_at);
+        const dateB = new Date(b.completed_at || b.updated_at || b.created_at);
+        return dateB.getTime() - dateA.getTime();
+      });
+  }, [workOrders]);
 
   // Métricas disponíveis baseadas nos sensores
   const availableMetrics = useMemo(() => {
@@ -369,62 +384,11 @@ export function AssetDetailPage() {
     fetchTelemetryData();
   }, [asset?.tag, selectedMetrics, sensors, telemetryPeriod]);
 
-  // Gerar dados mock de histórico de manutenção
+  // Gerar alertas de manutenção baseado em datas
   useEffect(() => {
     if (!asset) return;
 
-    // Mock maintenance history - em produção virá da API
-    const history: MaintenanceHistory[] = [
-      {
-        id: '1',
-        equipmentId: String(asset.id),
-        workOrderId: 'OS-2024-001',
-        type: 'PREVENTIVE',
-        performedBy: 'João Silva',
-        date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        description: 'Manutenção preventiva trimestral',
-        partsUsed: ['Filtro de ar', 'Óleo lubrificante'],
-        cost: 150,
-        duration: 2,
-        status: 'COMPLETED',
-        findings: 'Equipamento em bom estado, filtros substituídos conforme cronograma.',
-        recommendations: 'Próxima manutenção em 90 dias'
-      },
-      {
-        id: '2',
-        equipmentId: String(asset.id),
-        workOrderId: 'OS-2024-002',
-        type: 'CORRECTIVE',
-        performedBy: 'Maria Santos',
-        date: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
-        description: 'Correção de vazamento no condensador',
-        partsUsed: ['Vedação', 'Gás refrigerante R410A'],
-        cost: 320,
-        duration: 4,
-        status: 'COMPLETED',
-        findings: 'Vazamento localizado na conexão do condensador.',
-        recommendations: 'Monitorar temperatura de operação'
-      },
-      {
-        id: '3',
-        equipmentId: String(asset.id),
-        workOrderId: 'OS-2024-003',
-        type: 'PREVENTIVE',
-        performedBy: 'Carlos Lima',
-        date: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
-        description: 'Limpeza e inspeção geral',
-        partsUsed: ['Produto de limpeza'],
-        cost: 80,
-        duration: 1.5,
-        status: 'COMPLETED',
-        findings: 'Limpeza realizada, serpentinas em bom estado.',
-        recommendations: 'Manter cronograma de limpeza'
-      }
-    ];
-
-    setMaintenanceHistory(history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-
-    // Mock maintenance alerts
+    // Alertas de manutenção
     const alerts: MaintenanceAlert[] = [];
     const now = new Date();
     
@@ -451,22 +415,22 @@ export function AssetDetailPage() {
     setMaintenanceAlerts(alerts);
   }, [asset]);
 
-  // Funções de cálculo de métricas de manutenção
+  // Funções de cálculo de métricas de manutenção (usando dados reais)
   const calculateUptime = () => {
     const totalHours = 8760; // 1 year default
-    const downtimeHours = maintenanceHistory.reduce((total, record) => total + record.duration, 0);
+    const downtimeHours = completedWorkOrders.reduce((total: number, wo: any) => total + (wo.actual_hours || 0), 0);
     return Math.max(0, ((totalHours - downtimeHours) / totalHours) * 100);
   };
 
   const calculateMTBF = () => {
-    const correctiveMaintenances = maintenanceHistory.filter(h => h.type === 'CORRECTIVE').length;
+    const correctiveMaintenances = completedWorkOrders.filter((wo: any) => wo.type === 'CORRECTIVE').length;
     const operatingHours = 8760;
     return correctiveMaintenances > 0 ? Math.round(operatingHours / correctiveMaintenances) : operatingHours;
   };
 
   const calculateMTTR = () => {
-    const correctiveMaintenances = maintenanceHistory.filter(h => h.type === 'CORRECTIVE');
-    const totalRepairTime = correctiveMaintenances.reduce((total, record) => total + record.duration, 0);
+    const correctiveMaintenances = completedWorkOrders.filter((wo: any) => wo.type === 'CORRECTIVE');
+    const totalRepairTime = correctiveMaintenances.reduce((total: number, wo: any) => total + (wo.actual_hours || 0), 0);
     return correctiveMaintenances.length > 0 ? Math.round(totalRepairTime / correctiveMaintenances.length * 10) / 10 : 0;
   };
 
@@ -476,7 +440,9 @@ export function AssetDetailPage() {
     ));
   };
 
-  const totalMaintenanceCosts = maintenanceHistory.reduce((total, record) => total + record.cost, 0);
+  // Custo total não está disponível nos workOrders básicos - será 0 por enquanto
+  // TODO: Integrar com API de custos quando disponível
+  const totalMaintenanceCosts = 0;
 
   // Calcular KPIs
   const assetKPIs = useMemo(() => {
@@ -739,7 +705,7 @@ export function AssetDetailPage() {
 
           {/* KPIs - Grid responsivo otimizado */}
           {assetKPIs && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               <StatCard
                 label="Saúde Geral"
                 value={assetKPIs.health.toFixed(0)}
@@ -765,19 +731,6 @@ export function AssetDetailPage() {
                 value={calculateMTTR().toFixed(1)}
                 unit="h"
                 icon={<Wrench className="w-5 h-5" />}
-              />
-              <StatCard
-                label="ΔP Filtro"
-                value={assetKPIs.dpFilter.toFixed(0)}
-                unit="Pa"
-                status={assetKPIs.dpFilter > 250 ? 'critical' : assetKPIs.dpFilter > 200 ? 'warning' : 'online'}
-                icon={<Gauge className="w-5 h-5" />}
-              />
-              <StatCard
-                label="Potência Atual"
-                value={assetKPIs.currentPower.toFixed(0)}
-                unit="kW"
-                icon={<Zap className="w-5 h-5" />}
               />
             </div>
           )}
@@ -1406,7 +1359,7 @@ export function AssetDetailPage() {
                       <div className="space-y-1">
                         <p className="text-sm font-medium text-muted-foreground">Preventivas</p>
                         <p className="text-2xl font-bold tabular-nums">
-                          {maintenanceHistory.filter(h => h.type === 'PREVENTIVE').length}
+                          {completedWorkOrders.filter((wo: any) => wo.type === 'PREVENTIVE').length}
                         </p>
                       </div>
                       <div className="p-2.5 rounded-lg bg-blue-500/10">
@@ -1424,7 +1377,7 @@ export function AssetDetailPage() {
                       <div className="space-y-1">
                         <p className="text-sm font-medium text-muted-foreground">Corretivas</p>
                         <p className="text-2xl font-bold tabular-nums">
-                          {maintenanceHistory.filter(h => h.type === 'CORRECTIVE').length}
+                          {completedWorkOrders.filter((wo: any) => wo.type === 'CORRECTIVE').length}
                         </p>
                       </div>
                       <div className="p-2.5 rounded-lg bg-amber-500/10">
@@ -1442,7 +1395,7 @@ export function AssetDetailPage() {
                       <div className="space-y-1">
                         <p className="text-sm font-medium text-muted-foreground">Emergenciais</p>
                         <p className="text-2xl font-bold tabular-nums">
-                          {maintenanceHistory.filter(h => h.type === 'EMERGENCY').length}
+                          {completedWorkOrders.filter((wo: any) => wo.type === 'EMERGENCY').length}
                         </p>
                       </div>
                       <div className="p-2.5 rounded-lg bg-red-500/10">
@@ -1471,26 +1424,20 @@ export function AssetDetailPage() {
                 </Card>
               </div>
 
-              {/* Ordens de Serviço */}
+              {/* Ordens de Serviço Ativas */}
               <Card>
                 <CardHeader className="pb-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <div className="p-1.5 rounded-md bg-primary/10">
-                        <Wrench className="w-4 h-4 text-primary" />
-                      </div>
-                      Ordens de Serviço
-                      {workOrders.length > 0 && (
-                        <Badge variant="secondary" className="ml-2">
-                          {workOrders.length}
-                        </Badge>
-                      )}
-                    </CardTitle>
-                    <Button size="sm">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Nova OS
-                    </Button>
-                  </div>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <div className="p-1.5 rounded-md bg-primary/10">
+                      <Wrench className="w-4 h-4 text-primary" />
+                    </div>
+                    Ordens de Serviço em Andamento
+                    {workOrders.filter((wo: any) => wo.status !== 'COMPLETED' && wo.status !== 'CANCELLED').length > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {workOrders.filter((wo: any) => wo.status !== 'COMPLETED' && wo.status !== 'CANCELLED').length}
+                      </Badge>
+                    )}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {isLoadingWorkOrders ? (
@@ -1513,23 +1460,19 @@ export function AssetDetailPage() {
                         </div>
                       ))}
                     </div>
-                  ) : workOrders.length === 0 ? (
+                  ) : workOrders.filter((wo: any) => wo.status !== 'COMPLETED' && wo.status !== 'CANCELLED').length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <div className="p-4 rounded-full bg-muted mb-4">
-                        <Wrench className="w-8 h-8 text-muted-foreground" />
+                        <CheckCircle2 className="w-8 h-8 text-emerald-500" />
                       </div>
-                      <h3 className="font-semibold mb-1">Nenhuma ordem de serviço</h3>
-                      <p className="text-sm text-muted-foreground max-w-sm mb-4">
-                        Este ativo não possui ordens de serviço registradas.
+                      <h3 className="font-semibold mb-1">Nenhuma OS pendente</h3>
+                      <p className="text-sm text-muted-foreground max-w-sm">
+                        Todas as ordens de serviço deste ativo foram concluídas ou não há registros.
                       </p>
-                      <Button variant="outline">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Criar primeira OS
-                      </Button>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {workOrders.map((wo: any) => {
+                      {workOrders.filter((wo: any) => wo.status !== 'COMPLETED' && wo.status !== 'CANCELLED').map((wo: any) => {
                         const statusConfig: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
                           'OPEN': { 
                             label: 'Aberta', 
@@ -1569,65 +1512,82 @@ export function AssetDetailPage() {
                         const priority = priorityConfig[wo.priority] || priorityConfig['MEDIUM'];
                         const type = typeConfig[wo.type] || typeConfig['CORRECTIVE'];
 
+                        // Determinar cor da barra lateral baseada no status
+                        const statusBarColor = wo.status === 'IN_PROGRESS' ? 'bg-amber-500' : 'bg-blue-500';
+
                         return (
                           <div 
                             key={wo.id} 
-                            className="border rounded-lg p-4 hover:border-primary/30 hover:bg-accent/30 transition-all group"
+                            onClick={() => {
+                              setSelectedWorkOrder(wo);
+                              setIsViewModalOpen(true);
+                            }}
+                            className="block cursor-pointer"
                           >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                  <Link 
-                                    to={`/cmms/work-orders/${wo.id}`}
-                                    className="font-semibold text-primary hover:underline flex items-center gap-1.5 group-hover:text-primary/80"
-                                  >
-                                    <FileText className="w-4 h-4" />
-                                    OS #{wo.order_number || wo.id}
-                                  </Link>
-                                  <Badge variant="outline" className={cn("flex items-center gap-1", status.className)}>
-                                    {status.icon}
-                                    {status.label}
-                                  </Badge>
-                                  <span className={cn("text-xs px-2 py-0.5 rounded font-medium", priority.className)}>
-                                    {priority.label}
-                                  </span>
-                                  <span className={cn("text-xs font-medium", type.className)}>
-                                    {type.label}
-                                  </span>
+                            <Card className="relative overflow-hidden hover:border-primary/40 hover:shadow-sm transition-all group cursor-pointer">
+                              <div className={cn("absolute left-0 top-0 bottom-0 w-1", statusBarColor)} />
+                              <CardContent className="p-4 pl-5">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex-1 min-w-0">
+                                    {/* Header com número e badges */}
+                                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                      <span className="font-semibold text-foreground flex items-center gap-1.5">
+                                        OS #{wo.order_number || wo.id}
+                                      </span>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className={cn(
+                                          "w-2 h-2 rounded-full",
+                                          wo.status === 'OPEN' && "bg-blue-500",
+                                          wo.status === 'IN_PROGRESS' && "bg-amber-500"
+                                        )} />
+                                        <span className="text-sm font-medium">
+                                          {status.label}
+                                        </span>
+                                      </div>
+                                      <span className="text-xs text-muted-foreground">•</span>
+                                      <span className={cn("text-xs font-medium", type.className)}>
+                                        {type.label}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">•</span>
+                                      <span className={cn(
+                                        "text-xs font-medium",
+                                        wo.priority === 'CRITICAL' && "text-red-600",
+                                        wo.priority === 'HIGH' && "text-orange-600",
+                                        wo.priority === 'MEDIUM' && "text-amber-600",
+                                        wo.priority === 'LOW' && "text-emerald-600"
+                                      )}>
+                                        Prioridade {priority.label}
+                                      </span>
+                                    </div>
+                                    
+                                    {/* Descrição */}
+                                    {wo.description && (
+                                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                                        {wo.description}
+                                      </p>
+                                    )}
+                                    
+                                    {/* Metadados */}
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                      {wo.scheduled_date && (
+                                        <span className="flex items-center gap-1.5">
+                                          <Calendar className="w-3.5 h-3.5" />
+                                          Agendada: {new Date(wo.scheduled_date).toLocaleDateString('pt-BR')}
+                                        </span>
+                                      )}
+                                      {wo.assigned_technician_name && (
+                                        <span className="flex items-center gap-1.5">
+                                          <User className="w-3.5 h-3.5" />
+                                          {wo.assigned_technician_name}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </div>
-                                
-                                {wo.description && (
-                                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                                    {wo.description}
-                                  </p>
-                                )}
-                                
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                                  {wo.scheduled_date && (
-                                    <span className="flex items-center gap-1.5">
-                                      <Calendar className="w-3.5 h-3.5" />
-                                      Agendada: {new Date(wo.scheduled_date).toLocaleDateString('pt-BR')}
-                                    </span>
-                                  )}
-                                  {wo.assigned_technician_name && (
-                                    <span className="flex items-center gap-1.5">
-                                      <User className="w-3.5 h-3.5" />
-                                      {wo.assigned_technician_name}
-                                    </span>
-                                  )}
-                                  {wo.completed_at && (
-                                    <span className="flex items-center gap-1.5 text-emerald-600">
-                                      <CheckCircle2 className="w-3.5 h-3.5" />
-                                      Concluída: {new Date(wo.completed_at).toLocaleDateString('pt-BR')}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              <Button variant="ghost" size="icon" className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <ChevronRight className="h-4 w-4" />
-                              </Button>
-                            </div>
+                              </CardContent>
+                            </Card>
                           </div>
                         );
                       })}
@@ -1638,10 +1598,39 @@ export function AssetDetailPage() {
             </TabsContent>
 
             {/* ================================================================ */}
-            {/* Aba Histórico de Manutenção - Layout melhorado */}
+            {/* Aba Histórico de Manutenção - Dados reais do backend */}
             {/* ================================================================ */}
             <TabsContent value="history" className="space-y-4 mt-0">
-              {maintenanceHistory.length === 0 ? (
+              {isLoadingWorkOrders ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <Card key={i} className="overflow-hidden">
+                      <CardHeader className="pb-3 bg-muted/30">
+                        <div className="flex items-center justify-between">
+                          <Skeleton className="h-6 w-32" />
+                          <div className="flex gap-2">
+                            <Skeleton className="h-5 w-20" />
+                            <Skeleton className="h-5 w-20" />
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-4">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-4 w-1/2" />
+                          </div>
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-2/3" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : completedWorkOrders.length === 0 ? (
                 <Card>
                   <CardContent className="py-12">
                     <div className="flex flex-col items-center justify-center text-center">
@@ -1657,116 +1646,106 @@ export function AssetDetailPage() {
                 </Card>
               ) : (
                 <div className="space-y-3">
-                  {maintenanceHistory.map(record => (
-                    <Card key={record.id} className="overflow-hidden">
-                      <CardHeader className="pb-3 bg-muted/30">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-base flex items-center gap-2">
-                            <div className="p-1.5 rounded-md bg-background">
-                              <History className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                            {record.workOrderId}
-                          </CardTitle>
-                          <div className="flex items-center gap-2">
-                            <Badge 
-                              variant="outline"
-                              className={cn(
-                                record.type === 'PREVENTIVE' 
-                                  ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800' :
-                                record.type === 'CORRECTIVE' 
-                                  ? 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-400 dark:border-orange-800' :
-                                record.type === 'REQUEST' 
-                                  ? 'bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-950/50 dark:text-violet-400 dark:border-violet-800' 
-                                  : 'bg-red-100 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800'
-                              )}
-                            >
-                              {record.type === 'PREVENTIVE' ? 'Preventiva' :
-                               record.type === 'CORRECTIVE' ? 'Corretiva' :
-                               record.type === 'REQUEST' ? 'Solicitação' : 'Emergencial'}
-                            </Badge>
-                            <Badge 
-                              variant="outline"
-                              className={cn(
-                                record.status === 'COMPLETED' 
-                                  ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800'
-                                  : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-900/50 dark:text-slate-400 dark:border-slate-700'
-                              )}
-                            >
-                              {record.status === 'COMPLETED' ? 'Concluída' : 
-                               record.status === 'PARTIAL' ? 'Parcial' : 'Cancelada'}
-                            </Badge>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-4 space-y-4">
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div>
-                            <h4 className="text-sm font-semibold mb-3">Detalhes</h4>
-                            <div className="space-y-2.5">
-                              <div className="flex items-center gap-2 text-sm">
-                                <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span>{new Date(record.date).toLocaleDateString('pt-BR', {
-                                  day: '2-digit',
-                                  month: 'long',
-                                  year: 'numeric'
-                                })}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span>{record.duration}h de duração</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span>R$ {record.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span>{record.performedBy}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-semibold mb-3">Peças Utilizadas</h4>
-                            <div className="space-y-1.5">
-                              {record.partsUsed.map((part, index) => (
-                                <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                                  {part}
+                  {completedWorkOrders.map((wo: any) => {
+                    const typeConfig: Record<string, { label: string; className: string }> = {
+                      'CORRECTIVE': { label: 'Corretiva', className: 'text-orange-600' },
+                      'PREVENTIVE': { label: 'Preventiva', className: 'text-blue-600' },
+                      'PREDICTIVE': { label: 'Preditiva', className: 'text-purple-600' },
+                      'REQUEST': { label: 'Solicitação', className: 'text-violet-600' },
+                      'EMERGENCY': { label: 'Emergencial', className: 'text-red-600' },
+                    };
+                    const type = typeConfig[wo.type] || typeConfig['CORRECTIVE'];
+                    const completionDate = wo.completed_at || wo.updated_at;
+                    const items = wo.items || [];
+
+                    // Cor da barra lateral baseada no status
+                    const statusBarColor = wo.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-slate-400';
+
+                    return (
+                      <div 
+                        key={wo.id}
+                        onClick={() => {
+                          setSelectedWorkOrder(wo);
+                          setIsViewModalOpen(true);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <Card className="relative overflow-hidden hover:border-primary/40 hover:shadow-sm transition-all group">
+                          <div className={cn("absolute left-0 top-0 bottom-0 w-1", statusBarColor)} />
+                          <CardContent className="p-4 pl-5">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                {/* Header com número e badges */}
+                                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                  <span className="font-semibold text-foreground">
+                                    OS #{wo.order_number || wo.number || wo.id}
+                                  </span>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={cn(
+                                      "w-2 h-2 rounded-full",
+                                      wo.status === 'COMPLETED' && "bg-emerald-500",
+                                      wo.status === 'CANCELLED' && "bg-slate-400"
+                                    )} />
+                                    <span className="text-sm font-medium">
+                                      {wo.status === 'COMPLETED' ? 'Concluída' : 'Cancelada'}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs text-muted-foreground">•</span>
+                                  <span className={cn("text-xs font-medium", type.className)}>
+                                    {type.label}
+                                  </span>
                                 </div>
-                              ))}
+                                
+                                {/* Descrição */}
+                                {wo.description && (
+                                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                                    {wo.description}
+                                  </p>
+                                )}
+                                
+                                {/* Metadados */}
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                  {completionDate && (
+                                    <span className="flex items-center gap-1.5">
+                                      <Calendar className="w-3.5 h-3.5" />
+                                      {new Date(completionDate).toLocaleDateString('pt-BR')}
+                                    </span>
+                                  )}
+                                  {wo.actual_hours && (
+                                    <span className="flex items-center gap-1.5">
+                                      <Clock className="w-3.5 h-3.5" />
+                                      {wo.actual_hours}h
+                                    </span>
+                                  )}
+                                  {(wo.assigned_technician_name || wo.assigned_to_name) && (
+                                    <span className="flex items-center gap-1.5">
+                                      <User className="w-3.5 h-3.5" />
+                                      {wo.assigned_technician_name || wo.assigned_to_name}
+                                    </span>
+                                  )}
+                                  {items.length > 0 && (
+                                    <span className="flex items-center gap-1.5">
+                                      <Wrench className="w-3.5 h-3.5" />
+                                      {items.length} {items.length === 1 ? 'material' : 'materiais'}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Relatório de execução resumido */}
+                                {wo.execution_description && (
+                                  <div className="mt-3 p-2 rounded bg-muted/50 text-xs text-muted-foreground line-clamp-1">
+                                    <span className="font-medium text-foreground">Execução:</span> {wo.execution_description}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
-                          </div>
-                        </div>
-
-                        <Separator />
-
-                        <div>
-                          <h4 className="text-sm font-semibold mb-2">Descrição</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {record.description}
-                          </p>
-                        </div>
-
-                        {record.findings && (
-                          <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900">
-                            <h4 className="text-sm font-semibold mb-1 text-blue-800 dark:text-blue-300">Observações</h4>
-                            <p className="text-sm text-blue-700 dark:text-blue-400">
-                              {record.findings}
-                            </p>
-                          </div>
-                        )}
-
-                        {record.recommendations && (
-                          <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900">
-                            <h4 className="text-sm font-semibold mb-1 text-amber-800 dark:text-amber-300">Recomendações</h4>
-                            <p className="text-sm text-amber-700 dark:text-amber-400">
-                              {record.recommendations}
-                            </p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
+                          </CardContent>
+                        </Card>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </TabsContent>
@@ -1975,6 +1954,16 @@ export function AssetDetailPage() {
           </Tabs>
         </div>
       </div>
+
+      {/* Modal de Visualização de OS */}
+      <WorkOrderViewModal
+        workOrder={selectedWorkOrder}
+        isOpen={isViewModalOpen}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setSelectedWorkOrder(null);
+        }}
+      />
     </div>
   );
 }
