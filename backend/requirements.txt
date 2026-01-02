@@ -5,7 +5,7 @@ django-filter==24.3
 djangorestframework-simplejwt==5.4.0
 
 # Multi-tenancy
-django-tenants==3.7.0
+django-tenants==3.9.0
 
 # Admin Interface
 django-jazzmin==3.0.1
