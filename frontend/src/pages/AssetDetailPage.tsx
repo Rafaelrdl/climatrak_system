@@ -838,88 +838,86 @@ export function AssetDetailPage() {
                       Informações do Equipamento
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Tag
-                        </label>
-                        <p className="mt-1.5 font-semibold font-mono">{asset.tag}</p>
+                        <p className="text-xs text-muted-foreground mb-1">Tag</p>
+                        <p className="text-sm font-semibold">{asset.tag}</p>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Status
-                        </label>
-                        <div className="mt-1.5">{getStatusBadge(asset.status)}</div>
+                        <p className="text-xs text-muted-foreground mb-1">Status</p>
+                        <div className="flex items-center gap-1.5">
+                          <span className={cn(
+                            "w-2 h-2 rounded-full",
+                            (asset.status === 'OK' || asset.status === 'ACTIVE' || asset.status === 'OPERATIONAL') && "bg-emerald-500",
+                            (asset.status === 'MAINTENANCE' || asset.status === 'Maintenance') && "bg-amber-500",
+                            (asset.status === 'STOPPED' || asset.status === 'Stopped' || asset.status === 'INACTIVE') && "bg-red-500",
+                            (asset.status === 'ALERT' || asset.status === 'Alert' || asset.status === 'WARNING') && "bg-orange-500",
+                          )} />
+                          <span className="text-sm font-medium">
+                            {asset.status === 'OK' || asset.status === 'ACTIVE' || asset.status === 'OPERATIONAL' ? 'Operacional' :
+                             asset.status === 'MAINTENANCE' || asset.status === 'Maintenance' ? 'Em Manutenção' :
+                             asset.status === 'STOPPED' || asset.status === 'Stopped' ? 'Parado' :
+                             asset.status === 'INACTIVE' ? 'Inativo' :
+                             asset.status === 'ALERT' || asset.status === 'Alert' ? 'Alerta' :
+                             asset.status === 'WARNING' ? 'Atenção' : asset.status}
+                          </span>
+                        </div>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Tipo
-                        </label>
-                        <p className="mt-1.5 font-medium">{asset.asset_type}</p>
+                        <p className="text-xs text-muted-foreground mb-1">Tipo</p>
+                        <p className="text-sm font-medium">{asset.asset_type}</p>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Criticidade
-                        </label>
-                        <p className="mt-1.5">
-                          <Badge variant="outline" className={cn(
-                            asset.criticality === 'CRITICA' && 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
-                            asset.criticality === 'ALTA' && 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800',
-                            asset.criticality === 'MEDIA' && 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
-                            asset.criticality === 'BAIXA' && 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
-                          )}>
-                            {asset.criticality === 'CRITICA' ? '🔴 Crítica' : 
-                             asset.criticality === 'ALTA' ? '🟠 Alta' : 
-                             asset.criticality === 'MEDIA' ? '🟢 Média' : 
-                             asset.criticality === 'BAIXA' ? '🔵 Baixa' : '-'}
-                          </Badge>
-                        </p>
+                        <p className="text-xs text-muted-foreground mb-1">Criticidade</p>
+                        <div className="flex items-center gap-1.5">
+                          <span className={cn(
+                            "w-2 h-2 rounded-full",
+                            asset.criticality === 'CRITICA' && "bg-red-500",
+                            asset.criticality === 'ALTA' && "bg-orange-500",
+                            asset.criticality === 'MEDIA' && "bg-emerald-500",
+                            asset.criticality === 'BAIXA' && "bg-blue-500",
+                          )} />
+                          <span className="text-sm font-medium">
+                            {asset.criticality === 'CRITICA' ? 'Crítica' : 
+                             asset.criticality === 'ALTA' ? 'Alta' : 
+                             asset.criticality === 'MEDIA' ? 'Média' : 
+                             asset.criticality === 'BAIXA' ? 'Baixa' : '-'}
+                          </span>
+                        </div>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Fabricante
-                        </label>
-                        <p className="mt-1.5 font-medium">{asset.manufacturer || '-'}</p>
+                        <p className="text-xs text-muted-foreground mb-1">Fabricante</p>
+                        <p className="text-sm font-medium">{asset.manufacturer || '-'}</p>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Modelo
-                        </label>
-                        <p className="mt-1.5 font-medium">{asset.model || '-'}</p>
+                        <p className="text-xs text-muted-foreground mb-1">Modelo</p>
+                        <p className="text-sm font-medium">{asset.model || '-'}</p>
                       </div>
                       {asset.serial_number && (
                         <div>
-                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            Nº de Série
-                          </label>
-                          <p className="mt-1.5 font-medium font-mono text-sm">{asset.serial_number}</p>
+                          <p className="text-xs text-muted-foreground mb-1">Nº de Série</p>
+                          <p className="text-sm font-medium">{asset.serial_number}</p>
                         </div>
                       )}
                       {asset.patrimony_number && (
                         <div>
-                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            Patrimônio
-                          </label>
-                          <p className="mt-1.5 font-medium font-mono text-sm">{asset.patrimony_number}</p>
+                          <p className="text-xs text-muted-foreground mb-1">Patrimônio</p>
+                          <p className="text-sm font-medium">{asset.patrimony_number}</p>
                         </div>
                       )}
                       {asset.installation_date && (
                         <div>
-                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            Data de Instalação
-                          </label>
-                          <p className="mt-1.5 font-medium">
+                          <p className="text-xs text-muted-foreground mb-1">Data de Instalação</p>
+                          <p className="text-sm font-medium">
                             {new Date(asset.installation_date).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
                       )}
                       {asset.warranty_expiry && (
                         <div>
-                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            Fim da Garantia
-                          </label>
-                          <p className="mt-1.5 font-medium">
+                          <p className="text-xs text-muted-foreground mb-1">Fim da Garantia</p>
+                          <p className="text-sm font-medium">
                             {new Date(asset.warranty_expiry).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
@@ -938,14 +936,12 @@ export function AssetDetailPage() {
                       Especificações Técnicas
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                       {/* Capacidade */}
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Capacidade
-                        </label>
-                        <p className="mt-1.5 font-semibold">
+                        <p className="text-xs text-muted-foreground mb-1">Capacidade</p>
+                        <p className="text-sm font-semibold">
                           {asset.capacity 
                             ? `${Number(asset.capacity).toLocaleString('pt-BR')} ${asset.capacity_unit || 'BTU'}`
                             : asset.specifications?.capacity 
@@ -955,19 +951,15 @@ export function AssetDetailPage() {
                       </div>
                       {/* Refrigerante */}
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Fluido Refrigerante
-                        </label>
-                        <p className="mt-1.5 font-medium">
+                        <p className="text-xs text-muted-foreground mb-1">Fluido Refrigerante</p>
+                        <p className="text-sm font-medium">
                           {asset.refrigerant || asset.specifications?.refrigerant || '-'}
                         </p>
                       </div>
                       {/* Tensão */}
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Tensão Nominal
-                        </label>
-                        <p className="mt-1.5 font-medium">
+                        <p className="text-xs text-muted-foreground mb-1">Tensão Nominal</p>
+                        <p className="text-sm font-medium">
                           {asset.nominal_voltage 
                             ? `${Number(asset.nominal_voltage).toLocaleString('pt-BR')} V`
                             : asset.specifications?.voltage
@@ -977,10 +969,8 @@ export function AssetDetailPage() {
                       </div>
                       {/* Fases */}
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Fases
-                        </label>
-                        <p className="mt-1.5 font-medium">
+                        <p className="text-xs text-muted-foreground mb-1">Fases</p>
+                        <p className="text-sm font-medium">
                           {asset.phases === 1 ? 'Monofásico' :
                            asset.phases === 2 ? 'Bifásico' :
                            asset.phases === 3 ? 'Trifásico' : '-'}
@@ -988,10 +978,8 @@ export function AssetDetailPage() {
                       </div>
                       {/* Corrente */}
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Corrente Nominal
-                        </label>
-                        <p className="mt-1.5 font-medium">
+                        <p className="text-xs text-muted-foreground mb-1">Corrente Nominal</p>
+                        <p className="text-sm font-medium">
                           {asset.nominal_current 
                             ? `${Number(asset.nominal_current).toLocaleString('pt-BR')} A`
                             : '-'}
@@ -999,10 +987,8 @@ export function AssetDetailPage() {
                       </div>
                       {/* Fator de Potência */}
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Fator de Potência
-                        </label>
-                        <p className="mt-1.5 font-medium">
+                        <p className="text-xs text-muted-foreground mb-1">Fator de Potência</p>
+                        <p className="text-sm font-medium">
                           {asset.power_factor 
                             ? Number(asset.power_factor).toFixed(2)
                             : '-'}
@@ -1014,32 +1000,26 @@ export function AssetDetailPage() {
                     {(asset.active_power_kw || asset.apparent_power_kva || asset.reactive_power_kvar) && (
                       <>
                         <Separator />
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-3 gap-x-6 gap-y-4">
                           <div>
-                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                              Potência Ativa
-                            </label>
-                            <p className="mt-1.5 font-semibold text-lg">
+                            <p className="text-xs text-muted-foreground mb-1">Potência Ativa</p>
+                            <p className="text-sm font-semibold">
                               {asset.active_power_kw 
                                 ? `${Number(asset.active_power_kw).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} kW`
                                 : '-'}
                             </p>
                           </div>
                           <div>
-                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                              Potência Aparente
-                            </label>
-                            <p className="mt-1.5 font-semibold text-lg">
+                            <p className="text-xs text-muted-foreground mb-1">Potência Aparente</p>
+                            <p className="text-sm font-semibold">
                               {asset.apparent_power_kva 
                                 ? `${Number(asset.apparent_power_kva).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} kVA`
                                 : '-'}
                             </p>
                           </div>
                           <div>
-                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                              Potência Reativa
-                            </label>
-                            <p className="mt-1.5 font-semibold text-lg">
+                            <p className="text-xs text-muted-foreground mb-1">Potência Reativa</p>
+                            <p className="text-sm font-semibold">
                               {asset.reactive_power_kvar 
                                 ? `${Number(asset.reactive_power_kvar).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} kVAr`
                                 : '-'}
@@ -1052,133 +1032,6 @@ export function AssetDetailPage() {
                 </Card>
               </div>
 
-              {/* Métricas de Performance */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <div className="p-1.5 rounded-md bg-primary/10">
-                      <TrendingUp className="w-4 h-4 text-primary" />
-                    </div>
-                    Métricas de Performance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-6 md:grid-cols-4">
-                    {/* Uptime */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">Uptime</label>
-                        <span className={cn(
-                          "text-sm font-semibold",
-                          calculateUptime() >= 95 ? "text-emerald-600" :
-                          calculateUptime() >= 85 ? "text-amber-600" : "text-red-600"
-                        )}>
-                          {calculateUptime().toFixed(1)}%
-                        </span>
-                      </div>
-                      <Progress 
-                        value={calculateUptime()} 
-                        className="h-2"
-                      />
-                    </div>
-                    
-                    {/* MTBF */}
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        MTBF
-                      </label>
-                      <p className="text-xl font-semibold tabular-nums">{calculateMTBF()}h</p>
-                      <p className="text-xs text-muted-foreground">Tempo Médio Entre Falhas</p>
-                    </div>
-                    
-                    {/* MTTR */}
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        MTTR
-                      </label>
-                      <p className="text-xl font-semibold tabular-nums">{calculateMTTR()}h</p>
-                      <p className="text-xs text-muted-foreground">Tempo Médio de Reparo</p>
-                    </div>
-
-                    {/* Última Manutenção */}
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        Última Manutenção
-                      </label>
-                      <p className="text-lg font-semibold">
-                        {asset.last_maintenance 
-                          ? new Date(asset.last_maintenance).toLocaleDateString('pt-BR', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric'
-                            })
-                          : 'Não registrada'}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Resumo de Manutenções */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <div className="p-1.5 rounded-md bg-primary/10">
-                      <Wrench className="w-4 h-4 text-primary" />
-                    </div>
-                    Resumo de Manutenções
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900">
-                      <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/50">
-                        <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                          {maintenanceHistory.filter(h => h.type === 'PREVENTIVE').length}
-                        </div>
-                        <p className="text-sm text-blue-600/80 dark:text-blue-400/80">Preventivas</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900">
-                      <div className="p-2 rounded-md bg-orange-100 dark:bg-orange-900/50">
-                        <Wrench className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">
-                          {maintenanceHistory.filter(h => h.type === 'CORRECTIVE').length}
-                        </div>
-                        <p className="text-sm text-orange-600/80 dark:text-orange-400/80">Corretivas</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900">
-                      <div className="p-2 rounded-md bg-red-100 dark:bg-red-900/50">
-                        <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-red-700 dark:text-red-300">
-                          {maintenanceHistory.filter(h => h.type === 'EMERGENCY').length}
-                        </div>
-                        <p className="text-sm text-red-600/80 dark:text-red-400/80">Emergenciais</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900">
-                      <div className="p-2 rounded-md bg-emerald-100 dark:bg-emerald-900/50">
-                        <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
-                          R$ {totalMaintenanceCosts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </div>
-                        <p className="text-sm text-emerald-600/80 dark:text-emerald-400/80">Custo Total</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Localização */}
               <Card>
                 <CardHeader className="pb-3">
@@ -1190,57 +1043,45 @@ export function AssetDetailPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
                     {/* Site */}
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        Site
-                      </label>
-                      <p className="mt-1.5 font-medium">{asset.site_name || '-'}</p>
+                      <p className="text-xs text-muted-foreground mb-1">Site</p>
+                      <p className="text-sm font-medium">{asset.site_name || '-'}</p>
                     </div>
                     {/* Empresa (via setor/hierarquia) */}
                     {(asset.company_name || asset.site_company) && (
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Empresa
-                        </label>
-                        <p className="mt-1.5 font-medium">{asset.company_name || asset.site_company}</p>
+                        <p className="text-xs text-muted-foreground mb-1">Empresa</p>
+                        <p className="text-sm font-medium">{asset.company_name || asset.site_company}</p>
                       </div>
                     )}
                     {/* Setor */}
                     {asset.sector_name && (
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Setor
-                        </label>
-                        <p className="mt-1.5 font-medium">{asset.sector_name}</p>
+                        <p className="text-xs text-muted-foreground mb-1">Setor</p>
+                        <p className="text-sm font-medium">{asset.sector_name}</p>
                       </div>
                     )}
                     {/* Subseção */}
                     {asset.subsection_name && (
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Subsetor
-                        </label>
-                        <p className="mt-1.5 font-medium">{asset.subsection_name}</p>
+                        <p className="text-xs text-muted-foreground mb-1">Subsetor</p>
+                        <p className="text-sm font-medium">{asset.subsection_name}</p>
                       </div>
                     )}
                     {/* Localização Específica */}
                     {asset.location_description && (
                       <div className="sm:col-span-2 lg:col-span-1">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Localização Específica
-                        </label>
-                        <p className="mt-1.5 font-medium">{asset.location_description}</p>
+                        <p className="text-xs text-muted-foreground mb-1">Localização Específica</p>
+                        <p className="text-sm font-medium">{asset.location_description}</p>
                       </div>
                     )}
                     {/* Localização Completa */}
                     {asset.full_location && (
                       <div className="sm:col-span-2 lg:col-span-3">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          Localização Completa
-                        </label>
-                        <p className="mt-1.5 font-medium text-muted-foreground">{asset.full_location}</p>
+                        <p className="text-xs text-muted-foreground mb-1">Localização Completa</p>
+                        <p className="text-sm text-muted-foreground">{asset.full_location}</p>
                       </div>
                     )}
                   </div>
@@ -1554,7 +1395,83 @@ export function AssetDetailPage() {
             {/* ================================================================ */}
             {/* Aba Manutenção - Ordens de Serviço melhoradas */}
             {/* ================================================================ */}
-            <TabsContent value="maintenance" className="mt-0">
+            <TabsContent value="maintenance" className="space-y-5 mt-0">
+              {/* Resumo de Manutenções - Design limpo e profissional */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {/* Preventivas */}
+                <Card className="relative overflow-hidden">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500" />
+                  <CardContent className="p-4 pl-5">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-muted-foreground">Preventivas</p>
+                        <p className="text-2xl font-bold tabular-nums">
+                          {maintenanceHistory.filter(h => h.type === 'PREVENTIVE').length}
+                        </p>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-blue-500/10">
+                        <CheckCircle2 className="h-5 w-5 text-blue-500" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Corretivas */}
+                <Card className="relative overflow-hidden">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
+                  <CardContent className="p-4 pl-5">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-muted-foreground">Corretivas</p>
+                        <p className="text-2xl font-bold tabular-nums">
+                          {maintenanceHistory.filter(h => h.type === 'CORRECTIVE').length}
+                        </p>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-amber-500/10">
+                        <Wrench className="h-5 w-5 text-amber-500" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Emergenciais */}
+                <Card className="relative overflow-hidden">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500" />
+                  <CardContent className="p-4 pl-5">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-muted-foreground">Emergenciais</p>
+                        <p className="text-2xl font-bold tabular-nums">
+                          {maintenanceHistory.filter(h => h.type === 'EMERGENCY').length}
+                        </p>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-red-500/10">
+                        <AlertTriangle className="h-5 w-5 text-red-500" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Custo Total */}
+                <Card className="relative overflow-hidden">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
+                  <CardContent className="p-4 pl-5">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-muted-foreground">Custo Total</p>
+                        <p className="text-2xl font-bold tabular-nums">
+                          R$ {totalMaintenanceCosts.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                        </p>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-emerald-500/10">
+                        <DollarSign className="h-5 w-5 text-emerald-500" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Ordens de Serviço */}
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
