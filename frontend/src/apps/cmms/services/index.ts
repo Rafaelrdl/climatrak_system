@@ -18,7 +18,29 @@ export * from '@/services/workOrdersService';
 export * from '@/services/equipmentService';
 export * from '@/services/plansService';
 export * from '@/services/inventoryService';
-export * from '@/services/proceduresService';
+export {
+  listProcedureCategories,
+  getProcedureCategory,
+  createProcedureCategory,
+  updateProcedureCategory,
+  deleteProcedureCategory,
+  listProcedures,
+  getProcedure,
+  createProcedure,
+  updateProcedure,
+  deleteProcedure,
+  approveProcedure,
+  submitProcedureForReview,
+  archiveProcedure,
+  listProcedureVersions,
+  createProcedureVersion,
+  restoreProcedureVersion,
+  getProcedureStats,
+  type ProcedureCategoryInput,
+  type ProcedureInput,
+  type ProcedureUpdateInput,
+  type CreateVersionInput,
+} from '@/services/proceduresService';
 export * from '@/services/requestsService';
 export * from '@/services/metricsService';
 export * from '@/services/checklistsService';

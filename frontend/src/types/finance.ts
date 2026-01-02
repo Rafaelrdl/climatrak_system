@@ -37,9 +37,14 @@ export interface RateCard {
 
 export interface BudgetPlan {
   id: string;
+  name: string;
+  code: string;
   year: number;
+  start_date: string;
+  end_date: string;
   currency: Currency;
   status: BudgetPlanStatus;
+  description?: string;
   created_at: string;
   updated_at: string;
 }
@@ -156,6 +161,7 @@ export interface CommitmentInput {
   status?: CommitmentStatus;
   budget_month: string;
   due_date?: string;
+  description?: string;
   notes?: string;
   attachments?: string[];
 }
@@ -222,8 +228,11 @@ export interface LedgerFilters {
   start_date?: string;
   end_date?: string;
   cost_center?: string;
+  cost_center_id?: string;
   asset?: string;
+  asset_id?: string;
   work_order?: string;
+  work_order_id?: string;
   category?: TransactionCategory;
   type?: TransactionType;
   page?: number;
