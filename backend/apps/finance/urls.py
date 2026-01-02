@@ -26,12 +26,12 @@ V2 Endpoints:
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
+from .views import BudgetPlanViewSet  # V2
 from .views import (
     BARViewSet,
     BaselineViewSet,
     BudgetEnvelopeViewSet,
     BudgetMonthViewSet,
-    BudgetPlanViewSet,  # V2
     BudgetSummaryViewSet,
     CommitmentViewSet,
     CostCenterViewSet,
