@@ -70,8 +70,10 @@ export interface Asset {
   site_subsector?: string;
   
   // Localização via locations app
+  sector?: number | null;
   sector_id?: number | null;
   sector_name?: string | null;
+  subsection?: number | null;
   subsection_id?: number | null;
   subsection_name?: string | null;
   company_id?: number | null;
@@ -88,6 +90,23 @@ export interface Asset {
   model?: string;
   serial_number?: string;
   
+  // Patrimônio e criticidade
+  patrimony_number?: string;
+  criticality?: 'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA';
+  warranty_expiry?: string;
+  
+  // Especificações Elétricas
+  nominal_voltage?: number | null;
+  phases?: 1 | 2 | 3;
+  nominal_current?: number | null;
+  power_factor?: number | null;
+  capacity?: number | null;
+  capacity_unit?: 'BTU' | 'TR' | 'KCAL' | 'KW';
+  refrigerant?: string;
+  active_power_kw?: number | null;
+  apparent_power_kva?: number | null;
+  reactive_power_kvar?: number | null;
+  
   // Status e saúde
   status: AssetStatus;
   health_score: number;
@@ -98,7 +117,7 @@ export interface Asset {
   created_at?: string;
   updated_at?: string;
   
-  // Especificações técnicas (JSON)
+  // Especificações técnicas (JSON legado)
   specifications?: AssetSpecifications;
   
   // Contadores (do endpoint /complete/)
@@ -112,6 +131,9 @@ export interface Asset {
   
   // Alertas
   alert_count?: number;
+  
+  // Observações
+  notes?: string;
   
   // ==== ALIASES para compatibilidade com código legado ====
   /** @deprecated Use asset_type */

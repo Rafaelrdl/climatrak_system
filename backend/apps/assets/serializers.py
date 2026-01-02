@@ -410,6 +410,22 @@ class AssetCompleteSerializer(serializers.ModelSerializer):
             "manufacturer",
             "model",
             "serial_number",
+            # Patrimônio e criticidade
+            "patrimony_number",
+            "criticality",
+            "warranty_expiry",
+            # Especificações Elétricas
+            "nominal_voltage",
+            "phases",
+            "nominal_current",
+            "power_factor",
+            "capacity",
+            "capacity_unit",
+            "refrigerant",
+            "active_power_kw",
+            "apparent_power_kva",
+            "reactive_power_kvar",
+            # Localização e status
             "location_description",
             "installation_date",
             "last_maintenance",

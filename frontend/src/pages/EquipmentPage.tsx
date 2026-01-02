@@ -475,12 +475,12 @@ function AssetsContent() {
   /**
    * SELECIONAR EQUIPAMENTO PARA RASTREAMENTO
    * 
-   * Navega para a página de status e histórico do equipamento.
+   * Navega para a página de detalhes do equipamento.
    * 
    * @param selectedEquipment - Equipamento selecionado
    */
   const handleEquipmentSelect = (selectedEquipment: Equipment) => {
-    navigate(`/cmms/ativos/${selectedEquipment.id}/status`);
+    navigate(`/cmms/ativos/${selectedEquipment.id}`);
   };
 
   /**
