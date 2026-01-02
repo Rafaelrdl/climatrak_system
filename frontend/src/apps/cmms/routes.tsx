@@ -14,10 +14,6 @@ const AssetDetailPage = lazy(async () => {
   const mod = await import('@/pages/AssetDetailPage');
   return { default: mod.AssetDetailPage };
 });
-const EquipmentStatusPage = lazy(async () => {
-  const mod = await import('@/pages/EquipmentStatusPage');
-  return { default: mod.EquipmentStatusPage };
-});
 const WorkOrdersPage = lazy(async () => {
   const mod = await import('@/pages/WorkOrdersPage');
   return { default: mod.WorkOrdersPage };
@@ -93,7 +89,6 @@ export function CmmsRoutes() {
         <Route path="/" element={<CMMSDashboard />} />
         <Route path="ativos" element={<EquipmentPage />} />
         <Route path="ativos/:id" element={<AssetDetailPage />} />
-        <Route path="ativos/:id/status" element={<EquipmentStatusPage />} />
         <Route path="work-orders" element={<WorkOrdersPage />} />
         <Route path="work-orders/calendar" element={<WorkOrderCalendarPage />} />
         <Route path="work-orders/scheduling" element={<WorkOrderSchedulingPage />} />
