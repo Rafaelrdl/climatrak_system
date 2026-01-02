@@ -9,7 +9,6 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Search, 
-  ExternalLink, 
   Heart, 
   Zap, 
   AlertCircle,
@@ -290,7 +289,7 @@ export function MonitorAssetsPage() {
                       <div className="text-2xl">{getTypeIcon(asset.type ?? asset.asset_type)}</div>
                       <div>
                         <Link
-                          to={`/monitor/ativos/${asset.id}`}
+                          to={`/cmms/ativos/${asset.id}`}
                           className="font-semibold text-primary hover:text-primary/80"
                         >
                           {asset.tag}
@@ -353,19 +352,10 @@ export function MonitorAssetsPage() {
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Link
-                        to={`/monitor/ativos/${asset.id}`}
+                        to={`/cmms/ativos/${asset.id}`}
                         className="text-primary hover:text-primary/80 text-sm font-medium"
                       >
                         Detalhes
-                      </Link>
-                      <span className="text-muted-foreground">•</span>
-                      <Link
-                        to={`/cmms/ativos/${asset.id}`}
-                        className="text-muted-foreground hover:text-foreground text-sm flex items-center space-x-1"
-                        title="Abrir no CMMS"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        <span>CMMS</span>
                       </Link>
                     </div>
                   </td>

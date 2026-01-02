@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { LoadingSpinner } from '@/shared/ui/components/LoadingSpinner';
 
@@ -13,10 +13,6 @@ const SensorsPage = lazy(async () => {
 const MonitorAssetsPage = lazy(async () => {
   const mod = await import('./pages/MonitorAssetsPage');
   return { default: mod.MonitorAssetsPage };
-});
-const MonitorAssetDetailPage = lazy(async () => {
-  const mod = await import('./pages/MonitorAssetDetailPage');
-  return { default: mod.MonitorAssetDetailPage };
 });
 const RulesPage = lazy(async () => {
   const mod = await import('./pages/RulesPage');
@@ -53,10 +49,20 @@ const SettingsPage = lazy(async () => {
  * - /monitor/alertas        → Lista de Alertas
  * - /monitor/sensores       → Grid de Sensores/Devices
  * - /monitor/ativos         → Lista de Ativos HVAC
+ * - /monitor/ativos/:id     → Redireciona para página unificada em /cmms/ativos/:id
  * - /monitor/regras         → Configuração de Regras
  * - /monitor/profile        → Perfil do Usuário
  * - /monitor/admin/team     → Gerenciamento de Equipe
  */
+
+/**
+ * Componente de redirecionamento para página unificada de detalhes do ativo
+ */
+function AssetDetailRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/cmms/ativos/${id}`} replace />;
+}
+
 export function MonitorRoutes() {
   return (
     <Suspense fallback={<LoadingSpinner centered text="Carregando..." />}>
@@ -76,11 +82,11 @@ export function MonitorRoutes() {
         {/* Lista de ativos HVAC */}
         <Route path="/ativos" element={<MonitorAssetsPage />} />
         
-        {/* Detalhes de um ativo específico */}
-        <Route path="/ativos/:id" element={<MonitorAssetDetailPage />} />
+        {/* Detalhes de um ativo - redireciona para página unificada em CMMS */}
+        <Route path="/ativos/:id" element={<AssetDetailRedirect />} />
         
-        {/* Rota legacy - redireciona equipamentos para ativos */}
-        <Route path="/equipamentos/:id" element={<MonitorAssetDetailPage />} />
+        {/* Rota legacy - redireciona equipamentos para página unificada */}
+        <Route path="/equipamentos/:id" element={<AssetDetailRedirect />} />
         
         {/* Configuração de regras */}
         <Route path="/regras" element={<RulesPage />} />
