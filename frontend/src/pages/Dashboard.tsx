@@ -29,6 +29,13 @@ import { useDashboardFiltering } from '@/hooks/useDashboardFiltering';
 import { useAbility } from '@/hooks/useAbility';
 import { useCurrentUser } from '@/data/usersStore';
 import { useSLAStore, calculateSLAStatus } from '@/store/useSLAStore';
+import { 
+  useAverageMaintenanceMetrics,
+  formatAverageMTTR,
+  formatAverageMTBF,
+  getAverageMTTRStatus,
+  getAverageMTBFStatus,
+} from '@/hooks/useAverageMaintenanceMetrics';
 import { useMemo } from 'react';
 
 export function Dashboard() {
@@ -45,6 +52,13 @@ export function Dashboard() {
   const { data: equipment = [] } = useEquipments();
   const { data: sectors = [] } = useSectors();
   const slaSettings = useSLAStore((state) => state.settings);
+  
+  // Hook para cálculo de MTTR e MTBF médios de todos os ativos
+  const { 
+    averageMTTR, 
+    averageMTBF,
+    isLoading: isLoadingMetrics 
+  } = useAverageMaintenanceMetrics();
   
   const {
     filterDashboard,
@@ -242,17 +256,18 @@ export function Dashboard() {
       eq.tag?.includes('CHI') || eq.type?.toLowerCase().includes('chiller')
     ).length;
     
-    // MTTR e MTBF podem vir de cálculos mais complexos ou do metricsStore
+    // MTTR e MTBF agora vêm do hook useAverageMaintenanceMetrics (cálculo real)
+    // Fallback para valores do kpis legado se o hook ainda estiver carregando
     return {
       openWorkOrders,
       overdueWorkOrders,
       inProgressWorkOrders,
       completedWorkOrders,
       criticalEquipment,
-      mttr: kpis?.mttr || 2.5,
-      mtbf: kpis?.mtbf || 168
+      mttr: !isLoadingMetrics && averageMTTR > 0 ? averageMTTR : (kpis?.mttr || 0),
+      mtbf: !isLoadingMetrics && averageMTBF > 0 ? averageMTBF : (kpis?.mtbf || 0)
     };
-  }, [workOrders, workOrderStats, equipment, kpis, slaSettings]);
+  }, [workOrders, workOrderStats, equipment, kpis, slaSettings, averageMTTR, averageMTBF, isLoadingMetrics]);
 
   // Create mock dashboard data and apply role-based filtering
   const dashboardData = useMemo(() => {
@@ -371,19 +386,29 @@ export function Dashboard() {
             break;
           case 'mttr':
             Icon = Clock;
-            variant = "success";
+            // Status dinâmico baseado no valor real de MTTR
+            const mttrStatus = getAverageMTTRStatus(typeof kpi.value === 'number' ? kpi.value : 0);
+            variant = mttrStatus === 'excellent' || mttrStatus === 'good' ? 'success' 
+                    : mttrStatus === 'warning' ? 'warning' : 'danger';
             trend = "down";
-            trendValue = "-2h";
-            suffix = "h";
-            description = "Tempo médio de reparo";
+            trendValue = mttrStatus === 'excellent' ? "Excelente" 
+                       : mttrStatus === 'good' ? "Bom" 
+                       : mttrStatus === 'warning' ? "Elevado" : "Crítico";
+            suffix = undefined; // Formatação será feita abaixo
+            description = "Tempo médio de reparo (todos os ativos)";
             break;
           case 'mtbf':
             Icon = Activity;
-            variant = "success";
+            // Status dinâmico baseado no valor real de MTBF
+            const mtbfStatus = getAverageMTBFStatus(typeof kpi.value === 'number' ? kpi.value : 0);
+            variant = mtbfStatus === 'excellent' || mtbfStatus === 'good' ? 'success' 
+                    : mtbfStatus === 'warning' ? 'warning' : 'danger';
             trend = "up";
-            trendValue = "+5h";
-            suffix = "h";
-            description = "Tempo médio entre falhas";
+            trendValue = mtbfStatus === 'excellent' ? "Excelente" 
+                       : mtbfStatus === 'good' ? "Bom" 
+                       : mtbfStatus === 'warning' ? "Regular" : "Crítico";
+            suffix = undefined; // Formatação será feita abaixo
+            description = "Tempo médio entre falhas (todos os ativos)";
             break;
           case 'totalCost':
             Icon = TrendingUp;
@@ -399,6 +424,14 @@ export function Dashboard() {
           suffix = undefined;
         } else if (typeof kpi.value === 'number' && kpi.key.includes('Percent')) {
           suffix = "%";
+        } else if (kpi.key === 'mttr' && typeof kpi.value === 'number') {
+          // Usar formatação específica para MTTR
+          formattedValue = formatAverageMTTR(kpi.value);
+          suffix = undefined;
+        } else if (kpi.key === 'mtbf' && typeof kpi.value === 'number') {
+          // Usar formatação específica para MTBF
+          formattedValue = formatAverageMTBF(kpi.value);
+          suffix = undefined;
         }
 
         return (

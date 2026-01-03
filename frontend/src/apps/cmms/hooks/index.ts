@@ -26,3 +26,5 @@ export * from '@/hooks/useLocationsQuery';
 export * from '@/hooks/useMaintenancePlans';
 export * from '@/hooks/useWorkOrderView';
 export * from '@/hooks/useWorkOrderGeneration';
+export * from '@/hooks/useMaintenanceMetrics';
+export * from '@/hooks/useAverageMaintenanceMetrics';
