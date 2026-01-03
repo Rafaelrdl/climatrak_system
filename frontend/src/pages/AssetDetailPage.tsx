@@ -101,10 +101,10 @@ import type { MaintenanceHistory, MaintenanceAlert, WorkOrder } from '@/types';
 // ============================================================================
 const statusConfig = {
   online: {
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/30',
-    text: 'text-emerald-600 dark:text-emerald-400',
-    dot: 'bg-emerald-500',
+    bg: 'bg-primary/10',
+    border: 'border-primary/30',
+    text: 'text-primary',
+    dot: 'bg-primary',
   },
   warning: {
     bg: 'bg-amber-500/10',
@@ -501,27 +501,6 @@ export function AssetDetailPage() {
   if (error || !asset) {
     return (
       <div className="h-full flex flex-col">
-        {/* Breadcrumb */}
-        <div className="px-6 py-3 border-b bg-muted/30">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link to="/cmms">CMMS</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator>
-                <ChevronRight className="h-4 w-4" />
-              </BreadcrumbSeparator>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link to="/cmms/ativos">Ativos</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-        
         <div className="flex-1 flex items-center justify-center p-6">
           <Card className="max-w-md w-full">
             <CardContent className="pt-6">
@@ -561,9 +540,9 @@ export function AssetDetailPage() {
       variant: 'default' | 'secondary' | 'destructive' | 'outline';
       className?: string;
     }> = {
-      'OK': { label: 'Operacional', variant: 'default', className: 'bg-teal-500 text-white hover:bg-teal-600 border-transparent' },
-      'ACTIVE': { label: 'Operacional', variant: 'default', className: 'bg-teal-500 text-white hover:bg-teal-600 border-transparent' },
-      'OPERATIONAL': { label: 'Operacional', variant: 'default', className: 'bg-teal-500 text-white hover:bg-teal-600 border-transparent' },
+      'OK': { label: 'Operacional', variant: 'default', className: 'bg-primary text-primary-foreground hover:bg-primary/90 border-transparent' },
+      'ACTIVE': { label: 'Operacional', variant: 'default', className: 'bg-primary text-primary-foreground hover:bg-primary/90 border-transparent' },
+      'OPERATIONAL': { label: 'Operacional', variant: 'default', className: 'bg-primary text-primary-foreground hover:bg-primary/90 border-transparent' },
       'MAINTENANCE': { label: 'Em Manutenção', variant: 'secondary', className: 'bg-amber-500 text-white hover:bg-amber-600 border-transparent' },
       'Maintenance': { label: 'Em Manutenção', variant: 'secondary', className: 'bg-amber-500 text-white hover:bg-amber-600 border-transparent' },
       'STOPPED': { label: 'Parado', variant: 'destructive', className: 'bg-red-500 text-white hover:bg-red-600 border-transparent' },
@@ -601,37 +580,6 @@ export function AssetDetailPage() {
 
   return (
     <div className="h-full flex flex-col bg-background">
-      {/* Breadcrumb - contexto permanente */}
-      <div className="px-6 py-3 border-b bg-muted/30 shrink-0">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/cmms" className="text-muted-foreground hover:text-foreground transition-colors">
-                  CMMS
-                </Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator>
-              <ChevronRight className="h-4 w-4" />
-            </BreadcrumbSeparator>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/cmms/ativos" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Ativos
-                </Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator>
-              <ChevronRight className="h-4 w-4" />
-            </BreadcrumbSeparator>
-            <BreadcrumbItem>
-              <BreadcrumbPage className="font-medium">{asset.tag}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </div>
-
       {/* Conteúdo principal com scroll */}
       <div className="flex-1 overflow-auto">
         <div className="p-6 space-y-5">
