@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 import { useUpdateEquipment } from '@/hooks/useEquipmentQuery';
 import { useCompanies, useSectors, useSubsections } from '@/hooks/useLocationsQuery';
 import type { Equipment } from '@/types';
@@ -117,6 +118,9 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
+  const [installationDate, setInstallationDate] = useState('');
+  const [warrantyEndDate, setWarrantyEndDate] = useState('');
+  const [notes, setNotes] = useState('');
 
   // Localização - agora usando IDs
   const [companyId, setCompanyId] = useState('');
@@ -166,6 +170,9 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
       setBrand(equipment.brand || '');
       setModel(equipment.model || '');
       setSerialNumber(equipment.serialNumber || '');
+      setInstallationDate(equipment.installDate ? equipment.installDate.split('T')[0] : '');
+      setWarrantyEndDate(equipment.warrantyExpiry ? equipment.warrantyExpiry.split('T')[0] : '');
+      setNotes(equipment.notes || '');
       
       // Localização - usar IDs diretamente do equipment
       setCompanyId(equipment.companyId || '');
@@ -278,6 +285,9 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
           location: fullLocation,
           sectorId: sectorId || undefined,
           subSectionId: subsectorId || undefined,
+          installDate: installationDate || undefined,
+          warrantyExpiry: warrantyEndDate || undefined,
+          notes: notes.trim() || undefined,
           capacity: capacity ? parseFloat(capacity) : undefined,
           specifications: {
             voltage: voltage ? parseFloat(voltage) : undefined,
@@ -435,6 +445,39 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
                     placeholder="Ex: SN123456789"
                     value={serialNumber}
                     onChange={(e) => setSerialNumber(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="installationDate">Data de Instalação</Label>
+                    <Input
+                      id="installationDate"
+                      type="date"
+                      value={installationDate}
+                      onChange={(e) => setInstallationDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="warrantyEndDate">Fim da Garantia</Label>
+                    <Input
+                      id="warrantyEndDate"
+                      type="date"
+                      value={warrantyEndDate}
+                      onChange={(e) => setWarrantyEndDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Observações</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Observações gerais sobre o equipamento..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
                   />
                 </div>
               </TabsContent>
