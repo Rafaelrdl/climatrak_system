@@ -561,19 +561,19 @@ export function AssetDetailPage() {
       variant: 'default' | 'secondary' | 'destructive' | 'outline';
       className?: string;
     }> = {
-      'OK': { label: 'Operacional', variant: 'default', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200' },
-      'ACTIVE': { label: 'Operacional', variant: 'default', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200' },
-      'OPERATIONAL': { label: 'Operacional', variant: 'default', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200' },
-      'MAINTENANCE': { label: 'Em Manutenção', variant: 'secondary', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200' },
-      'Maintenance': { label: 'Em Manutenção', variant: 'secondary', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200' },
-      'STOPPED': { label: 'Parado', variant: 'destructive', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200' },
-      'INACTIVE': { label: 'Inativo', variant: 'destructive', className: 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400 border-slate-200' },
-      'Stopped': { label: 'Parado', variant: 'destructive', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200' },
-      'ALERT': { label: 'Alerta', variant: 'outline', className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200' },
-      'Alert': { label: 'Alerta', variant: 'outline', className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200' },
-      'WARNING': { label: 'Atenção', variant: 'outline', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200' },
-      'CRITICAL': { label: 'Crítico', variant: 'destructive', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200' },
-      'ERROR': { label: 'Erro', variant: 'destructive', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200' },
+      'OK': { label: 'Operacional', variant: 'default', className: 'bg-teal-500 text-white hover:bg-teal-600 border-transparent' },
+      'ACTIVE': { label: 'Operacional', variant: 'default', className: 'bg-teal-500 text-white hover:bg-teal-600 border-transparent' },
+      'OPERATIONAL': { label: 'Operacional', variant: 'default', className: 'bg-teal-500 text-white hover:bg-teal-600 border-transparent' },
+      'MAINTENANCE': { label: 'Em Manutenção', variant: 'secondary', className: 'bg-amber-500 text-white hover:bg-amber-600 border-transparent' },
+      'Maintenance': { label: 'Em Manutenção', variant: 'secondary', className: 'bg-amber-500 text-white hover:bg-amber-600 border-transparent' },
+      'STOPPED': { label: 'Parado', variant: 'destructive', className: 'bg-red-500 text-white hover:bg-red-600 border-transparent' },
+      'INACTIVE': { label: 'Inativo', variant: 'destructive', className: 'bg-slate-500 text-white hover:bg-slate-600 border-transparent' },
+      'Stopped': { label: 'Parado', variant: 'destructive', className: 'bg-red-500 text-white hover:bg-red-600 border-transparent' },
+      'ALERT': { label: 'Alerta', variant: 'outline', className: 'bg-orange-500 text-white hover:bg-orange-600 border-transparent' },
+      'Alert': { label: 'Alerta', variant: 'outline', className: 'bg-orange-500 text-white hover:bg-orange-600 border-transparent' },
+      'WARNING': { label: 'Atenção', variant: 'outline', className: 'bg-amber-500 text-white hover:bg-amber-600 border-transparent' },
+      'CRITICAL': { label: 'Crítico', variant: 'destructive', className: 'bg-red-600 text-white hover:bg-red-700 border-transparent' },
+      'ERROR': { label: 'Erro', variant: 'destructive', className: 'bg-red-600 text-white hover:bg-red-700 border-transparent' },
     };
     const config = statusMap[status] || { label: status, variant: 'outline' as const };
     return (
@@ -712,55 +712,74 @@ export function AssetDetailPage() {
 
           {/* KPIs - Grid responsivo otimizado */}
           {assetKPIs && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              <StatCard
-                label="Saúde Geral"
-                value={assetKPIs.health.toFixed(0)}
-                unit="%"
-                status={getHealthStatus(assetKPIs.health)}
-                icon={<Heart className="w-5 h-5" />}
-                description="Score geral do ativo"
-              />
-              <StatCard
-                label="Uptime"
-                value={maintenanceMetrics.uptime.toFixed(1)}
-                unit="%"
-                status={getUptimeStatus(maintenanceMetrics.uptime)}
-                icon={<TrendingUp className="w-5 h-5" />}
-                description="Tempo em operação"
-              />
-              <StatCard
-                label="MTBF"
-                value={maintenanceMetrics.mtbf.toLocaleString('pt-BR')}
-                unit="h"
-                status={maintenanceMetrics.mtbf >= 4320 ? 'online' : maintenanceMetrics.mtbf >= 720 ? 'warning' : 'critical'}
-                icon={<Clock className="w-5 h-5" />}
-                description={maintenanceMetrics.totalFailures === 0 ? 'Sem falhas no período' : `${maintenanceMetrics.totalFailures} falha(s)`}
-              />
-              <StatCard
-                label="MTTR"
-                value={maintenanceMetrics.mttr.toFixed(1)}
-                unit="h"
-                status={maintenanceMetrics.mttr === 0 ? 'online' : maintenanceMetrics.mttr <= 4 ? 'online' : maintenanceMetrics.mttr <= 24 ? 'warning' : 'critical'}
-                icon={<Wrench className="w-5 h-5" />}
-                description={maintenanceMetrics.totalFailures === 0 ? 'Sem reparos' : `${maintenanceMetrics.totalFailures} reparo(s)`}
-              />
-              <StatCard
-                label="Disponibilidade"
-                value={maintenanceMetrics.availability.toFixed(1)}
-                unit="%"
-                status={maintenanceMetrics.availability >= 99 ? 'online' : maintenanceMetrics.availability >= 95 ? 'warning' : 'critical'}
-                icon={<Activity className="w-5 h-5" />}
-                description="MTBF / (MTBF + MTTR)"
-              />
-              <StatCard
-                label="Confiabilidade"
-                value={maintenanceMetrics.reliability.toFixed(1)}
-                unit="%"
-                status={maintenanceMetrics.reliability >= 90 ? 'online' : maintenanceMetrics.reliability >= 70 ? 'warning' : 'critical'}
-                icon={<Gauge className="w-5 h-5" />}
-                description="Prob. não falhar"
-              />
+            <div className="space-y-3">
+              {/* Aviso se data de instalação não está preenchida */}
+              {maintenanceMetrics.missingInstallationDate && (
+                <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-800 dark:text-amber-200">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <p className="text-sm">
+                    <strong>Atenção:</strong> Data de instalação não definida. Os indicadores MTBF, MTTR, Disponibilidade e Confiabilidade requerem esta informação para cálculo preciso.{' '}
+                    <button 
+                      type="button"
+                      className="underline font-medium hover:text-amber-900 dark:hover:text-amber-100"
+                      onClick={() => setIsEditAssetModalOpen(true)}
+                    >
+                      Clique aqui para editar o ativo
+                    </button>
+                  </p>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <StatCard
+                  label="Saúde Geral"
+                  value={assetKPIs.health.toFixed(0)}
+                  unit="%"
+                  status={getHealthStatus(assetKPIs.health)}
+                  icon={<Heart className="w-5 h-5" />}
+                  description="Score geral do ativo"
+                />
+                <StatCard
+                  label="Uptime"
+                  value={maintenanceMetrics.missingInstallationDate ? '-' : maintenanceMetrics.uptime.toFixed(2)}
+                  unit={maintenanceMetrics.missingInstallationDate ? '' : '%'}
+                  status={maintenanceMetrics.missingInstallationDate ? 'warning' : getUptimeStatus(maintenanceMetrics.uptime)}
+                  icon={<TrendingUp className="w-5 h-5" />}
+                  description={maintenanceMetrics.missingInstallationDate ? 'Preencha data de instalação' : 'Tempo em operação'}
+                />
+                <StatCard
+                  label="MTBF"
+                  value={maintenanceMetrics.missingInstallationDate ? '-' : maintenanceMetrics.mtbf.toLocaleString('pt-BR')}
+                  unit={maintenanceMetrics.missingInstallationDate ? '' : 'h'}
+                  status={maintenanceMetrics.missingInstallationDate ? 'warning' : maintenanceMetrics.mtbf >= 4320 ? 'online' : maintenanceMetrics.mtbf >= 720 ? 'warning' : 'critical'}
+                  icon={<Clock className="w-5 h-5" />}
+                  description={maintenanceMetrics.missingInstallationDate ? 'Preencha data de instalação' : maintenanceMetrics.totalFailures === 0 ? 'Sem falhas no período' : `${maintenanceMetrics.totalFailures} falha(s)`}
+                />
+                <StatCard
+                  label="MTTR"
+                  value={maintenanceMetrics.missingInstallationDate ? '-' : maintenanceMetrics.mttr.toFixed(2)}
+                  unit={maintenanceMetrics.missingInstallationDate ? '' : 'h'}
+                  status={maintenanceMetrics.missingInstallationDate ? 'warning' : maintenanceMetrics.mttr === 0 ? 'online' : maintenanceMetrics.mttr <= 4 ? 'online' : maintenanceMetrics.mttr <= 24 ? 'warning' : 'critical'}
+                  icon={<Wrench className="w-5 h-5" />}
+                  description={maintenanceMetrics.missingInstallationDate ? 'Preencha data de instalação' : maintenanceMetrics.totalFailures === 0 ? 'Sem reparos' : `${maintenanceMetrics.totalFailures} reparo(s)`}
+                />
+                <StatCard
+                  label="Disponibilidade"
+                  value={maintenanceMetrics.missingInstallationDate ? '-' : maintenanceMetrics.availability.toFixed(2)}
+                  unit={maintenanceMetrics.missingInstallationDate ? '' : '%'}
+                  status={maintenanceMetrics.missingInstallationDate ? 'warning' : maintenanceMetrics.availability >= 99 ? 'online' : maintenanceMetrics.availability >= 95 ? 'warning' : 'critical'}
+                  icon={<Activity className="w-5 h-5" />}
+                  description={maintenanceMetrics.missingInstallationDate ? 'Preencha data de instalação' : 'MTBF / (MTBF + MTTR)'}
+                />
+                <StatCard
+                  label="Confiabilidade"
+                  value={maintenanceMetrics.missingInstallationDate ? '-' : maintenanceMetrics.reliability.toFixed(2)}
+                  unit={maintenanceMetrics.missingInstallationDate ? '' : '%'}
+                  status={maintenanceMetrics.missingInstallationDate ? 'warning' : maintenanceMetrics.reliability >= 90 ? 'online' : maintenanceMetrics.reliability >= 70 ? 'warning' : 'critical'}
+                  icon={<Gauge className="w-5 h-5" />}
+                  description={maintenanceMetrics.missingInstallationDate ? 'Preencha data de instalação' : 'Prob. não falhar'}
+                />
+              </div>
             </div>
           )}
 

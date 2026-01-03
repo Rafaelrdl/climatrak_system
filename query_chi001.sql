@@ -33,3 +33,18 @@ FROM cmms_workorder wo
 WHERE wo.asset_id = 1
 GROUP BY type, status
 ORDER BY type, status;
+
+-- 5. Atualizar actual_hours para WOs concluídas que estão NULL
+-- Calcula a diferença entre created_at e completed_at em horas
+UPDATE cmms_workorder
+SET actual_hours = ROUND(EXTRACT(EPOCH FROM (completed_at - created_at)) / 3600.0, 2)
+WHERE status = 'COMPLETED'
+AND actual_hours IS NULL
+AND completed_at IS NOT NULL;
+
+-- 6. Verificar o resultado da atualização
+SELECT wo.number, wo.type, wo.status, wo.actual_hours, wo.created_at, wo.completed_at
+FROM cmms_workorder wo
+WHERE wo.asset_id = 1
+AND status = 'COMPLETED'
+ORDER BY wo.created_at;

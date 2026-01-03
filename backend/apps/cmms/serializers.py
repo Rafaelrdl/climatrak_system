@@ -342,6 +342,40 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def update(self, instance, validated_data):
+        """
+        Override update para calcular actual_hours automaticamente
+        quando a OS é concluída e o campo não foi preenchido.
+        """
+        from django.utils import timezone
+        
+        new_status = validated_data.get("status", instance.status)
+        old_status = instance.status
+        
+        # Se está mudando para COMPLETED
+        if (
+            old_status != WorkOrder.Status.COMPLETED
+            and new_status == WorkOrder.Status.COMPLETED
+        ):
+            # Preencher completed_at se não foi fornecido
+            if "completed_at" not in validated_data or validated_data.get("completed_at") is None:
+                validated_data["completed_at"] = timezone.now()
+            
+            # Calcular actual_hours automaticamente se não foi fornecido
+            if validated_data.get("actual_hours") is None and instance.actual_hours is None:
+                completed_at = validated_data.get("completed_at", timezone.now())
+                # Usar created_at como referência se started_at não existir
+                start_time = instance.started_at or instance.created_at
+                
+                if start_time and completed_at:
+                    # Calcular diferença em horas
+                    delta = completed_at - start_time
+                    hours = delta.total_seconds() / 3600  # Converter para horas
+                    # Arredondar para 2 casas decimais
+                    validated_data["actual_hours"] = round(hours, 2)
+        
+        return super().update(instance, validated_data)
+
 
 class RequestItemSerializer(serializers.ModelSerializer):
     """Serializer para RequestItem."""

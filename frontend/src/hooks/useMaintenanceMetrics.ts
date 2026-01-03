@@ -36,6 +36,8 @@ export interface MaintenanceMetrics {
   operatingHours: number;
   /** Período de análise em dias */
   analysisPeriodDays: number;
+  /** Indica se a data de instalação está faltando (métricas não podem ser calculadas) */
+  missingInstallationDate: boolean;
 }
 
 export interface UseMaintenanceMetricsOptions {
@@ -65,6 +67,9 @@ export function useMaintenanceMetrics(
   } = options;
 
   return useMemo(() => {
+    // Verificar se a data de instalação foi fornecida
+    const missingInstallationDate = !installationDate;
+    
     // Filtrar apenas manutenções corretivas concluídas (falhas reais)
     const correctiveWorkOrders = workOrders.filter(
       (wo) => wo.type === 'CORRECTIVE' && wo.status === 'COMPLETED'
@@ -79,20 +84,32 @@ export function useMaintenanceMetrics(
     const failureWorkOrders = [...correctiveWorkOrders, ...emergencyWorkOrders];
     const totalFailures = failureWorkOrders.length;
 
-    // Calcular período de operação
-    let operatingHours: number;
-    
-    if (installationDate) {
-      const installDate = new Date(installationDate);
-      const now = new Date();
-      const daysSinceInstall = Math.max(1, Math.floor((now.getTime() - installDate.getTime()) / (1000 * 60 * 60 * 24)));
-      // Usar o menor entre dias desde instalação e período de análise
-      const effectiveDays = Math.min(daysSinceInstall, analysisPeriodDays);
-      operatingHours = effectiveDays * dailyOperatingHours;
-    } else {
-      // Sem data de instalação, usar período de análise padrão
-      operatingHours = analysisPeriodDays * dailyOperatingHours;
+    // Se não tem data de instalação, não podemos calcular métricas corretamente
+    // Retornar valores zerados com flag indicando que precisa preencher
+    if (missingInstallationDate) {
+      return {
+        mtbf: 0,
+        mttr: 0,
+        availability: 0,
+        reliability: 0,
+        uptime: 0,
+        totalFailures,
+        totalRepairHours: 0,
+        operatingHours: 0,
+        analysisPeriodDays,
+        missingInstallationDate: true,
+      };
     }
+
+    // Calcular período de operação baseado na data de instalação
+    // IMPORTANTE: Usar o tempo TOTAL desde a instalação para MTBF, MTTR, Disponibilidade e Uptime
+    // O analysisPeriodDays é usado apenas para calcular a Confiabilidade (prob. de não falhar no próximo período)
+    const installDate = new Date(installationDate);
+    const now = new Date();
+    const daysSinceInstall = Math.max(1, Math.floor((now.getTime() - installDate.getTime()) / (1000 * 60 * 60 * 24)));
+    
+    // Usar o período TOTAL desde a instalação (não limitar a analysisPeriodDays)
+    const operatingHours = daysSinceInstall * dailyOperatingHours;
 
     // Calcular tempo total de reparo (downtime)
     const totalRepairHours = failureWorkOrders.reduce((total, wo) => {
@@ -132,26 +149,31 @@ export function useMaintenanceMetrics(
 
     // MTTR = Tempo total de reparo / Número de reparos
     const mttr = totalFailures > 0 
-      ? Math.round((totalRepairHours / totalFailures) * 10) / 10 
+      ? Math.round((totalRepairHours / totalFailures) * 100) / 100 
       : 0;
 
     // Availability = MTBF / (MTBF + MTTR) * 100
     // Se MTTR = 0, disponibilidade é 100%
-    const availability = mtbf > 0 
-      ? Math.round((mtbf / (mtbf + mttr)) * 1000) / 10 
+    // Usar mais casas decimais para não arredondar 99.99 para 100
+    const availabilityRaw = mtbf > 0 
+      ? (mtbf / (mtbf + mttr)) * 100 
       : 100;
+    const availability = Math.round(availabilityRaw * 100) / 100; // 2 casas decimais
 
     // Uptime = (Horas de operação - Horas de reparo) / Horas de operação * 100
-    const uptime = operatingHours > 0 
-      ? Math.round(((operatingHours - totalRepairHours) / operatingHours) * 1000) / 10 
+    // Usar mais casas decimais para não arredondar 99.99 para 100
+    const uptimeRaw = operatingHours > 0 
+      ? ((operatingHours - totalRepairHours) / operatingHours) * 100 
       : 100;
+    const uptime = Math.round(uptimeRaw * 100) / 100; // 2 casas decimais
 
     // Reliability = e^(-t/MTBF) para o próximo período de análise
     // Probabilidade de não falhar no próximo período
     const reliabilityPeriodHours = analysisPeriodDays * dailyOperatingHours;
-    const reliability = mtbf > 0 
-      ? Math.round(Math.exp(-reliabilityPeriodHours / mtbf) * 1000) / 10 
+    const reliabilityRaw = mtbf > 0 
+      ? Math.exp(-reliabilityPeriodHours / mtbf) * 100 
       : 100;
+    const reliability = Math.round(reliabilityRaw * 100) / 100; // 2 casas decimais
 
     return {
       mtbf,
@@ -160,9 +182,10 @@ export function useMaintenanceMetrics(
       reliability: Math.min(100, Math.max(0, reliability)),
       uptime: Math.min(100, Math.max(0, uptime)),
       totalFailures,
-      totalRepairHours: Math.round(totalRepairHours * 10) / 10,
+      totalRepairHours: Math.round(totalRepairHours * 100) / 100,
       operatingHours,
       analysisPeriodDays,
+      missingInstallationDate: false,
     };
   }, [workOrders, installationDate, analysisPeriodDays, dailyOperatingHours]);
 }
