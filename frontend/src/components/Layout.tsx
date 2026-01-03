@@ -65,7 +65,7 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-background flex flex-col">
+    <div className="min-h-screen bg-background">
       {/* Top Navigation */}
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-16 items-center gap-2 sm:gap-4 px-4 sm:px-6">
@@ -168,7 +168,7 @@ export function Layout({ children }: LayoutProps) {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto p-4 sm:p-6">
+      <main className="p-4 sm:p-6">
         {children}
       </main>
       
