@@ -13,7 +13,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Building2, MapPin, Users, Edit, Trash2 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { 
+  Building2, 
+  MapPin, 
+  Users, 
+  Edit, 
+  Trash2,
+  Phone,
+  Mail,
+  MapPinned,
+  FileText,
+  Ruler,
+  UsersRound,
+  Wind,
+  Hash,
+  Briefcase
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useLocation as useLocationContext } from '@/contexts/LocationContext';
 import { IfCanEdit } from '@/components/auth/IfCan';
 import { useDeleteCompany, useDeleteSector, useDeleteSubsection } from '@/hooks/useLocationsQuery';
@@ -81,27 +102,45 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
   // Estado vazio: quando nenhuma localização foi selecionada
   if (!selectedNode) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        <div className="text-center space-y-2">
-          <Building2 className="h-12 w-12 mx-auto opacity-50" />
-          <p className="text-lg font-medium">Selecione uma localização</p>
-          <p className="text-sm">Escolha uma empresa, setor ou subsetor para ver os detalhes</p>
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center space-y-4 max-w-sm px-4">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+            <Building2 className="h-8 w-8 text-primary/60" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-lg font-semibold text-foreground">Selecione uma localização</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Escolha uma empresa, setor ou subsetor na árvore lateral para visualizar e gerenciar seus detalhes
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
   /**
-   * Retorna o ícone apropriado para o tipo de localização
+   * Retorna o ícone apropriado para o tipo de localização com container colorido
    */
   const getIcon = () => {
     switch (selectedNode.type) {
       case 'company':
-        return <Building2 className="h-5 w-5" />; // Ícone de empresa
+        return (
+          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+            <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          </div>
+        );
       case 'sector':
-        return <MapPin className="h-5 w-5" />;    // Ícone de setor
+        return (
+          <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+            <MapPin className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+        );
       case 'subsection':
-        return <Users className="h-5 w-5" />;     // Ícone de subsetor
+        return (
+          <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+            <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          </div>
+        );
     }
   };
 
@@ -120,6 +159,20 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
   };
 
   /**
+   * Retorna a cor do badge baseado no tipo
+   */
+  const getTypeBadgeColor = () => {
+    switch (selectedNode.type) {
+      case 'company':
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800';
+      case 'sector':
+        return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800';
+      case 'subsection':
+        return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800';
+    }
+  };
+
+  /**
    * Renderiza os detalhes específicos para uma empresa
    * Exibe informações em 4 cartões: Gerais, Contato, Endereço e Dados Operacionais
    * @param company - Dados da empresa
@@ -128,71 +181,121 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         {/* Cartão 1: Informações Gerais */}
-        <Card className="location-card">
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Informações Gerais</CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/30">
+                <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <CardTitle className="text-base">Informações Gerais</CardTitle>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Nome da Empresa</label>
-              <p className="font-medium">{company.name || '-'}</p>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-3">
+              <Building2 className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Nome da Empresa</label>
+                <p className="font-medium truncate">{company.name || '-'}</p>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Segmento</label>
-              <p>{company.segment || '-'}</p>
+            <div className="flex items-start gap-3">
+              <Briefcase className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Segmento</label>
+                <p className="truncate">{company.segment || '-'}</p>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">CNPJ</label>
-              <p>{company.cnpj || '-'}</p>
+            <div className="flex items-start gap-3">
+              <Hash className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">CNPJ</label>
+                <p className="font-mono text-sm">{company.cnpj || '-'}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="location-card">
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Endereço</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Endereço Completo</label>
-              <p className="break-words">{company.address?.fullAddress || '-'}</p>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/30">
+                <MapPinned className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <CardTitle className="text-base">Endereço</CardTitle>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Cidade</label>
-                <p>{company.address?.city || '-'}</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-3">
+              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Endereço Completo</label>
+                <p className="break-words text-sm">{company.address?.fullAddress || '-'}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-start gap-3">
+                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Cidade</label>
+                  <p>{company.address?.city || '-'}</p>
+                </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Estado</label>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Estado</label>
                 <p>{company.address?.state || '-'}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="location-card">
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm lg:col-span-2">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Dados Operacionais</CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-amber-100 dark:bg-amber-900/30">
+                <Ruler className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <CardTitle className="text-base">Dados Operacionais</CardTitle>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Área Total</label>
-                <p className="font-medium">{company.totalArea?.toLocaleString() || '0'} m²</p>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/30">
+                  <Ruler className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Área Total</label>
+                  <p className="text-lg font-semibold">{company.totalArea?.toLocaleString() || '0'} <span className="text-sm font-normal text-muted-foreground">m²</span></p>
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Ocupantes</label>
-                <p className="font-medium">{company.occupants || '0'}</p>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="p-2 rounded-md bg-emerald-100 dark:bg-emerald-900/30">
+                  <UsersRound className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Ocupantes</label>
+                  <p className="text-lg font-semibold">{company.occupants || '0'}</p>
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Unidades HVAC</label>
-                <p className="font-medium">{company.hvacUnits || '0'}</p>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="p-2 rounded-md bg-cyan-100 dark:bg-cyan-900/30">
+                  <Wind className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Unidades HVAC</label>
+                  <p className="text-lg font-semibold">{company.hvacUnits || '0'}</p>
+                </div>
               </div>
             </div>
             {company.notes && (
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Observações Adicionais</label>
-                <p className="break-words">{company.notes}</p>
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-start gap-3">
+                  <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Observações</label>
+                    <p className="text-sm text-muted-foreground break-words mt-1">{company.notes}</p>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>
@@ -210,49 +313,88 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         {/* Cartão 1: Responsável */}
-        <Card className="location-card">
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Responsável</CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/30">
+                <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <CardTitle className="text-base">Responsável</CardTitle>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Nome</label>
-              <p className="font-medium">{sector.responsible || '-'}</p>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-3">
+              <Users className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Nome</label>
+                <p className="font-medium">{sector.responsible || '-'}</p>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Telefone</label>
-              <p>{sector.phone || '-'}</p>
+            <div className="flex items-start gap-3">
+              <Phone className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Telefone</label>
+                <p>{sector.phone || '-'}</p>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">E-mail</label>
-              <p className="break-all">{sector.email || '-'}</p>
+            <div className="flex items-start gap-3">
+              <Mail className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">E-mail</label>
+                <p className="break-all text-sm">{sector.email || '-'}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="location-card">
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Dados Operacionais</CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-amber-100 dark:bg-amber-900/30">
+                <Ruler className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <CardTitle className="text-base">Dados Operacionais</CardTitle>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Área</label>
-                <p className="font-medium">{sector.area?.toLocaleString() || '0'} m²</p>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/30">
+                  <Ruler className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Área</label>
+                  <p className="text-base font-semibold">{sector.area?.toLocaleString() || '0'} <span className="text-xs font-normal text-muted-foreground">m²</span></p>
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Ocupantes</label>
-                <p className="font-medium">{sector.occupants || '0'}</p>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="p-2 rounded-md bg-emerald-100 dark:bg-emerald-900/30">
+                  <UsersRound className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Ocupantes</label>
+                  <p className="text-base font-semibold">{sector.occupants || '0'}</p>
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Unidades HVAC</label>
-                <p className="font-medium">{sector.hvacUnits || '0'}</p>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="p-2 rounded-md bg-cyan-100 dark:bg-cyan-900/30">
+                  <Wind className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Unidades HVAC</label>
+                  <p className="text-base font-semibold">{sector.hvacUnits || '0'}</p>
+                </div>
               </div>
             </div>
             {sector.notes && (
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Observações Adicionais</label>
-                <p className="break-words">{sector.notes}</p>
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-start gap-3">
+                  <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Observações</label>
+                    <p className="text-sm text-muted-foreground break-words mt-1">{sector.notes}</p>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>
@@ -270,18 +412,34 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 lg:gap-6">
         {/* Cartão: Informações */}
-        <Card className="location-card">
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Informações</CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-purple-100 dark:bg-purple-900/30">
+                <FileText className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <CardTitle className="text-base">Informações</CardTitle>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent>
             {subSection.notes ? (
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Observações</label>
-                <p className="break-words">{subSection.notes}</p>
+              <div className="flex items-start gap-3">
+                <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Observações</label>
+                  <p className="text-sm text-muted-foreground break-words mt-1">{subSection.notes}</p>
+                </div>
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm">Nenhuma observação cadastrada.</p>
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <div className="p-3 rounded-full bg-muted/50 mb-3">
+                  <FileText className="h-5 w-5 text-muted-foreground/50" />
+                </div>
+                <p className="text-sm text-muted-foreground">Nenhuma observação cadastrada</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                  Clique em editar para adicionar informações
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -292,44 +450,62 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
   return (
     <div className="space-y-6">
       {/* Cabeçalho com título e botões de ação */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between pb-4 border-b">
+        <div className="flex items-start gap-4">
           {getIcon()}
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl lg:text-2xl font-bold">{selectedNode.name}</h2>
-              <Badge variant="secondary">{getTypeLabel()}</Badge>
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-xl lg:text-2xl font-bold tracking-tight">{selectedNode.name}</h2>
+              <Badge 
+                variant="outline" 
+                className={cn('text-xs font-medium border', getTypeBadgeColor())}
+              >
+                {getTypeLabel()}
+              </Badge>
             </div>
+            <p className="text-sm text-muted-foreground">
+              Gerencie as informações e configurações desta localização
+            </p>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
           {/* Botão Editar localização */}
           <IfCanEdit subject="asset">
-            <Button 
-              variant="outline" 
-              onClick={onEdit} 
-              className="btn-press flex items-center gap-2"
-              aria-label="Editar localização"
-              data-testid="asset-edit"
-            >
-              <Edit className="h-4 w-4" />
-              Editar
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  onClick={onEdit} 
+                  className="gap-2 transition-all hover:border-primary hover:text-primary"
+                  aria-label="Editar localização"
+                  data-testid="asset-edit"
+                >
+                  <Edit className="h-4 w-4" />
+                  <span className="hidden sm:inline">Editar</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Editar localização</TooltipContent>
+            </Tooltip>
           </IfCanEdit>
           
           {/* Botão Excluir localização */}
           <IfCanEdit subject="asset">
-            <Button 
-              variant="outline" 
-              onClick={() => setDeleteDialogOpen(true)}
-              className="btn-press flex items-center gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-              aria-label="Excluir localização"
-              data-testid="asset-delete"
-            >
-              <Trash2 className="h-4 w-4" />
-              Excluir
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setDeleteDialogOpen(true)}
+                  className="gap-2 text-destructive border-destructive/30 hover:text-destructive hover:bg-destructive/10 hover:border-destructive"
+                  aria-label="Excluir localização"
+                  data-testid="asset-delete"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Excluir</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Excluir localização</TooltipContent>
+            </Tooltip>
           </IfCanEdit>
         </div>
       </div>
@@ -341,10 +517,15 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
 
       {/* Dialog de confirmação de exclusão */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-full bg-destructive/10">
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </div>
+              Confirmar exclusão
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-left">
               Tem certeza que deseja excluir {getTypeLabel().toLowerCase()} <strong>"{selectedNode.name}"</strong>?
               {selectedNode.type === 'company' && (
                 <span className="block mt-2 text-destructive">

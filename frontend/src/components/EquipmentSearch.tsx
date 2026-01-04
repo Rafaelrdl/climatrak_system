@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import {
   Search,
   Filter,
@@ -19,6 +21,15 @@ import {
   Settings,
   Plus,
   Pencil,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Activity,
+  Package,
+  Clock,
+  Building2,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import type { Equipment, EquipmentFilter } from '@/types';
 
@@ -30,6 +41,11 @@ interface EquipmentSearchProps {
   showCreateButton?: boolean;
   onCreateAsset?: () => void;
   onEditAsset?: (equipment: Equipment) => void;
+  // Props externas para controle a partir do pai
+  externalSearchTerm?: string;
+  externalViewMode?: 'grid' | 'list';
+  externalShowFilters?: boolean;
+  onExternalShowFiltersChange?: (show: boolean) => void;
 }
 
 export function EquipmentSearch({ 
@@ -39,16 +55,46 @@ export function EquipmentSearch({
   onEquipmentSelect,
   showCreateButton = false,
   onCreateAsset,
-  onEditAsset
+  onEditAsset,
+  externalSearchTerm,
+  externalViewMode,
+  externalShowFilters,
+  onExternalShowFiltersChange
 }: EquipmentSearchProps) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [internalSearchTerm, setInternalSearchTerm] = useState('');
   const [filters, setFilters] = useState<EquipmentFilter>({});
-  const [showFilters, setShowFilters] = useState(false);
+  const [internalShowFilters, setInternalShowFilters] = useState(false);
+  const [internalViewMode, setInternalViewMode] = useState<'grid' | 'list'>('grid');
+  
+  // Usa valores externos se fornecidos, senão usa internos
+  const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : internalSearchTerm;
+  const setSearchTerm = externalSearchTerm !== undefined ? () => {} : setInternalSearchTerm;
+  const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
+  const showFilters = externalShowFilters !== undefined ? externalShowFilters : internalShowFilters;
+  const setShowFilters = onExternalShowFiltersChange !== undefined ? onExternalShowFiltersChange : setInternalShowFilters;
 
   // Get unique values for filter dropdowns
   const uniqueTypes = [...new Set(equipment.map(e => e.type))];
   const uniqueBrands = [...new Set(equipment.map(e => e.brand))];
   const uniqueStatuses = [...new Set(equipment.map(e => e.status))];
+
+  // Calculate KPIs from equipment data
+  const kpis = useMemo(() => {
+    const total = equipment.length;
+    const operational = equipment.filter(e => e.status === 'OK').length;
+    const maintenance = equipment.filter(e => e.status === 'MAINTENANCE').length;
+    const stopped = equipment.filter(e => e.status === 'STOPPED' || e.status === 'ALERT').length;
+    const critical = equipment.filter(e => e.criticidade === 'CRITICA' || e.criticidade === 'ALTA').length;
+    
+    return {
+      total,
+      operational,
+      maintenance,
+      stopped,
+      critical,
+      operationalPercent: total > 0 ? Math.round((operational / total) * 100) : 0,
+    };
+  }, [equipment]);
 
   // Helper function to extract original ID from unique node ID
   const extractOriginalId = (nodeId: string, type: 'sector' | 'subsection'): string | null => {
@@ -199,7 +245,9 @@ export function EquipmentSearch({
 
   const clearFilters = () => {
     setFilters({});
-    setSearchTerm('');
+    if (externalSearchTerm === undefined) {
+      setInternalSearchTerm('');
+    }
   };
 
   const hasActiveFilters = searchTerm || 
@@ -214,10 +262,10 @@ export function EquipmentSearch({
 
   const getStatusIcon = (status: Equipment['status']) => {
     switch (status) {
-      case 'OK': return <Zap className="h-4 w-4 text-green-500" />;
-      case 'MAINTENANCE': return <Wrench className="h-4 w-4 text-yellow-500" />;
-      case 'ALERT': return <AlertCircle className="h-4 w-4 text-orange-500" />;
-      case 'STOPPED': return <AlertCircle className="h-4 w-4 text-red-500" />;
+      case 'OK': return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
+      case 'MAINTENANCE': return <Wrench className="h-4 w-4 text-amber-500" />;
+      case 'ALERT': return <AlertTriangle className="h-4 w-4 text-orange-500" />;
+      case 'STOPPED': return <XCircle className="h-4 w-4 text-red-500" />;
       default: return null;
     }
   };
@@ -225,7 +273,7 @@ export function EquipmentSearch({
   const getStatusLabel = (status: Equipment['status']) => {
     switch (status) {
       case 'OK': return 'Operacional';
-      case 'MAINTENANCE': return 'Em Manuten??o';
+      case 'MAINTENANCE': return 'Em Manutenção';
       case 'ALERT': return 'Alerta';
       case 'STOPPED': return 'Parado';
       default: return status;
@@ -241,50 +289,186 @@ export function EquipmentSearch({
           ? 'outline'
           : 'destructive';
 
+  const getStatusColor = (status: Equipment['status']) => {
+    switch (status) {
+      case 'OK': return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20';
+      case 'MAINTENANCE': return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20';
+      case 'ALERT': return 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20';
+      case 'STOPPED': return 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20';
+      default: return 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20';
+    }
+  };
+
+  const getCriticidadeColor = (criticidade: Equipment['criticidade']) => {
+    switch (criticidade) {
+      case 'CRITICA': return 'bg-red-500';
+      case 'ALTA': return 'bg-orange-500';
+      case 'MEDIA': return 'bg-amber-500';
+      case 'BAIXA': return 'bg-blue-500';
+      default: return 'bg-gray-400';
+    }
+  };
+
+  const getCriticidadeLabel = (criticidade: Equipment['criticidade']) => {
+    switch (criticidade) {
+      case 'CRITICA': return 'Crítica';
+      case 'ALTA': return 'Alta';
+      case 'MEDIA': return 'Média';
+      case 'BAIXA': return 'Baixa';
+      default: return criticidade;
+    }
+  };
+
+  const getTypeIcon = (type: Equipment['type']) => {
+    switch (type) {
+      case 'CHILLER': return '❄️';
+      case 'VRF': return '🔄';
+      case 'CENTRAL': return '🏢';
+      case 'SPLIT': return '💨';
+      default: return '📦';
+    }
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Search Bar and Filter Toggle */}
-      <div className="flex flex-col sm:flex-row gap-4">
+    <div className="space-y-3">
+      {/* KPI Cards - Resumo Visual - mais compactos */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        <Card className="bg-card/50 border-0 shadow-sm">
+          <CardContent className="p-2.5 sm:p-3">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Package className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider truncate">Total</p>
+                <p className="text-lg font-bold">{kpis.total}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/50 border-0 shadow-sm">
+          <CardContent className="p-2.5 sm:p-3">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider truncate">Operacionais</p>
+                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{kpis.operational}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/50 border-0 shadow-sm">
+          <CardContent className="p-2.5 sm:p-3">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                <Wrench className="h-3.5 w-3.5 text-amber-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider truncate">Manutenção</p>
+                <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{kpis.maintenance}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/50 border-0 shadow-sm">
+          <CardContent className="p-2.5 sm:p-3">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
+                <XCircle className="h-3.5 w-3.5 text-red-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider truncate">Parados</p>
+                <p className="text-lg font-bold text-red-600 dark:text-red-400">{kpis.stopped}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/50 border-0 shadow-sm col-span-2 sm:col-span-1">
+          <CardContent className="p-2.5 sm:p-3">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider truncate">Críticos</p>
+                <p className="text-lg font-bold text-orange-600 dark:text-orange-400">{kpis.critical}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Search Bar and Filter Toggle - Oculto quando controle externo é usado */}
+      {externalSearchTerm === undefined && (
+      <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
-            placeholder="Buscar por tag, modelo, marca, tipo ou número de série..."
+            placeholder="Buscar por tag, modelo, marca ou série..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            onChange={(e) => setInternalSearchTerm(e.target.value)}
+            className="pl-8 h-8 text-sm bg-card border-0 shadow-sm"
           />
         </div>
-        <div className="flex gap-2">
+        
+        <div className="flex items-center gap-1.5">
+          {/* Toggle View Mode */}
+          <div className="flex border rounded-md p-0.5 bg-muted/30 shrink-0">
+            <Button
+              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={() => setInternalViewMode('grid')}
+            >
+              <LayoutGrid className="h-3 w-3" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={() => setInternalViewMode('list')}
+            >
+              <List className="h-3 w-3" />
+            </Button>
+          </div>
+
           <Popover open={showFilters} onOpenChange={setShowFilters}>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="whitespace-nowrap">
-                <Filter className="h-4 w-4 mr-2" />
-                Filtros
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 border-0 shadow-sm bg-card text-xs">
+                <Filter className="h-3 w-3" />
+                <span className="hidden sm:inline">Filtros</span>
                 {hasActiveFilters && (
-                  <Badge className="ml-2 h-5 w-5 p-0 text-xs">!</Badge>
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-96 p-6" align="end">
-              <div className="space-y-6">
+            <PopoverContent className="w-72 p-3" align="end">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Filtros Avançados</h4>
+                  <h4 className="text-xs font-medium">Filtros</h4>
                   {hasActiveFilters && (
-                    <Button variant="ghost" size="sm" onClick={clearFilters}>
-                      <X className="h-4 w-4 mr-1" />
+                    <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={clearFilters}>
+                      <X className="h-2.5 w-2.5 mr-1" />
                       Limpar
                     </Button>
                   )}
                 </div>
 
                 {/* Type Filter */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Tipo de Equipamento</Label>
-                  <div className="space-y-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-medium text-muted-foreground uppercase">Tipo</Label>
+                  <div className="grid grid-cols-2 gap-1">
                     {uniqueTypes.map(type => (
-                      <div key={type} className="flex items-center space-x-2">
+                      <div key={type} className="flex items-center space-x-1.5">
                         <Checkbox
                           id={`type-${type}`}
+                          className="h-3.5 w-3.5"
                           checked={filters.type?.includes(type) || false}
                           onCheckedChange={(checked) => {
                             setFilters(prev => ({
@@ -295,7 +479,7 @@ export function EquipmentSearch({
                             }));
                           }}
                         />
-                        <Label htmlFor={`type-${type}`} className="text-sm">
+                        <Label htmlFor={`type-${type}`} className="text-[11px]">
                           {type}
                         </Label>
                       </div>
@@ -304,13 +488,14 @@ export function EquipmentSearch({
                 </div>
 
                 {/* Status Filter */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Status</Label>
-                  <div className="space-y-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-medium text-muted-foreground uppercase">Status</Label>
+                  <div className="grid grid-cols-2 gap-1">
                     {uniqueStatuses.map(status => (
-                      <div key={status} className="flex items-center space-x-2">
+                      <div key={status} className="flex items-center space-x-1.5">
                         <Checkbox
                           id={`status-${status}`}
+                          className="h-3.5 w-3.5"
                           checked={filters.status?.includes(status) || false}
                           onCheckedChange={(checked) => {
                             setFilters(prev => ({
@@ -321,7 +506,7 @@ export function EquipmentSearch({
                             }));
                           }}
                         />
-                        <Label htmlFor={`status-${status}`} className="text-sm flex items-center gap-2">
+                        <Label htmlFor={`status-${status}`} className="text-[11px] flex items-center gap-1">
                           {getStatusIcon(status)}
                           {getStatusLabel(status)}
                         </Label>
@@ -331,13 +516,14 @@ export function EquipmentSearch({
                 </div>
 
                 {/* Brand Filter */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Marca</Label>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-medium text-muted-foreground uppercase">Marca</Label>
+                  <div className="grid grid-cols-2 gap-1 max-h-20 overflow-y-auto">
                     {uniqueBrands.map(brand => (
-                      <div key={brand} className="flex items-center space-x-2">
+                      <div key={brand} className="flex items-center space-x-1.5">
                         <Checkbox
                           id={`brand-${brand}`}
+                          className="h-3.5 w-3.5"
                           checked={filters.brand?.includes(brand) || false}
                           onCheckedChange={(checked) => {
                             setFilters(prev => ({
@@ -348,7 +534,7 @@ export function EquipmentSearch({
                             }));
                           }}
                         />
-                        <Label htmlFor={`brand-${brand}`} className="text-sm">
+                        <Label htmlFor={`brand-${brand}`} className="text-[11px] truncate">
                           {brand}
                         </Label>
                       </div>
@@ -357,8 +543,8 @@ export function EquipmentSearch({
                 </div>
 
                 {/* Maintenance Due Filter */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Manutenção</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-medium text-muted-foreground uppercase">Manutenção</Label>
                   <Select
                     value={filters.maintenanceDue || 'all'}
                     onValueChange={(value) => 
@@ -368,7 +554,7 @@ export function EquipmentSearch({
                       }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-7 text-[11px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -380,12 +566,13 @@ export function EquipmentSearch({
                 </div>
 
                 {/* Capacity Range Filter */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Capacidade (BTUs)</Label>
-                  <div className="flex gap-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-medium text-muted-foreground uppercase">Capacidade (BTUs)</Label>
+                  <div className="flex gap-1.5">
                     <Input
                       type="number"
                       placeholder="Mín"
+                      className="h-7 text-[11px]"
                       value={filters.capacity?.min || ''}
                       onChange={(e) => 
                         setFilters(prev => ({
@@ -400,6 +587,7 @@ export function EquipmentSearch({
                     <Input
                       type="number"
                       placeholder="Máx"
+                      className="h-7 text-[11px]"
                       value={filters.capacity?.max || ''}
                       onChange={(e) => 
                         setFilters(prev => ({
@@ -421,161 +609,282 @@ export function EquipmentSearch({
           {showCreateButton && onCreateAsset && (
             <Button 
               onClick={onCreateAsset} 
-              className="flex items-center gap-2"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
               data-testid="create-asset-button"
             >
-              <Plus className="h-4 w-4" />
-              Ativo
+              <Plus className="h-3 w-3" />
+              <span className="hidden sm:inline">Novo Ativo</span>
             </Button>
           )}
           
           {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
-              <X className="h-4 w-4" />
+            <Button variant="ghost" size="icon" onClick={clearFilters} className="h-8 w-8">
+              <X className="h-3.5 w-3.5" />
             </Button>
           )}
         </div>
       </div>
+      )}
 
-      {/* Results Count and Active Filters */}
-      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-        <span>{filteredEquipment.length} equipamentos encontrados</span>
+      {/* Results Count and Active Filters - Compact inline display */}
+      <div className="flex flex-wrap items-center gap-2 text-[11px]">
+        <span className="text-muted-foreground">
+          <span className="font-semibold text-foreground">{filteredEquipment.length}</span> {filteredEquipment.length === 1 ? 'ativo' : 'ativos'}
+        </span>
         {hasActiveFilters && (
-          <div className="flex flex-wrap gap-2">
-            {searchTerm && (
-              <Badge variant="secondary">
-                Busca: {searchTerm}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto p-0 ml-1"
-                  onClick={() => setSearchTerm('')}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
-            )}
-            {filters.type?.map(type => (
-              <Badge key={type} variant="secondary">
-                Tipo: {type}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto p-0 ml-1"
-                  onClick={() => setFilters(prev => ({
-                    ...prev,
-                    type: prev.type?.filter(t => t !== type)
-                  }))}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
-            ))}
-            {filters.status?.map(status => (
-              <Badge key={status} variant="secondary">
-                Status: {getStatusLabel(status)}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto p-0 ml-1"
-                  onClick={() => setFilters(prev => ({
-                    ...prev,
-                    status: prev.status?.filter(s => s !== status)
-                  }))}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
-            ))}
-          </div>
+          <>
+            <span className="text-muted-foreground/50">•</span>
+            <div className="flex flex-wrap gap-1">
+              {searchTerm && (
+                <Badge variant="secondary" className="h-4 text-[10px] gap-0.5 pr-0.5">
+                  {searchTerm}
+                  <button
+                    className="ml-0.5 rounded-full hover:bg-muted-foreground/20 p-0.5"
+                    onClick={() => setSearchTerm('')}
+                  >
+                    <X className="h-2 w-2" />
+                  </button>
+                </Badge>
+              )}
+              {filters.type?.map(type => (
+                <Badge key={type} variant="secondary" className="h-4 text-[10px] gap-0.5 pr-0.5">
+                  {type}
+                  <button
+                    className="ml-0.5 rounded-full hover:bg-muted-foreground/20 p-0.5"
+                    onClick={() => setFilters(prev => ({
+                      ...prev,
+                      type: prev.type?.filter(t => t !== type)
+                    }))}
+                  >
+                    <X className="h-2 w-2" />
+                  </button>
+                </Badge>
+              ))}
+              {filters.status?.map(status => (
+                <Badge key={status} variant="secondary" className="h-4 text-[10px] gap-0.5 pr-0.5">
+                  {getStatusLabel(status)}
+                  <button
+                    className="ml-0.5 rounded-full hover:bg-muted-foreground/20 p-0.5"
+                    onClick={() => setFilters(prev => ({
+                      ...prev,
+                      status: prev.status?.filter(s => s !== status)
+                    }))}
+                  >
+                    <X className="h-2 w-2" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
       {/* Equipment Results */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredEquipment.map(eq => {
-          return (
-            <Card 
-              key={eq.id}
-              className="location-card cursor-pointer hover:shadow-md transition-all"
-              onClick={() => onEquipmentSelect(eq)}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{eq.tag}</CardTitle>
-                  <div className="flex items-center gap-2">
-                    {onEditAsset && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEditAsset(eq);
-                        }}
-                        title="Editar equipamento"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {getStatusIcon(eq.status)}
-                  </div>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {eq.brand} {eq.model}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Settings className="h-4 w-4 text-muted-foreground" />
-                      <span>{eq.type}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-muted-foreground" />
-                      <span>{typeof eq.capacity === 'number' ? eq.capacity.toLocaleString('pt-BR') : 'N/A'} BTUs</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>{eq.installDate ? new Date(eq.installDate).toLocaleDateString('pt-BR') : 'N/A'}</span>
-                    </div>
-                    {eq.location && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="truncate">{eq.location}</span>
+      <TooltipProvider>
+        <div className={cn(
+          viewMode === 'grid' 
+            ? "grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+            : "flex flex-col gap-1"
+        )}>
+          {filteredEquipment.map(eq => {
+            if (viewMode === 'list') {
+              // List View - Compact Row
+              return (
+                <Card 
+                  key={eq.id}
+                  className="cursor-pointer hover:bg-accent/50 transition-colors border-0 bg-card/50 shadow-sm"
+                  onClick={() => onEquipmentSelect(eq)}
+                >
+                  <CardContent className="p-2">
+                    <div className="flex items-center gap-2.5">
+                      {/* Criticidade indicator */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className={cn("w-0.5 h-8 rounded-full", getCriticidadeColor(eq.criticidade))} />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Criticidade: {getCriticidadeLabel(eq.criticidade)}</p>
+                        </TooltipContent>
+                      </Tooltip>
+
+                      {/* Type Icon */}
+                      <span className="text-base">{getTypeIcon(eq.type)}</span>
+
+                      {/* Main Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm truncate">{eq.tag}</span>
+                          <Badge variant="outline" className="text-[10px] h-4 px-1.5 shrink-0">{eq.type}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{eq.brand} {eq.model}</p>
                       </div>
+
+                      {/* Location */}
+                      {(eq.sectorName || eq.location) && (
+                        <div className="hidden lg:flex items-center gap-1 text-xs text-muted-foreground max-w-[120px]">
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{eq.sectorName || eq.location}</span>
+                        </div>
+                      )}
+
+                      {/* Status Badge */}
+                      <Badge className={cn("shrink-0 text-[10px] h-5 px-1.5", getStatusColor(eq.status))}>
+                        {getStatusIcon(eq.status)}
+                        <span className="ml-1">{getStatusLabel(eq.status)}</span>
+                      </Badge>
+
+                      {/* Actions */}
+                      {onEditAsset && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditAsset(eq);
+                          }}
+                          title="Editar ativo"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            }
+
+            // Grid View - Card
+            return (
+              <Card 
+                key={eq.id}
+                className={cn(
+                  "group cursor-pointer transition-all duration-200",
+                  "hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5",
+                  "relative overflow-hidden border-0 bg-card/50 shadow-sm"
+                )}
+                onClick={() => onEquipmentSelect(eq)}
+              >
+                {/* Criticidade indicator bar */}
+                <div className={cn(
+                  "absolute top-0 left-0 right-0 h-0.5",
+                  getCriticidadeColor(eq.criticidade)
+                )} />
+
+                <CardHeader className="pb-2 pt-3 px-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-base shrink-0">{getTypeIcon(eq.type)}</span>
+                      <div className="min-w-0">
+                        <CardTitle className="text-sm font-medium truncate">{eq.tag}</CardTitle>
+                        <p className="text-xs text-muted-foreground truncate">{eq.brand} {eq.model}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {onEditAsset && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditAsset(eq);
+                          }}
+                          title="Editar ativo"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {getStatusIcon(eq.status)}
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-2 pb-3 px-3">
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-2 gap-1.5 text-xs">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Zap className="h-3 w-3" />
+                          <span className="truncate">{typeof eq.capacity === 'number' ? eq.capacity.toLocaleString('pt-BR') : 'N/A'} BTUs</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>Capacidade</TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          <span className="truncate">{eq.installDate ? new Date(eq.installDate).toLocaleDateString('pt-BR') : 'N/A'}</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>Data de Instalação</TooltipContent>
+                    </Tooltip>
+
+                    {(eq.sectorName || eq.location) && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-1 text-muted-foreground col-span-2">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{eq.sectorName || eq.location}</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>Localização</TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
-                </div>
-                
-                <div className="flex items-center justify-between pt-2 border-t">
-                  <Badge variant={getStatusVariant(eq.status)}>
-                    {getStatusLabel(eq.status)}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                  
+                  {/* Footer with Status and Criticidade */}
+                  <div className="flex items-center justify-between pt-2 border-t gap-2">
+                    <Badge className={cn("text-[10px] h-5 px-1.5", getStatusColor(eq.status))}>
+                      {getStatusLabel(eq.status)}
+                    </Badge>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1">
+                          <div className={cn("w-1.5 h-1.5 rounded-full", getCriticidadeColor(eq.criticidade))} />
+                          <span className="text-[10px] text-muted-foreground">{getCriticidadeLabel(eq.criticidade)}</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>Nível de Criticidade</TooltipContent>
+                    </Tooltip>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </TooltipProvider>
 
       {filteredEquipment.length === 0 && (
-        <Card className="text-center py-12">
-          <CardContent>
-            <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-medium mb-2">Nenhum equipamento encontrado</h3>
-            <p className="text-muted-foreground mb-4">
-              Tente ajustar os filtros de pesquisa ou adicionar novos equipamentos.
+        <Card className="border-dashed border">
+          <CardContent className="flex flex-col items-center justify-center py-12 px-6">
+            <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+              <Package className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-sm font-semibold mb-1">Nenhum ativo encontrado</h3>
+            <p className="text-xs text-muted-foreground text-center max-w-xs mb-4">
+              {hasActiveFilters 
+                ? 'Nenhum ativo corresponde aos filtros aplicados.'
+                : 'Comece cadastrando o primeiro ativo deste local.'}
             </p>
-            {hasActiveFilters && (
-              <Button variant="outline" onClick={clearFilters}>
-                <X className="h-4 w-4 mr-2" />
-                Limpar Filtros
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {hasActiveFilters && (
+                <Button variant="outline" size="sm" onClick={clearFilters}>
+                  <X className="h-3.5 w-3.5 mr-1.5" />
+                  Limpar Filtros
+                </Button>
+              )}
+              {showCreateButton && onCreateAsset && (
+                <Button size="sm" onClick={onCreateAsset}>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Cadastrar Ativo
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { PageHeader } from '@/shared/ui';
 import { Button } from '@/components/ui/button';
 import { LocationTree } from '@/components/LocationTree';
 import { LocationDetails } from '@/components/LocationDetails';
@@ -14,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Building2, MapPin, Users, Search, BarChart3, Activity, Info } from 'lucide-react';
+import { Building2, MapPin, Users, Search, BarChart3, Activity, Info, Package, LayoutGrid, List, Filter, Plus } from 'lucide-react';
 import { useEquipments, equipmentKeys } from '@/hooks/useEquipmentQuery';
 import { useSectors, useSubsections, useCompanies } from '@/hooks/useLocationsQuery';
 import { useSitesQuery } from '@/apps/monitor/hooks/useSitesQuery';
@@ -97,6 +98,10 @@ function AssetsContent() {
   const [locationModalType, setLocationModalType] = useState<'company' | 'sector' | 'subsection'>('company');
   // Controla qual aba está ativa (ativos, análises ou local)
   const [activeTab, setActiveTab] = useState('search');
+  // Estados para controles da barra de ferramentas unificada
+  const [equipmentSearchTerm, setEquipmentSearchTerm] = useState('');
+  const [equipmentViewMode, setEquipmentViewMode] = useState<'grid' | 'list'>('grid');
+  const [showEquipmentFilters, setShowEquipmentFilters] = useState(false);
   // Lista de equipamentos filtrados para exibição
   const [filteredEquipment, setFilteredEquipment] = useState<Equipment[]>(filteredEquipmentData);
   // Controla a abertura do modal de edição de equipamento
@@ -496,148 +501,169 @@ function AssetsContent() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-8rem)]">
-      {/* ========== BARRA LATERAL - ÁRVORE DE LOCAIS ========== */}
-      {/* Oculta no mobile, visível no desktop */}
-      <div className="hidden lg:flex w-80 border-r bg-card">
-        <div className="flex flex-col h-full w-full">
-          <div className="flex items-center justify-between p-4 border-b">
-            <h3 className="font-semibold text-lg">Locais</h3>
-          </div>
-          {/* Componente da árvore hierárquica de locais */}
-          <LocationTree />
-        </div>
-      </div>
-      
+    <div className="flex gap-6 h-[calc(100vh-5rem)]">
+      {/* ========== SIDEBAR DE LOCAIS - ALTURA TOTAL ========== */}
+      <aside className="hidden lg:flex flex-col w-[340px] xl:w-[400px] 2xl:w-[440px] shrink-0">
+        <LocationTree 
+          onCreateLocation={handleCreateLocation}
+          companies={companies}
+          sectors={sectors}
+        />
+      </aside>
+
       {/* ========== CONTEÚDO PRINCIPAL ========== */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* ========== CABEÇALHO COM BOTÕES DE AÇÃO ========== */}
-        <div className="p-4 lg:p-6 border-b bg-background">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <h1 className="text-xl lg:text-2xl font-bold">Gestão de Ativos</h1>
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {/* Cabeçalho */}
+        <div className="shrink-0 space-y-4 pb-4">
+          <PageHeader 
+            title="Gestão de Ativos"
+            description="Gerencie equipamentos, localizações e análises de utilização"
+            icon={<Package className="h-6 w-6" />}
+          />
+          
+          {/* Informações sobre filtros de dados aplicados */}
+          {equipmentFilterStats.filtered > 0 && (
+            <DataFilterInfo
+              filterStats={equipmentFilterStats}
+              dataType="asset"
+              canViewAll={role === 'admin'}
+              className="text-xs"
+            />
+          )}
+        </div>
+        
+        {/* ========== SISTEMA DE ABAS ========== */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+          {/* Barra de ferramentas unificada: Abas + Busca + Controles */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-4 shrink-0">
+            {/* Abas à esquerda */}
+            <TabsList className="shrink-0">
+              <TabsTrigger value="search" className="gap-2">
+                <Search className="h-4 w-4" />
+                Ativos
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Análises
+              </TabsTrigger>
+              <TabsTrigger value="locations" className="gap-2">
+                <MapPin className="h-4 w-4" />
+                Locais
+              </TabsTrigger>
+            </TabsList>
             
-            {/* Informações sobre filtros de dados aplicados */}
-            {equipmentFilterStats.filtered > 0 && (
-              <DataFilterInfo
-                filterStats={equipmentFilterStats}
-                dataType="asset"
-                canViewAll={role === 'admin'}
-                className="lg:max-w-md"
-              />
+            {/* Busca e controles à direita - visível apenas na aba de Ativos */}
+            {activeTab === 'search' && (
+              <div className="flex flex-1 items-center gap-2 w-full sm:w-auto">
+                {/* Campo de busca */}
+                <div className="relative flex-1 min-w-0">
+                  <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por tag, modelo, marca ou série..."
+                    value={equipmentSearchTerm}
+                    onChange={(e) => setEquipmentSearchTerm(e.target.value)}
+                    className="pl-8 h-9 text-sm bg-card border shadow-sm"
+                  />
+                </div>
+                
+                {/* Toggle View Mode */}
+                <div className="flex border rounded-md p-0.5 bg-muted/30 shrink-0">
+                  <Button
+                    variant={equipmentViewMode === 'grid' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => setEquipmentViewMode('grid')}
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant={equipmentViewMode === 'list' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => setEquipmentViewMode('list')}
+                  >
+                    <List className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                
+                {/* Botão de Filtros */}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-9 gap-1.5 shadow-sm shrink-0"
+                  onClick={() => setShowEquipmentFilters(!showEquipmentFilters)}
+                >
+                  <Filter className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Filtros</span>
+                </Button>
+                
+                {/* Botão Novo Ativo */}
+                <IfCan action="create" subject="asset">
+                  <Button 
+                    size="sm" 
+                    className="h-9 gap-1.5 shrink-0"
+                    onClick={() => setIsEquipmentDialogOpen(true)}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Novo Ativo</span>
+                  </Button>
+                </IfCan>
+              </div>
             )}
-            
-            {/* Árvore de locais no mobile (componente colapsável) */}
-            <div className="lg:hidden">
-              <LocationTree />
-            </div>
-            
-            {/* Botões para criar novos locais - com controle de permissões */}
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Botão para criar empresa - apenas usuários com permissão */}
-              <IfCan action="create" subject="asset">
-                <Button 
-                  onClick={() => handleCreateLocation('company')}
-                  className="flex items-center gap-2 text-sm"
-                  size="sm"
-                  data-testid="company-create"
-                >
-                  <Building2 className="h-4 w-4" />
-                  + Empresa
-                </Button>
-              </IfCan>
-              
-              {/* Botão para criar setor - desabilitado se não há empresas */}
-              <IfCan action="create" subject="asset">
-                <Button 
-                  onClick={() => handleCreateLocation('sector')}
-                  disabled={companies.length === 0}
-                  variant="outline"
-                  className="flex items-center gap-2 text-sm"
-                  size="sm"
-                  data-testid="sector-create"
-                >
-                  <MapPin className="h-4 w-4" />
-                  + Setor
-                </Button>
-              </IfCan>
-              
-              {/* Botão para criar subsetor - desabilitado se não há setores */}
-              <IfCan action="create" subject="asset">
-                <Button 
-                  onClick={() => handleCreateLocation('subsection')}
-                  disabled={sectors.length === 0}
-                  variant="outline"
-                  className="flex items-center gap-2 text-sm"
-                  size="sm"
-                  data-testid="subsection-create"
-                >
-                  <Users className="h-4 w-4" />
-                  + Subsetor
-                </Button>
-              </IfCan>
-            </div>
           </div>
-        </div>
 
-        {/* ========== SISTEMA DE ABAS PARA GESTÃO DE EQUIPAMENTOS ========== */}
-        <div className="flex-1 overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            {/* Navegação das abas */}
-            <div className="border-b bg-background px-4 lg:px-6">
-              <TabsList className="grid w-full max-w-md grid-cols-3">
-                {/* Aba de ativos/equipamentos */}
-                <TabsTrigger value="search" className="flex items-center gap-2">
-                  <Search className="h-4 w-4" />
-                  Ativos
-                </TabsTrigger>
-                {/* Aba de análises e dashboards */}
-                <TabsTrigger value="analytics" className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  Análises
-                </TabsTrigger>
-                {/* Aba de detalhes dos locais */}
-                <TabsTrigger value="locations" className="flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Local
-                </TabsTrigger>
-              </TabsList>
+          {/* ABA DE ATIVOS */}
+          <TabsContent value="search" className="mt-0 flex-1 overflow-auto">
+            {/* Árvore de locais no mobile */}
+            <div className="lg:hidden mb-4">
+              <LocationTree 
+                onCreateLocation={handleCreateLocation}
+                companies={companies}
+                sectors={sectors}
+              />
             </div>
+            
+            <EquipmentSearch
+              equipment={filteredEquipmentData}
+              selectedLocation={selectedNode?.id}
+              onFilteredResults={handleFilteredResults}
+              onEquipmentSelect={handleEquipmentSelect}
+              showCreateButton={false}
+              onCreateAsset={() => {
+                setIsEquipmentDialogOpen(true);
+              }}
+              onEditAsset={handleEditEquipment}
+              externalSearchTerm={equipmentSearchTerm}
+              externalViewMode={equipmentViewMode}
+              externalShowFilters={showEquipmentFilters}
+              onExternalShowFiltersChange={setShowEquipmentFilters}
+            />
+          </TabsContent>
 
-            {/* Conteúdo das abas */}
-            <div className="flex-1 overflow-auto">
-              {/* ABA DE ATIVOS - Componente para buscar e filtrar equipamentos */}
-              <TabsContent value="search" className="h-full p-4 lg:p-6 m-0">
-                <EquipmentSearch
-                  equipment={filteredEquipmentData}
-                  selectedLocation={selectedNode?.id}
-                  onFilteredResults={handleFilteredResults}
-                  onEquipmentSelect={handleEquipmentSelect}
-                  showCreateButton={true} // Sempre mostrar para debug
-                  onCreateAsset={() => {
+          {/* ABA DE ANÁLISES */}
+          <TabsContent value="analytics" className="mt-0 flex-1 overflow-auto">
+            <AssetUtilizationDashboard
+              equipment={filteredEquipment}
+              selectedLocation={selectedNode?.id}
+            />
+          </TabsContent>
 
-                    setIsEquipmentDialogOpen(true);
-                  }}
-                  onEditAsset={handleEditEquipment}
-                />
-              </TabsContent>
-
-              {/* ABA DE ANÁLISES - Dashboard de utilização de ativos */}
-              <TabsContent value="analytics" className="h-full p-4 lg:p-6 m-0">
-                <AssetUtilizationDashboard
-                  equipment={filteredEquipment}
-                  selectedLocation={selectedNode?.id}
-                />
-              </TabsContent>
-
-              {/* ABA DE LOCAL - Detalhes do local selecionado */}
-              <TabsContent value="locations" className="h-full p-4 lg:p-6 m-0">
-                <LocationDetails 
-                  onEdit={handleEditLocation}
-                />
-              </TabsContent>
+          {/* ABA DE LOCAIS */}
+          <TabsContent value="locations" className="mt-0 flex-1 overflow-auto">
+            {/* Árvore de locais no mobile */}
+            <div className="lg:hidden mb-4">
+              <LocationTree 
+                onCreateLocation={handleCreateLocation}
+                companies={companies}
+                sectors={sectors}
+              />
             </div>
-          </Tabs>
-        </div>
+            
+            <LocationDetails 
+              onEdit={handleEditLocation}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* ========== MODAL DE CRIAÇÃO DE EQUIPAMENTO ========== */}
