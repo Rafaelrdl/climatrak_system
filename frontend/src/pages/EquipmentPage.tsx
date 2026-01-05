@@ -27,6 +27,8 @@ import { equipmentService } from '@/services/equipmentService';
 import type { Equipment, SubSection } from '@/types';
 import { toast } from 'sonner';
 
+const EMPTY_ARRAY: never[] = [];
+
 /**
  * PÁGINA DE GESTÃO DE ATIVOS
  * 
@@ -52,12 +54,18 @@ function AssetsContent() {
   // ========== HOOKS PARA DADOS ==========
   // React Query hooks
   const queryClient = useQueryClient();
-  const { data: equipment = [] } = useEquipments();
-  const { data: sectors = [] } = useSectors();
-  const { data: subSections = [] } = useSubsections();
-  const { data: companies = [] } = useCompanies();
-  const { data: units = [] } = useUnits();
-  const { data: sites = [] } = useSitesQuery();
+  const equipmentQuery = useEquipments();
+  const sectorsQuery = useSectors();
+  const subSectionsQuery = useSubsections();
+  const companiesQuery = useCompanies();
+  const unitsQuery = useUnits();
+  const sitesQuery = useSitesQuery();
+  const equipment = equipmentQuery.data ?? EMPTY_ARRAY;
+  const sectors = sectorsQuery.data ?? EMPTY_ARRAY;
+  const subSections = subSectionsQuery.data ?? EMPTY_ARRAY;
+  const companies = companiesQuery.data ?? EMPTY_ARRAY;
+  const units = unitsQuery.data ?? EMPTY_ARRAY;
+  const sites = sitesQuery.data ?? EMPTY_ARRAY;
   
   // Debug: log equipment data to check if location fields are present
   useEffect(() => {
@@ -524,9 +532,9 @@ function AssetsContent() {
    * 
    * @param filtered - Lista de equipamentos filtrados
    */
-  const handleFilteredResults = (filtered: Equipment[]) => {
+  const handleFilteredResults = useCallback((filtered: Equipment[]) => {
     setFilteredEquipment(filtered);
-  };
+  }, [setFilteredEquipment]);
 
   return (
     <div className="flex gap-6 h-[calc(100vh-5rem)]">
