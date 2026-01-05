@@ -8,14 +8,13 @@ import { LocationDetails } from '@/components/LocationDetails';
 import { LocationFormModal } from '@/components/LocationFormModal';
 import { EquipmentSearch } from '@/components/EquipmentSearch';
 import { EquipmentEditModal } from '@/components/EquipmentEditModal';
-import { AssetUtilizationDashboard } from '@/components/AssetUtilizationDashboard';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Building2, MapPin, Users, Search, BarChart3, Activity, Info, Package, LayoutGrid, List, Filter, Plus } from 'lucide-react';
+import { Building2, MapPin, Users, Search, Activity, Info, Package, LayoutGrid, List, Filter, Plus } from 'lucide-react';
 import { useEquipments, equipmentKeys } from '@/hooks/useEquipmentQuery';
 import { useSectors, useSubsections, useCompanies, useUnits } from '@/hooks/useLocationsQuery';
 import { useSitesQuery } from '@/apps/monitor/hooks/useSitesQuery';
@@ -39,7 +38,6 @@ const EMPTY_ARRAY: never[] = [];
  * Funcionalidades principais:
  * - Menu hierárquico de locais (LocationTree)
  * - Busca e listagem de equipamentos
- * - Dashboard de análises de utilização
  * - Criação e edição de locais e equipamentos
  * - Controle de acesso baseado em permissões
  */
@@ -105,7 +103,7 @@ function AssetsContent() {
   const [locationModalMode, setLocationModalMode] = useState<'create' | 'edit'>('create');
   // Define o tipo de local sendo criado/editado (empresa, unidade, setor ou subsetor)
   const [locationModalType, setLocationModalType] = useState<'company' | 'unit' | 'sector' | 'subsection'>('company');
-  // Controla qual aba está ativa (ativos, análises ou local)
+  // Controla qual aba está ativa (ativos ou locais)
   const [activeTab, setActiveTab] = useState('search');
   // Estados para controles da barra de ferramentas unificada
   const [equipmentSearchTerm, setEquipmentSearchTerm] = useState('');
@@ -554,7 +552,7 @@ function AssetsContent() {
         <div className="shrink-0 space-y-4 pb-4">
           <PageHeader 
             title="Gestão de Ativos"
-            description="Gerencie equipamentos, localizações e análises de utilização"
+            description="Gerencie equipamentos e localizações"
             icon={<Package className="h-6 w-6" />}
           />
           
@@ -578,10 +576,6 @@ function AssetsContent() {
               <TabsTrigger value="search" className="gap-2">
                 <Search className="h-4 w-4" />
                 Ativos
-              </TabsTrigger>
-              <TabsTrigger value="analytics" className="gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Análises
               </TabsTrigger>
               <TabsTrigger value="locations" className="gap-2">
                 <MapPin className="h-4 w-4" />
@@ -675,14 +669,6 @@ function AssetsContent() {
               externalViewMode={equipmentViewMode}
               externalShowFilters={showEquipmentFilters}
               onExternalShowFiltersChange={setShowEquipmentFilters}
-            />
-          </TabsContent>
-
-          {/* ABA DE ANÁLISES */}
-          <TabsContent value="analytics" className="mt-0 flex-1 overflow-auto">
-            <AssetUtilizationDashboard
-              equipment={filteredEquipment}
-              selectedLocation={selectedNode?.id}
             />
           </TabsContent>
 
