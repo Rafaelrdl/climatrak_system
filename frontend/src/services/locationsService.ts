@@ -1,18 +1,19 @@
 /**
- * Locations Service (Empresas, Setores, Subsetores)
+ * Locations Service (Empresas, Unidades, Setores, Subsetores)
  * 
  * Serviço para gerenciamento da hierarquia de locais
  * 
  * Endpoints:
  * - GET /api/locations/companies/
+ * - GET /api/locations/units/
  * - GET /api/locations/sectors/
  * - GET /api/locations/subsections/
  * - GET /api/locations/tree/
  */
 
 import { api } from '@/lib/api';
-import type { Company, Sector, SubSection, LocationNode } from '@/types';
-import type { ApiCompany, ApiSector, ApiSubsection, ApiLocationNode, PaginatedResponse } from '@/types/api';
+import type { Company, Unit, Sector, SubSection, LocationNode } from '@/types';
+import type { ApiCompany, ApiUnit, ApiSector, ApiSubsection, ApiLocationNode, PaginatedResponse } from '@/types/api';
 
 // ============================================
 // Mappers
@@ -38,10 +39,19 @@ const mapCompany = (c: ApiCompany): Company => ({
   createdAt: c.created_at || new Date().toISOString(),
 });
 
+const mapUnit = (u: ApiUnit): Unit => ({
+  id: String(u.id),
+  name: u.name,
+  companyId: String(u.company),
+  notes: u.description || u.notes || '',
+  createdAt: u.created_at || new Date().toISOString(),
+});
+
 const mapSector = (s: ApiSector): Sector => ({
   id: String(s.id),
   name: s.name,
-  companyId: String(s.company),
+  unitId: String(s.unit),
+  companyId: s.company_id ? String(s.company_id) : undefined,
   responsible: s.supervisor_name || s.responsible_name || '',
   phone: s.responsible_phone || '',
   email: s.responsible_email || '',
@@ -55,6 +65,8 @@ const mapSubsection = (ss: ApiSubsection): SubSection => ({
   id: String(ss.id),
   name: ss.name,
   sectorId: String(ss.sector),
+  unitId: ss.unit_id ? String(ss.unit_id) : undefined,
+  companyId: ss.company_id ? String(ss.company_id) : undefined,
   notes: ss.description || ss.notes || '',
 });
 
@@ -64,7 +76,7 @@ const mapLocationNode = (node: ApiLocationNode): LocationNode => ({
   type: node.type,
   parentId: node.parent_id ? String(node.parent_id) : undefined,
   children: node.children?.map(mapLocationNode),
-  data: {} as Company | Sector | SubSection, // Preenchido separadamente se necessário
+  data: {} as Company | Unit | Sector | SubSection, // Preenchido separadamente se necessário
 });
 
 // ============================================
@@ -149,11 +161,61 @@ export const locationsService = {
   },
 
   // ==========================================
+  // Units
+  // ==========================================
+
+  async getUnits(companyId?: string): Promise<Unit[]> {
+    const params = companyId ? { company: companyId } : {};
+    const response = await api.get<PaginatedResponse<ApiUnit>>('/locations/units/', { params });
+    return response.data.results.map(mapUnit);
+  },
+
+  async getUnit(id: string): Promise<Unit> {
+    const response = await api.get<ApiUnit>(`/locations/units/${id}/`);
+    return mapUnit(response.data);
+  },
+
+  async createUnit(data: Omit<Unit, 'id' | 'createdAt'>): Promise<Unit> {
+    const payload = {
+      name: data.name,
+      company: Number(data.companyId),
+      description: data.notes || '',
+    };
+
+    try {
+      const response = await api.post<ApiUnit>('/locations/units/', payload);
+      return mapUnit(response.data);
+    } catch (error: unknown) {
+      console.error('Error creating unit:', error);
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: unknown } };
+        console.error('Response data:', axiosError.response?.data);
+      }
+      throw error;
+    }
+  },
+
+  async updateUnit(id: string, data: Partial<Unit>): Promise<Unit> {
+    const payload: Record<string, unknown> = {};
+    
+    if (data.name !== undefined) payload.name = data.name;
+    if (data.companyId !== undefined) payload.company = Number(data.companyId);
+    if (data.notes !== undefined) payload.description = data.notes;
+
+    const response = await api.patch<ApiUnit>(`/locations/units/${id}/`, payload);
+    return mapUnit(response.data);
+  },
+
+  async deleteUnit(id: string): Promise<void> {
+    await api.delete(`/locations/units/${id}/`);
+  },
+
+  // ==========================================
   // Sectors
   // ==========================================
 
-  async getSectors(companyId?: string): Promise<Sector[]> {
-    const params = companyId ? { company: companyId } : {};
+  async getSectors(unitId?: string): Promise<Sector[]> {
+    const params = unitId ? { unit: unitId } : {};
     const response = await api.get<PaginatedResponse<ApiSector>>('/locations/sectors/', { params });
     return response.data.results.map(mapSector);
   },
@@ -166,7 +228,7 @@ export const locationsService = {
   async createSector(data: Omit<Sector, 'id'>): Promise<Sector> {
     const payload = {
       name: data.name,
-      company: Number(data.companyId),
+      unit: Number(data.unitId),
       description: data.notes || '',
       responsible_name: data.responsible || '',
       responsible_phone: data.phone || '',
@@ -193,7 +255,7 @@ export const locationsService = {
     const payload: Record<string, unknown> = {};
     
     if (data.name) payload.name = data.name;
-    if (data.companyId) payload.company = Number(data.companyId);
+    if (data.unitId) payload.unit = Number(data.unitId);
     if (data.notes !== undefined) payload.description = data.notes;
     if (data.responsible !== undefined) payload.responsible_name = data.responsible;
     if (data.phone !== undefined) payload.responsible_phone = data.phone;
@@ -269,11 +331,13 @@ export const locationsService = {
    */
   async getCounts(): Promise<{
     companies: number;
+    units: number;
     sectors: number;
     subsections: number;
   }> {
     const response = await api.get<{
       companies: number;
+      units: number;
       sectors: number;
       subsections: number;
     }>('/locations/counts/');

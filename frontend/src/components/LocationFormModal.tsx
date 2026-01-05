@@ -8,29 +8,32 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   useCompanies, 
+  useUnits,
   useSectors, 
   useCreateCompany,
   useUpdateCompany,
+  useCreateUnit,
+  useUpdateUnit,
   useCreateSector,
   useUpdateSector,
   useCreateSubsection,
   useUpdateSubsection
 } from '@/hooks/useLocationsQuery';
 import { useLocation as useLocationContext } from '@/contexts/LocationContext';
-import { Building2, MapPin, LayoutGrid } from 'lucide-react';
-import type { Company, Sector, SubSection } from '@/types';
+import { Building2, Factory, MapPin, LayoutGrid } from 'lucide-react';
+import type { Company, Unit, Sector, SubSection } from '@/types';
 
 // Interface para as props do modal
 interface LocationFormModalProps {
   isOpen: boolean;                                    // Controla se o modal está aberto
   onClose: () => void;                               // Função para fechar o modal
   mode: 'create' | 'edit';                          // Modo: criar ou editar
-  type: 'company' | 'sector' | 'subsection';        // Tipo de localização
-  initialData?: Company | Sector | SubSection;       // Dados iniciais para edição
+  type: 'company' | 'unit' | 'sector' | 'subsection';        // Tipo de localização
+  initialData?: Company | Unit | Sector | SubSection;       // Dados iniciais para edição
 }
 
 /**
- * Modal para criar ou editar localizações (empresas, setores, subsetores)
+ * Modal para criar ou editar localizações (empresas, unidades, setores, subsetores)
  * Apresenta formulários diferentes baseados no tipo de localização
  */
 export function LocationFormModal({ 
@@ -42,12 +45,15 @@ export function LocationFormModal({
 }: LocationFormModalProps) {
   // React Query hooks para dados
   const { data: companies = [] } = useCompanies();
+  const { data: units = [] } = useUnits();
   const { data: sectors = [] } = useSectors();
   const { selectedNode, setSelectedNode } = useLocationContext();
   
   // Mutations para criar/atualizar localizações
   const createCompanyMutation = useCreateCompany();
   const updateCompanyMutation = useUpdateCompany();
+  const createUnitMutation = useCreateUnit();
+  const updateUnitMutation = useUpdateUnit();
   const createSectorMutation = useCreateSector();
   const updateSectorMutation = useUpdateSector();
   const createSubsectionMutation = useCreateSubsection();
@@ -70,10 +76,17 @@ export function LocationFormModal({
     notes: ''         // Observações
   });
 
+  // Estado do formulário para unidades
+  const [unitForm, setUnitForm] = useState<Partial<Unit>>({
+    name: '',                    // Nome da unidade
+    companyId: 'no-company',     // ID da empresa (inicialmente vazio)
+    notes: ''                   // Observações
+  });
+
   // Estado do formulário para setores
   const [sectorForm, setSectorForm] = useState<Partial<Sector>>({
     name: '',                    // Nome do setor
-    companyId: 'no-company',     // ID da empresa (inicialmente vazio)
+    unitId: 'no-unit',           // ID da unidade (inicialmente vazio)
     responsible: '',             // Responsável
     phone: '',                   // Telefone do responsável
     email: '',                   // Email do responsável
@@ -111,12 +124,20 @@ export function LocationFormModal({
             hvacUnits: company.hvacUnits || 0,
             notes: company.notes || ''
           });
+        } else if (type === 'unit') {
+          const unit = initialData as Unit;
+          setUnitForm({
+            ...unit,
+            name: unit.name || '',
+            companyId: unit.companyId || 'no-company',
+            notes: unit.notes || ''
+          });
         } else if (type === 'sector') {
           const sector = initialData as Sector;
           setSectorForm({
             ...sector,
             name: sector.name || '',
-            companyId: sector.companyId || 'no-company',
+            unitId: sector.unitId || 'no-unit',
             responsible: sector.responsible || '',
             phone: sector.phone || '',
             email: sector.email || '',
@@ -146,9 +167,14 @@ export function LocationFormModal({
           hvacUnits: undefined,
           notes: ''
         });
-        setSectorForm({
+        setUnitForm({
           name: '',
           companyId: 'no-company',
+          notes: ''
+        });
+        setSectorForm({
+          name: '',
+          unitId: 'no-unit',
           responsible: '',
           phone: '',
           email: '',
@@ -199,9 +225,42 @@ export function LocationFormModal({
         );
       }
       return;
-    } else if (type === 'sector') {
+    } else if (type === 'unit') {
       // Validação: não permite salvar sem empresa selecionada
-      if (!sectorForm.companyId || sectorForm.companyId === 'no-company') {
+      if (!unitForm.companyId || unitForm.companyId === 'no-company') {
+        return;
+      }
+      
+      if (mode === 'edit') {
+        // Atualiza unidade existente via API
+        const unitId = (initialData as Unit).id;
+        updateUnitMutation.mutate(
+          { id: unitId, data: unitForm },
+          {
+            onSuccess: (updatedUnit) => {
+              // Atualiza nó selecionado se for o mesmo
+              if (selectedNode?.type === 'unit' && selectedNode.data.id === unitId) {
+                setSelectedNode({ ...selectedNode, data: updatedUnit });
+              }
+              onClose();
+            }
+          }
+        );
+      } else {
+        // Cria nova unidade via API
+        createUnitMutation.mutate(
+          unitForm as Omit<Unit, 'id' | 'createdAt'>,
+          {
+            onSuccess: () => {
+              onClose();
+            }
+          }
+        );
+      }
+      return;
+    } else if (type === 'sector') {
+      // Validação: não permite salvar sem unidade selecionada
+      if (!sectorForm.unitId || sectorForm.unitId === 'no-unit') {
         return;
       }
       
@@ -459,27 +518,27 @@ export function LocationFormModal({
   );
 
   /**
-   * Renderiza o formulário específico para setores
-   * Inclui seleção de empresa, dados de contato e informações operacionais
+   * Renderiza o formulário específico para unidades
+   * Inclui seleção de empresa e dados básicos
    */
-  const renderSectorForm = () => (
+  const renderUnitForm = () => (
     <div className="bg-muted/30 rounded-lg p-6 border border-border/50">
       <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-        <MapPin className="w-4 h-4 text-primary" />
-        Dados do Setor
+        <Factory className="w-4 h-4 text-primary" />
+        Dados da Unidade
       </h3>
       
       <div className="space-y-5">
-        {/* Nome do Setor */}
+        {/* Nome da Unidade */}
         <div>
-          <Label htmlFor="sectorName" className="mb-2 block">
-            Nome do Setor *
+          <Label htmlFor="unitName" className="mb-2 block">
+            Nome da Unidade *
           </Label>
           <Input
-            id="sectorName"
-            value={sectorForm.name}
-            onChange={(e) => setSectorForm(prev => ({ ...prev, name: e.target.value }))}
-            placeholder="Ex: Departamento de TI"
+            id="unitName"
+            value={unitForm.name}
+            onChange={(e) => setUnitForm(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="Ex: Filial Centro"
             className="h-10"
             required
           />
@@ -487,10 +546,10 @@ export function LocationFormModal({
 
         {/* Empresa */}
         <div>
-          <Label htmlFor="companySelect" className="mb-2 block">Empresa *</Label>
+          <Label htmlFor="unitCompanySelect" className="mb-2 block">Empresa *</Label>
           <Select 
-            value={sectorForm.companyId} 
-            onValueChange={(value) => setSectorForm(prev => ({ ...prev, companyId: value }))}
+            value={unitForm.companyId} 
+            onValueChange={(value) => setUnitForm(prev => ({ ...prev, companyId: value }))}
           >
             <SelectTrigger className="h-10">
               <SelectValue placeholder="Selecione uma empresa" />
@@ -506,105 +565,16 @@ export function LocationFormModal({
           </Select>
         </div>
 
-        {/* Responsável */}
-        <div>
-          <Label htmlFor="sectorResponsible" className="mb-2 block">
-            Responsável
-          </Label>
-          <Input
-            id="sectorResponsible"
-            value={sectorForm.responsible || ''}
-            onChange={(e) => setSectorForm(prev => ({ ...prev, responsible: e.target.value }))}
-            placeholder="Ex: Maria Santos"
-            className="h-10"
-          />
-        </div>
-
-        {/* Telefone e Email do Responsável */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="sectorPhone" className="mb-2 block">
-              Telefone
-            </Label>
-            <Input
-              id="sectorPhone"
-              value={sectorForm.phone || ''}
-              onChange={(e) => setSectorForm(prev => ({ ...prev, phone: e.target.value }))}
-              placeholder="(11) 99999-9999"
-              className="h-10"
-            />
-          </div>
-          <div>
-            <Label htmlFor="sectorEmail" className="mb-2 block">
-              E-mail
-            </Label>
-            <Input
-              id="sectorEmail"
-              type="email"
-              value={sectorForm.email || ''}
-              onChange={(e) => setSectorForm(prev => ({ ...prev, email: e.target.value }))}
-              placeholder="responsavel@empresa.com"
-              className="h-10"
-            />
-          </div>
-        </div>
-
-        {/* Área, Ocupantes e Unidades HVAC */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <Label htmlFor="sectorArea" className="mb-2 block">
-              Área (m²)
-            </Label>
-            <Input
-              id="sectorArea"
-              type="number"
-              value={sectorForm.area ?? ''}
-              onChange={(e) => setSectorForm(prev => ({ ...prev, area: e.target.value ? Number(e.target.value) : undefined }))}
-              placeholder="0"
-              className="h-10"
-              min="0"
-            />
-          </div>
-          <div>
-            <Label htmlFor="sectorOccupants" className="mb-2 block">
-              Ocupantes
-            </Label>
-            <Input
-              id="sectorOccupants"
-              type="number"
-              value={sectorForm.occupants ?? ''}
-              onChange={(e) => setSectorForm(prev => ({ ...prev, occupants: e.target.value ? Number(e.target.value) : undefined }))}
-              placeholder="0"
-              className="h-10"
-              min="0"
-            />
-          </div>
-          <div>
-            <Label htmlFor="sectorHvacUnits" className="mb-2 block">
-              Unidades HVAC
-            </Label>
-            <Input
-              id="sectorHvacUnits"
-              type="number"
-              value={sectorForm.hvacUnits ?? ''}
-              onChange={(e) => setSectorForm(prev => ({ ...prev, hvacUnits: e.target.value ? Number(e.target.value) : undefined }))}
-              placeholder="0"
-              className="h-10"
-              min="0"
-            />
-          </div>
-        </div>
-
         {/* Observações */}
         <div>
-          <Label htmlFor="sectorNotes" className="mb-2 block">
+          <Label htmlFor="unitNotes" className="mb-2 block">
             Observações Adicionais (opcional)
           </Label>
           <Textarea
-            id="sectorNotes"
-            value={sectorForm.notes || ''}
-            onChange={(e) => setSectorForm(prev => ({ ...prev, notes: e.target.value }))}
-            placeholder="Informações adicionais sobre o setor..."
+            id="unitNotes"
+            value={unitForm.notes || ''}
+            onChange={(e) => setUnitForm(prev => ({ ...prev, notes: e.target.value }))}
+            placeholder="Informações adicionais sobre a unidade..."
             className="min-h-[80px] resize-none"
             rows={3}
           />
@@ -614,26 +584,239 @@ export function LocationFormModal({
   );
 
   /**
-   * Renderiza o formulário específico para subseções
-   * Inclui seleção de empresa e setor, além de dados de contato e operacionais
+   * Renderiza o formulário específico para setores
+   * Inclui seleção de empresa, unidade, dados de contato e informações operacionais
    */
-  const renderSubSectionForm = () => {
-    // Filtra setores pela empresa selecionada
-    const selectedSectorId =
-      subSectionForm.sectorId && subSectionForm.sectorId !== 'no-sector'
-        ? subSectionForm.sectorId
+  const renderSectorForm = () => {
+    // Filtra unidades pela empresa selecionada
+    const selectedUnitId =
+      sectorForm.unitId && sectorForm.unitId !== 'no-unit'
+        ? sectorForm.unitId
         : undefined;
-    const selectedCompanyId = selectedSectorId
-      ? sectors.find(s => s.id === selectedSectorId)?.companyId
-      : sectorForm.companyId;
+    const selectedCompanyId = selectedUnitId
+      ? units.find(u => u.id === selectedUnitId)?.companyId
+      : unitForm.companyId;
     const normalizedCompanyId =
-      selectedCompanyId && selectedCompanyId !== 'no-company' && selectedCompanyId !== 'no-company-sub'
+      selectedCompanyId && selectedCompanyId !== 'no-company' && selectedCompanyId !== 'no-company-sector'
         ? selectedCompanyId
         : undefined;
 
     const hasCompany = Boolean(normalizedCompanyId);
-    const availableSectors = hasCompany
-      ? sectors.filter(s => s.companyId === normalizedCompanyId)
+    const availableUnits = hasCompany
+      ? units.filter(u => u.companyId === normalizedCompanyId)
+      : units;
+      
+    return (
+      <div className="bg-muted/30 rounded-lg p-6 border border-border/50">
+        <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-primary" />
+          Dados do Setor
+        </h3>
+        
+        <div className="space-y-5">
+          {/* Nome do Setor */}
+          <div>
+            <Label htmlFor="sectorName" className="mb-2 block">
+              Nome do Setor *
+            </Label>
+            <Input
+              id="sectorName"
+              value={sectorForm.name}
+              onChange={(e) => setSectorForm(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Ex: Departamento de TI"
+              className="h-10"
+              required
+            />
+          </div>
+
+          {/* Empresa */}
+          <div>
+            <Label htmlFor="companySelectSector" className="mb-2 block">Empresa *</Label>
+            <Select 
+              value={normalizedCompanyId || 'no-company-sector'}
+              onValueChange={(companyId) => {
+                // Reset unit when company changes
+                setSectorForm(prev => ({ ...prev, unitId: 'no-unit' }));
+                // Store company in temporary state for filtering
+                setUnitForm(prev => ({ ...prev, companyId }));
+              }}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Selecione uma empresa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="no-company-sector">Selecione uma empresa</SelectItem>
+                {companies.map(company => (
+                  <SelectItem key={company.id} value={company.id}>
+                    {company.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Unidade */}
+          <div>
+            <Label htmlFor="unitSelect" className="mb-2 block">Unidade *</Label>
+            <Select 
+              value={sectorForm.unitId} 
+              onValueChange={(value) => setSectorForm(prev => ({ ...prev, unitId: value }))}
+              disabled={!hasCompany}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Selecione uma unidade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="no-unit">Selecione uma unidade</SelectItem>
+                {availableUnits.map(unit => (
+                  <SelectItem key={unit.id} value={unit.id}>
+                    {unit.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Responsável */}
+          <div>
+            <Label htmlFor="sectorResponsible" className="mb-2 block">
+              Responsável
+            </Label>
+            <Input
+              id="sectorResponsible"
+              value={sectorForm.responsible || ''}
+              onChange={(e) => setSectorForm(prev => ({ ...prev, responsible: e.target.value }))}
+              placeholder="Ex: Maria Santos"
+              className="h-10"
+            />
+          </div>
+
+          {/* Telefone e Email do Responsável */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="sectorPhone" className="mb-2 block">
+                Telefone
+              </Label>
+              <Input
+                id="sectorPhone"
+                value={sectorForm.phone || ''}
+                onChange={(e) => setSectorForm(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="(11) 99999-9999"
+                className="h-10"
+              />
+            </div>
+            <div>
+              <Label htmlFor="sectorEmail" className="mb-2 block">
+                E-mail
+              </Label>
+              <Input
+                id="sectorEmail"
+                type="email"
+                value={sectorForm.email || ''}
+                onChange={(e) => setSectorForm(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="responsavel@empresa.com"
+                className="h-10"
+              />
+            </div>
+          </div>
+
+          {/* Área, Ocupantes e Unidades HVAC */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="sectorArea" className="mb-2 block">
+                Área (m²)
+              </Label>
+              <Input
+                id="sectorArea"
+                type="number"
+                value={sectorForm.area ?? ''}
+                onChange={(e) => setSectorForm(prev => ({ ...prev, area: e.target.value ? Number(e.target.value) : undefined }))}
+                placeholder="0"
+                className="h-10"
+                min="0"
+              />
+            </div>
+            <div>
+              <Label htmlFor="sectorOccupants" className="mb-2 block">
+                Ocupantes
+              </Label>
+              <Input
+                id="sectorOccupants"
+                type="number"
+                value={sectorForm.occupants ?? ''}
+                onChange={(e) => setSectorForm(prev => ({ ...prev, occupants: e.target.value ? Number(e.target.value) : undefined }))}
+                placeholder="0"
+                className="h-10"
+                min="0"
+              />
+            </div>
+            <div>
+              <Label htmlFor="sectorHvacUnits" className="mb-2 block">
+                Unidades HVAC
+              </Label>
+              <Input
+                id="sectorHvacUnits"
+                type="number"
+                value={sectorForm.hvacUnits ?? ''}
+                onChange={(e) => setSectorForm(prev => ({ ...prev, hvacUnits: e.target.value ? Number(e.target.value) : undefined }))}
+                placeholder="0"
+                className="h-10"
+                min="0"
+              />
+            </div>
+          </div>
+
+          {/* Observações */}
+          <div>
+            <Label htmlFor="sectorNotes" className="mb-2 block">
+              Observações Adicionais (opcional)
+            </Label>
+            <Textarea
+              id="sectorNotes"
+              value={sectorForm.notes || ''}
+              onChange={(e) => setSectorForm(prev => ({ ...prev, notes: e.target.value }))}
+              placeholder="Informações adicionais sobre o setor..."
+              className="min-h-[80px] resize-none"
+              rows={3}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /**
+   * Renderiza o formulário específico para subseções
+   * Inclui seleção de empresa, unidade e setor, além de dados de contato e operacionais
+   */
+  const renderSubSectionForm = () => {
+    // Filtra unidades pela empresa selecionada e setores pela unidade selecionada
+    const selectedSectorId =
+      subSectionForm.sectorId && subSectionForm.sectorId !== 'no-sector'
+        ? subSectionForm.sectorId
+        : undefined;
+    const selectedUnitIdFromSector = selectedSectorId
+      ? sectors.find(s => s.id === selectedSectorId)?.unitId
+      : sectorForm.unitId;
+    const selectedCompanyId = selectedUnitIdFromSector && selectedUnitIdFromSector !== 'no-unit'
+      ? units.find(u => u.id === selectedUnitIdFromSector)?.companyId
+      : unitForm.companyId;
+    const normalizedCompanyId =
+      selectedCompanyId && selectedCompanyId !== 'no-company' && selectedCompanyId !== 'no-company-sub'
+        ? selectedCompanyId
+        : undefined;
+    const normalizedUnitId =
+      selectedUnitIdFromSector && selectedUnitIdFromSector !== 'no-unit'
+        ? selectedUnitIdFromSector
+        : undefined;
+
+    const hasCompany = Boolean(normalizedCompanyId);
+    const hasUnit = Boolean(normalizedUnitId);
+    const availableUnits = hasCompany
+      ? units.filter(u => u.companyId === normalizedCompanyId)
+      : units;
+    const availableSectors = hasUnit
+      ? sectors.filter(s => s.unitId === normalizedUnitId)
       : sectors;
 
     return (
@@ -665,10 +848,11 @@ export function LocationFormModal({
             <Select 
               value={normalizedCompanyId || 'no-company-sub'}
               onValueChange={(companyId) => {
-                // Reset sector when company changes
+                // Reset unit and sector when company changes
+                setSectorForm(prev => ({ ...prev, unitId: 'no-unit' }));
                 setSubSectionForm(prev => ({ ...prev, sectorId: 'no-sector' }));
                 // Store company in temporary state for filtering
-                setSectorForm(prev => ({ ...prev, companyId }));
+                setUnitForm(prev => ({ ...prev, companyId }));
               }}
             >
               <SelectTrigger className="h-10">
@@ -685,13 +869,40 @@ export function LocationFormModal({
             </Select>
           </div>
 
+          {/* Unidade */}
+          <div>
+            <Label htmlFor="unitSelectSub" className="mb-2 block">Unidade *</Label>
+            <Select 
+              value={normalizedUnitId || 'no-unit-sub'}
+              onValueChange={(unitId) => {
+                // Reset sector when unit changes
+                setSubSectionForm(prev => ({ ...prev, sectorId: 'no-sector' }));
+                // Store unit in temporary state for filtering
+                setSectorForm(prev => ({ ...prev, unitId }));
+              }}
+              disabled={!hasCompany}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Selecione uma unidade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="no-unit-sub">Selecione uma unidade</SelectItem>
+                {availableUnits.map(unit => (
+                  <SelectItem key={unit.id} value={unit.id}>
+                    {unit.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Setor */}
           <div>
             <Label htmlFor="sectorSelectSub" className="mb-2 block">Setor *</Label>
             <Select 
               value={subSectionForm.sectorId} 
               onValueChange={(value) => setSubSectionForm(prev => ({ ...prev, sectorId: value }))}
-              disabled={!hasCompany}
+              disabled={!hasUnit}
             >
               <SelectTrigger className="h-10">
                 <SelectValue placeholder="Selecione um setor" />
@@ -733,6 +944,7 @@ export function LocationFormModal({
     const action = mode === 'create' ? 'Adicionar' : 'Editar';
     switch (type) {
       case 'company': return `${action} Empresa`;
+      case 'unit': return `${action} Unidade`;
       case 'sector': return `${action} Setor`;
       case 'subsection': return `${action} Subsetor`;
       default: return '';
@@ -745,9 +957,13 @@ export function LocationFormModal({
         return mode === 'create' 
           ? 'Cadastre uma nova empresa no sistema. Empresas são o nível mais alto na hierarquia de locais.'
           : 'Edite os dados da empresa. Altere as informações conforme necessário.';
+      case 'unit': 
+        return mode === 'create'
+          ? 'Adicione uma nova unidade vinculada a uma empresa. Unidades são filiais ou locais físicos da empresa.'
+          : 'Edite os dados da unidade. Modifique as informações conforme necessário.';
       case 'sector': 
         return mode === 'create'
-          ? 'Adicione um novo setor vinculado a uma empresa. Setores são áreas ou departamentos dentro de uma empresa.'
+          ? 'Adicione um novo setor vinculado a uma unidade. Setores são áreas ou departamentos dentro de uma unidade.'
           : 'Edite os dados do setor. Modifique as informações conforme necessário.';
       case 'subsection': 
         return mode === 'create'
@@ -770,6 +986,7 @@ export function LocationFormModal({
         <div className="space-y-6">
           {/* Renderiza o formulário baseado no tipo de localização */}
           {type === 'company' && renderCompanyForm()}
+          {type === 'unit' && renderUnitForm()}
           {type === 'sector' && renderSectorForm()}
           {type === 'subsection' && renderSubSectionForm()}
         </div>

@@ -312,7 +312,7 @@ class AssetViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Asset.objects.select_related(
-        "site", "sector", "sector__company", "subsection"
+        "site", "sector", "sector__unit", "sector__unit__company", "subsection", "subsection__sector__unit__company"
     ).all()
     permission_classes = [IsAuthenticated, CanWrite]
     filter_backends = [
@@ -464,7 +464,7 @@ class AssetViewSet(viewsets.ModelViewSet):
 
         # Select related para otimizar queries de FK (site, sector, subsection)
         queryset = queryset.select_related(
-            "site", "sector", "sector__company", "subsection"
+            "site", "sector", "sector__unit", "sector__unit__company", "subsection", "subsection__sector__unit__company"
         )
 
         # Prefetch para otimizar N+1 queries

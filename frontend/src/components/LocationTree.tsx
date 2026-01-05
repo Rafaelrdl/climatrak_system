@@ -5,13 +5,13 @@ import {
   MapPin, 
   Users, 
   ChevronRight, 
-  ChevronDown, 
   Menu, 
   X,
   Search,
   FolderTree,
   Layers,
-  Plus
+  Plus,
+  Factory
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -33,23 +33,25 @@ import {
 import { cn } from '@/lib/utils';
 import { useLocation as useLocationContext } from '@/contexts/LocationContext';
 import { IfCan } from '@/components/auth/IfCan';
-import type { LocationNode, Company, Sector } from '@/types';
+import type { LocationNode, Company, Unit, Sector } from '@/types';
 
 interface LocationTreeProps {
   /** Callback para criar novo local */
-  onCreateLocation?: (type: 'company' | 'sector' | 'subsection') => void;
+  onCreateLocation?: (type: 'company' | 'unit' | 'sector' | 'subsection') => void;
   /** Lista de empresas (para habilitar/desabilitar botões) */
   companies?: Company[];
+  /** Lista de unidades (para habilitar/desabilitar botões) */
+  units?: Unit[];
   /** Lista de setores (para habilitar/desabilitar botões) */
   sectors?: Sector[];
 }
 
 /**
  * Componente que renderiza a árvore hierárquica de localizações
- * Mostra empresas > setores > subsetores em formato de árvore
+ * Mostra empresas > unidades > setores > subsetores em formato de árvore
  * Responsivo: versão desktop e mobile
  */
-export function LocationTree({ onCreateLocation, companies = [], sectors = [] }: LocationTreeProps) {
+export function LocationTree({ onCreateLocation, companies = [], units = [], sectors = [] }: LocationTreeProps) {
   // Obtém dados e funções do contexto de localização
   const { 
     filteredTree,      // Árvore filtrada pela busca
@@ -100,6 +102,7 @@ export function LocationTree({ onCreateLocation, companies = [], sectors = [] }:
    */
   const stats = useMemo(() => {
     let companies = 0;
+    let units = 0;
     let sectors = 0;
     let subsections = 0;
     
@@ -107,6 +110,7 @@ export function LocationTree({ onCreateLocation, companies = [], sectors = [] }:
       nodes.forEach(node => {
         switch (node.type) {
           case 'company': companies++; break;
+          case 'unit': units++; break;
           case 'sector': sectors++; break;
           case 'subsection': subsections++; break;
         }
@@ -115,12 +119,12 @@ export function LocationTree({ onCreateLocation, companies = [], sectors = [] }:
     };
     
     countNodes(filteredTree);
-    return { companies, sectors, subsections, total: companies + sectors + subsections };
+    return { companies, units, sectors, subsections, total: companies + units + sectors + subsections };
   }, [filteredTree]);
 
   /**
    * Retorna o ícone e cor apropriados para cada tipo de nó da árvore
-   * @param type - Tipo do nó (company, sector, subsection)
+   * @param type - Tipo do nó (company, unit, sector, subsection)
    * @param isSelected - Se o nó está selecionado
    */
   const getNodeIcon = (type: LocationNode['type'], isSelected = false) => {
@@ -137,6 +141,15 @@ export function LocationTree({ onCreateLocation, companies = [], sectors = [] }:
             isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-blue-50 dark:bg-blue-900/20'
           )}>
             <Building2 className={cn(iconClasses, isSelected ? 'text-blue-600' : 'text-blue-500')} />
+          </div>
+        );
+      case 'unit':
+        return (
+          <div className={cn(
+            'p-1 rounded-md',
+            isSelected ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-orange-50 dark:bg-orange-900/20'
+          )}>
+            <Factory className={cn(iconClasses, isSelected ? 'text-orange-600' : 'text-orange-500')} />
           </div>
         );
       case 'sector':
@@ -169,6 +182,8 @@ export function LocationTree({ onCreateLocation, companies = [], sectors = [] }:
     switch (type) {
       case 'company':
         return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'unit':
+        return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
       case 'sector':
         return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
       case 'subsection':
@@ -192,95 +207,85 @@ export function LocationTree({ onCreateLocation, companies = [], sectors = [] }:
     return (
       <div key={node.id} className="w-full">
         {/* Container principal do nó da árvore */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              className={cn(
-                'group flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer rounded-lg transition-all duration-200',
-                'border border-transparent',
-                isSelected && [
-                  'bg-primary/10 border-primary/30 shadow-sm',
-                  'ring-1 ring-primary/20'
-                ],
-                !isSelected && [
-                  'hover:bg-muted/80 hover:border-border/50',
-                  'active:scale-[0.99]'
-                ]
-              )}
-              style={{ paddingLeft: `${8 + depth * 16}px` }}
+        <div
+          className={cn(
+            'group flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer rounded-lg transition-all duration-200',
+            'border border-transparent',
+            isSelected && [
+              'bg-primary/10 border-primary/30 shadow-sm',
+              'ring-1 ring-primary/20'
+            ],
+            !isSelected && [
+              'hover:bg-muted/80 hover:border-border/50',
+              'active:scale-[0.99]'
+            ]
+          )}
+          style={{ paddingLeft: `${8 + depth * 16}px` }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setSelectedNode(node);
+            if (window.innerWidth < 1024) {
+              setIsMobileOpen(false);
+            }
+          }}
+          role="treeitem"
+          aria-expanded={hasChildren ? isExpanded : undefined}
+          aria-level={depth + 1}
+          aria-selected={isSelected}
+          tabIndex={isSelected ? 0 : -1}
+          title={`${node.name} (${node.type === 'company' ? 'Empresa' : node.type === 'unit' ? 'Unidade' : node.type === 'sector' ? 'Setor' : 'Subsetor'})`}
+        >
+          {/* Botão para expandir/recolher */}
+          {hasChildren ? (
+            <button
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                setSelectedNode(node);
-                if (window.innerWidth < 1024) {
-                  setIsMobileOpen(false);
-                }
+                toggleExpanded(node.id);
               }}
-              role="treeitem"
-              aria-expanded={hasChildren ? isExpanded : undefined}
-              aria-level={depth + 1}
-              aria-selected={isSelected}
-              tabIndex={isSelected ? 0 : -1}
+              className={cn(
+                'flex items-center justify-center p-1 rounded-md transition-all duration-200',
+                'hover:bg-muted-foreground/10',
+                isExpanded && 'bg-muted'
+              )}
+              aria-label={isExpanded ? 'Recolher' : 'Expandir'}
+              tabIndex={-1}
             >
-              {/* Botão para expandir/recolher */}
-              {hasChildren ? (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleExpanded(node.id);
-                  }}
-                  className={cn(
-                    'flex items-center justify-center p-1 rounded-md transition-all duration-200',
-                    'hover:bg-muted-foreground/10',
-                    isExpanded && 'bg-muted'
-                  )}
-                  aria-label={isExpanded ? 'Recolher' : 'Expandir'}
-                  tabIndex={-1}
-                >
-                  <ChevronRight 
-                    className={cn(
-                      'h-3.5 w-3.5 text-muted-foreground transition-transform duration-200',
-                      isExpanded && 'rotate-90'
-                    )} 
-                  />
-                </button>
-              ) : (
-                <div className="w-6" />
+              <ChevronRight 
+                className={cn(
+                  'h-3.5 w-3.5 text-muted-foreground transition-transform duration-200',
+                  isExpanded && 'rotate-90'
+                )} 
+              />
+            </button>
+          ) : (
+            <div className="w-6" />
+          )}
+          
+          {getNodeIcon(node.type, isSelected)}
+          
+          <span className={cn(
+            'flex-1 transition-colors break-words leading-tight',
+            isSelected ? 'font-medium text-primary' : 'text-foreground'
+          )}>
+            {node.name}
+          </span>
+          
+          {/* Badge com contagem de filhos */}
+          {hasChildren && (
+            <Badge 
+              variant="secondary" 
+              className={cn(
+                'text-[10px] px-1.5 py-0 h-4 font-normal tabular-nums',
+                'opacity-60 group-hover:opacity-100 transition-opacity',
+                isSelected && 'opacity-100'
               )}
-              
-              {getNodeIcon(node.type, isSelected)}
-              
-              <span className={cn(
-                'flex-1 transition-colors break-words leading-tight',
-                isSelected ? 'font-medium text-primary' : 'text-foreground'
-              )}>
-                {node.name}
-              </span>
-              
-              {/* Badge com contagem de filhos */}
-              {hasChildren && (
-                <Badge 
-                  variant="secondary" 
-                  className={cn(
-                    'text-[10px] px-1.5 py-0 h-4 font-normal tabular-nums',
-                    'opacity-60 group-hover:opacity-100 transition-opacity',
-                    isSelected && 'opacity-100'
-                  )}
-                >
-                  {childCount}
-                </Badge>
-              )}
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="text-xs">
-            <p className="font-medium">{node.name}</p>
-            <p className="text-muted-foreground capitalize">
-              {node.type === 'company' ? 'Empresa' : node.type === 'sector' ? 'Setor' : 'Subsetor'}
-              {hasChildren && ` • ${childCount} ${childCount === 1 ? 'item' : 'itens'}`}
-            </p>
-          </TooltipContent>
-        </Tooltip>
+            >
+              {childCount}
+            </Badge>
+          )}
+        </div>
 
         {/* Renderiza filhos recursivamente se o nó estiver expandido */}
         {hasChildren && isExpanded && (
@@ -328,8 +333,16 @@ export function LocationTree({ onCreateLocation, companies = [], sectors = [] }:
                     Empresa
                   </DropdownMenuItem>
                   <DropdownMenuItem 
-                    onClick={() => onCreateLocation('sector')}
+                    onClick={() => onCreateLocation('unit')}
                     disabled={companies.length === 0}
+                    className="gap-2"
+                  >
+                    <Factory className="h-4 w-4 text-orange-500" />
+                    Unidade
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => onCreateLocation('sector')}
+                    disabled={units.length === 0}
                     className="gap-2"
                   >
                     <MapPin className="h-4 w-4 text-emerald-500" />
@@ -362,6 +375,18 @@ export function LocationTree({ onCreateLocation, companies = [], sectors = [] }:
                 </div>
               </TooltipTrigger>
               <TooltipContent>Empresas</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-900/20">
+                  <Factory className="h-3 w-3 text-orange-500" />
+                  <span className="text-xs font-medium text-orange-700 dark:text-orange-400">
+                    {stats.units}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Unidades</TooltipContent>
             </Tooltip>
             
             <Tooltip>
@@ -418,32 +443,30 @@ export function LocationTree({ onCreateLocation, companies = [], sectors = [] }:
       {/* Container da árvore com scroll */}
       <CardContent className="flex-1 p-0 overflow-hidden">
         <ScrollArea className="h-full">
-          <TooltipProvider>
-            <div 
-              className="p-2 space-y-0.5"
-              role="tree"
-              aria-label="Hierarquia de localizações"
-            >
-              {filteredTree.length > 0 ? (
-                filteredTree.map(node => renderTreeNode(node))
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-                  <div className="p-3 rounded-full bg-muted/50 mb-3">
-                    <Layers className="h-6 w-6 text-muted-foreground/50" />
-                  </div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {searchTerm ? 'Nenhum resultado' : 'Sem localizações'}
-                  </p>
-                  <p className="text-xs text-muted-foreground/70 mt-1">
-                    {searchTerm 
-                      ? `Nenhuma localização corresponde a "${searchTerm}"`
-                      : 'Cadastre empresas, setores e subsetores'
-                    }
-                  </p>
+          <div 
+            className="p-2 space-y-0.5"
+            role="tree"
+            aria-label="Hierarquia de localizações"
+          >
+            {filteredTree.length > 0 ? (
+              filteredTree.map(node => renderTreeNode(node))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                <div className="p-3 rounded-full bg-muted/50 mb-3">
+                  <Layers className="h-6 w-6 text-muted-foreground/50" />
                 </div>
-              )}
-            </div>
-          </TooltipProvider>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {searchTerm ? 'Nenhum resultado' : 'Sem localizações'}
+                </p>
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                  {searchTerm 
+                    ? `Nenhuma localização corresponde a "${searchTerm}"`
+                    : 'Cadastre empresas, setores e subsetores'
+                  }
+                </p>
+              </div>
+            )}
+          </div>
         </ScrollArea>
       </CardContent>
     </Card>
@@ -478,7 +501,11 @@ export function LocationTree({ onCreateLocation, companies = [], sectors = [] }:
                       <Building2 className="h-4 w-4 text-blue-500" />
                       Empresa
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onCreateLocation('sector')} disabled={companies.length === 0} className="gap-2">
+                    <DropdownMenuItem onClick={() => onCreateLocation('unit')} disabled={companies.length === 0} className="gap-2">
+                      <Factory className="h-4 w-4 text-orange-500" />
+                      Unidade
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onCreateLocation('sector')} disabled={units.length === 0} className="gap-2">
                       <MapPin className="h-4 w-4 text-emerald-500" />
                       Setor
                     </DropdownMenuItem>
@@ -519,17 +546,15 @@ export function LocationTree({ onCreateLocation, companies = [], sectors = [] }:
           
           {/* Árvore com scroll */}
           <ScrollArea className="max-h-64">
-            <TooltipProvider>
-              <div className="p-2 space-y-0.5" role="tree">
-                {filteredTree.length > 0 ? (
-                  filteredTree.map(node => renderTreeNode(node))
-                ) : (
-                  <div className="text-center text-muted-foreground py-6 text-sm">
-                    {searchTerm ? 'Nenhuma localização encontrada' : 'Nenhuma localização'}
-                  </div>
-                )}
-              </div>
-            </TooltipProvider>
+            <div className="p-2 space-y-0.5" role="tree">
+              {filteredTree.length > 0 ? (
+                filteredTree.map(node => renderTreeNode(node))
+              ) : (
+                <div className="text-center text-muted-foreground py-6 text-sm">
+                  {searchTerm ? 'Nenhuma localização encontrada' : 'Nenhuma localização'}
+                </div>
+              )}
+            </div>
           </ScrollArea>
         </CardContent>
       )}

@@ -32,14 +32,15 @@ import {
   UsersRound,
   Wind,
   Hash,
-  Briefcase
+  Briefcase,
+  Factory
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLocation as useLocationContext } from '@/contexts/LocationContext';
 import { IfCanEdit } from '@/components/auth/IfCan';
-import { useDeleteCompany, useDeleteSector, useDeleteSubsection } from '@/hooks/useLocationsQuery';
+import { useDeleteCompany, useDeleteUnit, useDeleteSector, useDeleteSubsection } from '@/hooks/useLocationsQuery';
 import { toast } from 'sonner';
-import type { Company, Sector, SubSection } from '@/types';
+import type { Company, Unit, Sector, SubSection } from '@/types';
 
 // Interface para as props do componente
 interface LocationDetailsProps {
@@ -60,6 +61,7 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
   
   // Mutations para deletar localizações
   const deleteCompanyMutation = useDeleteCompany();
+  const deleteUnitMutation = useDeleteUnit();
   const deleteSectorMutation = useDeleteSector();
   const deleteSubsectionMutation = useDeleteSubsection();
 
@@ -77,6 +79,9 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
       switch (selectedNode.type) {
         case 'company':
           await deleteCompanyMutation.mutateAsync(realId);
+          break;
+        case 'unit':
+          await deleteUnitMutation.mutateAsync(realId);
           break;
         case 'sector':
           await deleteSectorMutation.mutateAsync(realId);
@@ -151,10 +156,14 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
     switch (selectedNode.type) {
       case 'company':
         return 'Empresa';
+      case 'unit':
+        return 'Unidade';
       case 'sector':
         return 'Setor';
       case 'subsection':
         return 'Subsetor';
+      default:
+        return 'Localização';
     }
   };
 
@@ -165,10 +174,14 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
     switch (selectedNode.type) {
       case 'company':
         return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800';
+      case 'unit':
+        return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200 dark:border-orange-800';
       case 'sector':
         return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800';
       case 'subsection':
         return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800';
+      default:
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800';
     }
   };
 
@@ -297,6 +310,127 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
                   </div>
                 </div>
               </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+
+  /**
+   * Renderiza os detalhes específicos para uma unidade
+   * Exibe informações básicas da unidade
+   * @param unit - Dados da unidade
+   */
+  const renderUnitDetails = (unit: Unit) => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+        {/* Cartão 1: Informações Gerais */}
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-orange-100 dark:bg-orange-900/30">
+                <Factory className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              </div>
+              <CardTitle className="text-base">Informações Gerais</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-3">
+              <Factory className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Nome da Unidade</label>
+                <p className="text-sm font-medium">{unit.name}</p>
+              </div>
+            </div>
+            {unit.cnpj && (
+              <div className="flex items-start gap-3">
+                <Hash className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">CNPJ</label>
+                  <p className="text-sm font-medium">{unit.cnpj}</p>
+                </div>
+              </div>
+            )}
+            {unit.responsible && (
+              <div className="flex items-start gap-3">
+                <Briefcase className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Responsável</label>
+                  <p className="text-sm font-medium">{unit.responsible}{unit.role ? ` - ${unit.role}` : ''}</p>
+                </div>
+              </div>
+            )}
+            {unit.notes && (
+              <div className="flex items-start gap-3">
+                <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Observações</label>
+                  <p className="text-sm text-muted-foreground break-words mt-1">{unit.notes}</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Cartão 2: Localização e Dados Operacionais */}
+        <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/30">
+                <MapPinned className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <CardTitle className="text-base">Localização e Dados</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {unit.address?.fullAddress && (
+              <div className="flex items-start gap-3">
+                <MapPinned className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Endereço</label>
+                  <p className="text-sm">{unit.address.fullAddress}</p>
+                </div>
+              </div>
+            )}
+            {unit.address?.city && (
+              <div className="flex items-start gap-3">
+                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Cidade</label>
+                  <p className="text-sm">{unit.address.city}{unit.address.state ? ` - ${unit.address.state}` : ''}</p>
+                </div>
+              </div>
+            )}
+            {unit.totalArea && (
+              <div className="flex items-start gap-3">
+                <Ruler className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Área Total</label>
+                  <p className="text-sm">{unit.totalArea} m²</p>
+                </div>
+              </div>
+            )}
+            {unit.occupants && (
+              <div className="flex items-start gap-3">
+                <UsersRound className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Ocupantes</label>
+                  <p className="text-sm">{unit.occupants}</p>
+                </div>
+              </div>
+            )}
+            {unit.hvacUnits && (
+              <div className="flex items-start gap-3">
+                <Wind className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Unidades HVAC</label>
+                  <p className="text-sm">{unit.hvacUnits}</p>
+                </div>
+              </div>
+            )}
+            {!unit.address && !unit.totalArea && !unit.occupants && !unit.hvacUnits && (
+              <p className="text-sm text-muted-foreground">Nenhuma informação adicional cadastrada.</p>
             )}
           </CardContent>
         </Card>
@@ -512,6 +646,7 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
 
       {/* Conteúdo específico baseado no tipo de localização selecionada */}
       {selectedNode.type === 'company' && renderCompanyDetails(selectedNode.data as Company)}
+      {selectedNode.type === 'unit' && renderUnitDetails(selectedNode.data as Unit)}
       {selectedNode.type === 'sector' && renderSectorDetails(selectedNode.data as Sector)}
       {selectedNode.type === 'subsection' && renderSubSectionDetails(selectedNode.data as SubSection)}
 
@@ -528,6 +663,11 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
             <AlertDialogDescription className="text-left">
               Tem certeza que deseja excluir {getTypeLabel().toLowerCase()} <strong>"{selectedNode.name}"</strong>?
               {selectedNode.type === 'company' && (
+                <span className="block mt-2 text-destructive">
+                  Atenção: Todas as unidades, setores e subsetores vinculados também serão excluídos.
+                </span>
+              )}
+              {selectedNode.type === 'unit' && (
                 <span className="block mt-2 text-destructive">
                   Atenção: Todos os setores e subsetores vinculados também serão excluídos.
                 </span>

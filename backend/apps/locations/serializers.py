@@ -1,11 +1,13 @@
 """
 Serializers para Locations
+
+Hierarquia: Company > Unit > Sector > Subsection
 """
 
 from django.utils.text import slugify
 from rest_framework import serializers
 
-from .models import Company, LocationContact, Sector, Subsection
+from .models import Company, LocationContact, Sector, Subsection, Unit
 
 
 class LocationContactSerializer(serializers.ModelSerializer):
@@ -36,9 +38,12 @@ class SubsectionSerializer(serializers.ModelSerializer):
     position = serializers.CharField(required=False, allow_blank=True, max_length=100)
     reference = serializers.CharField(required=False, allow_blank=True, max_length=200)
 
-    company_id = serializers.IntegerField(source="sector.company_id", read_only=True)
-    company_name = serializers.CharField(source="sector.company.name", read_only=True)
+    # Campos de navegação (somente leitura)
     sector_name = serializers.CharField(source="sector.name", read_only=True)
+    unit_id = serializers.IntegerField(source="sector.unit_id", read_only=True)
+    unit_name = serializers.CharField(source="sector.unit.name", read_only=True)
+    company_id = serializers.IntegerField(source="sector.unit.company_id", read_only=True)
+    company_name = serializers.CharField(source="sector.unit.company.name", read_only=True)
     full_path = serializers.CharField(read_only=True)
     asset_count = serializers.IntegerField(read_only=True)
     contacts = LocationContactSerializer(many=True, read_only=True)
@@ -74,6 +79,8 @@ class SubsectionSerializer(serializers.ModelSerializer):
             "is_active",
             "sector",
             "sector_name",
+            "unit_id",
+            "unit_name",
             "company_id",
             "company_name",
             "position",
@@ -90,8 +97,10 @@ class SubsectionListSerializer(serializers.ModelSerializer):
     """Serializer resumido para listagem de subseções."""
 
     sector_name = serializers.CharField(source="sector.name", read_only=True)
-    company_name = serializers.CharField(source="sector.company.name", read_only=True)
-    company_id = serializers.IntegerField(source="sector.company_id", read_only=True)
+    unit_id = serializers.IntegerField(source="sector.unit_id", read_only=True)
+    unit_name = serializers.CharField(source="sector.unit.name", read_only=True)
+    company_id = serializers.IntegerField(source="sector.unit.company_id", read_only=True)
+    company_name = serializers.CharField(source="sector.unit.company.name", read_only=True)
     asset_count = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -104,6 +113,8 @@ class SubsectionListSerializer(serializers.ModelSerializer):
             "is_active",
             "sector",
             "sector_name",
+            "unit_id",
+            "unit_name",
             "company_id",
             "company_name",
             "position",
@@ -135,7 +146,10 @@ class SectorSerializer(serializers.ModelSerializer):
     occupants = serializers.IntegerField(required=False, allow_null=True)
     hvac_units = serializers.IntegerField(required=False, allow_null=True)
 
-    company_name = serializers.CharField(source="company.name", read_only=True)
+    # Campos de navegação (somente leitura)
+    unit_name = serializers.CharField(source="unit.name", read_only=True)
+    company_id = serializers.IntegerField(source="unit.company_id", read_only=True)
+    company_name = serializers.CharField(source="unit.company.name", read_only=True)
     supervisor_name = serializers.CharField(
         source="supervisor.get_full_name", read_only=True
     )
@@ -153,7 +167,9 @@ class SectorSerializer(serializers.ModelSerializer):
             "code",
             "description",
             "is_active",
-            "company",
+            "unit",
+            "unit_name",
+            "company_id",
             "company_name",
             "supervisor",
             "supervisor_name",
@@ -178,7 +194,9 @@ class SectorSerializer(serializers.ModelSerializer):
 class SectorListSerializer(serializers.ModelSerializer):
     """Serializer resumido para listagem de setores."""
 
-    company_name = serializers.CharField(source="company.name", read_only=True)
+    unit_name = serializers.CharField(source="unit.name", read_only=True)
+    company_id = serializers.IntegerField(source="unit.company_id", read_only=True)
+    company_name = serializers.CharField(source="unit.company.name", read_only=True)
     supervisor_name = serializers.CharField(
         source="supervisor.get_full_name", read_only=True, allow_null=True
     )
@@ -193,7 +211,9 @@ class SectorListSerializer(serializers.ModelSerializer):
             "code",
             "description",
             "is_active",
-            "company",
+            "unit",
+            "unit_name",
+            "company_id",
             "company_name",
             "supervisor",
             "supervisor_name",
@@ -223,6 +243,131 @@ class SectorNestedSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "code", "is_active", "asset_count", "subsections"]
 
 
+# ============================================
+# Unit Serializers
+# ============================================
+
+
+class UnitSerializer(serializers.ModelSerializer):
+    """Serializer completo para unidades."""
+
+    # Campos explícitos opcionais
+    code = serializers.CharField(required=False, allow_blank=True, max_length=50)
+    description = serializers.CharField(required=False, allow_blank=True)
+    cnpj = serializers.CharField(required=False, allow_blank=True, max_length=18)
+    address = serializers.CharField(required=False, allow_blank=True)
+    city = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    state = serializers.CharField(required=False, allow_blank=True, max_length=50)
+    zip_code = serializers.CharField(required=False, allow_blank=True, max_length=10)
+    responsible_name = serializers.CharField(
+        required=False, allow_blank=True, max_length=255
+    )
+    responsible_role = serializers.CharField(
+        required=False, allow_blank=True, max_length=100
+    )
+    total_area = serializers.DecimalField(
+        required=False, allow_null=True, max_digits=12, decimal_places=2
+    )
+    occupants = serializers.IntegerField(required=False, allow_null=True)
+    hvac_units = serializers.IntegerField(required=False, allow_null=True)
+
+    # Campos de navegação (somente leitura)
+    company_name = serializers.CharField(source="company.name", read_only=True)
+    manager_name = serializers.CharField(source="manager.get_full_name", read_only=True)
+    full_path = serializers.CharField(read_only=True)
+    sector_count = serializers.IntegerField(read_only=True)
+    asset_count = serializers.IntegerField(read_only=True)
+    sectors = SectorListSerializer(many=True, read_only=True)
+    contacts = LocationContactSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Unit
+        fields = [
+            "id",
+            "name",
+            "code",
+            "description",
+            "is_active",
+            "company",
+            "company_name",
+            "cnpj",
+            "address",
+            "city",
+            "state",
+            "zip_code",
+            "responsible_name",
+            "responsible_role",
+            "total_area",
+            "occupants",
+            "hvac_units",
+            "manager",
+            "manager_name",
+            "full_path",
+            "sector_count",
+            "asset_count",
+            "sectors",
+            "contacts",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class UnitListSerializer(serializers.ModelSerializer):
+    """Serializer resumido para listagem de unidades."""
+
+    company_name = serializers.CharField(source="company.name", read_only=True)
+    manager_name = serializers.CharField(
+        source="manager.get_full_name", read_only=True, allow_null=True
+    )
+    sector_count = serializers.IntegerField(read_only=True)
+    asset_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Unit
+        fields = [
+            "id",
+            "name",
+            "code",
+            "description",
+            "is_active",
+            "company",
+            "company_name",
+            "cnpj",
+            "address",
+            "city",
+            "state",
+            "zip_code",
+            "responsible_name",
+            "responsible_role",
+            "total_area",
+            "occupants",
+            "hvac_units",
+            "manager",
+            "manager_name",
+            "sector_count",
+            "asset_count",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class UnitNestedSerializer(serializers.ModelSerializer):
+    """Serializer de unidade com setores aninhados para árvore."""
+
+    sectors = SectorNestedSerializer(many=True, read_only=True)
+    sector_count = serializers.IntegerField(read_only=True)
+    asset_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Unit
+        fields = ["id", "name", "code", "is_active", "sector_count", "asset_count", "sectors"]
+
+
+# ============================================
+# Company Serializers
+# ============================================
+
+
 class CompanySerializer(serializers.ModelSerializer):
     """Serializer completo para empresas."""
 
@@ -232,9 +377,7 @@ class CompanySerializer(serializers.ModelSerializer):
     cnpj = serializers.CharField(required=False, allow_blank=True, max_length=18)
     address = serializers.CharField(required=False, allow_blank=True)
     city = serializers.CharField(required=False, allow_blank=True, max_length=100)
-    state = serializers.CharField(
-        required=False, allow_blank=True, max_length=50
-    )  # Aumentado para suportar nome completo
+    state = serializers.CharField(required=False, allow_blank=True, max_length=50)
     zip_code = serializers.CharField(required=False, allow_blank=True, max_length=10)
 
     # Campos de dados operacionais
@@ -251,9 +394,10 @@ class CompanySerializer(serializers.ModelSerializer):
     hvac_units = serializers.IntegerField(required=False, default=0)
 
     manager_name = serializers.CharField(source="manager.get_full_name", read_only=True)
+    unit_count = serializers.IntegerField(read_only=True)
     sector_count = serializers.IntegerField(read_only=True)
     asset_count = serializers.IntegerField(read_only=True)
-    sectors = SectorListSerializer(many=True, read_only=True)
+    units = UnitListSerializer(many=True, read_only=True)
     contacts = LocationContactSerializer(many=True, read_only=True)
 
     class Meta:
@@ -278,9 +422,10 @@ class CompanySerializer(serializers.ModelSerializer):
             "timezone",
             "manager",
             "manager_name",
+            "unit_count",
             "sector_count",
             "asset_count",
-            "sectors",
+            "units",
             "contacts",
             "created_at",
             "updated_at",
@@ -290,6 +435,7 @@ class CompanySerializer(serializers.ModelSerializer):
 class CompanyListSerializer(serializers.ModelSerializer):
     """Serializer resumido para listagem de empresas."""
 
+    unit_count = serializers.IntegerField(read_only=True)
     sector_count = serializers.IntegerField(read_only=True)
     asset_count = serializers.IntegerField(read_only=True)
     manager_name = serializers.CharField(
@@ -316,6 +462,7 @@ class CompanyListSerializer(serializers.ModelSerializer):
             "hvac_units",
             "manager",
             "manager_name",
+            "unit_count",
             "sector_count",
             "asset_count",
             "created_at",
@@ -326,7 +473,8 @@ class CompanyListSerializer(serializers.ModelSerializer):
 class CompanyTreeSerializer(serializers.ModelSerializer):
     """Serializer para árvore hierárquica completa."""
 
-    sectors = SectorNestedSerializer(many=True, read_only=True)
+    units = UnitNestedSerializer(many=True, read_only=True)
+    unit_count = serializers.IntegerField(read_only=True)
     sector_count = serializers.IntegerField(read_only=True)
     asset_count = serializers.IntegerField(read_only=True)
 
@@ -337,9 +485,10 @@ class CompanyTreeSerializer(serializers.ModelSerializer):
             "name",
             "code",
             "is_active",
+            "unit_count",
             "sector_count",
             "asset_count",
-            "sectors",
+            "units",
         ]
 
 
@@ -348,6 +497,7 @@ class LocationTreeResponseSerializer(serializers.Serializer):
 
     companies = CompanyTreeSerializer(many=True)
     total_companies = serializers.IntegerField()
+    total_units = serializers.IntegerField()
     total_sectors = serializers.IntegerField()
     total_subsections = serializers.IntegerField()
     total_assets = serializers.IntegerField()

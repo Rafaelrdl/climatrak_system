@@ -497,6 +497,42 @@ export interface ApiCompany {
   hvac_units?: number;
   notes?: string;
   // Contadores
+  unit_count?: number;
+  sector_count?: number;
+  asset_count?: number;
+  // Timestamps
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Unit (Unidade)
+ */
+export interface ApiUnit {
+  id: number;
+  name: string;
+  code?: string;
+  description?: string;
+  is_active?: boolean;
+  company: number;
+  company_name?: string;
+  // Campos de localização
+  cnpj?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  // Campos de responsável
+  manager?: number;
+  manager_name?: string;
+  responsible_name?: string;
+  responsible_role?: string;
+  // Campos operacionais
+  total_area?: number;
+  occupants?: number;
+  hvac_units?: number;
+  notes?: string;
+  // Contadores
   sector_count?: number;
   asset_count?: number;
   // Timestamps
@@ -513,7 +549,9 @@ export interface ApiSector {
   code?: string;
   description?: string;
   is_active?: boolean;
-  company: number;
+  unit: number;
+  unit_name?: string;
+  company_id?: number;
   company_name?: string;
   // Campos de responsável
   supervisor?: number;
@@ -547,8 +585,10 @@ export interface ApiSubsection {
   is_active?: boolean;
   sector: number;
   sector_name?: string;
-  company_name?: string;
+  unit_id?: number;
+  unit_name?: string;
   company_id?: number;
+  company_name?: string;
   // Campos de responsável
   responsible_name?: string;
   phone?: string;
@@ -573,7 +613,7 @@ export interface ApiSubsection {
 export interface ApiLocationNode {
   id: number;
   name: string;
-  type: 'company' | 'sector' | 'subsection';
+  type: 'company' | 'unit' | 'sector' | 'subsection';
   parent_id: number | null;
   children: ApiLocationNode[];
   asset_count: number;

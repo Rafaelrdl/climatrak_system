@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Building2, MapPin, Users, Search, BarChart3, Activity, Info, Package, LayoutGrid, List, Filter, Plus } from 'lucide-react';
 import { useEquipments, equipmentKeys } from '@/hooks/useEquipmentQuery';
-import { useSectors, useSubsections, useCompanies } from '@/hooks/useLocationsQuery';
+import { useSectors, useSubsections, useCompanies, useUnits } from '@/hooks/useLocationsQuery';
 import { useSitesQuery } from '@/apps/monitor/hooks/useSitesQuery';
 import { LocationProvider, useLocation as useLocationContext } from '@/contexts/LocationContext';
 import { IfCan } from '@/components/auth/IfCan';
@@ -56,6 +56,7 @@ function AssetsContent() {
   const { data: sectors = [] } = useSectors();
   const { data: subSections = [] } = useSubsections();
   const { data: companies = [] } = useCompanies();
+  const { data: units = [] } = useUnits();
   const { data: sites = [] } = useSitesQuery();
   
   // Debug: log equipment data to check if location fields are present
@@ -94,8 +95,8 @@ function AssetsContent() {
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   // Define se o modal de local está em modo criar ou editar
   const [locationModalMode, setLocationModalMode] = useState<'create' | 'edit'>('create');
-  // Define o tipo de local sendo criado/editado (empresa, setor ou subsetor)
-  const [locationModalType, setLocationModalType] = useState<'company' | 'sector' | 'subsection'>('company');
+  // Define o tipo de local sendo criado/editado (empresa, unidade, setor ou subsetor)
+  const [locationModalType, setLocationModalType] = useState<'company' | 'unit' | 'sector' | 'subsection'>('company');
   // Controla qual aba está ativa (ativos, análises ou local)
   const [activeTab, setActiveTab] = useState('search');
   // Estados para controles da barra de ferramentas unificada
@@ -126,8 +127,13 @@ function AssetsContent() {
     let filteredByLocation: Equipment[] = [];
     
     // Helper function to extract original ID from unique node ID
-    const extractOriginalId = (nodeId: string, type: 'sector' | 'subsection'): string | null => {
+    const extractOriginalId = (nodeId: string, type: 'unit' | 'sector' | 'subsection'): string | null => {
       if (!nodeId) return null;
+      
+      if (type === 'unit' && nodeId.includes('unit-')) {
+        const match = nodeId.match(/unit-(\d+)(?:-|$)/);
+        return match ? match[1] : null;
+      }
       
       if (type === 'sector' && nodeId.includes('sector-')) {
         const match = nodeId.match(/sector-(\d+)(?:-|$)/);
@@ -144,10 +150,12 @@ function AssetsContent() {
     
     switch (selectedNode.type) {
       case 'company': {
-        // Para empresas, filtra equipamentos que pertencem a setores desta empresa
+        // Para empresas, filtra equipamentos que pertencem a unidades, setores e subsetores desta empresa
         // Extrai o ID original da empresa do formato "company-1"
         const companyId = selectedNode.id.replace('company-', '');
-        const companySectors = sectors.filter(s => s.companyId === companyId);
+        const companyUnits = units.filter(u => u.companyId === companyId);
+        const unitIds = new Set(companyUnits.map(u => u.id));
+        const companySectors = sectors.filter(s => s.unitId && unitIds.has(s.unitId));
         const sectorIds = new Set(companySectors.map(s => s.id));
         const subsectionIds = new Set(
           subSections
@@ -158,6 +166,26 @@ function AssetsContent() {
         filteredByLocation = validEquipmentData.filter(
           (eq: Equipment) =>
             eq.companyId === companyId ||
+            (eq.sectorId && sectorIds.has(eq.sectorId)) ||
+            (eq.subSectionId && subsectionIds.has(eq.subSectionId))
+        );
+        break;
+      }
+      
+      case 'unit': {
+        // Para unidades, filtra equipamentos de todos os setores e subsetores desta unidade
+        const originalUnitId = extractOriginalId(selectedNode.id, 'unit');
+        
+        const unitSectors = sectors.filter(s => s.unitId === originalUnitId);
+        const sectorIds = new Set(unitSectors.map(s => s.id));
+        const subsectionIds = new Set(
+          subSections
+            .filter((ss) => sectorIds.has(ss.sectorId))
+            .map((ss) => ss.id)
+        );
+        
+        filteredByLocation = validEquipmentData.filter(
+          (eq: Equipment) =>
             (eq.sectorId && sectorIds.has(eq.sectorId)) ||
             (eq.subSectionId && subsectionIds.has(eq.subSectionId))
         );
@@ -197,7 +225,7 @@ function AssetsContent() {
     }
     
     setFilteredEquipment(filteredByLocation);
-  }, [selectedNode, filteredEquipmentData, sectors, subSections]);
+  }, [selectedNode, filteredEquipmentData, units, sectors, subSections]);
 
   // ========== ESTADO DO FORMULÁRIO DE NOVO EQUIPAMENTO ==========
   // Estado para armazenar os dados do formulário de criação de equipamento
@@ -451,11 +479,11 @@ function AssetsContent() {
   /**
    * CRIAR NOVO LOCAL
    * 
-   * Abre o modal para criação de um novo local (empresa, setor ou subsetor).
+   * Abre o modal para criação de um novo local (empresa, unidade, setor ou subsetor).
    * 
    * @param type - Tipo de local a ser criado
    */
-  const handleCreateLocation = (type: 'company' | 'sector' | 'subsection') => {
+  const handleCreateLocation = (type: 'company' | 'unit' | 'sector' | 'subsection') => {
     setLocationModalType(type);
     setLocationModalMode('create');
     setIsLocationModalOpen(true);
@@ -507,6 +535,7 @@ function AssetsContent() {
         <LocationTree 
           onCreateLocation={handleCreateLocation}
           companies={companies}
+          units={units}
           sectors={sectors}
         />
       </aside>
@@ -619,6 +648,7 @@ function AssetsContent() {
               <LocationTree 
                 onCreateLocation={handleCreateLocation}
                 companies={companies}
+                units={units}
                 sectors={sectors}
               />
             </div>
@@ -655,6 +685,7 @@ function AssetsContent() {
               <LocationTree 
                 onCreateLocation={handleCreateLocation}
                 companies={companies}
+                units={units}
                 sectors={sectors}
               />
             </div>

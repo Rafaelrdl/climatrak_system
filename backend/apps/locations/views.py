@@ -1,5 +1,7 @@
 """
 Views para Locations
+
+Hierarquia: Company > Unit > Sector > Subsection
 """
 
 from django.db.models import Count
@@ -10,7 +12,7 @@ from rest_framework.response import Response
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import Company, LocationContact, Sector, Subsection
+from .models import Company, LocationContact, Sector, Subsection, Unit
 from .serializers import (
     CompanyListSerializer,
     CompanySerializer,
@@ -20,13 +22,15 @@ from .serializers import (
     SectorSerializer,
     SubsectionListSerializer,
     SubsectionSerializer,
+    UnitListSerializer,
+    UnitSerializer,
 )
 
 
 class CompanyViewSet(viewsets.ModelViewSet):
     """ViewSet para Empresas."""
 
-    queryset = Company.objects.prefetch_related("sectors", "contacts")
+    queryset = Company.objects.prefetch_related("units", "contacts")
     permission_classes = [IsAuthenticated]
     filter_backends = [
         DjangoFilterBackend,
@@ -52,20 +56,21 @@ class CompanyViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         # Anotar contagens
-        queryset = queryset.annotate(_sector_count=Count("sectors", distinct=True))
+        queryset = queryset.annotate(_unit_count=Count("units", distinct=True))
         return queryset
 
     @action(detail=False, methods=["get"])
     def tree(self, request):
         """
         Retorna árvore hierárquica de localizações.
-        Estrutura: Companies > Sectors > Subsections
+        Estrutura: Companies > Units > Sectors > Subsections
         """
         companies = Company.objects.filter(is_active=True).prefetch_related(
-            "sectors__subsections"
+            "units__sectors__subsections"
         )
 
         # Contagens totais
+        total_units = Unit.objects.filter(is_active=True).count()
         total_sectors = Sector.objects.filter(is_active=True).count()
         total_subsections = Subsection.objects.filter(is_active=True).count()
 
@@ -83,6 +88,7 @@ class CompanyViewSet(viewsets.ModelViewSet):
             {
                 "companies": serializer.data,
                 "total_companies": companies.count(),
+                "total_units": total_units,
                 "total_sectors": total_sectors,
                 "total_subsections": total_subsections,
                 "total_assets": total_assets,
@@ -105,11 +111,11 @@ class CompanyViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class SectorViewSet(viewsets.ModelViewSet):
-    """ViewSet para Setores."""
+class UnitViewSet(viewsets.ModelViewSet):
+    """ViewSet para Unidades."""
 
-    queryset = Sector.objects.select_related("company", "supervisor").prefetch_related(
-        "subsections", "contacts"
+    queryset = Unit.objects.select_related("company", "manager").prefetch_related(
+        "sectors", "contacts"
     )
     permission_classes = [IsAuthenticated]
     filter_backends = [
@@ -120,12 +126,69 @@ class SectorViewSet(viewsets.ModelViewSet):
     filterset_fields = {
         "is_active": ["exact"],
         "company": ["exact"],
+        "city": ["exact", "icontains"],
+        "state": ["exact"],
+    }
+    search_fields = ["name", "code", "cnpj", "city"]
+    ordering_fields = ["name", "company", "city", "created_at"]
+    ordering = ["company", "name"]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return UnitListSerializer
+        return UnitSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.annotate(_sector_count=Count("sectors", distinct=True))
+        return queryset
+
+    @action(detail=True, methods=["get", "post"])
+    def contacts(self, request, pk=None):
+        """Lista ou adiciona contatos da unidade."""
+        unit = self.get_object()
+
+        if request.method == "POST":
+            serializer = LocationContactSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(unit=unit)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        contacts = unit.contacts.all()
+        serializer = LocationContactSerializer(contacts, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["get"])
+    def sectors(self, request, pk=None):
+        """Lista setores da unidade."""
+        unit = self.get_object()
+        sectors = unit.sectors.filter(is_active=True)
+        serializer = SectorListSerializer(sectors, many=True)
+        return Response(serializer.data)
+
+
+class SectorViewSet(viewsets.ModelViewSet):
+    """ViewSet para Setores."""
+
+    queryset = Sector.objects.select_related("unit", "unit__company", "supervisor").prefetch_related(
+        "subsections", "contacts"
+    )
+    permission_classes = [IsAuthenticated]
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_fields = {
+        "is_active": ["exact"],
+        "unit": ["exact"],
+        "unit__company": ["exact"],
         "floor": ["exact", "icontains"],
         "building": ["exact", "icontains"],
     }
     search_fields = ["name", "code", "building", "area"]
-    ordering_fields = ["name", "company", "created_at"]
-    ordering = ["company", "name"]
+    ordering_fields = ["name", "unit", "created_at"]
+    ordering = ["unit", "name"]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -167,7 +230,7 @@ class SubsectionViewSet(viewsets.ModelViewSet):
     """ViewSet para Subseções."""
 
     queryset = Subsection.objects.select_related(
-        "sector", "sector__company"
+        "sector", "sector__unit", "sector__unit__company"
     ).prefetch_related("contacts")
     permission_classes = [IsAuthenticated]
     filter_backends = [
@@ -178,7 +241,8 @@ class SubsectionViewSet(viewsets.ModelViewSet):
     filterset_fields = {
         "is_active": ["exact"],
         "sector": ["exact"],
-        "sector__company": ["exact"],
+        "sector__unit": ["exact"],
+        "sector__unit__company": ["exact"],
     }
     search_fields = ["name", "code", "position", "reference"]
     ordering_fields = ["name", "sector", "created_at"]
@@ -223,13 +287,14 @@ class SubsectionViewSet(viewsets.ModelViewSet):
 class LocationContactViewSet(viewsets.ModelViewSet):
     """ViewSet para Contatos de Localização."""
 
-    queryset = LocationContact.objects.select_related("company", "sector", "subsection")
+    queryset = LocationContact.objects.select_related("company", "unit", "sector", "subsection")
     serializer_class = LocationContactSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = {
         "type": ["exact", "in"],
         "company": ["exact"],
+        "unit": ["exact"],
         "sector": ["exact"],
         "subsection": ["exact"],
     }

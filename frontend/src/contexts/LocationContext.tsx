@@ -1,7 +1,7 @@
 // Importações dos tipos e dados necessários
-import { createContext, useContext, useState, ReactNode, useMemo } from 'react';
+import { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
 import type { LocationNode } from '@/types';
-import { useCompanies, useSectors, useSubsections } from '@/hooks/useLocationsQuery';
+import { useCompanies, useUnits, useSectors, useSubsections } from '@/hooks/useLocationsQuery';
 
 /**
  * Interface que define o tipo do contexto de localização
@@ -33,6 +33,7 @@ interface LocationProviderProps {
 export function LocationProvider({ children }: LocationProviderProps) {
   // Dados reais da API via React Query
   const { data: companies = [] } = useCompanies();
+  const { data: units = [] } = useUnits();
   const { data: sectors = [] } = useSectors();
   const { data: subsections = [] } = useSubsections();
 
@@ -45,51 +46,70 @@ export function LocationProvider({ children }: LocationProviderProps) {
    * Função auxiliar para construir a estrutura hierárquica da árvore
    * Transforma os dados planos em uma estrutura de árvore aninhada
    * Usa IDs únicos para evitar conflitos de seleção
-   * @returns Array de nós raiz (empresas) com seus filhos (setores > subsetores)
+   * Hierarquia: Empresa > Unidade > Setor > Subsetor
+   * @returns Array de nós raiz (empresas) com seus filhos
    */
   const tree = useMemo((): LocationNode[] => {
     return companies.map(company => {
-      // Busca todos os setores desta empresa
-      const companySectors = sectors.filter(sector => sector.companyId === company.id);
+      // Busca todas as unidades desta empresa
+      const companyUnits = units.filter(unit => unit.companyId === company.id);
       
-      // Constrói os nós dos setores
-      const sectorNodes: LocationNode[] = companySectors.map(sector => {
-        const sectorUniqueId = `company-${company.id}-sector-${sector.id}`;
+      // Constrói os nós das unidades
+      const unitNodes: LocationNode[] = companyUnits.map(unit => {
+        const unitUniqueId = `company-${company.id}-unit-${unit.id}`;
         
-        // Busca todas as subseções deste setor
-        const sectorSubSections = subsections.filter(subSection => subSection.sectorId === sector.id);
+        // Busca todos os setores desta unidade
+        const unitSectors = sectors.filter(sector => sector.unitId === unit.id);
         
-        // Constrói os nós das subseções (folhas da árvore)
-        const subSectionNodes: LocationNode[] = sectorSubSections.map(subSection => ({
-          id: `${sectorUniqueId}-subsection-${subSection.id}`, // ID único para subseção
-          name: subSection.name,
-          type: 'subsection' as const,
-          parentId: sectorUniqueId,
-          data: subSection,
-          children: [] // Subseções são folhas, não têm filhos
-        }));
+        // Constrói os nós dos setores
+        const sectorNodes: LocationNode[] = unitSectors.map(sector => {
+          const sectorUniqueId = `${unitUniqueId}-sector-${sector.id}`;
+          
+          // Busca todas as subseções deste setor
+          const sectorSubSections = subsections.filter(subSection => subSection.sectorId === sector.id);
+          
+          // Constrói os nós das subseções (folhas da árvore)
+          const subSectionNodes: LocationNode[] = sectorSubSections.map(subSection => ({
+            id: `${sectorUniqueId}-subsection-${subSection.id}`, // ID único para subseção
+            name: subSection.name,
+            type: 'subsection' as const,
+            parentId: sectorUniqueId,
+            data: subSection,
+            children: [] // Subseções são folhas, não têm filhos
+          }));
 
-        // Retorna o nó do setor com suas subseções como filhos
+          // Retorna o nó do setor com suas subseções como filhos
+          return {
+            id: sectorUniqueId, // ID único para setor
+            name: sector.name,
+            type: 'sector' as const,
+            parentId: unitUniqueId,
+            data: sector,
+            children: subSectionNodes
+          };
+        });
+
+        // Retorna o nó da unidade com seus setores como filhos
         return {
-          id: sectorUniqueId, // ID único para setor
-          name: sector.name,
-          type: 'sector' as const,
+          id: unitUniqueId, // ID único para unidade
+          name: unit.name,
+          type: 'unit' as const,
           parentId: `company-${company.id}`,
-          data: sector,
-          children: subSectionNodes
+          data: unit,
+          children: sectorNodes
         };
       });
 
-      // Retorna o nó da empresa com seus setores como filhos
+      // Retorna o nó da empresa com suas unidades como filhos
       return {
         id: `company-${company.id}`, // ID único para empresa
         name: company.name,
         type: 'company' as const,
         data: company,
-        children: sectorNodes
+        children: unitNodes
       };
     });
-  }, [companies, sectors, subsections]);
+  }, [companies, units, sectors, subsections]);
 
   /**
    * Função auxiliar para filtrar a árvore com base no termo de busca
@@ -98,7 +118,7 @@ export function LocationProvider({ children }: LocationProviderProps) {
    * @param term - Termo de busca
    * @returns Árvore filtrada contendo apenas nós que correspondem à busca
    */
-  const filterTree = (nodes: LocationNode[], term: string): LocationNode[] => {
+  const filterTree = useCallback((nodes: LocationNode[], term: string): LocationNode[] => {
     if (!term.trim()) return nodes; // Se não há termo de busca, retorna a árvore completa
 
     return nodes.reduce<LocationNode[]>((filtered, node) => {
@@ -119,16 +139,16 @@ export function LocationProvider({ children }: LocationProviderProps) {
       
       return filtered;
     }, []);
-  };
+  }, []);
 
-  // Aplica o filtro de busca na árvore
-  const filteredTree = filterTree(tree, searchTerm);
+  // Aplica o filtro de busca na árvore (memoizado para evitar re-renders)
+  const filteredTree = useMemo(() => filterTree(tree, searchTerm), [tree, searchTerm, filterTree]);
 
   /**
    * Função para alternar o estado expandido/recolhido de um nó
    * @param nodeId - ID do nó para expandir/recolher
    */
-  const toggleExpanded = (nodeId: string) => {
+  const toggleExpanded = useCallback((nodeId: string) => {
     setExpandedNodes(prev => {
       const next = new Set(prev);
       if (next.has(nodeId)) {
@@ -138,10 +158,11 @@ export function LocationProvider({ children }: LocationProviderProps) {
       }
       return next;
     });
-  };
+  }, []);
 
   // Objeto com todos os valores e funções que serão disponibilizados pelo contexto
-  const value: LocationContextType = {
+  // Memoizado para evitar re-renders desnecessários nos consumers
+  const value: LocationContextType = useMemo(() => ({
     tree,              // Árvore completa de localizações
     filteredTree,      // Árvore filtrada pela busca
     selectedNode,      // Nó atualmente selecionado
@@ -150,7 +171,7 @@ export function LocationProvider({ children }: LocationProviderProps) {
     setSelectedNode,   // Função para selecionar um nó
     toggleExpanded,    // Função para expandir/recolher nó
     setSearchTerm,     // Função para atualizar termo de busca
-  };
+  }), [tree, filteredTree, selectedNode, expandedNodes, searchTerm, toggleExpanded]);
 
   // Provider que disponibiliza o contexto para componentes filhos
   return (

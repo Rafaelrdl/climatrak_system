@@ -2,9 +2,10 @@
 Models para Locations - Hierarquia de localizações
 
 Hierarquia:
-  Company (Empresa/Unidade)
-    └── Sector (Setor)
-          └── Subsection (Subseção)
+  Company (Empresa)
+    └── Unit (Unidade)
+          └── Sector (Setor)
+                └── Subsection (Subseção)
 """
 
 from django.conf import settings
@@ -86,8 +87,13 @@ class Company(Location):
         verbose_name_plural = "Empresas"
 
     @property
+    def unit_count(self):
+        return self.units.count()
+
+    @property
     def sector_count(self):
-        return self.sectors.count()
+        """Conta setores em todas as unidades da empresa."""
+        return Sector.objects.filter(unit__company=self).count()
 
     @property
     def asset_count(self):
@@ -95,21 +101,93 @@ class Company(Location):
         from apps.assets.models import Asset
 
         return Asset.objects.filter(
-            models.Q(sector__company=self) | models.Q(subsection__sector__company=self)
+            models.Q(sector__unit__company=self) | models.Q(subsection__sector__unit__company=self)
         ).count()
 
 
-class Sector(Location):
+class Unit(Location):
     """
-    Setor de uma empresa.
-    Pode conter subseções e ativos diretamente.
+    Unidade de uma empresa.
+    Segundo nível da hierarquia - representa filiais, plantas, prédios, etc.
     """
 
     company = models.ForeignKey(
         Company,
         on_delete=models.CASCADE,
-        related_name="sectors",
+        related_name="units",
         verbose_name="Empresa",
+    )
+
+    # Dados de localização
+    cnpj = models.CharField("CNPJ", max_length=18, blank=True)
+    address = models.TextField("Endereço", blank=True)
+    city = models.CharField("Cidade", max_length=100, blank=True)
+    state = models.CharField("Estado", max_length=50, blank=True)
+    zip_code = models.CharField("CEP", max_length=10, blank=True)
+
+    # Responsável (campos de texto para não depender de usuário cadastrado)
+    responsible_name = models.CharField(
+        "Nome do Responsável", max_length=255, blank=True
+    )
+    responsible_role = models.CharField(
+        "Cargo do Responsável", max_length=100, blank=True
+    )
+
+    # Gestor (usuário do sistema)
+    manager = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="managed_units",
+        verbose_name="Gestor",
+    )
+
+    # Dados operacionais
+    total_area = models.DecimalField(
+        "Área Total (m²)", max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    occupants = models.PositiveIntegerField(
+        "Número de Ocupantes", null=True, blank=True
+    )
+    hvac_units = models.PositiveIntegerField("Unidades HVAC", null=True, blank=True)
+
+    class Meta(Location.Meta):
+        verbose_name = "Unidade"
+        verbose_name_plural = "Unidades"
+
+    def __str__(self):
+        return f"{self.company.name} > {self.name}"
+
+    @property
+    def full_path(self):
+        return f"{self.company.name} > {self.name}"
+
+    @property
+    def sector_count(self):
+        return self.sectors.count()
+
+    @property
+    def asset_count(self):
+        """Conta ativos em todos os setores da unidade."""
+        from apps.assets.models import Asset
+
+        return Asset.objects.filter(
+            models.Q(sector__unit=self) | models.Q(subsection__sector__unit=self)
+        ).count()
+
+
+class Sector(Location):
+    """
+    Setor de uma unidade.
+    Pode conter subseções e ativos diretamente.
+    """
+
+    unit = models.ForeignKey(
+        Unit,
+        on_delete=models.CASCADE,
+        related_name="sectors",
+        verbose_name="Unidade",
     )
 
     # Opcional - responsável do setor
@@ -149,11 +227,16 @@ class Sector(Location):
         verbose_name_plural = "Setores"
 
     def __str__(self):
-        return f"{self.company.name} > {self.name}"
+        return f"{self.unit} > {self.name}"
 
     @property
     def full_path(self):
-        return f"{self.company.name} > {self.name}"
+        return f"{self.unit.company.name} > {self.unit.name} > {self.name}"
+
+    @property
+    def company(self):
+        """Retorna a empresa da unidade (atalho para compatibilidade)."""
+        return self.unit.company
 
     @property
     def subsection_count(self):
@@ -196,11 +279,17 @@ class Subsection(Location):
 
     @property
     def full_path(self):
-        return f"{self.sector.company.name} > {self.sector.name} > {self.name}"
+        return f"{self.sector.unit.company.name} > {self.sector.unit.name} > {self.sector.name} > {self.name}"
+
+    @property
+    def unit(self):
+        """Retorna a unidade do setor (atalho para compatibilidade)."""
+        return self.sector.unit
 
     @property
     def company(self):
-        return self.sector.company
+        """Retorna a empresa da unidade (atalho para compatibilidade)."""
+        return self.sector.unit.company
 
     @property
     def asset_count(self):
@@ -212,7 +301,7 @@ class Subsection(Location):
 class LocationContact(models.Model):
     """
     Contato associado a uma localização.
-    Pode ser associado a Company, Sector ou Subsection.
+    Pode ser associado a Company, Unit, Sector ou Subsection.
     """
 
     class ContactType(models.TextChoices):
@@ -225,6 +314,13 @@ class LocationContact(models.Model):
     # Polimórfico - associar a qualquer nível
     company = models.ForeignKey(
         Company,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="contacts",
+    )
+    unit = models.ForeignKey(
+        Unit,
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -260,4 +356,4 @@ class LocationContact(models.Model):
     @property
     def location(self):
         """Retorna a localização associada."""
-        return self.subsection or self.sector or self.company
+        return self.subsection or self.sector or self.unit or self.company

@@ -28,10 +28,30 @@ export interface Company {
   createdAt: string;
 }
 
-export interface Sector {
+export interface Unit {
   id: string;
   name: string;
   companyId: string;
+  cnpj?: string;
+  address?: {
+    zip: string;
+    city: string;
+    state: string;
+    fullAddress: string;
+  };
+  responsible?: string;
+  role?: string;
+  totalArea?: number;
+  occupants?: number;
+  hvacUnits?: number;
+  notes?: string;
+}
+
+export interface Sector {
+  id: string;
+  name: string;
+  unitId: string;
+  companyId?: string; // Derivado da unidade (para compatibilidade)
   responsible: string;
   phone: string;
   email: string;
@@ -45,6 +65,8 @@ export interface SubSection {
   id: string;
   name: string;
   sectorId: string;
+  unitId?: string; // Derivado do setor (para compatibilidade)
+  companyId?: string; // Derivado do setor (para compatibilidade)
   responsible?: string;
   phone?: string;
   email?: string;
@@ -66,6 +88,7 @@ export interface Equipment {
   subSectionId?: string;
   // Campos extras de localização
   companyId?: string;
+  unitId?: string;
   sectorName?: string;
   subsectionName?: string;
   installDate: string;
@@ -85,10 +108,10 @@ export interface Equipment {
 export interface LocationNode {
   id: string;
   name: string;
-  type: 'company' | 'sector' | 'subsection';
+  type: 'company' | 'unit' | 'sector' | 'subsection';
   parentId?: string;
   children?: LocationNode[];
-  data: Company | Sector | SubSection;
+  data: Company | Unit | Sector | SubSection;
 }
 
 export interface MaintenancePlan {
