@@ -82,7 +82,7 @@ jobs:
           CI: true
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: frontend-build
           path: frontend/dist
@@ -164,7 +164,7 @@ jobs:
           config: baseUrl=http://localhost:5173
 
       - name: Upload Cypress screenshots
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: cypress-screenshots
@@ -172,7 +172,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Cypress videos
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: cypress-videos
