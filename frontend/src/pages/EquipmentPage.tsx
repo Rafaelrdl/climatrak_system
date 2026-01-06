@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { PageHeader } from '@/shared/ui';
+import { PageHeader, FilterBar } from '@/shared/ui';
 import { Button } from '@/components/ui/button';
 import { LocationTree } from '@/components/LocationTree';
 import { LocationDetails } from '@/components/LocationDetails';
@@ -11,6 +11,8 @@ import { EquipmentEditModal } from '@/components/EquipmentEditModal';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -114,6 +116,17 @@ function AssetsContent() {
   const [equipmentSearchTerm, setEquipmentSearchTerm] = useState('');
   const [equipmentViewMode, setEquipmentViewMode] = useState<'grid' | 'list'>('grid');
   const [showEquipmentFilters, setShowEquipmentFilters] = useState(false);
+  // Estado dos filtros de equipamentos
+  const [equipmentFilters, setEquipmentFilters] = useState<{
+    type?: string[];
+    status?: string[];
+    brand?: string[];
+    criticidade?: string[];
+    manufacturer?: string[];
+    sector?: string[];
+    capacityMin?: number;
+    capacityMax?: number;
+  }>({});
   // Lista de equipamentos filtrados para exibição
   const [filteredEquipment, setFilteredEquipment] = useState<Equipment[]>(filteredEquipmentData);
   // Controla a abertura do modal de edição de equipamento
@@ -253,6 +266,85 @@ function AssetsContent() {
     return customAssetTypesFromApi
       .map(t => ({ value: t.code, label: t.name }));
   }, [customAssetTypesFromApi]);
+
+  // Valores únicos para filtros de equipamentos
+  const uniqueEquipmentTypes = useMemo(() => [...new Set(filteredEquipmentData.map(e => e.type))].filter(Boolean).sort(), [filteredEquipmentData]);
+  const uniqueEquipmentStatuses = useMemo(() => [...new Set(filteredEquipmentData.map(e => e.status))].filter(Boolean), [filteredEquipmentData]);
+  const uniqueEquipmentBrands = useMemo(() => [...new Set(filteredEquipmentData.map(e => e.brand))].filter(Boolean).sort(), [filteredEquipmentData]);
+  const uniqueEquipmentCriticidades = useMemo(() => [...new Set(filteredEquipmentData.map(e => e.criticidade))].filter(Boolean), [filteredEquipmentData]);
+  const uniqueEquipmentManufacturers = useMemo(() => [...new Set(filteredEquipmentData.map(e => e.manufacturer))].filter(Boolean).sort(), [filteredEquipmentData]);
+  const uniqueEquipmentSectors = useMemo(() => [...new Set(filteredEquipmentData.map(e => e.sectorName))].filter(Boolean).sort(), [filteredEquipmentData]);
+  
+  // Conta total de filtros ativos
+  const activeEquipmentFiltersCount = useMemo(() => {
+    return (equipmentFilters.type?.length ?? 0) + 
+           (equipmentFilters.status?.length ?? 0) + 
+           (equipmentFilters.brand?.length ?? 0) +
+           (equipmentFilters.criticidade?.length ?? 0) +
+           (equipmentFilters.manufacturer?.length ?? 0) +
+           (equipmentFilters.sector?.length ?? 0) +
+           (equipmentFilters.capacityMin !== undefined ? 1 : 0) +
+           (equipmentFilters.capacityMax !== undefined ? 1 : 0);
+  }, [equipmentFilters]);
+  
+  // Função para limpar filtros
+  const clearEquipmentFilters = useCallback(() => {
+    setEquipmentFilters({});
+  }, []);
+  
+  // Função para obter label de status
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'OK': return 'Operacional';
+      case 'MAINTENANCE': return 'Em Manutenção';
+      case 'STOPPED': return 'Parado';
+      case 'ALERT': return 'Alerta';
+      default: return status;
+    }
+  };
+  
+  // Função para obter label de criticidade
+  const getCriticidadeLabel = (criticidade: string) => {
+    switch (criticidade) {
+      case 'BAIXA': return 'Baixa';
+      case 'MEDIA': return 'Média';
+      case 'ALTA': return 'Alta';
+      case 'CRITICA': return 'Crítica';
+      default: return criticidade;
+    }
+  };
+  
+  // Aplica os filtros selecionados aos dados de equipamentos
+  const filteredByFiltersEquipmentData = useMemo(() => {
+    let result = filteredEquipmentData;
+    
+    if (equipmentFilters.type?.length) {
+      result = result.filter(e => equipmentFilters.type!.includes(e.type));
+    }
+    if (equipmentFilters.status?.length) {
+      result = result.filter(e => equipmentFilters.status!.includes(e.status));
+    }
+    if (equipmentFilters.brand?.length) {
+      result = result.filter(e => equipmentFilters.brand!.includes(e.brand));
+    }
+    if (equipmentFilters.criticidade?.length) {
+      result = result.filter(e => equipmentFilters.criticidade!.includes(e.criticidade));
+    }
+    if (equipmentFilters.manufacturer?.length) {
+      result = result.filter(e => e.manufacturer && equipmentFilters.manufacturer!.includes(e.manufacturer));
+    }
+    if (equipmentFilters.sector?.length) {
+      result = result.filter(e => e.sectorName && equipmentFilters.sector!.includes(e.sectorName));
+    }
+    if (equipmentFilters.capacityMin !== undefined) {
+      result = result.filter(e => e.capacity >= equipmentFilters.capacityMin!);
+    }
+    if (equipmentFilters.capacityMax !== undefined) {
+      result = result.filter(e => e.capacity <= equipmentFilters.capacityMax!);
+    }
+    
+    return result;
+  }, [filteredEquipmentData, equipmentFilters]);
 
   // ========== ESTADO DO FORMULÁRIO DE NOVO EQUIPAMENTO ==========
   // Estado para armazenar os dados do formulário de criação de equipamento
@@ -766,15 +858,210 @@ function AssetsContent() {
                 </div>
                 
                 {/* Botão de Filtros */}
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-9 gap-1.5 shadow-sm shrink-0"
-                  onClick={() => setShowEquipmentFilters(!showEquipmentFilters)}
-                >
-                  <Filter className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Filtros</span>
-                </Button>
+                <Popover open={showEquipmentFilters} onOpenChange={setShowEquipmentFilters}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-9 gap-1.5 shadow-sm shrink-0">
+                      <Filter className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Filtros</span>
+                      {activeEquipmentFiltersCount > 0 && (
+                        <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center">
+                          {activeEquipmentFiltersCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="end">
+                    <FilterBar 
+                      title="Filtros" 
+                      count={activeEquipmentFiltersCount} 
+                      onClear={clearEquipmentFilters}
+                    >
+                      <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+                        {/* Filtro por Tipo */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Tipo de Ativo</Label>
+                          <Select
+                            value={equipmentFilters.type?.[0] || '_all'}
+                            onValueChange={(value) => {
+                              setEquipmentFilters(prev => ({
+                                ...prev,
+                                type: value === '_all' ? [] : [value]
+                              }));
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Todos os tipos" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="_all">Todos os tipos</SelectItem>
+                              {uniqueEquipmentTypes.map(type => (
+                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Filtro por Status */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Status</Label>
+                          <Select
+                            value={equipmentFilters.status?.[0] || '_all'}
+                            onValueChange={(value) => {
+                              setEquipmentFilters(prev => ({
+                                ...prev,
+                                status: value === '_all' ? [] : [value]
+                              }));
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Todos os status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="_all">Todos os status</SelectItem>
+                              {uniqueEquipmentStatuses.map(status => (
+                                <SelectItem key={status} value={status}>{getStatusLabel(status)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Filtro por Criticidade */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Criticidade</Label>
+                          <Select
+                            value={equipmentFilters.criticidade?.[0] || '_all'}
+                            onValueChange={(value) => {
+                              setEquipmentFilters(prev => ({
+                                ...prev,
+                                criticidade: value === '_all' ? [] : [value]
+                              }));
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Todas as criticidades" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="_all">Todas as criticidades</SelectItem>
+                              {uniqueEquipmentCriticidades.map(crit => (
+                                <SelectItem key={crit} value={crit}>{getCriticidadeLabel(crit)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Filtro por Marca */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Marca</Label>
+                          <Select
+                            value={equipmentFilters.brand?.[0] || '_all'}
+                            onValueChange={(value) => {
+                              setEquipmentFilters(prev => ({
+                                ...prev,
+                                brand: value === '_all' ? [] : [value]
+                              }));
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Todas as marcas" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="_all">Todas as marcas</SelectItem>
+                              {uniqueEquipmentBrands.map(brand => (
+                                <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Filtro por Fabricante */}
+                        {uniqueEquipmentManufacturers.length > 0 && (
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Fabricante</Label>
+                            <Select
+                              value={equipmentFilters.manufacturer?.[0] || '_all'}
+                              onValueChange={(value) => {
+                                setEquipmentFilters(prev => ({
+                                  ...prev,
+                                  manufacturer: value === '_all' ? [] : [value]
+                                }));
+                              }}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Todos os fabricantes" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="_all">Todos os fabricantes</SelectItem>
+                                {uniqueEquipmentManufacturers.map(mfr => (
+                                  <SelectItem key={mfr} value={mfr}>{mfr}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {/* Filtro por Setor */}
+                        {uniqueEquipmentSectors.length > 0 && (
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Setor</Label>
+                            <Select
+                              value={equipmentFilters.sector?.[0] || '_all'}
+                              onValueChange={(value) => {
+                                setEquipmentFilters(prev => ({
+                                  ...prev,
+                                  sector: value === '_all' ? [] : [value]
+                                }));
+                              }}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Todos os setores" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="_all">Todos os setores</SelectItem>
+                                {uniqueEquipmentSectors.map(sector => (
+                                  <SelectItem key={sector} value={sector}>{sector}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {/* Filtro por Capacidade */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Capacidade (TR)</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              placeholder="Mín"
+                              className="w-full"
+                              value={equipmentFilters.capacityMin ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                setEquipmentFilters(prev => ({
+                                  ...prev,
+                                  capacityMin: value ? Number(value) : undefined
+                                }));
+                              }}
+                            />
+                            <span className="text-muted-foreground text-sm">até</span>
+                            <Input
+                              type="number"
+                              placeholder="Máx"
+                              className="w-full"
+                              value={equipmentFilters.capacityMax ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                setEquipmentFilters(prev => ({
+                                  ...prev,
+                                  capacityMax: value ? Number(value) : undefined
+                                }));
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </FilterBar>
+                  </PopoverContent>
+                </Popover>
                 
                 {/* Botão Novo Ativo */}
                 <IfCan action="create" subject="asset">
@@ -804,7 +1091,7 @@ function AssetsContent() {
             </div>
             
             <EquipmentSearch
-              equipment={filteredEquipmentData}
+              equipment={filteredByFiltersEquipmentData}
               selectedLocation={selectedNode?.id}
               onFilteredResults={handleFilteredResults}
               onEquipmentSelect={handleEquipmentSelect}
@@ -816,8 +1103,6 @@ function AssetsContent() {
               onDeleteAsset={handleDeleteEquipment}
               externalSearchTerm={equipmentSearchTerm}
               externalViewMode={equipmentViewMode}
-              externalShowFilters={showEquipmentFilters}
-              onExternalShowFiltersChange={setShowEquipmentFilters}
             />
           </TabsContent>
 
