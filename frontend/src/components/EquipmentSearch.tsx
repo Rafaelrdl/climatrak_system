@@ -30,6 +30,20 @@ import {
   Building2,
   LayoutGrid,
   List,
+  // Ícones para tipos de ativos
+  Snowflake,        // CHILLER
+  Wind,             // SPLIT, FAN_COIL, AHU
+  RefreshCw,        // VRF
+  Droplets,         // COOLING_TOWER, PUMP
+  Flame,            // BOILER
+  Gauge,            // METER
+  Thermometer,      // SENSOR
+  Cpu,              // CONTROLLER
+  Filter as FilterIcon, // FILTER
+  Square,           // DUCT
+  CircleDot,        // VALVE
+  Server,           // RTU
+  type LucideIcon,
 } from 'lucide-react';
 import type { Equipment, EquipmentFilter } from '@/types';
 
@@ -319,14 +333,71 @@ export function EquipmentSearch({
     }
   };
 
-  const getTypeIcon = (type: Equipment['type']) => {
-    switch (type) {
-      case 'CHILLER': return '❄️';
-      case 'VRF': return '🔄';
-      case 'CENTRAL': return '🏢';
-      case 'SPLIT': return '💨';
-      default: return '📦';
+  // Mapeamento de tipos de ativo para ícones e cores
+  const getTypeIconConfig = (type: string): { icon: LucideIcon; color: string; bgColor: string } => {
+    const typeUpper = type?.toUpperCase() || '';
+    
+    switch (typeUpper) {
+      // Refrigeração
+      case 'CHILLER':
+        return { icon: Snowflake, color: 'text-cyan-500', bgColor: 'bg-cyan-500/10' };
+      case 'VRF':
+        return { icon: RefreshCw, color: 'text-indigo-500', bgColor: 'bg-indigo-500/10' };
+      case 'SPLIT':
+        return { icon: Wind, color: 'text-sky-500', bgColor: 'bg-sky-500/10' };
+      case 'FAN_COIL':
+      case 'FANCOIL':
+      case 'FANCOLETE':
+        return { icon: Wind, color: 'text-teal-500', bgColor: 'bg-teal-500/10' };
+      case 'AHU':
+      case 'CENTRAL':
+        return { icon: Building2, color: 'text-blue-500', bgColor: 'bg-blue-500/10' };
+      case 'RTU':
+        return { icon: Server, color: 'text-slate-500', bgColor: 'bg-slate-500/10' };
+      
+      // Sistemas de água
+      case 'COOLING_TOWER':
+        return { icon: Droplets, color: 'text-blue-400', bgColor: 'bg-blue-400/10' };
+      case 'PUMP':
+        return { icon: Droplets, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' };
+      case 'BOILER':
+        return { icon: Flame, color: 'text-orange-500', bgColor: 'bg-orange-500/10' };
+      
+      // Controle e medição
+      case 'SENSOR':
+        return { icon: Thermometer, color: 'text-rose-500', bgColor: 'bg-rose-500/10' };
+      case 'CONTROLLER':
+        return { icon: Cpu, color: 'text-violet-500', bgColor: 'bg-violet-500/10' };
+      case 'METER':
+        return { icon: Gauge, color: 'text-amber-500', bgColor: 'bg-amber-500/10' };
+      
+      // Componentes
+      case 'VALVE':
+        return { icon: CircleDot, color: 'text-gray-500', bgColor: 'bg-gray-500/10' };
+      case 'FILTER':
+        return { icon: FilterIcon, color: 'text-lime-500', bgColor: 'bg-lime-500/10' };
+      case 'DUCT':
+        return { icon: Square, color: 'text-neutral-500', bgColor: 'bg-neutral-500/10' };
+      
+      // Padrão para tipos customizados
+      default:
+        return { icon: Package, color: 'text-primary', bgColor: 'bg-primary/10' };
     }
+  };
+
+  // Função auxiliar para renderizar o ícone
+  const renderTypeIcon = (type: string, size: 'sm' | 'md' | 'lg' = 'md') => {
+    const config = getTypeIconConfig(type);
+    const Icon = config.icon;
+    const sizeClass = size === 'sm' ? 'h-3.5 w-3.5' : size === 'lg' ? 'h-5 w-5' : 'h-4 w-4';
+    
+    return (
+      <div className={cn('rounded-md flex items-center justify-center shrink-0', config.bgColor,
+        size === 'sm' ? 'h-6 w-6' : size === 'lg' ? 'h-9 w-9' : 'h-7 w-7'
+      )}>
+        <Icon className={cn(sizeClass, config.color)} />
+      </div>
+    );
   };
 
   return (
@@ -709,7 +780,7 @@ export function EquipmentSearch({
                       </Tooltip>
 
                       {/* Type Icon */}
-                      <span className="text-base">{getTypeIcon(eq.type)}</span>
+                      {renderTypeIcon(eq.type, 'sm')}
 
                       {/* Main Info */}
                       <div className="flex-1 min-w-0">
@@ -775,7 +846,7 @@ export function EquipmentSearch({
                 <CardHeader className="pb-2 pt-3 px-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-base shrink-0">{getTypeIcon(eq.type)}</span>
+                      {renderTypeIcon(eq.type, 'md')}
                       <div className="min-w-0">
                         <CardTitle className="text-sm font-medium truncate">{eq.tag}</CardTitle>
                         <p className="text-xs text-muted-foreground truncate">{eq.brand} {eq.model}</p>

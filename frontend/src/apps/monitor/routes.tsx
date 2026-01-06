@@ -10,10 +10,6 @@ const SensorsPage = lazy(async () => {
   const mod = await import('./pages/SensorsPage');
   return { default: mod.SensorsPage };
 });
-const MonitorAssetsPage = lazy(async () => {
-  const mod = await import('./pages/MonitorAssetsPage');
-  return { default: mod.MonitorAssetsPage };
-});
 const RulesPage = lazy(async () => {
   const mod = await import('./pages/RulesPage');
   return { default: mod.RulesPage };
@@ -48,8 +44,6 @@ const SettingsPage = lazy(async () => {
  * - /monitor/dashboards     → Dashboards Customizáveis (drag & drop)
  * - /monitor/alertas        → Lista de Alertas
  * - /monitor/sensores       → Grid de Sensores/Devices
- * - /monitor/ativos         → Lista de Ativos HVAC
- * - /monitor/ativos/:id     → Redireciona para página unificada em /cmms/ativos/:id
  * - /monitor/regras         → Configuração de Regras
  * - /monitor/profile        → Perfil do Usuário
  * - /monitor/admin/team     → Gerenciamento de Equipe
@@ -79,12 +73,7 @@ export function MonitorRoutes() {
         {/* Grid de sensores/devices */}
         <Route path="/sensores" element={<SensorsPage />} />
         
-        {/* Lista de ativos HVAC */}
-        <Route path="/ativos" element={<MonitorAssetsPage />} />
-        
-        {/* Detalhes de um ativo - redireciona para página unificada em CMMS */}
-        <Route path="/ativos/:id" element={<AssetDetailRedirect />} />
-        
+
         {/* Rota legacy - redireciona equipamentos para página unificada */}
         <Route path="/equipamentos/:id" element={<AssetDetailRedirect />} />
         
