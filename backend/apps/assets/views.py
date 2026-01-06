@@ -5,6 +5,7 @@ Este módulo implementa as views da API REST usando Django REST Framework
 ViewSets para expor operações CRUD e ações customizadas.
 
 Classes:
+    AssetTypeViewSet: CRUD para tipos de ativo customizados
     SiteViewSet: CRUD para Sites com filtros e listagem de assets
     AssetViewSet: CRUD para Assets com filtros avançados e ações customizadas
     DeviceViewSet: CRUD para Devices com filtros e listagem de sensors
@@ -22,10 +23,11 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from apps.accounts.permissions import CanWrite
 
-from .models import Asset, Device, Sensor, Site
+from .models import Asset, AssetType, Device, Sensor, Site
 from .serializers import (
     AssetListSerializer,
     AssetSerializer,
+    AssetTypeSerializer,
     DeviceListSerializer,
     DeviceSerializer,
     SensorBulkCreateSerializer,
@@ -33,6 +35,44 @@ from .serializers import (
     SensorSerializer,
     SiteSerializer,
 )
+
+
+class AssetTypeViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gerenciamento de Tipos de Ativo.
+    
+    Endpoints:
+        GET /api/asset-types/ - Lista todos os tipos de ativo
+        POST /api/asset-types/ - Cria novo tipo de ativo
+        GET /api/asset-types/{id}/ - Detalhes de um tipo
+        PUT /api/asset-types/{id}/ - Atualiza tipo
+        PATCH /api/asset-types/{id}/ - Atualiza tipo parcial
+        DELETE /api/asset-types/{id}/ - Remove tipo (apenas se não for do sistema)
+    """
+    
+    queryset = AssetType.objects.filter(is_active=True)
+    serializer_class = AssetTypeSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "code"]
+    ordering_fields = ["name", "created_at"]
+    ordering = ["name"]
+    
+    def get_permissions(self):
+        """Permite leitura para qualquer autenticado, escrita apenas para quem pode"""
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [IsAuthenticated(), CanWrite()]
+        return [IsAuthenticated()]
+    
+    def destroy(self, request, *args, **kwargs):
+        """Impede exclusão de tipos do sistema"""
+        instance = self.get_object()
+        if instance.is_system:
+            return Response(
+                {"error": "Tipos de ativo do sistema não podem ser excluídos"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().destroy(request, *args, **kwargs)
 
 
 class SiteViewSet(viewsets.ModelViewSet):

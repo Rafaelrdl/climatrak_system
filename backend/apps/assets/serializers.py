@@ -5,6 +5,7 @@ Este módulo implementa os serializers do Django REST Framework para expor
 os modelos Site, Asset, Device e Sensor via API REST.
 
 Classes:
+    AssetTypeSerializer: Serializer para tipos de ativo customizados
     SiteSerializer: Serializer para Sites com contador de ativos
     AssetSerializer: Serializer para Assets com informações aninhadas
     DeviceSerializer: Serializer para Devices com contadores
@@ -13,7 +14,29 @@ Classes:
 
 from rest_framework import serializers
 
-from .models import Asset, Device, Sensor, Site
+from .models import Asset, AssetType, Device, Sensor, Site
+
+
+class AssetTypeSerializer(serializers.ModelSerializer):
+    """
+    Serializer para o modelo AssetType.
+    
+    Usado para criar e listar tipos de ativo customizados.
+    """
+    
+    class Meta:
+        model = AssetType
+        fields = [
+            "id",
+            "code",
+            "name",
+            "description",
+            "is_system",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "is_system", "created_at", "updated_at"]
 
 
 class SiteSerializer(serializers.ModelSerializer):

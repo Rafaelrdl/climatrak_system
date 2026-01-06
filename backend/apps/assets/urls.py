@@ -4,6 +4,7 @@ URLs para a API REST do catálogo de ativos.
 Este módulo configura as rotas da API usando Django REST Framework Router.
 
 Endpoints disponíveis:
+    /api/asset-types/ - CRUD de tipos de ativo
     /api/sites/ - CRUD de sites
     /api/assets/ - CRUD de assets
     /api/devices/ - CRUD de devices
@@ -13,10 +14,11 @@ Endpoints disponíveis:
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import AssetViewSet, DeviceViewSet, SensorViewSet, SiteViewSet
+from .views import AssetTypeViewSet, AssetViewSet, DeviceViewSet, SensorViewSet, SiteViewSet
 
 # Configuração do router
 router = DefaultRouter()
+router.register(r"asset-types", AssetTypeViewSet, basename="asset-type")
 router.register(r"sites", SiteViewSet, basename="site")
 router.register(r"assets", AssetViewSet, basename="asset")
 router.register(r"devices", DeviceViewSet, basename="device")

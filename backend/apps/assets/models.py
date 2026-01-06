@@ -18,6 +18,59 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
+class AssetType(models.Model):
+    """
+    Tipo de Ativo/Equipamento customizado.
+    
+    Permite que tenants criem seus próprios tipos de equipamento
+    além dos tipos padrão (CHILLER, AHU, etc).
+    
+    Campos:
+        - code: Código único do tipo (ex: "FANCOIL_PISO")
+        - name: Nome exibível (ex: "Fan Coil de Piso")
+        - description: Descrição opcional
+        - is_system: Se é um tipo do sistema (não pode ser excluído)
+    """
+    
+    code = models.CharField(
+        "Código",
+        max_length=50,
+        unique=True,
+        db_index=True,
+        help_text="Código único do tipo de ativo (ex: FANCOIL_PISO)"
+    )
+    name = models.CharField(
+        "Nome",
+        max_length=100,
+        help_text="Nome exibível do tipo de ativo"
+    )
+    description = models.TextField(
+        "Descrição",
+        blank=True,
+        help_text="Descrição opcional do tipo de ativo"
+    )
+    is_system = models.BooleanField(
+        "Tipo do Sistema",
+        default=False,
+        help_text="Se verdadeiro, é um tipo padrão do sistema e não pode ser excluído"
+    )
+    is_active = models.BooleanField(
+        "Ativo",
+        default=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = "asset_types"
+        ordering = ["name"]
+        verbose_name = "Tipo de Ativo"
+        verbose_name_plural = "Tipos de Ativo"
+    
+    def __str__(self):
+        return self.name
+
+
 class Site(models.Model):
     """
     Site/Localização física onde os equipamentos estão instalados.

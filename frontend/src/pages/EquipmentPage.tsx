@@ -18,6 +18,7 @@ import { Building2, MapPin, Users, Search, Activity, Info, Package, LayoutGrid, 
 import { useEquipments, equipmentKeys } from '@/hooks/useEquipmentQuery';
 import { useSectors, useSubsections, useCompanies, useUnits } from '@/hooks/useLocationsQuery';
 import { useSitesQuery } from '@/apps/monitor/hooks/useSitesQuery';
+import { useAssetTypes, useCreateAssetType } from '@/hooks/useAssetTypesQuery';
 import { LocationProvider, useLocation as useLocationContext } from '@/contexts/LocationContext';
 import { IfCan } from '@/components/auth/IfCan';
 import { useRoleBasedData, DataFilterInfo } from '@/components/data/FilteredDataProvider';
@@ -58,12 +59,15 @@ function AssetsContent() {
   const companiesQuery = useCompanies();
   const unitsQuery = useUnits();
   const sitesQuery = useSitesQuery();
+  const assetTypesQuery = useAssetTypes();
+  const createAssetTypeMutation = useCreateAssetType();
   const equipment = equipmentQuery.data ?? EMPTY_ARRAY;
   const sectors = sectorsQuery.data ?? EMPTY_ARRAY;
   const subSections = subSectionsQuery.data ?? EMPTY_ARRAY;
   const companies = companiesQuery.data ?? EMPTY_ARRAY;
   const units = unitsQuery.data ?? EMPTY_ARRAY;
   const sites = sitesQuery.data ?? EMPTY_ARRAY;
+  const customAssetTypesFromApi = assetTypesQuery.data ?? [];
   
   // Debug: log equipment data to check if location fields are present
   useEffect(() => {
@@ -236,7 +240,13 @@ function AssetsContent() {
   // ========== ESTADO DO MODAL DE NOVO TIPO DE ATIVO ==========
   const [isNewAssetTypeDialogOpen, setIsNewAssetTypeDialogOpen] = useState(false);
   const [newAssetTypeName, setNewAssetTypeName] = useState('');
-  const [customAssetTypes, setCustomAssetTypes] = useState<Array<{ value: string; label: string }>>([]);
+  
+  // Combina tipos da API com os tipos default do sistema
+  const customAssetTypes = useMemo(() => {
+    return customAssetTypesFromApi
+      .filter(t => !t.isSystem) // Filtra apenas tipos customizados
+      .map(t => ({ value: t.code, label: t.name }));
+  }, [customAssetTypesFromApi]);
 
   // ========== ESTADO DO FORMULÁRIO DE NOVO EQUIPAMENTO ==========
   // Estado para armazenar os dados do formulário de criação de equipamento
@@ -525,17 +535,19 @@ function AssetsContent() {
    * ADICIONAR NOVO TIPO DE ATIVO
    * 
    * Adiciona um novo tipo customizado à lista de tipos de ativo.
-   * O tipo é salvo como "OTHER" no backend com o nome em asset_type_other.
+   * O tipo é persistido no banco de dados via API.
    */
-  const handleAddAssetType = () => {
+  const handleAddAssetType = async () => {
     if (!newAssetTypeName.trim()) {
       toast.error('Digite um nome para o tipo de ativo');
       return;
     }
     
-    // Verifica se já existe
+    // Gera o código do tipo
     const typeValue = newAssetTypeName.toUpperCase().replace(/\s+/g, '_');
-    const existsInDefault = ['SPLIT', 'VRF', 'CENTRAL', 'CHILLER'].includes(typeValue);
+    
+    // Verifica se já existe nos tipos padrão
+    const existsInDefault = ['SPLIT', 'VRF', 'CENTRAL', 'CHILLER', 'AHU', 'FAN_COIL', 'PUMP', 'BOILER', 'COOLING_TOWER', 'RTU', 'VALVE', 'SENSOR', 'CONTROLLER', 'FILTER', 'DUCT', 'METER'].includes(typeValue);
     const existsInCustom = customAssetTypes.some(t => t.value === typeValue);
     
     if (existsInDefault || existsInCustom) {
@@ -543,20 +555,25 @@ function AssetsContent() {
       return;
     }
     
-    // Adiciona o novo tipo customizado
-    setCustomAssetTypes(prev => [
-      ...prev,
-      { value: typeValue, label: newAssetTypeName.trim() }
-    ]);
-    
-    // Seleciona automaticamente o novo tipo
-    setNewEquipment(prev => ({ ...prev, type: typeValue as Equipment['type'] }));
-    
-    // Fecha o modal e limpa o campo
-    setNewAssetTypeName('');
-    setIsNewAssetTypeDialogOpen(false);
-    
-    toast.success(`Tipo "${newAssetTypeName.trim()}" adicionado com sucesso`);
+    try {
+      // Persiste o novo tipo no banco de dados
+      await createAssetTypeMutation.mutateAsync({
+        code: typeValue,
+        name: newAssetTypeName.trim(),
+      });
+      
+      // Seleciona automaticamente o novo tipo
+      setNewEquipment(prev => ({ ...prev, type: typeValue as Equipment['type'] }));
+      
+      // Fecha o modal e limpa o campo
+      setNewAssetTypeName('');
+      setIsNewAssetTypeDialogOpen(false);
+      
+      toast.success(`Tipo "${newAssetTypeName.trim()}" adicionado com sucesso`);
+    } catch (error) {
+      console.error('Erro ao criar tipo de ativo:', error);
+      toast.error('Erro ao criar tipo de ativo. Tente novamente.');
+    }
   };
 
   /**
