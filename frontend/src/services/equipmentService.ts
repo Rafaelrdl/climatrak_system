@@ -74,21 +74,18 @@ interface ApiAsset {
 
 /**
  * Mapeia asset_type do backend para type do Equipment
+ * Nota: Tipos customizados são retornados como estão (sem mapeamento)
  */
 const mapAssetType = (assetType: string): Equipment['type'] => {
-  const mapping: Record<string, Equipment['type']> = {
-    'CHILLER': 'CHILLER',
-    'AHU': 'CENTRAL',
-    'VRF': 'VRF',
-    'SPLIT': 'SPLIT',
-    'FAN_COIL': 'SPLIT',
+  // Mapeamentos legados para compatibilidade
+  const legacyMapping: Record<string, string> = {
+    'AHU': 'AHU',
+    'FAN_COIL': 'FAN_COIL',
     'CONDENSADORA': 'SPLIT',
-    'BOILER': 'CENTRAL',
-    'COOLING_TOWER': 'CENTRAL',
-    'PUMP': 'CENTRAL',
-    'OTHER': 'CENTRAL',
   };
-  return mapping[assetType] || 'CENTRAL';
+  
+  // Retorna o mapeamento legado se existir, senão retorna o tipo original
+  return (legacyMapping[assetType] || assetType) as Equipment['type'];
 };
 
 /**
@@ -294,13 +291,12 @@ const equipmentToApiAsset = (equipment: Partial<Equipment> & {
   
   // Mapear tipo reverso
   if (equipment.type) {
-    const typeMapping: Record<Equipment['type'], string> = {
-      'CHILLER': 'CHILLER',
-      'CENTRAL': 'AHU',
-      'VRF': 'VRF',
-      'SPLIT': 'FAN_COIL', // Split mapeia para Fan Coil no backend
+    // Mapeamentos legados para compatibilidade reversa
+    const legacyTypeMapping: Record<string, string> = {
+      'CENTRAL': 'AHU', // CENTRAL do frontend vira AHU no backend
     };
-    data.asset_type = typeMapping[equipment.type];
+    // Usa o mapeamento legado se existir, senão usa o tipo original
+    data.asset_type = legacyTypeMapping[equipment.type] || equipment.type;
   }
   
   return data;

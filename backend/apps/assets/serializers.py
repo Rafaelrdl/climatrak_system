@@ -101,6 +101,7 @@ class AssetListSerializer(serializers.ModelSerializer):
 
     site_name = serializers.CharField(source="site.name", read_only=True)
     device_count = serializers.SerializerMethodField()
+    asset_type_display = serializers.SerializerMethodField()
 
     # Campos de localização (Company/Sector/Subsection)
     company_id = serializers.SerializerMethodField()
@@ -120,6 +121,7 @@ class AssetListSerializer(serializers.ModelSerializer):
             "site",
             "site_name",
             "asset_type",
+            "asset_type_display",
             "manufacturer",
             "model",
             "serial_number",
@@ -156,10 +158,25 @@ class AssetListSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "device_count",
+            "asset_type_display",
             "company_id",
             "sector_name",
             "subsection_name",
         ]
+
+    def get_asset_type_display(self, obj):
+        """
+        Retorna o nome legível do tipo de ativo.
+        Busca na tabela AssetType pelo código, se não encontrar usa o código direto.
+        """
+        if not obj.asset_type:
+            return None
+        # Tenta buscar na tabela de tipos
+        asset_type = AssetType.objects.filter(code=obj.asset_type).first()
+        if asset_type:
+            return asset_type.name
+        # Fallback para o display do choices do modelo
+        return obj.get_asset_type_display()
 
     def get_device_count(self, obj):
         """Retorna o número de dispositivos conectados a este ativo."""
@@ -198,6 +215,7 @@ class AssetSerializer(serializers.ModelSerializer):
     full_location = serializers.CharField(read_only=True)
     device_count = serializers.SerializerMethodField()
     sensor_count = serializers.SerializerMethodField()
+    asset_type_display = serializers.SerializerMethodField()
 
     # Campos de localização (Company/Sector/Subsection)
     company_id = serializers.SerializerMethodField()
@@ -218,6 +236,7 @@ class AssetSerializer(serializers.ModelSerializer):
             "site_name",
             "full_location",
             "asset_type",
+            "asset_type_display",
             "asset_type_other",
             "manufacturer",
             "model",
@@ -260,6 +279,7 @@ class AssetSerializer(serializers.ModelSerializer):
             "full_location",
             "device_count",
             "sensor_count",
+            "asset_type_display",
             "health_score",
             "created_at",
             "updated_at",
@@ -295,6 +315,20 @@ class AssetSerializer(serializers.ModelSerializer):
         if obj.subsection and obj.subsection.sector and obj.subsection.sector.company:
             return obj.subsection.sector.company.id
         return None
+
+    def get_asset_type_display(self, obj):
+        """
+        Retorna o nome legível do tipo de ativo.
+        Busca na tabela AssetType pelo código, se não encontrar usa o código direto.
+        """
+        if not obj.asset_type:
+            return None
+        # Tenta buscar na tabela de tipos
+        asset_type = AssetType.objects.filter(code=obj.asset_type).first()
+        if asset_type:
+            return asset_type.name
+        # Fallback para o display do choices do modelo
+        return obj.get_asset_type_display()
 
     def get_device_count(self, obj):
         """

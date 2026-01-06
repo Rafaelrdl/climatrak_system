@@ -3,10 +3,11 @@
  * 
  * Modal para editar informações de um equipamento no módulo CMMS.
  * Com 3 abas: Informações Básicas, Localização e Especificações.
+ * Design alinhado com o modal de adicionar equipamento.
  */
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Loader2 } from 'lucide-react';
+import { Info, MapPin, Activity, Loader2, Save } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -25,10 +26,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { useUpdateEquipment } from '@/hooks/useEquipmentQuery';
 import { useCompanies, useSectors, useSubsections } from '@/hooks/useLocationsQuery';
+import { useAssetTypes } from '@/hooks/useAssetTypesQuery';
 import type { Equipment } from '@/types';
 import { toast } from 'sonner';
 
@@ -37,25 +38,6 @@ interface EquipmentEditModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-// Tipos de equipamento expandidos
-const EQUIPMENT_TYPES = [
-  { value: 'CHILLER', label: 'Chiller' },
-  { value: 'AHU', label: 'AHU (Unidade de Tratamento de Ar)' },
-  { value: 'FAN_COIL', label: 'Fan Coil' },
-  { value: 'PUMP', label: 'Bomba' },
-  { value: 'BOILER', label: 'Caldeira' },
-  { value: 'COOLING_TOWER', label: 'Torre de Resfriamento' },
-  { value: 'VRF', label: 'VRF (Variable Refrigerant Flow)' },
-  { value: 'RTU', label: 'RTU (Rooftop Unit)' },
-  { value: 'SPLIT', label: 'Split' },
-  { value: 'CENTRAL', label: 'Central' },
-  { value: 'VALVE', label: 'Válvula' },
-  { value: 'SENSOR', label: 'Sensor' },
-  { value: 'CONTROLLER', label: 'Controlador' },
-  { value: 'FILTER', label: 'Filtro' },
-  { value: 'OTHER', label: 'Outros' },
-];
 
 // Opções de status do equipamento
 const STATUS_OPTIONS: { value: string; label: string; disabled?: boolean }[] = [
@@ -78,190 +60,157 @@ const CRITICIDADE_OPTIONS = [
   { value: 'CRITICA', label: '🔴 Crítica' },
 ];
 
-// Opções de fases
-const PHASES_OPTIONS = [
-  { value: 'monofasico', label: 'Monofásico' },
-  { value: 'bifasico', label: 'Bifásico' },
-  { value: 'trifasico', label: 'Trifásico' },
-];
-
-// Opções de unidade de capacidade
-const CAPACITY_UNITS = [
-  { value: 'TR', label: 'TR' },
-  { value: 'BTU/h', label: 'BTU/h' },
-  { value: 'kcal/h', label: 'kcal/h' },
-];
-
-// Opções de fluido refrigerante
-const REFRIGERANT_OPTIONS = [
-  { value: 'none', label: 'Nenhum' },
-  { value: 'R-22', label: 'R-22' },
-  { value: 'R-134a', label: 'R-134a' },
-  { value: 'R-404A', label: 'R-404A' },
-  { value: 'R-407C', label: 'R-407C' },
-  { value: 'R-410A', label: 'R-410A' },
-  { value: 'R-32', label: 'R-32' },
-  { value: 'R-717', label: 'R-717 (Amônia)' },
-  { value: 'R-744', label: 'R-744 (CO₂)' },
-];
+// Não usar constante - refrigerantes são renderizados diretamente no SelectContent
 
 export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentEditModalProps) {
   const updateMutation = useUpdateEquipment();
-  const [activeTab, setActiveTab] = useState('basic');
+  
+  // Query para tipos de ativo (todos os tipos vêm do banco de dados)
+  const assetTypesQuery = useAssetTypes();
+  const assetTypes = (assetTypesQuery.data ?? [])
+    .map(t => ({ value: t.code, label: t.name }));
 
-  // Informações Básicas
-  const [tag, setTag] = useState('');
-  const [equipmentType, setEquipmentType] = useState('CHILLER');
-  const [equipmentStatus, setEquipmentStatus] = useState<'OK' | 'MAINTENANCE' | 'STOPPED' | 'ALERT'>('OK');
-  const statusOptions = equipmentStatus === 'ALERT' ? [...STATUS_OPTIONS, ALERT_STATUS_OPTION] : STATUS_OPTIONS;
-  const [criticidade, setCriticidade] = useState<'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA'>('MEDIA');
-  const [brand, setBrand] = useState('');
-  const [model, setModel] = useState('');
-  const [serialNumber, setSerialNumber] = useState('');
-  const [installationDate, setInstallationDate] = useState('');
-  const [warrantyEndDate, setWarrantyEndDate] = useState('');
-  const [notes, setNotes] = useState('');
-
-  // Localização - agora usando IDs
-  const [companyId, setCompanyId] = useState('');
-  const [sectorId, setSectorId] = useState('');
-  const [subsectorId, setSubsectorId] = useState('');
-  const [location, setLocation] = useState('');
+  // Estado do formulário - igual ao modal de adicionar
+  const [formData, setFormData] = useState({
+    tag: '',
+    type: 'SPLIT' as string,
+    brand: '',
+    model: '',
+    serialNumber: '',
+    patrimonio: '',
+    criticidade: 'MEDIA' as 'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA',
+    status: 'OK' as 'OK' | 'MAINTENANCE' | 'STOPPED' | 'ALERT',
+    installDate: '',
+    warrantyExpiry: '',
+    notes: '',
+    // Localização
+    companyId: '',
+    sectorId: '',
+    subSectionId: '',
+    location: '',
+    // Especificações
+    capacity: '',
+    capacityUnit: 'BTU' as 'BTU' | 'TR' | 'KCAL',
+    nominalVoltage: undefined as number | undefined,
+    phases: 3 as 1 | 2 | 3,
+    nominalCurrent: undefined as number | undefined,
+    powerFactor: undefined as number | undefined,
+    refrigerant: '',
+    // Potências (calculadas automaticamente)
+    activePower: undefined as number | undefined,
+    apparentPower: undefined as number | undefined,
+    reactivePower: undefined as number | undefined,
+  });
 
   // Carregar dados de empresas, setores e subsetores
   const { data: companies = [], isLoading: isLoadingCompanies } = useCompanies();
   const { data: allSectors = [], isLoading: isLoadingSectors } = useSectors();
   const { data: allSubsections = [], isLoading: isLoadingSubsections } = useSubsections();
 
+  // Status options
+  const statusOptions = formData.status === 'ALERT' 
+    ? [...STATUS_OPTIONS, ALERT_STATUS_OPTION] 
+    : STATUS_OPTIONS;
+
   // Filtrar setores pela empresa selecionada
-  const filteredSectors = companyId
-    ? allSectors.filter((s) => String(s.companyId) === String(companyId))
+  const filteredSectors = formData.companyId
+    ? allSectors.filter((s) => String(s.companyId) === String(formData.companyId))
     : allSectors;
 
   // Filtrar subsetores pelo setor selecionado
-  const filteredSubsections = sectorId
-    ? allSubsections.filter((ss) => String(ss.sectorId) === String(sectorId))
+  const filteredSubsections = formData.sectorId
+    ? allSubsections.filter((ss) => String(ss.sectorId) === String(formData.sectorId))
     : allSubsections;
 
-  // Obter nomes para exibição na prévia
-  const selectedCompany = companies.find((c) => String(c.id) === String(companyId));
-  const selectedSector = allSectors.find((s) => String(s.id) === String(sectorId));
-  const selectedSubsection = allSubsections.find((ss) => String(ss.id) === String(subsectorId));
-
-  // Especificações Técnicas
-  const [voltage, setVoltage] = useState('');
-  const [phases, setPhases] = useState('trifasico');
-  const [maxCurrent, setMaxCurrent] = useState('');
-  const [powerFactor, setPowerFactor] = useState('');
-  const [capacity, setCapacity] = useState('');
-  const [capacityUnit, setCapacityUnit] = useState('TR');
-  const [refrigerant, setRefrigerant] = useState('none');
-  const [activePower, setActivePower] = useState('');
-  const [apparentPower, setApparentPower] = useState('');
-  const [reactivePower, setReactivePower] = useState('');
+  // Obter nomes para exibição
+  const selectedCompany = companies.find((c) => String(c.id) === String(formData.companyId));
+  const selectedSector = allSectors.find((s) => String(s.id) === String(formData.sectorId));
+  const selectedSubsection = allSubsections.find((ss) => String(ss.id) === String(formData.subSectionId));
 
   // Preencher formulário quando o equipment mudar ou modal abrir
   useEffect(() => {
     if (equipment && open) {
-      setTag(equipment.tag || '');
-      setEquipmentType(equipment.type || 'CHILLER');
-      setEquipmentStatus(equipment.status || 'OK');
-      setCriticidade(equipment.criticidade || 'MEDIA');
-      setBrand(equipment.brand || '');
-      setModel(equipment.model || '');
-      setSerialNumber(equipment.serialNumber || '');
-      setInstallationDate(equipment.installDate ? equipment.installDate.split('T')[0] : '');
-      setWarrantyEndDate(equipment.warrantyExpiry ? equipment.warrantyExpiry.split('T')[0] : '');
-      setNotes(equipment.notes || '');
-      
-      // Localização - usar IDs diretamente do equipment
-      setCompanyId(equipment.companyId || '');
-      setSectorId(equipment.sectorId || '');
-      setSubsectorId(equipment.subSectionId || '');
-      setLocation(equipment.location || '');
-      
-      // Especificações - buscar do objeto specifications ou campos diretos
       const specs = (equipment.specifications || {}) as Record<string, unknown>;
-      setVoltage(specs.voltage?.toString() || '');
-      setPhases((specs.phases as string) || 'trifasico');
-      setMaxCurrent(specs.maxCurrent?.toString() || '');
-      setPowerFactor(specs.powerFactor?.toString() || '');
-      setCapacity(specs.capacity?.toString() || equipment.capacity?.toString() || '');
-      setCapacityUnit((specs.capacityUnit as string) || 'TR');
-      setRefrigerant((specs.refrigerant as string) || 'none');
-      setActivePower(specs.activePower?.toString() || '');
-      setApparentPower(specs.apparentPower?.toString() || '');
-      setReactivePower(specs.reactivePower?.toString() || '');
       
-      setActiveTab('basic');
+      setFormData({
+        tag: equipment.tag || '',
+        type: equipment.type || 'SPLIT',
+        brand: equipment.brand || '',
+        model: equipment.model || '',
+        serialNumber: equipment.serialNumber || '',
+        patrimonio: (specs.patrimonio as string) || '',
+        criticidade: equipment.criticidade || 'MEDIA',
+        status: equipment.status || 'OK',
+        installDate: equipment.installDate ? equipment.installDate.split('T')[0] : '',
+        warrantyExpiry: equipment.warrantyExpiry ? equipment.warrantyExpiry.split('T')[0] : '',
+        notes: equipment.notes || '',
+        // Localização
+        companyId: equipment.companyId || '',
+        sectorId: equipment.sectorId || '',
+        subSectionId: equipment.subSectionId || '',
+        location: equipment.location || '',
+        // Especificações
+        capacity: specs.capacity?.toString() || equipment.capacity?.toString() || '',
+        capacityUnit: (specs.capacityUnit as 'BTU' | 'TR' | 'KCAL') || 'BTU',
+        nominalVoltage: specs.voltage as number | undefined,
+        phases: (specs.phases === 'monofasico' ? 1 : specs.phases === 'bifasico' ? 2 : 3) as 1 | 2 | 3,
+        nominalCurrent: specs.maxCurrent as number | undefined,
+        powerFactor: specs.powerFactor as number | undefined,
+        refrigerant: (specs.refrigerant as string) || '',
+        activePower: specs.activePower as number | undefined,
+        apparentPower: specs.apparentPower as number | undefined,
+        reactivePower: specs.reactivePower as number | undefined,
+      });
     }
   }, [equipment, open]);
 
-  // Cálculo automático de Potência Ativa e Aparente
+  // Cálculo automático de potências
   useEffect(() => {
-    const v = parseFloat(voltage);
-    const i = parseFloat(maxCurrent);
-    const fp = parseFloat(powerFactor);
+    const V = formData.nominalVoltage;
+    const I = formData.nominalCurrent;
+    const numPhases = formData.phases || 3;
+    const FP = formData.powerFactor;
 
-    if (!isNaN(v) && !isNaN(i) && v > 0 && i > 0) {
-      let apparentPowerCalc = 0;
-      let activePowerCalc = 0;
-      let reactivePowerCalc = 0;
-
-      switch (phases) {
-        case 'trifasico':
-          apparentPowerCalc = (Math.sqrt(3) * v * i) / 1000;
-          break;
-        case 'bifasico':
-          apparentPowerCalc = (2 * v * i) / 1000;
-          break;
-        case 'monofasico':
-          apparentPowerCalc = (v * i) / 1000;
-          break;
-      }
-
-      if (!isNaN(fp) && fp > 0 && fp <= 1) {
-        activePowerCalc = apparentPowerCalc * fp;
-        reactivePowerCalc = Math.sqrt(Math.pow(apparentPowerCalc, 2) - Math.pow(activePowerCalc, 2));
-        setActivePower(activePowerCalc.toFixed(2));
-        setReactivePower(reactivePowerCalc.toFixed(2));
+    if (V && I && numPhases) {
+      let S: number;
+      if (numPhases === 3) {
+        S = Math.sqrt(3) * V * I;
+      } else if (numPhases === 2) {
+        S = 2 * V * I;
       } else {
-        setActivePower('');
-        setReactivePower('');
+        S = V * I;
       }
 
-      setApparentPower(apparentPowerCalc.toFixed(2));
-    } else {
-      setApparentPower('');
-      setActivePower('');
-      setReactivePower('');
-    }
-  }, [voltage, maxCurrent, powerFactor, phases]);
+      const S_kVA = S / 1000;
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && activeTab !== 'specs') {
-      e.preventDefault();
-    }
-  };
+      setFormData((prev) => ({
+        ...prev,
+        apparentPower: parseFloat(S_kVA.toFixed(2)),
+      }));
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (activeTab !== 'specs') {
-      return;
-    }
+      if (FP && FP > 0 && FP <= 1) {
+        const P_kW = S_kVA * FP;
+        const Q_kVAr = Math.sqrt(S_kVA * S_kVA - P_kW * P_kW);
 
+        setFormData((prev) => ({
+          ...prev,
+          activePower: parseFloat(P_kW.toFixed(2)),
+          reactivePower: parseFloat(Q_kVAr.toFixed(2)),
+        }));
+      }
+    }
+  }, [formData.nominalVoltage, formData.nominalCurrent, formData.phases, formData.powerFactor]);
+
+  const handleSubmit = async () => {
     if (!equipment) return;
 
-    if (!tag.trim()) {
+    if (!formData.tag.trim()) {
       toast.error('Tag do equipamento é obrigatória');
-      setActiveTab('basic');
       return;
     }
 
-    if (!companyId || !sectorId) {
+    if (!formData.companyId || !formData.sectorId) {
       toast.error('Empresa e Setor são obrigatórios');
-      setActiveTab('location');
       return;
     }
 
@@ -269,40 +218,44 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
     const companyName = selectedCompany?.name || '';
     const sectorName = selectedSector?.name || '';
     const subsectorName = selectedSubsection?.name || '';
-    const fullLocation = location.trim() || [companyName, sectorName, subsectorName].filter(Boolean).join(' - ');
+    const fullLocation = formData.location.trim() || [companyName, sectorName, subsectorName].filter(Boolean).join(' - ');
+
+    // Converter phases para string
+    const phasesString = formData.phases === 1 ? 'monofasico' : formData.phases === 2 ? 'bifasico' : 'trifasico';
 
     try {
       await updateMutation.mutateAsync({
         id: equipment.id,
         data: {
-          tag: tag.trim(),
-          type: equipmentType as Equipment['type'],
-          status: equipmentStatus,
-          criticidade: criticidade,
-          brand: brand.trim(),
-          model: model.trim(),
-          serialNumber: serialNumber.trim(),
+          tag: formData.tag.trim(),
+          type: formData.type as Equipment['type'],
+          status: formData.status,
+          criticidade: formData.criticidade,
+          brand: formData.brand.trim(),
+          model: formData.model.trim(),
+          serialNumber: formData.serialNumber.trim(),
           location: fullLocation,
-          sectorId: sectorId || undefined,
-          subSectionId: subsectorId || undefined,
-          installDate: installationDate || undefined,
-          warrantyExpiry: warrantyEndDate || undefined,
-          notes: notes.trim() || undefined,
-          capacity: capacity ? parseFloat(capacity) : undefined,
+          sectorId: formData.sectorId || undefined,
+          subSectionId: formData.subSectionId || undefined,
+          installDate: formData.installDate || undefined,
+          warrantyExpiry: formData.warrantyExpiry || undefined,
+          notes: formData.notes.trim() || undefined,
+          capacity: formData.capacity ? parseFloat(formData.capacity) : undefined,
           specifications: {
-            voltage: voltage ? parseFloat(voltage) : undefined,
-            phases,
-            maxCurrent: maxCurrent ? parseFloat(maxCurrent) : undefined,
-            powerFactor: powerFactor ? parseFloat(powerFactor) : undefined,
-            capacity: capacity ? parseFloat(capacity) : undefined,
-            capacityUnit,
-            refrigerant: refrigerant !== 'none' ? refrigerant : undefined,
-            activePower: activePower ? parseFloat(activePower) : undefined,
-            apparentPower: apparentPower ? parseFloat(apparentPower) : undefined,
-            reactivePower: reactivePower ? parseFloat(reactivePower) : undefined,
-            brand: brand.trim(),
-            model: model.trim(),
-            serialNumber: serialNumber.trim(),
+            voltage: formData.nominalVoltage,
+            phases: phasesString,
+            maxCurrent: formData.nominalCurrent,
+            powerFactor: formData.powerFactor,
+            capacity: formData.capacity ? parseFloat(formData.capacity) : undefined,
+            capacityUnit: formData.capacityUnit,
+            refrigerant: formData.refrigerant || undefined,
+            activePower: formData.activePower,
+            apparentPower: formData.apparentPower,
+            reactivePower: formData.reactivePower,
+            brand: formData.brand.trim(),
+            model: formData.model.trim(),
+            serialNumber: formData.serialNumber.trim(),
+            patrimonio: formData.patrimonio.trim() || undefined,
           },
         },
       });
@@ -319,485 +272,578 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <Plus className="w-5 h-5" />
-            <span>Editar Ativo</span>
-          </DialogTitle>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-6 md:p-8">
+        <DialogHeader className="mb-4">
+          <DialogTitle className="text-2xl">Editar Ativo</DialogTitle>
           <DialogDescription>
-            Preencha as informações do equipamento. Os campos marcados com * são obrigatórios.
+            Atualize os dados do ativo. Os campos marcados com * são obrigatórios.
           </DialogDescription>
         </DialogHeader>
+        
+        <Tabs defaultValue="basic" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="basic" className="flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              Informações Básicas
+            </TabsTrigger>
+            <TabsTrigger value="location" className="flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              Localização
+            </TabsTrigger>
+            <TabsTrigger value="specs" className="flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              Especificações
+            </TabsTrigger>
+          </TabsList>
 
-        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="basic">Informações Básicas</TabsTrigger>
-              <TabsTrigger value="location">Localização</TabsTrigger>
-              <TabsTrigger value="specs">Especificações</TabsTrigger>
-            </TabsList>
-
-            <ScrollArea className="h-[400px] mt-4">
-              {/* Informações Básicas */}
-              <TabsContent value="basic" className="space-y-4 px-1">
-                <div className="space-y-2">
-                  <Label htmlFor="tag">
-                    Tag do Equipamento <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="tag"
-                    placeholder="Ex: CHILLER-001"
-                    value={tag}
-                    onChange={(e) => setTag(e.target.value)}
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Identificador único do equipamento
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="equipmentType">
-                    Tipo de equipamento <span className="text-red-500">*</span>
-                  </Label>
-                  <Select value={equipmentType} onValueChange={setEquipmentType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EQUIPMENT_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="equipmentStatus">
-                      Estado do Equipamento <span className="text-red-500">*</span>
-                    </Label>
-                    <Select value={equipmentStatus} onValueChange={(value: 'OK' | 'MAINTENANCE' | 'STOPPED' | 'ALERT') => setEquipmentStatus(value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o estado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {statusOptions.map((status) => (
-                          <SelectItem key={status.value} value={status.value} disabled={status.disabled}>
-                            {status.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="criticidade">
-                      Criticidade <span className="text-red-500">*</span>
-                    </Label>
-                    <Select value={criticidade} onValueChange={(value: 'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA') => setCriticidade(value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a criticidade" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CRITICIDADE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Nível de importância operacional
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="brand">Marca</Label>
-                    <Input
-                      id="brand"
-                      placeholder="Ex: Carrier, Trane, York"
-                      value={brand}
-                      onChange={(e) => setBrand(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="model">Modelo</Label>
-                    <Input
-                      id="model"
-                      placeholder="Ex: 30XA-1002"
-                      value={model}
-                      onChange={(e) => setModel(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="serialNumber">Número de Série</Label>
-                  <Input
-                    id="serialNumber"
-                    placeholder="Ex: SN123456789"
-                    value={serialNumber}
-                    onChange={(e) => setSerialNumber(e.target.value)}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="installationDate">Data de Instalação</Label>
-                    <Input
-                      id="installationDate"
-                      type="date"
-                      value={installationDate}
-                      onChange={(e) => setInstallationDate(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="warrantyEndDate">Fim da Garantia</Label>
-                    <Input
-                      id="warrantyEndDate"
-                      type="date"
-                      value={warrantyEndDate}
-                      onChange={(e) => setWarrantyEndDate(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Observações</Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Observações gerais sobre o equipamento..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-              </TabsContent>
-
-              {/* Localização */}
-              <TabsContent value="location" className="space-y-4 px-1">
-                <div className="space-y-2">
-                  <Label htmlFor="company">
-                    Empresa <span className="text-red-500">*</span>
-                  </Label>
-                  <Select
-                    value={companyId}
-                    onValueChange={(value) => {
-                      setCompanyId(value);
-                      setSectorId('');
-                      setSubsectorId('');
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={isLoadingCompanies ? "Carregando..." : "Selecione a empresa"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {companies.map((company) => (
-                        <SelectItem key={company.id} value={company.id}>
-                          {company.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Selecione a empresa ou unidade
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="sector">
-                      Setor <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={sectorId}
-                      onValueChange={(value) => {
-                        setSectorId(value);
-                        setSubsectorId('');
-                      }}
-                      disabled={!companyId}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={!companyId ? "Selecione uma empresa primeiro" : isLoadingSectors ? "Carregando..." : "Selecione o setor"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredSectors.map((sector) => (
-                          <SelectItem key={sector.id} value={sector.id}>
-                            {sector.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="subsector">Subsetor</Label>
-                    <Select
-                      value={subsectorId}
-                      onValueChange={setSubsectorId}
-                      disabled={!sectorId}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={!sectorId ? "Selecione um setor primeiro" : isLoadingSubsections ? "Carregando..." : "Selecione o subsetor"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredSubsections.map((subsection) => (
-                          <SelectItem key={subsection.id} value={subsection.id}>
-                            {subsection.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="location">Localização Descritiva (Opcional)</Label>
-                  <Input
-                    id="location"
-                    placeholder="Ex: 3º Andar - Ala Leste"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Se não preenchido, será gerado automaticamente: Empresa - Setor - Subsetor
-                  </p>
-                </div>
-
-                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <h4 className="font-medium text-sm mb-2">Prévia da Localização:</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {location.trim() || [selectedCompany?.name, selectedSector?.name, selectedSubsection?.name].filter(Boolean).join(' - ') || 'Preencha os campos acima'}
-                  </p>
-                </div>
-              </TabsContent>
-
-              {/* Especificações Técnicas */}
-              <TabsContent value="specs" className="space-y-4 px-1">
-                {/* Tensão e Fases */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="voltage">Tensão Nominal (V)</Label>
-                    <Input
-                      id="voltage"
-                      type="number"
-                      placeholder="Ex: 380"
-                      value={voltage}
-                      onChange={(e) => setVoltage(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phases">Fases</Label>
-                    <Select value={phases} onValueChange={setPhases}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione as fases" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PHASES_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Corrente e Fator de Potência */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="maxCurrent">Corrente Nominal (A)</Label>
-                    <Input
-                      id="maxCurrent"
-                      type="number"
-                      step="0.1"
-                      placeholder="Ex: 150.5"
-                      value={maxCurrent}
-                      onChange={(e) => setMaxCurrent(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="powerFactor">Fator de Potência</Label>
-                    <Input
-                      id="powerFactor"
-                      type="number"
-                      step="0.001"
-                      min="0"
-                      max="1"
-                      placeholder="Ex: 0.915"
-                      value={powerFactor}
-                      onChange={(e) => setPowerFactor(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">Valor entre 0 e 1</p>
-                  </div>
-                </div>
-
-                {/* Capacidade */}
-                <div className="space-y-2">
-                  <Label htmlFor="capacity">Capacidade</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="capacity"
-                      type="number"
-                      step="0.1"
-                      placeholder="Ex: 120"
-                      value={capacity}
-                      onChange={(e) => setCapacity(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Select value={capacityUnit} onValueChange={setCapacityUnit}>
-                      <SelectTrigger className="w-[110px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CAPACITY_UNITS.map((unit) => (
-                          <SelectItem key={unit.value} value={unit.value}>
-                            {unit.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Capacidade de refrigeração/aquecimento
-                  </p>
-                </div>
-
-                {/* Fluido Refrigerante */}
-                <div className="space-y-2">
-                  <Label htmlFor="refrigerant">Fluido Refrigerante</Label>
-                  <Select value={refrigerant} onValueChange={setRefrigerant}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o refrigerante" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {REFRIGERANT_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Tipo de gás refrigerante utilizado no sistema
-                  </p>
-                </div>
-
-                {/* Potência Ativa */}
-                <div className="space-y-2">
-                  <Label htmlFor="activePower">Potência Ativa (kW)</Label>
-                  <Input
-                    id="activePower"
-                    type="number"
-                    step="0.01"
-                    placeholder="Ex: 145.4"
-                    value={activePower}
-                    onChange={(e) => setActivePower(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">Calculado automaticamente</p>
-                </div>
-
-                {/* Potência Aparente e Reativa */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="apparentPower">Potência Aparente (kVA)</Label>
-                    <Input
-                      id="apparentPower"
-                      type="number"
-                      step="0.01"
-                      placeholder="Ex: 158.9"
-                      value={apparentPower}
-                      onChange={(e) => setApparentPower(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">Calculado automaticamente</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="reactivePower">Potência Reativa (kVAr)</Label>
-                    <Input
-                      id="reactivePower"
-                      type="number"
-                      step="0.01"
-                      placeholder="Ex: 64.1"
-                      value={reactivePower}
-                      onChange={(e) => setReactivePower(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">Calculado automaticamente</p>
-                  </div>
-                </div>
-              </TabsContent>
-            </ScrollArea>
-          </Tabs>
-
-          <div className="flex justify-between mt-6 pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={updateMutation.isPending}
-            >
-              Cancelar
-            </Button>
-
-            <div className="flex space-x-2">
-              {activeTab !== 'basic' && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    const tabs = ['basic', 'location', 'specs'];
-                    const currentIndex = tabs.indexOf(activeTab);
-                    if (currentIndex > 0) {
-                      setActiveTab(tabs[currentIndex - 1]);
-                    }
-                  }}
+          {/* ========== ABA: INFORMAÇÕES BÁSICAS ========== */}
+          <TabsContent value="basic" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+              {/* Tag do equipamento */}
+              <div>
+                <Label htmlFor="edit-tag" className="mb-2 block">
+                  Tag do Ativo *
+                  <span className="text-xs text-muted-foreground ml-2 font-normal">
+                    Identificação única
+                  </span>
+                </Label>
+                <Input 
+                  id="edit-tag"
+                  value={formData.tag}
+                  onChange={(e) => setFormData(prev => ({ ...prev, tag: e.target.value }))}
+                  placeholder="CLI-001"
+                  required
+                  className="h-10"
+                />
+              </div>
+              
+              {/* Tipo do equipamento */}
+              <div>
+                <Label htmlFor="edit-type" className="mb-2 block">Tipo do Ativo *</Label>
+                <Select 
+                  value={formData.type} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
                 >
-                  Anterior
-                </Button>
-              )}
-
-              {activeTab !== 'specs' ? (
-                <Button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    const tabs = ['basic', 'location', 'specs'];
-                    const currentIndex = tabs.indexOf(activeTab);
-                    if (currentIndex < tabs.length - 1) {
-                      setActiveTab(tabs[currentIndex + 1]);
-                    }
-                  }}
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {assetTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Marca do equipamento */}
+              <div>
+                <Label htmlFor="edit-brand" className="mb-2 block">Marca *</Label>
+                <Input 
+                  id="edit-brand"
+                  value={formData.brand}
+                  onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
+                  placeholder="Daikin, Carrier, etc"
+                  required
+                  className="h-10"
+                />
+              </div>
+              
+              {/* Modelo */}
+              <div>
+                <Label htmlFor="edit-model" className="mb-2 block">Modelo *</Label>
+                <Input 
+                  id="edit-model"
+                  value={formData.model}
+                  onChange={(e) => setFormData(prev => ({ ...prev, model: e.target.value }))}
+                  placeholder="Inverter 18000"
+                  required
+                  className="h-10"
+                />
+              </div>
+              
+              {/* Número de série */}
+              <div>
+                <Label htmlFor="edit-serialNumber" className="mb-2 block">
+                  Número de Série
+                  <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
+                </Label>
+                <Input 
+                  id="edit-serialNumber"
+                  value={formData.serialNumber}
+                  onChange={(e) => setFormData(prev => ({ ...prev, serialNumber: e.target.value }))}
+                  placeholder="SN123456789"
+                  className="h-10"
+                />
+              </div>
+              
+              {/* Patrimônio */}
+              <div>
+                <Label htmlFor="edit-patrimonio" className="mb-2 block">
+                  Patrimônio
+                  <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
+                </Label>
+                <Input 
+                  id="edit-patrimonio"
+                  value={formData.patrimonio}
+                  onChange={(e) => setFormData(prev => ({ ...prev, patrimonio: e.target.value }))}
+                  placeholder="PAT-00001"
+                  className="h-10"
+                />
+              </div>
+              
+              {/* Criticidade */}
+              <div>
+                <Label htmlFor="edit-criticidade" className="mb-2 block">Criticidade *</Label>
+                <Select 
+                  value={formData.criticidade} 
+                  onValueChange={(value: 'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA') => 
+                    setFormData(prev => ({ ...prev, criticidade: value }))
+                  }
                 >
-                  Próximo
-                </Button>
-              ) : (
-                <Button type="submit" disabled={updateMutation.isPending}>
-                  {updateMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Salvando...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Salvar Alterações
-                    </>
-                  )}
-                </Button>
-              )}
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Selecione a criticidade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CRITICIDADE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Status */}
+              <div>
+                <Label htmlFor="edit-status" className="mb-2 block">Status *</Label>
+                <Select 
+                  value={formData.status} 
+                  onValueChange={(value: 'OK' | 'MAINTENANCE' | 'STOPPED' | 'ALERT') => 
+                    setFormData(prev => ({ ...prev, status: value }))
+                  }
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Selecione o status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Data de Instalação */}
+              <div>
+                <Label htmlFor="edit-installDate" className="mb-2 block">
+                  Data de Instalação
+                  <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
+                </Label>
+                <Input 
+                  id="edit-installDate"
+                  type="date"
+                  value={formData.installDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, installDate: e.target.value }))}
+                  className="h-10"
+                />
+              </div>
+              
+              {/* Data de Expiração da Garantia */}
+              <div>
+                <Label htmlFor="edit-warrantyExpiry" className="mb-2 block">
+                  Garantia até
+                  <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
+                </Label>
+                <Input 
+                  id="edit-warrantyExpiry"
+                  type="date"
+                  value={formData.warrantyExpiry}
+                  onChange={(e) => setFormData(prev => ({ ...prev, warrantyExpiry: e.target.value }))}
+                  className="h-10"
+                />
+              </div>
+              
+              {/* Observações */}
+              <div className="md:col-span-2">
+                <Label htmlFor="edit-notes" className="mb-2 block">
+                  Observações
+                  <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
+                </Label>
+                <Textarea 
+                  id="edit-notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Observações adicionais sobre o equipamento..."
+                  rows={3}
+                  className="resize-none"
+                />
+              </div>
             </div>
-          </div>
-        </form>
+          </TabsContent>
+
+          {/* ========== ABA: LOCALIZAÇÃO ========== */}
+          <TabsContent value="location" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+              {/* Empresa */}
+              <div>
+                <Label htmlFor="edit-company" className="mb-2 block">Empresa *</Label>
+                <Select 
+                  value={formData.companyId} 
+                  onValueChange={(value) => {
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      companyId: value, 
+                      sectorId: '', 
+                      subSectionId: '' 
+                    }));
+                  }}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder={isLoadingCompanies ? "Carregando..." : "Selecione a empresa"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map((company) => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Setor */}
+              <div>
+                <Label htmlFor="edit-sector" className="mb-2 block">Setor *</Label>
+                <Select 
+                  value={formData.sectorId} 
+                  onValueChange={(value) => {
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      sectorId: value, 
+                      subSectionId: '' 
+                    }));
+                  }}
+                  disabled={!formData.companyId}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder={
+                      !formData.companyId 
+                        ? "Selecione uma empresa primeiro" 
+                        : isLoadingSectors 
+                          ? "Carregando..." 
+                          : "Selecione o setor"
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredSectors.map((sector) => (
+                      <SelectItem key={sector.id} value={sector.id}>
+                        {sector.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Subsetor */}
+              <div className="md:col-span-2">
+                <Label htmlFor="edit-subsector" className="mb-2 block">
+                  Subsetor
+                  <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
+                </Label>
+                <Select 
+                  value={formData.subSectionId} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, subSectionId: value }))}
+                  disabled={!formData.sectorId}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder={
+                      !formData.sectorId 
+                        ? "Selecione um setor primeiro" 
+                        : isLoadingSubsections 
+                          ? "Carregando..." 
+                          : "Selecione o subsetor"
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredSubsections.map((subsection) => (
+                      <SelectItem key={subsection.id} value={subsection.id}>
+                        {subsection.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Localização específica */}
+              <div className="md:col-span-2">
+                <Label htmlFor="edit-location" className="mb-2 block">
+                  Localização Específica
+                  <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
+                </Label>
+                <Input 
+                  id="edit-location"
+                  value={formData.location}
+                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                  placeholder="Sala 101, Corredor principal, etc."
+                  className="h-10"
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ========== ABA: ESPECIFICAÇÕES ========== */}
+          <TabsContent value="specs" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+              {/* Tensão Nominal */}
+              <div>
+                <Label htmlFor="edit-nominalVoltage" className="mb-2 block">
+                  Tensão Nominal (V)
+                </Label>
+                <Input 
+                  id="edit-nominalVoltage"
+                  type="number"
+                  step="0.1"
+                  value={formData.nominalVoltage ?? ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    nominalVoltage: e.target.value ? parseFloat(e.target.value) : undefined 
+                  }))}
+                  placeholder="Ex: 380"
+                  className="h-10"
+                />
+              </div>
+
+              {/* Fases */}
+              <div>
+                <Label htmlFor="edit-phases" className="mb-2 block">Fases</Label>
+                <Select 
+                  value={formData.phases?.toString()} 
+                  onValueChange={(value) => 
+                    setFormData(prev => ({ ...prev, phases: parseInt(value) as 1 | 2 | 3 }))
+                  }
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Monofásico (1 fase)</SelectItem>
+                    <SelectItem value="2">Bifásico (2 fases)</SelectItem>
+                    <SelectItem value="3">Trifásico (3 fases)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Corrente Nominal */}
+              <div>
+                <Label htmlFor="edit-nominalCurrent" className="mb-2 block">
+                  Corrente Nominal (A)
+                </Label>
+                <Input 
+                  id="edit-nominalCurrent"
+                  type="number"
+                  step="0.1"
+                  value={formData.nominalCurrent ?? ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    nominalCurrent: e.target.value ? parseFloat(e.target.value) : undefined 
+                  }))}
+                  placeholder="Ex: 150"
+                  className="h-10"
+                />
+              </div>
+
+              {/* Fator de Potência */}
+              <div>
+                <Label htmlFor="edit-powerFactor" className="mb-2 block">
+                  Fator de Potência
+                  <span className="text-xs text-muted-foreground ml-2 font-normal">(0 a 1)</span>
+                </Label>
+                <Input 
+                  id="edit-powerFactor"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="1"
+                  value={formData.powerFactor ?? ''}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    powerFactor: e.target.value ? parseFloat(e.target.value) : undefined 
+                  }))}
+                  placeholder="Ex: 0.85"
+                  className="h-10"
+                />
+              </div>
+
+              {/* Capacidade + Unidade */}
+              <div>
+                <Label htmlFor="edit-capacity" className="mb-2 block">Capacidade *</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    id="edit-capacity"
+                    type="number"
+                    value={formData.capacity}
+                    onChange={(e) => setFormData(prev => ({ ...prev, capacity: e.target.value }))}
+                    placeholder="Ex: 300"
+                    required
+                    className="h-10 flex-1"
+                  />
+                  <Select 
+                    value={formData.capacityUnit} 
+                    onValueChange={(value: 'BTU' | 'TR' | 'KCAL') => 
+                      setFormData(prev => ({ ...prev, capacityUnit: value }))
+                    }
+                  >
+                    <SelectTrigger className="h-10 w-24">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TR">TR</SelectItem>
+                      <SelectItem value="BTU">BTU/h</SelectItem>
+                      <SelectItem value="KCAL">kcal/h</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Fluido Refrigerante */}
+              <div>
+                <Label htmlFor="edit-refrigerant" className="mb-2 block">
+                  Fluido Refrigerante
+                </Label>
+                <Select 
+                  value={formData.refrigerant} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, refrigerant: value }))}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Selecione o refrigerante" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="R-11">R-11</SelectItem>
+                    <SelectItem value="R-12">R-12</SelectItem>
+                    <SelectItem value="R-22">R-22</SelectItem>
+                    <SelectItem value="R-23">R-23</SelectItem>
+                    <SelectItem value="R-32">R-32</SelectItem>
+                    <SelectItem value="R-113">R-113</SelectItem>
+                    <SelectItem value="R-114">R-114</SelectItem>
+                    <SelectItem value="R-115">R-115</SelectItem>
+                    <SelectItem value="R-123">R-123</SelectItem>
+                    <SelectItem value="R-1234yf">R-1234yf</SelectItem>
+                    <SelectItem value="R-1234ze">R-1234ze</SelectItem>
+                    <SelectItem value="R-1233zd">R-1233zd</SelectItem>
+                    <SelectItem value="R-134a">R-134a</SelectItem>
+                    <SelectItem value="R-141b">R-141b</SelectItem>
+                    <SelectItem value="R-142b">R-142b</SelectItem>
+                    <SelectItem value="R-143a">R-143a</SelectItem>
+                    <SelectItem value="R-152a">R-152a</SelectItem>
+                    <SelectItem value="R-404A">R-404A</SelectItem>
+                    <SelectItem value="R-407C">R-407C</SelectItem>
+                    <SelectItem value="R-407F">R-407F</SelectItem>
+                    <SelectItem value="R-410A">R-410A</SelectItem>
+                    <SelectItem value="R-448A">R-448A</SelectItem>
+                    <SelectItem value="R-449A">R-449A</SelectItem>
+                    <SelectItem value="R-452A">R-452A</SelectItem>
+                    <SelectItem value="R-454B">R-454B</SelectItem>
+                    <SelectItem value="R-507A">R-507A</SelectItem>
+                    <SelectItem value="R-513A">R-513A</SelectItem>
+                    <SelectItem value="R-717">R-717 (Amônia)</SelectItem>
+                    <SelectItem value="R-744">R-744 (CO₂)</SelectItem>
+                    <SelectItem value="R-290">R-290 (Propano)</SelectItem>
+                    <SelectItem value="R-600a">R-600a (Isobutano)</SelectItem>
+                    <SelectItem value="R-1270">R-1270 (Propileno)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Separador visual */}
+              <div className="md:col-span-2 border-t pt-4 mt-2">
+                <h4 className="text-sm font-medium text-muted-foreground mb-4">
+                  Potências (calculadas automaticamente)
+                </h4>
+              </div>
+
+              {/* Potência Ativa */}
+              <div>
+                <Label htmlFor="edit-activePower" className="mb-2 block">
+                  Potência Ativa (kW)
+                  <span className="text-xs text-muted-foreground ml-2 font-normal">P = S × FP</span>
+                </Label>
+                <Input 
+                  id="edit-activePower"
+                  type="number"
+                  value={formData.activePower?.toFixed(2) ?? ''}
+                  disabled
+                  className="h-10 bg-muted"
+                />
+              </div>
+
+              {/* Potência Aparente */}
+              <div>
+                <Label htmlFor="edit-apparentPower" className="mb-2 block">
+                  Potência Aparente (kVA)
+                  <span className="text-xs text-muted-foreground ml-2 font-normal">S = √3×V×I</span>
+                </Label>
+                <Input 
+                  id="edit-apparentPower"
+                  type="number"
+                  value={formData.apparentPower?.toFixed(2) ?? ''}
+                  disabled
+                  className="h-10 bg-muted"
+                />
+              </div>
+
+              {/* Potência Reativa */}
+              <div>
+                <Label htmlFor="edit-reactivePower" className="mb-2 block">
+                  Potência Reativa (kVAr)
+                  <span className="text-xs text-muted-foreground ml-2 font-normal">Q = √(S²-P²)</span>
+                </Label>
+                <Input 
+                  id="edit-reactivePower"
+                  type="number"
+                  value={formData.reactivePower?.toFixed(2) ?? ''}
+                  disabled
+                  className="h-10 bg-muted"
+                />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* ========== BOTÕES DE AÇÃO DO FORMULÁRIO ========== */}
+        <div className="flex justify-end gap-4 mt-8 pt-4 border-t">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={
+              updateMutation.isPending || 
+              !formData.tag || 
+              !formData.brand || 
+              !formData.model || 
+              !formData.capacity || 
+              !formData.criticidade ||
+              !formData.companyId ||
+              !formData.sectorId
+            }
+          >
+            {updateMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Salvar Alterações
+              </>
+            )}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

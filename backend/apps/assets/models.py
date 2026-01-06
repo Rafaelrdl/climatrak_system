@@ -262,19 +262,18 @@ class Asset(models.Model):
         help_text="Subseção onde o equipamento está instalado (opcional)",
     )
 
-    # Tipo de equipamento
+    # Tipo de equipamento - não usa choices para permitir tipos customizados do banco
     asset_type = models.CharField(
         "Tipo de Equipamento",
-        max_length=20,
-        choices=ASSET_TYPE_CHOICES,
+        max_length=50,  # Aumentado para acomodar tipos customizados
         db_index=True,
-        help_text="Categoria do equipamento HVAC",
+        help_text="Código do tipo de equipamento (deve existir na tabela AssetType)",
     )
     asset_type_other = models.CharField(
         "Outro Tipo (texto livre)",
         max_length=200,
         blank=True,
-        help_text="Especificar quando asset_type = OTHER",
+        help_text="Especificar quando asset_type = OTHER (legado)",
     )
 
     # Fabricante e modelo

@@ -618,7 +618,7 @@ export function AssetDetailPage() {
                 <div className="flex items-center gap-4 mt-1.5 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1.5">
                     <Building2 className="h-4 w-4" />
-                    {asset.asset_type}
+                    {asset.asset_type_display || asset.asset_type}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <MapPin className="h-4 w-4" />
@@ -815,7 +815,7 @@ export function AssetDetailPage() {
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Tipo</p>
-                        <p className="text-sm font-medium">{asset.asset_type}</p>
+                        <p className="text-sm font-medium">{asset.asset_type_display || asset.asset_type}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Criticidade</p>

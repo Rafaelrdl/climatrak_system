@@ -241,10 +241,9 @@ function AssetsContent() {
   const [isNewAssetTypeDialogOpen, setIsNewAssetTypeDialogOpen] = useState(false);
   const [newAssetTypeName, setNewAssetTypeName] = useState('');
   
-  // Combina tipos da API com os tipos default do sistema
-  const customAssetTypes = useMemo(() => {
+  // Todos os tipos de ativo vêm do banco de dados
+  const assetTypes = useMemo(() => {
     return customAssetTypesFromApi
-      .filter(t => !t.isSystem) // Filtra apenas tipos customizados
       .map(t => ({ value: t.code, label: t.name }));
   }, [customAssetTypesFromApi]);
 
@@ -328,16 +327,13 @@ function AssetsContent() {
       : newEquipment.subSectionId;
 
     // Mapear tipo do frontend para o backend
-    const typeMapping: Record<string, string> = {
-      'CHILLER': 'CHILLER',
-      'CENTRAL': 'AHU',
-      'VRF': 'VRF',
-      'SPLIT': 'FAN_COIL',
+    // Mapeamentos legados para compatibilidade
+    const legacyTypeMapping: Record<string, string> = {
+      'CENTRAL': 'AHU', // CENTRAL do frontend vira AHU no backend
     };
 
-    // Verifica se é um tipo customizado
-    const isCustomType = !typeMapping[newEquipment.type];
-    const customTypeInfo = customAssetTypes.find(t => t.value === newEquipment.type);
+    // Usa o mapeamento legado se existir, senão usa o tipo original
+    const assetType = legacyTypeMapping[newEquipment.type] || newEquipment.type;
 
     const fallbackCompanyId = sectorId
       ? sectors.find((sector) => sector.id === sectorId)?.companyId
@@ -368,8 +364,8 @@ function AssetsContent() {
         tag: newEquipment.tag,
         name: newEquipment.notes || newEquipment.tag, // Usa tag como nome se não tiver notas
         site: siteForCompany.id,
-        assetType: isCustomType ? 'OTHER' : (typeMapping[newEquipment.type] || newEquipment.type),
-        assetTypeOther: isCustomType ? (customTypeInfo?.label || newEquipment.type) : undefined,
+        assetType: assetType, // Usa o tipo diretamente (já mapeado se necessário)
+        assetTypeOther: undefined, // Não mais necessário - todos os tipos estão no banco
         status: newEquipment.status,
         manufacturer: newEquipment.brand,
         model: newEquipment.model,
@@ -428,9 +424,43 @@ function AssetsContent() {
       
       // Fecha o modal de criação
       setIsEquipmentDialogOpen(false);
+      toast.success('Ativo criado com sucesso!');
     } catch (error) {
       console.error('Erro ao criar equipamento:', error);
-      // TODO: Mostrar toast de erro
+      
+      // Extrair mensagem de erro do backend
+      let errorMessage = 'Erro ao criar equipamento';
+      
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: Record<string, unknown>; status?: number } };
+        const responseData = axiosError.response?.data;
+        
+        if (responseData) {
+          // Verifica se é erro de tag duplicada
+          if (responseData.tag) {
+            const tagError = responseData.tag;
+            if (Array.isArray(tagError)) {
+              errorMessage = `Tag: ${tagError.join(', ')}`;
+            } else {
+              errorMessage = `Tag: ${tagError}`;
+            }
+          } else if (responseData.detail) {
+            errorMessage = String(responseData.detail);
+          } else if (responseData.non_field_errors) {
+            const nonFieldErrors = responseData.non_field_errors;
+            errorMessage = Array.isArray(nonFieldErrors) ? nonFieldErrors.join(', ') : String(nonFieldErrors);
+          } else {
+            // Tenta extrair qualquer mensagem de erro do objeto
+            const firstErrorKey = Object.keys(responseData)[0];
+            if (firstErrorKey) {
+              const firstError = responseData[firstErrorKey];
+              errorMessage = `${firstErrorKey}: ${Array.isArray(firstError) ? firstError.join(', ') : firstError}`;
+            }
+          }
+        }
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
@@ -546,11 +576,10 @@ function AssetsContent() {
     // Gera o código do tipo
     const typeValue = newAssetTypeName.toUpperCase().replace(/\s+/g, '_');
     
-    // Verifica se já existe nos tipos padrão
-    const existsInDefault = ['SPLIT', 'VRF', 'CENTRAL', 'CHILLER', 'AHU', 'FAN_COIL', 'PUMP', 'BOILER', 'COOLING_TOWER', 'RTU', 'VALVE', 'SENSOR', 'CONTROLLER', 'FILTER', 'DUCT', 'METER'].includes(typeValue);
-    const existsInCustom = customAssetTypes.some(t => t.value === typeValue);
+    // Verifica se já existe nos tipos do banco de dados
+    const existsInTypes = assetTypes.some(t => t.value === typeValue);
     
-    if (existsInDefault || existsInCustom) {
+    if (existsInTypes) {
       toast.error('Este tipo de ativo já existe');
       return;
     }
@@ -818,11 +847,7 @@ function AssetsContent() {
                         <SelectValue placeholder="Selecione o tipo" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="SPLIT">Split</SelectItem>
-                        <SelectItem value="VRF">VRF</SelectItem>
-                        <SelectItem value="CENTRAL">Central</SelectItem>
-                        <SelectItem value="CHILLER">Chiller</SelectItem>
-                        {customAssetTypes.map((type) => (
+                        {assetTypes.map((type) => (
                           <SelectItem key={type.value} value={type.value}>
                             {type.label}
                           </SelectItem>

@@ -82,7 +82,7 @@ export interface Equipment {
   model: string;
   brand: string;
   manufacturer?: string;
-  type: 'SPLIT' | 'CENTRAL' | 'VRF' | 'CHILLER';
+  type: string; // Aceita todos os tipos do banco de dados (SPLIT, AHU, VRF, CHILLER, FANCOLETE, etc.)
   capacity: number;
   sectorId?: string;
   subSectionId?: string;
