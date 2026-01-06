@@ -127,7 +127,12 @@ export const locationsService = {
 
     try {
       const response = await api.post<ApiCompany>('/locations/companies/', payload);
-      return mapCompany(response.data);
+      const company = mapCompany(response.data);
+      
+      // NOTA: O Site é criado automaticamente pelo backend via signal (post_save)
+      // Não precisa criar aqui para evitar duplicação
+      
+      return company;
     } catch (error: unknown) {
       console.error('Error creating company:', error);
       if (error && typeof error === 'object' && 'response' in error) {
@@ -138,7 +143,7 @@ export const locationsService = {
     }
   },
 
-  async updateCompany(id: string, data: Partial<Company>): Promise<Company> {
+  async updateCompany(id: string, data: Partial<Company>, oldName?: string): Promise<Company> {
     const payload: Record<string, unknown> = {};
     
     // Campos básicos
@@ -161,13 +166,55 @@ export const locationsService = {
     if (data.occupants !== undefined) payload.occupants = data.occupants;
     if (data.hvacUnits !== undefined) payload.hvac_units = data.hvacUnits;
     
-
-
     const response = await api.patch<ApiCompany>(`/locations/companies/${id}/`, payload);
-    return mapCompany(response.data);
+    const company = mapCompany(response.data);
+    
+    // Se o nome foi alterado, atualiza o Site vinculado
+    if (data.name && oldName && data.name !== oldName) {
+      try {
+        // Busca o Site pelo nome antigo da empresa
+        const sitesResponse = await api.get<{ results?: Array<{ id: number; company: string }> } | Array<{ id: number; company: string }>>('/sites/', { 
+          params: { company: oldName } 
+        });
+        const sites = Array.isArray(sitesResponse.data) ? sitesResponse.data : sitesResponse.data.results || [];
+        
+        // Atualiza cada Site vinculado
+        for (const site of sites) {
+          await api.patch(`/sites/${site.id}/`, {
+            name: data.name,
+            company: data.name,
+            address: data.address?.fullAddress || undefined,
+          });
+        }
+        console.log(`Site(s) atualizado(s) para a empresa: ${data.name}`);
+      } catch (siteError) {
+        console.warn('Aviso: Não foi possível atualizar Site automaticamente:', siteError);
+      }
+    }
+    
+    return company;
   },
 
-  async deleteCompany(id: string): Promise<void> {
+  async deleteCompany(id: string, companyName?: string): Promise<void> {
+    // Primeiro, exclui os Sites vinculados à empresa
+    if (companyName) {
+      try {
+        const sitesResponse = await api.get<{ results?: Array<{ id: number; company: string }> } | Array<{ id: number; company: string }>>('/sites/', { 
+          params: { company: companyName } 
+        });
+        const sites = Array.isArray(sitesResponse.data) ? sitesResponse.data : sitesResponse.data.results || [];
+        
+        // Exclui cada Site vinculado
+        for (const site of sites) {
+          await api.delete(`/sites/${site.id}/`);
+        }
+        console.log(`Site(s) excluído(s) para a empresa: ${companyName}`);
+      } catch (siteError) {
+        console.warn('Aviso: Não foi possível excluir Site automaticamente:', siteError);
+      }
+    }
+    
+    // Depois exclui a empresa
     await api.delete(`/locations/companies/${id}/`);
   },
 

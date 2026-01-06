@@ -233,6 +233,11 @@ function AssetsContent() {
     setFilteredEquipment(filteredByLocation);
   }, [selectedNode, filteredEquipmentData, units, sectors, subSections]);
 
+  // ========== ESTADO DO MODAL DE NOVO TIPO DE ATIVO ==========
+  const [isNewAssetTypeDialogOpen, setIsNewAssetTypeDialogOpen] = useState(false);
+  const [newAssetTypeName, setNewAssetTypeName] = useState('');
+  const [customAssetTypes, setCustomAssetTypes] = useState<Array<{ value: string; label: string }>>([]);
+
   // ========== ESTADO DO FORMULÁRIO DE NOVO EQUIPAMENTO ==========
   // Estado para armazenar os dados do formulário de criação de equipamento
   const [newEquipment, setNewEquipment] = useState({
@@ -320,6 +325,10 @@ function AssetsContent() {
       'SPLIT': 'FAN_COIL',
     };
 
+    // Verifica se é um tipo customizado
+    const isCustomType = !typeMapping[newEquipment.type];
+    const customTypeInfo = customAssetTypes.find(t => t.value === newEquipment.type);
+
     const fallbackCompanyId = sectorId
       ? sectors.find((sector) => sector.id === sectorId)?.companyId
       : undefined;
@@ -349,7 +358,8 @@ function AssetsContent() {
         tag: newEquipment.tag,
         name: newEquipment.notes || newEquipment.tag, // Usa tag como nome se não tiver notas
         site: siteForCompany.id,
-        assetType: typeMapping[newEquipment.type] || newEquipment.type,
+        assetType: isCustomType ? 'OTHER' : (typeMapping[newEquipment.type] || newEquipment.type),
+        assetTypeOther: isCustomType ? (customTypeInfo?.label || newEquipment.type) : undefined,
         status: newEquipment.status,
         manufacturer: newEquipment.brand,
         model: newEquipment.model,
@@ -510,6 +520,44 @@ function AssetsContent() {
 
   // Hook de navegação
   const navigate = useNavigate();
+
+  /**
+   * ADICIONAR NOVO TIPO DE ATIVO
+   * 
+   * Adiciona um novo tipo customizado à lista de tipos de ativo.
+   * O tipo é salvo como "OTHER" no backend com o nome em asset_type_other.
+   */
+  const handleAddAssetType = () => {
+    if (!newAssetTypeName.trim()) {
+      toast.error('Digite um nome para o tipo de ativo');
+      return;
+    }
+    
+    // Verifica se já existe
+    const typeValue = newAssetTypeName.toUpperCase().replace(/\s+/g, '_');
+    const existsInDefault = ['SPLIT', 'VRF', 'CENTRAL', 'CHILLER'].includes(typeValue);
+    const existsInCustom = customAssetTypes.some(t => t.value === typeValue);
+    
+    if (existsInDefault || existsInCustom) {
+      toast.error('Este tipo de ativo já existe');
+      return;
+    }
+    
+    // Adiciona o novo tipo customizado
+    setCustomAssetTypes(prev => [
+      ...prev,
+      { value: typeValue, label: newAssetTypeName.trim() }
+    ]);
+    
+    // Seleciona automaticamente o novo tipo
+    setNewEquipment(prev => ({ ...prev, type: typeValue as Equipment['type'] }));
+    
+    // Fecha o modal e limpa o campo
+    setNewAssetTypeName('');
+    setIsNewAssetTypeDialogOpen(false);
+    
+    toast.success(`Tipo "${newAssetTypeName.trim()}" adicionado com sucesso`);
+  };
 
   /**
    * SELECIONAR EQUIPAMENTO PARA RASTREAMENTO
@@ -742,22 +790,39 @@ function AssetsContent() {
                 {/* Tipo do equipamento */}
                 <div>
                   <Label htmlFor="type" className="mb-2 block">Tipo do Ativo *</Label>
-                  <Select 
-                    value={newEquipment.type} 
-                    onValueChange={(value: Equipment['type']) => 
-                      setNewEquipment(prev => ({ ...prev, type: value }))
-                    }
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="SPLIT">Split</SelectItem>
-                      <SelectItem value="VRF">VRF</SelectItem>
-                      <SelectItem value="CENTRAL">Central</SelectItem>
-                      <SelectItem value="CHILLER">Chiller</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select 
+                      value={newEquipment.type} 
+                      onValueChange={(value: Equipment['type']) => 
+                        setNewEquipment(prev => ({ ...prev, type: value }))
+                      }
+                    >
+                      <SelectTrigger className="h-10 flex-1">
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="SPLIT">Split</SelectItem>
+                        <SelectItem value="VRF">VRF</SelectItem>
+                        <SelectItem value="CENTRAL">Central</SelectItem>
+                        <SelectItem value="CHILLER">Chiller</SelectItem>
+                        {customAssetTypes.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 shrink-0"
+                      onClick={() => setIsNewAssetTypeDialogOpen(true)}
+                      title="Adicionar novo tipo de ativo"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 
                 {/* Marca do equipamento */}
@@ -850,9 +915,9 @@ function AssetsContent() {
                       <SelectValue placeholder="Selecione o status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="OK">?? Operacional</SelectItem>
-                      <SelectItem value="MAINTENANCE">?? Em Manuten?ao</SelectItem>
-                      <SelectItem value="STOPPED">?? Parado</SelectItem>
+                      <SelectItem value="OK">✅ Operacional</SelectItem>
+                      <SelectItem value="MAINTENANCE">🔧 Em Manutenção</SelectItem>
+                      <SelectItem value="STOPPED">⛔ Parado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1256,6 +1321,47 @@ function AssetsContent() {
         open={isEquipmentEditModalOpen}
         onOpenChange={setIsEquipmentEditModalOpen}
       />
+
+      {/* ========== MODAL DE NOVO TIPO DE ATIVO ========== */}
+      {/* Modal para adicionar um novo tipo de ativo customizado */}
+      <Dialog open={isNewAssetTypeDialogOpen} onOpenChange={setIsNewAssetTypeDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Tipo de Ativo</DialogTitle>
+            <DialogDescription>
+              Digite o nome do novo tipo de ativo que deseja cadastrar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="newAssetTypeName" className="mb-2 block">Nome do Tipo *</Label>
+              <Input
+                id="newAssetTypeName"
+                value={newAssetTypeName}
+                onChange={(e) => setNewAssetTypeName(e.target.value)}
+                placeholder="Ex: Fan Coil, Bomba de Calor..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddAssetType();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => {
+              setIsNewAssetTypeDialogOpen(false);
+              setNewAssetTypeName('');
+            }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAddAssetType} disabled={!newAssetTypeName.trim()}>
+              Adicionar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

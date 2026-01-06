@@ -65,10 +65,13 @@ export function useCreateCompany() {
 
   return useMutation({
     mutationFn: (data: Omit<Company, 'id' | 'createdAt'>) => locationsService.createCompany(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: locationKeys.companiesList() });
-      queryClient.invalidateQueries({ queryKey: locationKeys.tree() });
-      queryClient.invalidateQueries({ queryKey: locationKeys.counts() });
+    onSuccess: async () => {
+      // Invalida e força refetch imediato de todas as queries relacionadas
+      await queryClient.invalidateQueries({ queryKey: locationKeys.companiesList() });
+      await queryClient.invalidateQueries({ queryKey: locationKeys.tree() });
+      await queryClient.invalidateQueries({ queryKey: locationKeys.counts() });
+      // O backend cria o Site automaticamente, então invalida também
+      await queryClient.invalidateQueries({ queryKey: ['sites'] });
     },
   });
 }
@@ -77,12 +80,14 @@ export function useUpdateCompany() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Company> }) =>
-      locationsService.updateCompany(id, data),
+    mutationFn: ({ id, data, oldName }: { id: string; data: Partial<Company>; oldName?: string }) =>
+      locationsService.updateCompany(id, data, oldName),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: locationKeys.companyDetail(id) });
       queryClient.invalidateQueries({ queryKey: locationKeys.companiesList() });
       queryClient.invalidateQueries({ queryKey: locationKeys.tree() });
+      // Invalida também a lista de sites para refletir a mudança
+      queryClient.invalidateQueries({ queryKey: ['sites'] });
     },
   });
 }
@@ -91,12 +96,15 @@ export function useDeleteCompany() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => locationsService.deleteCompany(id),
-    onSuccess: (_, id) => {
+    mutationFn: ({ id, companyName }: { id: string; companyName?: string }) => 
+      locationsService.deleteCompany(id, companyName),
+    onSuccess: (_, { id }) => {
       queryClient.removeQueries({ queryKey: locationKeys.companyDetail(id) });
       queryClient.invalidateQueries({ queryKey: locationKeys.companiesList() });
       queryClient.invalidateQueries({ queryKey: locationKeys.tree() });
       queryClient.invalidateQueries({ queryKey: locationKeys.counts() });
+      // Invalida também a lista de sites para refletir a exclusão
+      queryClient.invalidateQueries({ queryKey: ['sites'] });
     },
   });
 }

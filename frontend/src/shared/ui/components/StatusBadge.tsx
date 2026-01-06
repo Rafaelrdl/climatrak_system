@@ -77,7 +77,7 @@ const statusConfigs = {
       className: statusTokenClasses.success
     },
     MAINTENANCE: {
-      label: 'Em Manuten??o',
+      label: 'Em Manutenção',
       variant: 'secondary' as const,
       icon: Wrench,
       className: statusTokenClasses.warning

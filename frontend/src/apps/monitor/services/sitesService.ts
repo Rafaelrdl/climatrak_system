@@ -6,12 +6,27 @@
  * 
  * Endpoints disponíveis:
  * - GET /sites/ - Lista todos os sites
+ * - POST /sites/ - Cria novo site
  * - GET /sites/{id}/ - Detalhes de um site
  * - GET /sites/{id}/stats/ - Estatísticas do site
  */
 
 import { api } from '@/lib/api';
 import type { Site, SiteFilters, SiteStats } from '../types/site';
+
+/**
+ * Interface para criação de Site
+ */
+export interface CreateSiteData {
+  name: string;
+  company?: string;
+  sector?: string;
+  subsector?: string;
+  address?: string;
+  timezone?: string;
+  latitude?: number;
+  longitude?: number;
+}
 
 /**
  * Helper para extrair array de dados da resposta (suporta array direto ou paginado)
@@ -42,6 +57,26 @@ export const sitesService = {
    */
   async getById(id: number): Promise<Site> {
     const response = await api.get<Site>(`/sites/${id}/`);
+    return response.data;
+  },
+
+  /**
+   * Cria um novo site
+   * 
+   * @param data - Dados do site a ser criado
+   * @returns Site criado
+   */
+  async create(data: CreateSiteData): Promise<Site> {
+    const response = await api.post<Site>('/sites/', {
+      name: data.name,
+      company: data.company || '',
+      sector: data.sector || '',
+      subsector: data.subsector || '',
+      address: data.address || '',
+      timezone: data.timezone || 'America/Sao_Paulo',
+      latitude: data.latitude || null,
+      longitude: data.longitude || null,
+    });
     return response.data;
   },
 

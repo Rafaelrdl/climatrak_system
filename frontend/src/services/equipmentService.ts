@@ -409,6 +409,7 @@ export const equipmentService = {
     name: string;
     site: number;
     assetType: string;
+    assetTypeOther?: string;
     status?: Equipment['status'];
     manufacturer?: string;
     model?: string;
@@ -437,6 +438,11 @@ export const equipmentService = {
       site: data.site,
       asset_type: data.assetType,
     };
+    
+    // Tipo customizado (quando assetType = 'OTHER')
+    if (data.assetTypeOther) {
+      apiData.asset_type_other = data.assetTypeOther;
+    }
     
     // Campos opcionais
     if (data.manufacturer) apiData.manufacturer = data.manufacturer;

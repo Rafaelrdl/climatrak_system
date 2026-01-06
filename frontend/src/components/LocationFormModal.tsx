@@ -221,8 +221,9 @@ export function LocationFormModal({
       if (mode === 'edit') {
         // Atualiza empresa existente via API
         const companyId = (initialData as Company).id;
+        const oldName = (initialData as Company).name; // Nome antigo para sincronizar com Site
         updateCompanyMutation.mutate(
-          { id: companyId, data: companyForm },
+          { id: companyId, data: companyForm, oldName },
           {
             onSuccess: (updatedCompany) => {
               // Atualiza nó selecionado se for o mesmo
@@ -239,7 +240,11 @@ export function LocationFormModal({
           companyForm as Omit<Company, 'id' | 'createdAt'>,
           {
             onSuccess: () => {
-              onClose();
+              // O onSuccess do hook useCreateCompany já faz o invalidate das queries
+              // Aguarda um pequeno delay para garantir que o refetch aconteça
+              setTimeout(() => {
+                onClose();
+              }, 100);
             }
           }
         );

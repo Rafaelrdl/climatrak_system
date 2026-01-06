@@ -78,7 +78,8 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
     try {
       switch (selectedNode.type) {
         case 'company':
-          await deleteCompanyMutation.mutateAsync(realId);
+          // Passa o nome da empresa para deletar o Site vinculado
+          await deleteCompanyMutation.mutateAsync({ id: realId, companyName: selectedNode.name });
           break;
         case 'unit':
           await deleteUnitMutation.mutateAsync(realId);
