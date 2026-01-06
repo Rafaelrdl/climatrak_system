@@ -115,7 +115,7 @@
         "autoprefixer": "^10.4.21",
         "cypress": "^13.16.3",
         "eslint": "^9.28.0",
-        "eslint-plugin-react-hooks": "^5.2.0",
+        "eslint-plugin-react-hooks": "^7.0.1",
         "eslint-plugin-react-refresh": "^0.4.19",
         "globals": "^16.0.0",
         "jsdom": "^26.1.0",
