@@ -57,7 +57,7 @@ export const alertService = {
     }
 
     const response = await api.get<PaginatedResponse<Alert>>(
-      `/api/alerts/?${params.toString()}`
+      `/api/alerts/alerts/?${params.toString()}`
     );
 
     console.log('[AlertService] list response:', response.data);
@@ -81,7 +81,7 @@ export const alertService = {
     params.append('ordering', '-severity,-triggered_at');
 
     const response = await api.get<PaginatedResponse<Alert>>(
-      `/api/alerts/?${params.toString()}`
+      `/api/alerts/alerts/?${params.toString()}`
     );
 
     await cacheStorage.set(CACHE_KEYS.ACTIVE, response.data, CACHE_TTL);
@@ -111,7 +111,7 @@ export const alertService = {
     params.append('ordering', '-triggered_at');
 
     const response = await api.get<PaginatedResponse<Alert>>(
-      `/api/alerts/?${params.toString()}`
+      `/api/alerts/alerts/?${params.toString()}`
     );
 
     return response.data;
@@ -121,7 +121,7 @@ export const alertService = {
    * Get alert by ID
    */
   async getById(id: string): Promise<Alert> {
-    const response = await api.get<Alert>(`/api/alerts/${id}/`);
+    const response = await api.get<Alert>(`/api/alerts/alerts/${id}/`);
     
     await cacheStorage.set(CACHE_KEYS.DETAIL(id), response.data, CACHE_TTL);
 
@@ -140,7 +140,7 @@ export const alertService = {
 
     try {
       const response = await api.post<Alert>(
-        `/api/alerts/${id}/acknowledge/`,
+        `/api/alerts/alerts/${id}/acknowledge/`,
         { notes },
         { headers: { 'Idempotency-Key': idempotencyKey } }
       );
@@ -155,7 +155,7 @@ export const alertService = {
           entity_type: 'alert',
           action: 'acknowledge',
           payload: { id, notes },
-          endpoint: `/api/alerts/${id}/acknowledge/`,
+          endpoint: `/api/alerts/alerts/${id}/acknowledge/`,
           method: 'POST',
           idempotency_key: idempotencyKey,
         });
@@ -187,7 +187,7 @@ export const alertService = {
 
     try {
       const response = await api.post<Alert>(
-        `/api/alerts/${id}/resolve/`,
+        `/api/alerts/alerts/${id}/resolve/`,
         { resolution_notes, work_order_id },
         { headers: { 'Idempotency-Key': idempotencyKey } }
       );
@@ -202,7 +202,7 @@ export const alertService = {
           entity_type: 'alert',
           action: 'resolve',
           payload: { id, resolution_notes, work_order_id },
-          endpoint: `/api/alerts/${id}/resolve/`,
+          endpoint: `/api/alerts/alerts/${id}/resolve/`,
           method: 'POST',
           idempotency_key: idempotencyKey,
         });
@@ -238,7 +238,7 @@ export const alertService = {
     const idempotencyKey = `mobile:${deviceId}:alert_wo:${alertId}:${Date.now()}`;
 
     const response = await api.post<{ alert: Alert; work_order_id: string }>(
-      `/api/alerts/${alertId}/create-work-order/`,
+      `/api/alerts/alerts/${alertId}/create-work-order/`,
       workOrderData,
       { headers: { 'Idempotency-Key': idempotencyKey } }
     );
@@ -258,7 +258,7 @@ export const alertService = {
     resolved: number;
     by_severity: Record<string, number>;
   }> {
-    const response = await api.get('/api/alerts/stats/');
+    const response = await api.get('/api/alerts/alerts/stats/');
     return response.data;
   },
 
@@ -272,7 +272,7 @@ export const alertService = {
     params.append('status', 'ACTIVE');
 
     const response = await api.get<PaginatedResponse<Alert>>(
-      `/api/alerts/?${params.toString()}`
+      `/api/alerts/alerts/?${params.toString()}`
     );
 
     return response.data.results;

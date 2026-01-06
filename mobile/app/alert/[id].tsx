@@ -12,6 +12,7 @@ import {
   Alert as RNAlert,
   ActivityIndicator,
   TextInput,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -104,24 +105,35 @@ export default function AlertDetailScreen() {
   };
 
   const handleResolve = () => {
-    RNAlert.prompt(
-      'Resolver Alerta',
-      'Descreva a resolução do problema:',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Resolver', 
-          onPress: (resolution) => {
-            if (resolution?.trim()) {
-              resolveMutation.mutate(resolution);
-            } else {
-              RNAlert.alert('Atenção', 'Descreva a resolução do problema');
-            }
+    if (Platform.OS === 'web') {
+      const resolution = window.prompt('Descreva a resolução do problema:');
+      if (resolution !== null) {
+        if (resolution.trim()) {
+          resolveMutation.mutate(resolution);
+        } else {
+          RNAlert.alert('Atenção', 'Descreva a resolução do problema');
+        }
+      }
+    } else {
+      RNAlert.prompt(
+        'Resolver Alerta',
+        'Descreva a resolução do problema:',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Resolver', 
+            onPress: (resolution) => {
+              if (resolution?.trim()) {
+                resolveMutation.mutate(resolution);
+              } else {
+                RNAlert.alert('Atenção', 'Descreva a resolução do problema');
+              }
+            },
           },
-        },
-      ],
-      'plain-text'
-    );
+        ],
+        'plain-text'
+      );
+    }
   };
 
   const handleCreateWorkOrder = async () => {

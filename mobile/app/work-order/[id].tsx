@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -129,40 +130,58 @@ export default function WorkOrderDetailScreen() {
   };
 
   const handleComplete = () => {
-    Alert.prompt(
-      'Concluir OS',
-      'Adicione observações (opcional):',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Concluir', 
-          onPress: (notes) => completeMutation.mutate(notes),
-        },
-      ],
-      'plain-text'
-    );
+    if (Platform.OS === 'web') {
+      const notes = window.prompt('Adicione observações (opcional):');
+      if (notes !== null) {
+        completeMutation.mutate(notes || undefined);
+      }
+    } else {
+      Alert.prompt(
+        'Concluir OS',
+        'Adicione observações (opcional):',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Concluir', 
+            onPress: (notes) => completeMutation.mutate(notes),
+          },
+        ],
+        'plain-text'
+      );
+    }
   };
 
   const handleCancel = () => {
-    Alert.prompt(
-      'Cancelar OS',
-      'Informe o motivo do cancelamento:',
-      [
-        { text: 'Voltar', style: 'cancel' },
-        { 
-          text: 'Cancelar OS', 
-          style: 'destructive',
-          onPress: (reason) => {
-            if (reason?.trim()) {
-              cancelMutation.mutate(reason);
-            } else {
-              Alert.alert('Atenção', 'Informe o motivo do cancelamento');
-            }
+    if (Platform.OS === 'web') {
+      const reason = window.prompt('Informe o motivo do cancelamento:');
+      if (reason !== null) {
+        if (reason.trim()) {
+          cancelMutation.mutate(reason);
+        } else {
+          Alert.alert('Atenção', 'Informe o motivo do cancelamento');
+        }
+      }
+    } else {
+      Alert.prompt(
+        'Cancelar OS',
+        'Informe o motivo do cancelamento:',
+        [
+          { text: 'Voltar', style: 'cancel' },
+          { 
+            text: 'Cancelar OS', 
+            style: 'destructive',
+            onPress: (reason) => {
+              if (reason?.trim()) {
+                cancelMutation.mutate(reason);
+              } else {
+                Alert.alert('Atenção', 'Informe o motivo do cancelamento');
+              }
+            },
           },
-        },
-      ],
-      'plain-text'
-    );
+        ],
+        'plain-text'
+      );
+    }
   };
 
   const formatDate = (dateString: string) => {

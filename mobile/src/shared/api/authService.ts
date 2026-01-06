@@ -164,6 +164,7 @@ export const authService = {
 
   /**
    * Refresh access token using refresh token
+   * Uses mobile-specific endpoint that accepts token in body
    */
   async refreshToken(): Promise<string> {
     const refreshToken = await secureStorage.getRefreshToken();
@@ -171,7 +172,8 @@ export const authService = {
       throw new Error('No refresh token available');
     }
 
-    const response = await api.post('/api/auth/token/refresh/', {
+    // Use mobile refresh endpoint (accepts token in body, not cookie)
+    const response = await publicApi.post('/api/v2/auth/mobile/refresh/', {
       refresh: refreshToken,
     });
 
@@ -190,8 +192,8 @@ export const authService = {
    */
   async logout(): Promise<void> {
     try {
-      // Call logout endpoint to invalidate server-side
-      await api.post('/api/auth/logout/');
+      // Call logout endpoint to invalidate server-side (use public endpoint)
+      await publicApi.post('/api/v2/auth/logout/');
     } catch {
       // Ignore errors - we'll clear local data anyway
     }
@@ -213,10 +215,46 @@ export const authService = {
 
   /**
    * Fetch fresh user data from API
+   * Transforms backend response to match mobile User type
    */
   async fetchCurrentUser(): Promise<User> {
-    const response = await api.get<User>('/api/accounts/me/');
-    const user = response.data;
+    interface BackendUserResponse {
+      id: number;
+      email: string;
+      first_name: string;
+      last_name: string;
+      full_name: string;
+      avatar?: string;
+      phone?: string;
+      role: string;
+      is_active: boolean;
+      is_staff: boolean;
+      created_at: string;
+    }
+    
+    const response = await api.get<BackendUserResponse>('/api/users/me/');
+    const data = response.data;
+    
+    // Get stored tenant info to fill in tenant fields
+    const storedTenant = await tenantStorage.getTenantInfo();
+    const storedUser = await tenantStorage.getUser();
+    
+    // Transform backend response to mobile User type
+    const user: User = {
+      id: String(data.id),
+      email: data.email,
+      name: data.full_name || `${data.first_name} ${data.last_name}`.trim(),
+      first_name: data.first_name,
+      last_name: data.last_name,
+      avatar: data.avatar,
+      phone: data.phone,
+      role: (data.role as any) || storedUser?.role || 'viewer',
+      tenant_id: storedTenant?.id || storedUser?.tenant_id || '',
+      tenant_schema: storedTenant?.schema_name || storedUser?.tenant_schema || '',
+      tenant_name: storedTenant?.name || storedUser?.tenant_name,
+      is_active: data.is_active,
+      created_at: data.created_at,
+    };
     
     // Update stored user
     await tenantStorage.setUser(user);
