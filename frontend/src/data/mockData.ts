@@ -86,6 +86,7 @@ export const MOCK_SECTORS: Sector[] = [
   {
     id: '1',
     name: 'Setor Administrativo',
+    unitId: '1',
     companyId: '1',
     responsible: 'Ana Costa',
     phone: '(11) 91111-1111',
@@ -97,6 +98,7 @@ export const MOCK_SECTORS: Sector[] = [
   {
     id: '2',
     name: 'Departamento de TI',
+    unitId: '1',
     companyId: '1',
     responsible: 'Carlos Lima',
     phone: '(11) 92222-2222',
@@ -108,6 +110,7 @@ export const MOCK_SECTORS: Sector[] = [
   {
     id: '3',
     name: 'Chão de Fábrica',
+    unitId: '2',
     companyId: '2',
     responsible: 'Roberto Oliveira',
     phone: '(11) 93333-3333',
@@ -119,6 +122,7 @@ export const MOCK_SECTORS: Sector[] = [
   {
     id: '4',
     name: 'Praça de Alimentação',
+    unitId: '3',
     companyId: '3',
     responsible: 'Fernanda Costa',
     phone: '(11) 94444-4444',
@@ -130,6 +134,7 @@ export const MOCK_SECTORS: Sector[] = [
   {
     id: '5',
     name: 'Lojas Piso Térreo',
+    unitId: '3',
     companyId: '3',
     responsible: 'Ricardo Mendes',
     phone: '(11) 95555-5555',

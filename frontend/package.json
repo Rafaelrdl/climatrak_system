@@ -9,6 +9,7 @@
         "kill": "fuser -k 5000/tcp",
         "clean": "bash ./scripts/clean-install.sh",
         "build": "tsc -b --noCheck && vite build",
+        "typecheck": "tsc -p tsconfig.json --noEmit",
         "lint": "eslint .",
         "test": "vitest",
         "test:ui": "vitest --ui",

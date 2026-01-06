@@ -33,16 +33,18 @@ import { useSyncStore } from '@/store';
 import { theme } from '@/theme';
 
 const SEVERITY_LABELS: Record<string, string> = {
-  critical: 'Crítico',
-  high: 'Alto',
-  medium: 'Médio',
-  low: 'Baixo',
+  CRITICAL: 'Crítico',
+  HIGH: 'Alto',
+  MEDIUM: 'Médio',
+  WARNING: 'Atenção',
+  LOW: 'Baixo',
+  INFO: 'Informativo',
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  active: 'Ativo',
-  acknowledged: 'Reconhecido',
-  resolved: 'Resolvido',
+  ACTIVE: 'Ativo',
+  ACKNOWLEDGED: 'Reconhecido',
+  RESOLVED: 'Resolvido',
 };
 
 export default function AlertDetailScreen() {
@@ -129,8 +131,8 @@ export default function AlertDetailScreen() {
       const result = await alertService.createWorkOrder(id!, {
         title: `Correção: ${alert.rule_name || 'Alerta do Sistema'}`,
         description: alert.message || '',
-        priority: alert.severity === 'critical' ? 'urgent' : 
-                  alert.severity === 'high' ? 'high' : 'medium',
+        priority: alert.severity === 'CRITICAL' ? 'urgent' : 
+                  alert.severity === 'HIGH' ? 'high' : 'medium',
         type: 'corrective',
       });
 
@@ -197,8 +199,8 @@ export default function AlertDetailScreen() {
     );
   }
 
-  const canAcknowledge = alert.status === 'active';
-  const canResolve = alert.status !== 'resolved';
+  const canAcknowledge = alert.status === 'ACTIVE';
+  const canResolve = alert.status !== 'RESOLVED';
   const isMutating = acknowledgeMutation.isPending || resolveMutation.isPending;
 
   return (
@@ -239,16 +241,16 @@ export default function AlertDetailScreen() {
             <View style={[
               styles.statusBadge,
               { backgroundColor: 
-                alert.status === 'active' 
+                alert.status === 'ACTIVE' 
                   ? theme.colors.semantic.error + '20'
-                  : alert.status === 'acknowledged'
+                  : alert.status === 'ACKNOWLEDGED'
                     ? theme.colors.semantic.warning + '20'
                     : theme.colors.semantic.success + '20'
               },
             ]}>
-              {alert.status === 'resolved' ? (
+              {alert.status === 'RESOLVED' ? (
                 <CheckCircle size={14} color={theme.colors.semantic.success} />
-              ) : alert.status === 'acknowledged' ? (
+              ) : alert.status === 'ACKNOWLEDGED' ? (
                 <BellOff size={14} color={theme.colors.semantic.warning} />
               ) : (
                 <Bell size={14} color={theme.colors.semantic.error} />
@@ -256,9 +258,9 @@ export default function AlertDetailScreen() {
               <Text style={[
                 styles.statusText,
                 { color: 
-                  alert.status === 'active' 
+                  alert.status === 'ACTIVE' 
                     ? theme.colors.semantic.error
-                    : alert.status === 'acknowledged'
+                    : alert.status === 'ACKNOWLEDGED'
                       ? theme.colors.semantic.warning
                       : theme.colors.semantic.success
                 },
@@ -381,7 +383,7 @@ export default function AlertDetailScreen() {
           )}
 
           {/* Create Work Order */}
-          {alert.status !== 'resolved' && (
+          {alert.status !== 'RESOLVED' && (
             <TouchableOpacity
               style={styles.createWOButton}
               onPress={handleCreateWorkOrder}

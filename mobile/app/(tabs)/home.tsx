@@ -67,8 +67,8 @@ export default function HomeScreen() {
 
   // Count orders by status
   const orderStats = {
-    pending: myOrders?.results?.filter(o => o.status === 'pending').length || 0,
-    in_progress: myOrders?.results?.filter(o => o.status === 'in_progress').length || 0,
+    pending: myOrders?.results?.filter(o => o.status === 'OPEN').length || 0,
+    in_progress: myOrders?.results?.filter(o => o.status === 'IN_PROGRESS').length || 0,
     total: myOrders?.count || 0,
   };
 
@@ -265,9 +265,9 @@ export default function HomeScreen() {
                       styles.priorityText,
                       { color: theme.colors.priority[order.priority] },
                     ]}>
-                      {order.priority === 'urgent' ? 'Urgente' :
-                       order.priority === 'high' ? 'Alta' :
-                       order.priority === 'medium' ? 'Média' : 'Baixa'}
+                      {order.priority === 'CRITICAL' ? 'Urgente' :
+                       order.priority === 'HIGH' ? 'Alta' :
+                       order.priority === 'MEDIUM' ? 'Média' : 'Baixa'}
                     </Text>
                   </View>
                 </TouchableOpacity>

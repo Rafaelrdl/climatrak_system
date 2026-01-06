@@ -30,17 +30,17 @@ import { theme } from '@/theme';
 import type { Asset, AssetFilters } from '@/types';
 
 const STATUS_LABELS: Record<string, string> = {
-  operational: 'Operacional',
-  maintenance: 'Manutenção',
-  offline: 'Offline',
-  decommissioned: 'Desativado',
+  OK: 'Operacional',
+  MAINTENANCE: 'Manutenção',
+  STOPPED: 'Parado',
+  ALERT: 'Em Alerta',
 };
 
 const CRITICALITY_LABELS: Record<string, string> = {
-  critical: 'Crítico',
-  high: 'Alto',
-  medium: 'Médio',
-  low: 'Baixo',
+  CRITICA: 'Crítico',
+  ALTA: 'Alto',
+  MEDIA: 'Médio',
+  BAIXA: 'Baixo',
 };
 
 export default function AssetsScreen() {

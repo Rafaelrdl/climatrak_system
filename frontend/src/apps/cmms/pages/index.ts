@@ -27,7 +27,6 @@ export { MetricsPage } from '@/pages/MetricsPage';
 export { RequestsPage } from '@/pages/RequestsPage';
 export { ReportsPage } from '@/pages/ReportsPage';
 export { AssetDetailPage } from '@/pages/AssetDetailPage';
-export { EquipmentStatusPage } from '@/pages/EquipmentStatusPage';
 export { WorkOrderCalendarPage } from '@/pages/WorkOrderCalendarPage';
 export { WorkOrderSchedulingPage } from '@/pages/WorkOrderSchedulingPage';
 export { HelpCenterPage } from '@/pages/HelpCenterPage';

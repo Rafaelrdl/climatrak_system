@@ -73,7 +73,7 @@ export const alertService = {
     pageSize: number = 50
   ): Promise<PaginatedResponse<Alert>> {
     const params = new URLSearchParams();
-    params.append('status', 'active');
+    params.append('status', 'ACTIVE');
     params.append('page', String(page));
     params.append('page_size', String(pageSize));
     params.append('ordering', '-severity,-triggered_at');
@@ -150,12 +150,12 @@ export const alertService = {
       // Queue for later if offline
       if (!error.response) {
         await syncQueueStorage.add({
-          entity: 'alert',
+          entity_type: 'alert',
           action: 'acknowledge',
           payload: { id, notes },
           endpoint: `/api/alerts/${id}/acknowledge/`,
           method: 'POST',
-          idempotencyKey,
+          idempotency_key: idempotencyKey,
         });
 
         // Return optimistic update
@@ -163,7 +163,7 @@ export const alertService = {
         if (cached) {
           return {
             ...cached,
-            status: 'acknowledged',
+            status: 'ACKNOWLEDGED',
             acknowledged_at: new Date().toISOString(),
           };
         }
@@ -197,12 +197,12 @@ export const alertService = {
       // Queue for later if offline
       if (!error.response) {
         await syncQueueStorage.add({
-          entity: 'alert',
+          entity_type: 'alert',
           action: 'resolve',
           payload: { id, resolution_notes, work_order_id },
           endpoint: `/api/alerts/${id}/resolve/`,
           method: 'POST',
-          idempotencyKey,
+          idempotency_key: idempotencyKey,
         });
 
         // Return optimistic update
@@ -210,7 +210,7 @@ export const alertService = {
         if (cached) {
           return {
             ...cached,
-            status: 'resolved',
+            status: 'RESOLVED',
             resolved_at: new Date().toISOString(),
             resolution_notes,
           };
@@ -267,7 +267,7 @@ export const alertService = {
     const params = new URLSearchParams();
     params.append('page_size', String(limit));
     params.append('ordering', '-triggered_at');
-    params.append('status', 'active');
+    params.append('status', 'ACTIVE');
 
     const response = await api.get<PaginatedResponse<Alert>>(
       `/api/alerts/?${params.toString()}`

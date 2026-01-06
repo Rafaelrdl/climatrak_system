@@ -85,6 +85,7 @@ export interface Asset {
   
   // Tipo e modelo
   asset_type: AssetType;
+  asset_type_display?: string;
   asset_type_other?: string;
   manufacturer?: string;
   model?: string;

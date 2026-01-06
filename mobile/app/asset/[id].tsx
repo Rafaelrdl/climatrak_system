@@ -31,17 +31,17 @@ import { theme } from '@/theme';
 import type { Asset, WorkOrder, Alert } from '@/types';
 
 const STATUS_LABELS: Record<string, string> = {
-  operational: 'Operacional',
-  maintenance: 'Manutenção',
-  offline: 'Offline',
-  decommissioned: 'Desativado',
+  OK: 'Operacional',
+  MAINTENANCE: 'Manutenção',
+  STOPPED: 'Parado',
+  ALERT: 'Em Alerta',
 };
 
 const CRITICALITY_LABELS: Record<string, string> = {
-  critical: 'Crítico',
-  high: 'Alto',
-  medium: 'Médio',
-  low: 'Baixo',
+  CRITICA: 'Crítico',
+  ALTA: 'Alto',
+  MEDIA: 'Médio',
+  BAIXA: 'Baixo',
 };
 
 export default function AssetDetailScreen() {
@@ -99,7 +99,7 @@ export default function AssetDetailScreen() {
     );
   }
 
-  const activeAlerts = alerts?.results?.filter(a => a.status === 'active') || [];
+  const activeAlerts = alerts?.results?.filter(a => a.status === 'ACTIVE') || [];
 
   return (
     <>
@@ -242,13 +242,13 @@ export default function AssetDetailScreen() {
             )}
 
             {/* Installation Date */}
-            {asset.installation_date && (
+            {asset.install_date && (
               <View style={styles.infoCard}>
                 <Calendar size={20} color={theme.colors.neutral[600]} />
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Data de Instalação</Text>
                   <Text style={styles.infoValue}>
-                    {formatDate(asset.installation_date)}
+                    {formatDate(asset.install_date)}
                   </Text>
                 </View>
               </View>

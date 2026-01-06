@@ -326,11 +326,50 @@ export const theme = {
       info: colors.info[500],
     },
     alert: {
+      // UPPERCASE keys to match AlertSeverity type
+      CRITICAL: colors.danger[500],
+      HIGH: colors.danger[400],
+      MEDIUM: colors.warning[500],
+      WARNING: colors.warning[500],
+      LOW: colors.info[500],
+      INFO: colors.neutral[500],
+      // Also provide lowercase for backwards compatibility
       critical: colors.danger[500],
       high: colors.danger[400],
       medium: colors.warning[500],
+      warning: colors.warning[500],
       low: colors.info[500],
       info: colors.neutral[500],
+    },
+    // WorkOrder status colors (UPPERCASE to match types)
+    workOrder: {
+      OPEN: colors.info[500],
+      IN_PROGRESS: colors.warning[500],
+      ON_HOLD: colors.neutral[500],
+      COMPLETED: colors.success[500],
+      CANCELLED: colors.danger[500],
+      PENDING_REVIEW: colors.warning[600],
+    },
+    // Asset status colors (UPPERCASE to match types)
+    asset: {
+      OK: colors.success[500],
+      MAINTENANCE: colors.warning[500],
+      STOPPED: colors.neutral[500],
+      ALERT: colors.danger[500],
+    },
+    // Priority colors (UPPERCASE to match types)
+    priority: {
+      LOW: colors.neutral[500],
+      MEDIUM: colors.info[500],
+      HIGH: colors.warning[500],
+      CRITICAL: colors.danger[500],
+    },
+    // Criticality colors (UPPERCASE to match types, matches Portuguese)
+    criticality: {
+      BAIXA: colors.neutral[500],
+      MEDIA: colors.info[500],
+      ALTA: colors.warning[500],
+      CRITICA: colors.danger[500],
     },
     status: colors.status,
     background: colors.background,

@@ -33,17 +33,19 @@ import type { WorkOrder, WorkOrderFilters } from '@/types';
 type FilterTab = 'all' | 'mine' | 'pending' | 'in_progress';
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendente',
-  in_progress: 'Em Andamento',
-  completed: 'Concluída',
-  cancelled: 'Cancelada',
+  OPEN: 'Pendente',
+  IN_PROGRESS: 'Em Andamento',
+  COMPLETED: 'Concluída',
+  CANCELLED: 'Cancelada',
+  ON_HOLD: 'Em Espera',
+  PENDING_REVIEW: 'Aguardando Revisão',
 };
 
 const PRIORITY_LABELS: Record<string, string> = {
-  low: 'Baixa',
-  medium: 'Média',
-  high: 'Alta',
-  urgent: 'Urgente',
+  LOW: 'Baixa',
+  MEDIUM: 'Média',
+  HIGH: 'Alta',
+  CRITICAL: 'Urgente',
 };
 
 export default function WorkOrdersScreen() {
@@ -66,10 +68,10 @@ export default function WorkOrdersScreen() {
         filters.assigned_to_me = true;
         break;
       case 'pending':
-        filters.status = ['pending'];
+        filters.status = ['OPEN'];
         break;
       case 'in_progress':
-        filters.status = ['in_progress'];
+        filters.status = ['IN_PROGRESS'];
         break;
       // 'all' has no additional filters
     }

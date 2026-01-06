@@ -196,12 +196,12 @@ export const inventoryService = {
       // Queue for later if offline
       if (!error.response) {
         await syncQueueStorage.add({
-          entity: 'inventory',
-          action: 'movement',
+          entity_type: 'inventory',
+          action: 'update',
           payload: { itemId, ...data },
           endpoint: `/api/inventory/items/${itemId}/movement/`,
           method: 'POST',
-          idempotencyKey,
+          idempotency_key: idempotencyKey,
         });
 
         // Return optimistic movement

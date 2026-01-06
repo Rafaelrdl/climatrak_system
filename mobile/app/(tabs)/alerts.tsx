@@ -25,33 +25,33 @@ import {
 } from 'lucide-react-native';
 import { alertService } from '@/shared/api';
 import { theme } from '@/theme';
-import type { Alert, AlertFilters } from '@/types';
+import type { Alert, AlertFilters, AlertStatus } from '@/types';
 
-type FilterTab = 'active' | 'acknowledged' | 'resolved' | 'all';
+type FilterTab = 'ACTIVE' | 'ACKNOWLEDGED' | 'RESOLVED' | 'all';
 
 const STATUS_LABELS: Record<string, string> = {
-  active: 'Ativo',
-  acknowledged: 'Reconhecido',
-  resolved: 'Resolvido',
+  ACTIVE: 'Ativo',
+  ACKNOWLEDGED: 'Reconhecido',
+  RESOLVED: 'Resolvido',
 };
 
 const SEVERITY_LABELS: Record<string, string> = {
-  critical: 'Crítico',
-  high: 'Alto',
-  medium: 'Médio',
-  low: 'Baixo',
+  CRITICAL: 'Crítico',
+  HIGH: 'Alto',
+  MEDIUM: 'Médio',
+  LOW: 'Baixo',
 };
 
 export default function AlertsScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<FilterTab>('active');
+  const [activeTab, setActiveTab] = useState<FilterTab>('ACTIVE');
 
   // Build filters based on active tab
   const getFilters = (): AlertFilters => {
     const filters: AlertFilters = {};
     
     if (activeTab !== 'all') {
-      filters.status = [activeTab];
+      filters.status = [activeTab as AlertStatus];
     }
 
     return filters;
@@ -137,18 +137,18 @@ export default function AlertsScreen() {
           <View style={[
             styles.statusBadge,
             { backgroundColor: 
-              item.status === 'active' 
+              item.status === 'ACTIVE' 
                 ? theme.colors.semantic.error + '15'
-                : item.status === 'acknowledged'
+                : item.status === 'ACKNOWLEDGED'
                   ? theme.colors.semantic.warning + '15'
                   : theme.colors.semantic.success + '15'
             },
           ]}>
-            {item.status === 'resolved' ? (
+            {item.status === 'RESOLVED' ? (
               <CheckCircle size={12} color={theme.colors.semantic.success} />
             ) : (
               <Bell size={12} color={
-                item.status === 'active' 
+                item.status === 'ACTIVE' 
                   ? theme.colors.semantic.error 
                   : theme.colors.semantic.warning
               } />
@@ -156,9 +156,9 @@ export default function AlertsScreen() {
             <Text style={[
               styles.statusText,
               { color: 
-                item.status === 'active' 
+                item.status === 'ACTIVE' 
                   ? theme.colors.semantic.error
-                  : item.status === 'acknowledged'
+                  : item.status === 'ACKNOWLEDGED'
                     ? theme.colors.semantic.warning
                     : theme.colors.semantic.success
               },
@@ -212,12 +212,12 @@ export default function AlertsScreen() {
     <View style={styles.emptyState}>
       <CheckCircle size={48} color={theme.colors.semantic.success} />
       <Text style={styles.emptyTitle}>
-        {activeTab === 'active' 
+        {activeTab === 'ACTIVE' 
           ? 'Nenhum alerta ativo' 
           : 'Nenhum alerta encontrado'}
       </Text>
       <Text style={styles.emptySubtitle}>
-        {activeTab === 'active' 
+        {activeTab === 'ACTIVE' 
           ? 'Todos os sistemas operando normalmente'
           : 'Não há alertas nesta categoria'}
       </Text>
@@ -234,17 +234,17 @@ export default function AlertsScreen() {
   };
 
   // Count active alerts
-  const activeCount = activeTab === 'active' ? alerts.length : 0;
+  const activeCount = activeTab === 'ACTIVE' ? alerts.length : 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       {/* Filter Tabs */}
       <View style={styles.tabsContainer}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'active' && styles.tabActive]}
-          onPress={() => setActiveTab('active')}
+          style={[styles.tab, activeTab === 'ACTIVE' && styles.tabActive]}
+          onPress={() => setActiveTab('ACTIVE')}
         >
-          <Text style={[styles.tabText, activeTab === 'active' && styles.tabTextActive]}>
+          <Text style={[styles.tabText, activeTab === 'ACTIVE' && styles.tabTextActive]}>
             Ativos
           </Text>
           {activeCount > 0 && (
@@ -255,19 +255,19 @@ export default function AlertsScreen() {
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'acknowledged' && styles.tabActive]}
-          onPress={() => setActiveTab('acknowledged')}
+          style={[styles.tab, activeTab === 'ACKNOWLEDGED' && styles.tabActive]}
+          onPress={() => setActiveTab('ACKNOWLEDGED')}
         >
-          <Text style={[styles.tabText, activeTab === 'acknowledged' && styles.tabTextActive]}>
+          <Text style={[styles.tabText, activeTab === 'ACKNOWLEDGED' && styles.tabTextActive]}>
             Reconhecidos
           </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'resolved' && styles.tabActive]}
-          onPress={() => setActiveTab('resolved')}
+          style={[styles.tab, activeTab === 'RESOLVED' && styles.tabActive]}
+          onPress={() => setActiveTab('RESOLVED')}
         >
-          <Text style={[styles.tabText, activeTab === 'resolved' && styles.tabTextActive]}>
+          <Text style={[styles.tabText, activeTab === 'RESOLVED' && styles.tabTextActive]}>
             Resolvidos
           </Text>
         </TouchableOpacity>

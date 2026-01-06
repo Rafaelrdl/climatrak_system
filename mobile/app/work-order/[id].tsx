@@ -36,24 +36,26 @@ import { theme } from '@/theme';
 import type { WorkOrder } from '@/types';
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendente',
-  in_progress: 'Em Andamento',
-  completed: 'Concluída',
-  cancelled: 'Cancelada',
+  OPEN: 'Pendente',
+  IN_PROGRESS: 'Em Andamento',
+  COMPLETED: 'Concluída',
+  CANCELLED: 'Cancelada',
+  ON_HOLD: 'Em Espera',
+  PENDING_REVIEW: 'Aguardando Revisão',
 };
 
 const PRIORITY_LABELS: Record<string, string> = {
-  low: 'Baixa',
-  medium: 'Média',
-  high: 'Alta',
-  urgent: 'Urgente',
+  LOW: 'Baixa',
+  MEDIUM: 'Média',
+  HIGH: 'Alta',
+  CRITICAL: 'Urgente',
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  corrective: 'Corretiva',
-  preventive: 'Preventiva',
-  predictive: 'Preditiva',
-  inspection: 'Inspeção',
+  CORRECTIVE: 'Corretiva',
+  PREVENTIVE: 'Preventiva',
+  PREDICTIVE: 'Preditiva',
+  INSPECTION: 'Inspeção',
 };
 
 export default function WorkOrderDetailScreen() {
@@ -85,7 +87,7 @@ export default function WorkOrderDetailScreen() {
 
   // Complete mutation
   const completeMutation = useMutation({
-    mutationFn: (notes?: string) => workOrderService.complete(id!, notes),
+    mutationFn: (notes?: string) => workOrderService.complete(id!, notes ? { notes } : undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['work-order', id] });
       queryClient.invalidateQueries({ queryKey: ['work-orders'] });
@@ -193,9 +195,9 @@ export default function WorkOrderDetailScreen() {
     );
   }
 
-  const canStart = workOrder.status === 'pending';
-  const canComplete = workOrder.status === 'in_progress';
-  const canCancel = ['pending', 'in_progress'].includes(workOrder.status);
+  const canStart = workOrder.status === 'OPEN';
+  const canComplete = workOrder.status === 'IN_PROGRESS';
+  const canCancel = ['OPEN', 'IN_PROGRESS'].includes(workOrder.status);
   const isMutating = startMutation.isPending || completeMutation.isPending || cancelMutation.isPending;
 
   return (
@@ -308,7 +310,7 @@ export default function WorkOrderDetailScreen() {
           </View>
 
           {/* Quick Actions */}
-          {workOrder.status !== 'completed' && workOrder.status !== 'cancelled' && (
+          {workOrder.status !== 'COMPLETED' && workOrder.status !== 'CANCELLED' && (
             <View style={styles.quickActions}>
               <Text style={styles.sectionTitle}>Ações Rápidas</Text>
               

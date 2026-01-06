@@ -14,6 +14,7 @@ export interface User {
   phone?: string;
   tenant_id: string;
   tenant_schema: string;
+  tenant_name?: string; // Denormalized for convenience
   is_active: boolean;
   created_at: string;
 }
@@ -57,10 +58,12 @@ export interface WorkOrder {
   status: WorkOrderStatus;
   asset_id?: string;
   asset?: Asset;
+  asset_name?: string; // Denormalized for convenience
   site_id?: string;
   site?: Site;
   assigned_to_id?: string;
   assigned_to?: User;
+  assigned_to_name?: string; // Denormalized for convenience
   created_by_id: string;
   created_by?: User;
   checklist_template_id?: string;
@@ -139,6 +142,7 @@ export interface WorkOrderFilters {
   priority?: WorkOrderPriority[];
   type?: WorkOrderType[];
   assigned_to?: string;
+  assigned_to_me?: boolean;
   asset_id?: string;
   site_id?: string;
   search?: string;
@@ -158,20 +162,24 @@ export interface Asset {
   id: string;
   tag: string;
   name: string;
+  description?: string; // Description field
   model?: string;
   brand?: string;
   manufacturer?: string;
   serial_number?: string;
   type: string;
+  type_name?: string; // Denormalized for convenience
   capacity?: number;
   status: AssetStatus;
   criticality: AssetCriticality;
   site_id?: string;
   site?: Site;
+  site_name?: string; // Denormalized for convenience
   sector_id?: string;
   sector?: Sector;
   subsection_id?: string;
   subsection?: Subsection;
+  location_name?: string; // Denormalized for convenience
   install_date?: string;
   warranty_expiry?: string;
   qr_code?: string;
@@ -228,17 +236,21 @@ export interface Alert {
   id: string;
   rule_id: string;
   rule?: AlertRule;
+  rule_name?: string; // Denormalized for convenience
   asset_id?: string;
   asset?: Asset;
+  asset_name?: string; // Denormalized for convenience
   site_id?: string;
   site?: Site;
   sensor_id?: string;
+  sensor_name?: string; // Denormalized for convenience
   severity: AlertSeverity;
   status: AlertStatus;
   title: string;
   message: string;
   value?: number;
   threshold?: number;
+  triggered_at: string; // When the alert was triggered
   acknowledged_at?: string;
   acknowledged_by_id?: string;
   acknowledged_by?: User;
@@ -247,10 +259,12 @@ export interface Alert {
   resolved_by?: User;
   work_order_id?: string;
   work_order?: WorkOrder;
+  unit?: string; // Unit of measurement for the value
+  resolution_notes?: string; // Notes when resolving
   created_at: string;
 }
 
-export type AlertSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
+export type AlertSeverity = 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'WARNING' | 'CRITICAL';
 export type AlertStatus = 'ACTIVE' | 'ACKNOWLEDGED' | 'RESOLVED';
 
 export interface AlertRule {
@@ -268,6 +282,9 @@ export interface AlertFilters {
   severity?: AlertSeverity[];
   asset_id?: string;
   site_id?: string;
+  rule_id?: string;
+  triggered_after?: string;
+  triggered_before?: string;
   acknowledged?: boolean;
 }
 
@@ -295,6 +312,16 @@ export interface InventoryCategory {
   name: string;
   parent_id?: string;
   description?: string;
+}
+
+export interface InventoryFilters {
+  category_id?: string;
+  category?: string;
+  warehouse_id?: string;
+  location?: string;
+  low_stock?: boolean;
+  search?: string;
+  is_active?: boolean;
 }
 
 // ==================== Checklist Types ====================
@@ -363,14 +390,14 @@ export interface ApiError {
 // ==================== Sync Types (Offline) ====================
 export interface SyncQueueItem {
   id: string;
-  entity_type: 'work_order' | 'time_entry' | 'part_usage' | 'photo' | 'checklist_response';
+  entity_type: 'work_order' | 'time_entry' | 'part_usage' | 'photo' | 'checklist_response' | 'alert' | 'inventory';
   entity_id?: string;
-  action: 'create' | 'update' | 'delete';
+  action: 'create' | 'update' | 'delete' | 'acknowledge' | 'resolve';
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   endpoint: string;
   payload: Record<string, unknown>;
   idempotency_key: string;
-  tenant_slug: string;
+  tenant_slug?: string;
   created_at: string;
   retry_count: number;
   last_attempt?: string;

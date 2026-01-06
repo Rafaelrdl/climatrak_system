@@ -47,6 +47,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         id: response.tenant_id,
         name: response.tenant_name,
         slug: response.tenant_slug,
+        schema_name: response.tenant_slug, // Use slug as schema_name when not provided
       };
 
       set({ tenant, isLoading: false });
@@ -82,6 +83,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         id: user.tenant_id || '',
         name: user.tenant_name || tenantSlug,
         slug: tenantSlug,
+        schema_name: user.tenant_schema || tenantSlug,
       };
 
       // Save last tenant for quick login
@@ -138,17 +140,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const result = await authService.restoreSession();
 
       if (result) {
-        const { user, tenantSlug } = result;
+        const { user, tenant } = result;
 
         // Configure API with tenant
-        configureApi(tenantSlug);
-
-        // Build tenant info
-        const tenant: Tenant = {
-          id: user.tenant_id || '',
-          name: user.tenant_name || tenantSlug,
-          slug: tenantSlug,
-        };
+        configureApi(tenant.slug);
 
         set({
           user,

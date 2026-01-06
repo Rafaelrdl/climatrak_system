@@ -32,6 +32,8 @@ import type { Equipment, SubSection } from '@/types';
 import { toast } from 'sonner';
 
 const EMPTY_ARRAY: never[] = [];
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim().length > 0;
 
 /**
  * PÁGINA DE GESTÃO DE ATIVOS
@@ -260,12 +262,12 @@ function AssetsContent() {
   }, [assetTypesQuery.data]);
 
   // Valores únicos para filtros de equipamentos
-  const uniqueEquipmentTypes = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.type))].filter(Boolean).sort(), [locationFilteredEquipment]);
-  const uniqueEquipmentStatuses = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.status))].filter(Boolean), [locationFilteredEquipment]);
-  const uniqueEquipmentBrands = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.brand))].filter(Boolean).sort(), [locationFilteredEquipment]);
-  const uniqueEquipmentCriticidades = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.criticidade))].filter(Boolean), [locationFilteredEquipment]);
-  const uniqueEquipmentManufacturers = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.manufacturer))].filter(Boolean).sort(), [locationFilteredEquipment]);
-  const uniqueEquipmentSectors = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.sectorName))].filter(Boolean).sort(), [locationFilteredEquipment]);
+  const uniqueEquipmentTypes = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.type))].filter(isNonEmptyString).sort(), [locationFilteredEquipment]);
+  const uniqueEquipmentStatuses = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.status))].filter(isNonEmptyString), [locationFilteredEquipment]);
+  const uniqueEquipmentBrands = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.brand))].filter(isNonEmptyString).sort(), [locationFilteredEquipment]);
+  const uniqueEquipmentCriticidades = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.criticidade))].filter(isNonEmptyString), [locationFilteredEquipment]);
+  const uniqueEquipmentManufacturers = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.manufacturer))].filter(isNonEmptyString).sort(), [locationFilteredEquipment]);
+  const uniqueEquipmentSectors = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.sectorName))].filter(isNonEmptyString).sort(), [locationFilteredEquipment]);
   
   // Conta total de filtros ativos
   const activeEquipmentFiltersCount = useMemo(() => {
@@ -1192,9 +1194,9 @@ function AssetsContent() {
                   <div className="flex gap-2">
                     <Select 
                       value={newEquipment.type} 
-                      onValueChange={(value: Equipment['type']) => 
-                        setNewEquipment(prev => ({ ...prev, type: value }))
-                      }
+                      onValueChange={(value) => {
+                        setNewEquipment(prev => ({ ...prev, type: value as Equipment['type'] }));
+                      }}
                     >
                       <SelectTrigger className="h-10 flex-1">
                         <SelectValue placeholder="Selecione o tipo" />

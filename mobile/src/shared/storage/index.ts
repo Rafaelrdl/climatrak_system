@@ -53,6 +53,11 @@ export const secureStorage = {
       SecureStore.deleteItemAsync(SECURE_KEYS.REFRESH_TOKEN),
     ]);
   },
+
+  // Alias for compatibility
+  async clearAll(): Promise<void> {
+    return this.clearTokens();
+  },
 };
 
 // ==================== Tenant-Namespaced Storage ====================
@@ -189,6 +194,11 @@ export const syncQueueStorage = {
     queue.push(newItem);
     await tenantStorage.set(SYNC_QUEUE_KEY, queue);
     return newItem;
+  },
+
+  // Alias for compatibility - add is the same as addToQueue
+  async add(item: Omit<SyncQueueItem, 'id' | 'created_at' | 'retry_count' | 'status'>): Promise<SyncQueueItem> {
+    return this.addToQueue(item);
   },
 
   async updateItem(id: string, updates: Partial<SyncQueueItem>): Promise<void> {
