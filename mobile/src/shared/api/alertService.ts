@@ -60,6 +60,8 @@ export const alertService = {
       `/api/alerts/?${params.toString()}`
     );
 
+    console.log('[AlertService] list response:', response.data);
+
     await cacheStorage.set(CACHE_KEYS.LIST, response.data, CACHE_TTL);
 
     return response.data;

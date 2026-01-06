@@ -81,8 +81,12 @@ export default function AlertsScreen() {
     initialPageParam: 1,
   });
 
-  // Flatten pages
-  const alerts = data?.pages.flatMap(page => page.results) || [];
+  // Flatten pages and filter out any undefined items
+  const alerts = data?.pages.flatMap(page => page.results).filter(Boolean) || [];
+
+  // Debug logging
+  console.log('[AlertsScreen] data:', data);
+  console.log('[AlertsScreen] alerts count:', alerts.length);
 
   const handleEndReached = () => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -107,17 +111,21 @@ export default function AlertsScreen() {
     }
   };
 
-  const renderAlert = useCallback(({ item }: { item: Alert }) => (
-    <TouchableOpacity
-      style={styles.alertCard}
-      onPress={() => router.push(`/alert/${item.id}`)}
-      activeOpacity={0.7}
-    >
-      {/* Severity indicator */}
-      <View style={[
-        styles.severityBar,
-        { backgroundColor: theme.colors.alert[item.severity] },
-      ]} />
+  const renderAlert = useCallback(({ item }: { item: Alert }) => {
+    // Guard against undefined items
+    if (!item) return null;
+    
+    return (
+      <TouchableOpacity
+        style={styles.alertCard}
+        onPress={() => router.push(`/alert/${item.id}`)}
+        activeOpacity={0.7}
+      >
+        {/* Severity indicator */}
+        <View style={[
+          styles.severityBar,
+          { backgroundColor: theme.colors.alert[item.severity] || theme.colors.neutral[400] },
+        ]} />
 
       <View style={styles.alertContent}>
         <View style={styles.alertHeader}>
@@ -206,7 +214,8 @@ export default function AlertsScreen() {
         </View>
       </View>
     </TouchableOpacity>
-  ), [router]);
+    );
+  }, [router, formatTimeAgo]);
 
   const renderEmpty = () => (
     <View style={styles.emptyState}>
@@ -286,7 +295,7 @@ export default function AlertsScreen() {
       <FlatList
         data={alerts}
         renderItem={renderAlert}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => item?.id?.toString() || `alert-${index}`}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl

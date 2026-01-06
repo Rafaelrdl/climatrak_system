@@ -78,6 +78,8 @@ api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     // Add auth token
     const token = await secureStorage.getAccessToken();
+    console.log('[API Client] Token from storage:', token ? `${token.substring(0, 20)}...` : 'NOT FOUND');
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -90,7 +92,7 @@ api.interceptors.request.use(
     // Debug logging
     console.log('[API Client] Request:', config.method?.toUpperCase(), config.url);
     console.log('[API Client] X-Tenant:', config.headers['X-Tenant'] || 'NOT SET');
-    console.log('[API Client] currentTenantSlug:', currentTenantSlug);
+    console.log('[API Client] Authorization:', config.headers.Authorization ? 'SET' : 'NOT SET');
 
     return config;
   },
