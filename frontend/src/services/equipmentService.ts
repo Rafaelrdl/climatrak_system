@@ -129,6 +129,25 @@ const mapCriticidade = (criticality?: string, specs?: Record<string, unknown>, h
   return 'ALTA';
 };
 
+const parseNumber = (value: unknown): number | undefined => {
+  if (value === null || value === undefined || value === '') return undefined;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : undefined;
+};
+
+const parsePhases = (value: unknown): number | undefined => {
+  if (value === null || value === undefined || value === '') return undefined;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const normalized = value.toLowerCase();
+    if (normalized === 'monofasico') return 1;
+    if (normalized === 'bifasico') return 2;
+    if (normalized === 'trifasico') return 3;
+    return parseNumber(normalized);
+  }
+  return undefined;
+};
+
 /**
  * Converte ApiAsset para Equipment do CMMS
  */
@@ -148,13 +167,52 @@ const apiAssetToEquipment = (asset: ApiAsset): Equipment & {
   apparentPower?: number;
   reactivePower?: number;
 } => {
+  const specs = (asset.specifications ?? {}) as Record<string, unknown>;
+  const capacityValue = parseNumber(specs.capacity ?? asset.capacity) ?? 0;
+  const capacityUnitValue = (specs.capacityUnit ?? (specs as { capacity_unit?: unknown }).capacity_unit ?? asset.capacity_unit) as string | undefined;
+  const nominalVoltageValue = parseNumber(
+    specs.voltage ??
+      (specs as { nominalVoltage?: unknown }).nominalVoltage ??
+      (specs as { nominal_voltage?: unknown }).nominal_voltage ??
+      asset.nominal_voltage
+  );
+  const phasesValue = parsePhases(specs.phases ?? asset.phases);
+  const nominalCurrentValue = parseNumber(
+    specs.maxCurrent ??
+      (specs as { nominalCurrent?: unknown }).nominalCurrent ??
+      (specs as { nominal_current?: unknown }).nominal_current ??
+      asset.nominal_current
+  );
+  const powerFactorValue = parseNumber(
+    specs.powerFactor ??
+      (specs as { power_factor?: unknown }).power_factor ??
+      asset.power_factor
+  );
+  const refrigerantValue = (specs.refrigerant ?? asset.refrigerant) as string | undefined;
+  const activePowerValue = parseNumber(
+    specs.activePower ??
+      (specs as { active_power_kw?: unknown }).active_power_kw ??
+      asset.active_power_kw
+  );
+  const apparentPowerValue = parseNumber(
+    specs.apparentPower ??
+      (specs as { apparent_power_kva?: unknown }).apparent_power_kva ??
+      asset.apparent_power_kva
+  );
+  const reactivePowerValue = parseNumber(
+    specs.reactivePower ??
+      (specs as { reactive_power_kvar?: unknown }).reactive_power_kvar ??
+      asset.reactive_power_kvar
+  );
+  const patrimonioValue = (specs.patrimonio ?? asset.patrimony_number) as string | undefined;
+
   return {
     id: String(asset.id),
     tag: asset.tag,
     model: asset.model || '',
     brand: asset.manufacturer || '',
     type: mapAssetType(asset.asset_type),
-    capacity: asset.capacity ? Number(asset.capacity) : (asset.specifications?.capacity as number) || 0,
+    capacity: capacityValue,
     sectorId: asset.sector ? String(asset.sector) : undefined,
     subSectionId: asset.subsection ? String(asset.subsection) : undefined,
     // Campos extras para o modal
@@ -170,19 +228,19 @@ const apiAssetToEquipment = (asset: ApiAsset): Equipment & {
     energyConsumption: undefined, // TODO: Calcular consumo
     warrantyExpiry: asset.warranty_expiry || undefined,
     serialNumber: asset.serial_number,
-    patrimonio: asset.patrimony_number || undefined,
+    patrimonio: patrimonioValue,
     location: asset.location_description || asset.full_location,
     notes: asset.name,
     // Especificações elétricas
-    nominalVoltage: asset.nominal_voltage ? Number(asset.nominal_voltage) : undefined,
-    phases: asset.phases ? Number(asset.phases) : undefined,
-    nominalCurrent: asset.nominal_current ? Number(asset.nominal_current) : undefined,
-    powerFactor: asset.power_factor ? Number(asset.power_factor) : undefined,
-    capacityUnit: asset.capacity_unit || undefined,
-    refrigerant: asset.refrigerant || undefined,
-    activePower: asset.active_power_kw ? Number(asset.active_power_kw) : undefined,
-    apparentPower: asset.apparent_power_kva ? Number(asset.apparent_power_kva) : undefined,
-    reactivePower: asset.reactive_power_kvar ? Number(asset.reactive_power_kvar) : undefined,
+    nominalVoltage: nominalVoltageValue,
+    phases: phasesValue,
+    nominalCurrent: nominalCurrentValue,
+    powerFactor: powerFactorValue,
+    capacityUnit: capacityUnitValue,
+    refrigerant: refrigerantValue,
+    activePower: activePowerValue,
+    apparentPower: apparentPowerValue,
+    reactivePower: reactivePowerValue,
     // Incluir specifications para poder ler no modal
     specifications: asset.specifications,
   };
@@ -269,6 +327,41 @@ const equipmentToApiAsset = (equipment: Partial<Equipment> & {
   // Adicionar criticidade às specifications (legado)
   if (equipment.criticidade !== undefined) {
     specs.criticidade = equipment.criticidade;
+  }
+
+  const patrimonio = (equipment as { patrimonio?: string }).patrimonio;
+  if (patrimonio !== undefined && specs.patrimonio === undefined) {
+    specs.patrimonio = patrimonio;
+  }
+  if (equipment.capacity !== undefined && specs.capacity === undefined) {
+    specs.capacity = equipment.capacity;
+  }
+  if (equipment.capacityUnit !== undefined && specs.capacityUnit === undefined && specs.capacity_unit === undefined) {
+    specs.capacityUnit = equipment.capacityUnit;
+  }
+  if (equipment.nominalVoltage !== undefined && specs.voltage === undefined && specs.nominalVoltage === undefined && specs.nominal_voltage === undefined) {
+    specs.voltage = equipment.nominalVoltage;
+  }
+  if (equipment.phases !== undefined && specs.phases === undefined) {
+    specs.phases = equipment.phases;
+  }
+  if (equipment.nominalCurrent !== undefined && specs.maxCurrent === undefined && specs.nominalCurrent === undefined && specs.nominal_current === undefined) {
+    specs.maxCurrent = equipment.nominalCurrent;
+  }
+  if (equipment.powerFactor !== undefined && specs.powerFactor === undefined && specs.power_factor === undefined) {
+    specs.powerFactor = equipment.powerFactor;
+  }
+  if (equipment.refrigerant !== undefined && specs.refrigerant === undefined) {
+    specs.refrigerant = equipment.refrigerant;
+  }
+  if (equipment.activePower !== undefined && specs.activePower === undefined && specs.active_power_kw === undefined) {
+    specs.activePower = equipment.activePower;
+  }
+  if (equipment.apparentPower !== undefined && specs.apparentPower === undefined && specs.apparent_power_kva === undefined) {
+    specs.apparentPower = equipment.apparentPower;
+  }
+  if (equipment.reactivePower !== undefined && specs.reactivePower === undefined && specs.reactive_power_kvar === undefined) {
+    specs.reactivePower = equipment.reactivePower;
   }
   
   // Só enviar specifications se tiver algo
@@ -476,6 +569,23 @@ export const equipmentService = {
     if (data.activePower) apiData.active_power_kw = String(data.activePower);
     if (data.apparentPower) apiData.apparent_power_kva = String(data.apparentPower);
     if (data.reactivePower) apiData.reactive_power_kvar = String(data.reactivePower);
+
+    const specs: Record<string, unknown> = {};
+    if (data.capacity !== undefined) specs.capacity = data.capacity;
+    if (data.capacityUnit) specs.capacityUnit = data.capacityUnit;
+    if (data.nominalVoltage !== undefined) specs.voltage = data.nominalVoltage;
+    if (data.phases !== undefined) specs.phases = data.phases;
+    if (data.nominalCurrent !== undefined) specs.maxCurrent = data.nominalCurrent;
+    if (data.powerFactor !== undefined) specs.powerFactor = data.powerFactor;
+    if (data.refrigerant) specs.refrigerant = data.refrigerant;
+    if (data.activePower !== undefined) specs.activePower = data.activePower;
+    if (data.apparentPower !== undefined) specs.apparentPower = data.apparentPower;
+    if (data.reactivePower !== undefined) specs.reactivePower = data.reactivePower;
+    if (data.patrimonio) specs.patrimonio = data.patrimonio;
+
+    if (Object.keys(specs).length > 0) {
+      apiData.specifications = specs;
+    }
     
     const response = await api.post<ApiAsset>('/assets/', apiData);
     return apiAssetToEquipment(response.data);

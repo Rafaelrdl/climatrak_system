@@ -384,7 +384,7 @@ export function Dashboard() {
             variant = typeof kpi.value === 'number' && kpi.value > 0 ? "warning" : "success";
             description = "Equipamentos de alta prioridade";
             break;
-          case 'mttr':
+          case 'mttr': {
             Icon = Clock;
             // Status dinâmico baseado no valor real de MTTR
             const mttrStatus = getAverageMTTRStatus(typeof kpi.value === 'number' ? kpi.value : 0);
@@ -397,7 +397,8 @@ export function Dashboard() {
             suffix = undefined; // Formatação será feita abaixo
             description = "Tempo médio de reparo (todos os ativos)";
             break;
-          case 'mtbf':
+          }
+          case 'mtbf': {
             Icon = Activity;
             // Status dinâmico baseado no valor real de MTBF
             const mtbfStatus = getAverageMTBFStatus(typeof kpi.value === 'number' ? kpi.value : 0);
@@ -410,6 +411,7 @@ export function Dashboard() {
             suffix = undefined; // Formatação será feita abaixo
             description = "Tempo médio entre falhas (todos os ativos)";
             break;
+          }
           case 'totalCost':
             Icon = TrendingUp;
             variant = "warning";

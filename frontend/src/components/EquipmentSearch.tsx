@@ -13,21 +13,17 @@ import {
   Search,
   Filter,
   X,
-  AlertCircle,
   Wrench,
   MapPin,
   Calendar,
   Zap,
-  Settings,
   Plus,
   Pencil,
   Trash2,
   CheckCircle2,
   AlertTriangle,
   XCircle,
-  Activity,
   Package,
-  Clock,
   Building2,
   LayoutGrid,
   List,
@@ -50,7 +46,6 @@ import type { Equipment, EquipmentFilter } from '@/types';
 
 interface EquipmentSearchProps {
   equipment: Equipment[];
-  selectedLocation?: string;
   onFilteredResults: (filtered: Equipment[]) => void;
   onEquipmentSelect: (equipment: Equipment) => void;
   showCreateButton?: boolean;
@@ -66,7 +61,6 @@ interface EquipmentSearchProps {
 
 export function EquipmentSearch({ 
   equipment, 
-  selectedLocation,
   onFilteredResults, 
   onEquipmentSelect,
   showCreateButton = false,
@@ -113,73 +107,9 @@ export function EquipmentSearch({
     };
   }, [equipment]);
 
-  // Helper function to extract original ID from unique node ID
-  const extractOriginalId = (nodeId: string, type: 'sector' | 'subsection'): string | null => {
-    if (!nodeId) return null;
-    
-    // Extract original sector ID from format like "company-1-sector-2"
-    if (type === 'sector' && nodeId.includes('sector-')) {
-      const match = nodeId.match(/sector-(\d+)(?:-|$)/);
-      return match ? match[1] : null;
-    }
-    
-    // Extract original subsection ID from format like "company-1-sector-2-subsection-3" 
-    if (type === 'subsection' && nodeId.includes('subsection-')) {
-      const match = nodeId.match(/subsection-(\d+)$/);
-      return match ? match[1] : null;
-    }
-    
-    return null;
-  };
-
   // Apply filters and search
   const filteredEquipment = useMemo(() => {
     let filtered = equipment;
-
-    // Location filter (if selectedLocation is provided)
-    if (selectedLocation) {
-
-      
-      // Extract original IDs from the unique node ID
-      const originalSectorId = extractOriginalId(selectedLocation, 'sector');
-      const originalSubsectionId = extractOriginalId(selectedLocation, 'subsection');
-      
-
-      
-      filtered = filtered.filter(eq => {
-        // Log equipment details for debugging
-
-        
-        // If selectedLocation is a subsection node, match equipment's subSectionId  
-        if (originalSubsectionId) {
-          const match = eq.subSectionId === originalSubsectionId;
-
-          return match;
-        }
-        
-        // If selectedLocation is a sector node, match equipment's sectorId
-        if (originalSectorId && !selectedLocation.includes('subsection-')) {
-          const match = eq.sectorId === originalSectorId;
-
-          return match;
-        }
-        
-        // If selectedLocation is a company node, show all equipment from that company
-        // Company nodes format: "company-4"
-        if (selectedLocation.includes('company-') && !selectedLocation.includes('sector-')) {
-          const companyMatch = selectedLocation.match(/company-(\d+)$/);
-          if (companyMatch) {
-            const companyId = companyMatch[1];
-            // Use equipment's companyId directly instead of looking up in MOCK_SECTORS
-            const match = eq.companyId === companyId;
-
-            return match;
-          }
-        }
-        
-        return false;
-      });
-    }
 
     // Search term filter
     if (searchTerm) {
@@ -253,7 +183,7 @@ export function EquipmentSearch({
     }
 
     return filtered;
-  }, [equipment, selectedLocation, searchTerm, filters]);
+  }, [equipment, searchTerm, filters]);
 
   // Notify parent of filtered results
   useEffect(() => {
@@ -296,15 +226,6 @@ export function EquipmentSearch({
       default: return status;
     }
   };
-
-  const getStatusVariant = (status: Equipment['status']) =>
-    status === 'OK'
-      ? 'default'
-      : status === 'MAINTENANCE'
-        ? 'secondary'
-        : status === 'ALERT'
-          ? 'outline'
-          : 'destructive';
 
   const getStatusColor = (status: Equipment['status']) => {
     switch (status) {

@@ -18,7 +18,7 @@
  */
 
 import { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Heart,
@@ -39,7 +39,6 @@ import {
   CheckCircle2,
   XCircle,
   Play,
-  Plus,
   Upload,
   Settings,
   TrendingUp,
@@ -58,18 +57,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
 import {
   Tooltip,
   TooltipContent,
@@ -88,13 +78,13 @@ import { useAssetDetailsQuery, useAssetSensorsQuery } from '@/apps/monitor/hooks
 import { useAlertsQuery } from '@/apps/monitor/hooks/useAlertsQuery';
 import { useWorkOrdersByAsset } from '@/hooks/useWorkOrdersQuery';
 import { useEquipment } from '@/hooks/useEquipmentQuery';
-import { useMaintenanceMetrics, formatMTBF, formatMTTR, getMTBFStatusColor, getMTTRStatusColor } from '@/hooks/useMaintenanceMetrics';
+import { useMaintenanceMetrics } from '@/hooks/useMaintenanceMetrics';
 import { telemetryService } from '@/apps/monitor/services';
 import { MultiSeriesTelemetryChart } from '@/apps/monitor/components/charts/MultiSeriesTelemetryChart';
 import { WorkOrderViewModal } from '@/components/WorkOrderViewModal';
 import { WorkOrderModal } from '@/components/WorkOrderModal';
 import { EquipmentEditModal } from '@/components/EquipmentEditModal';
-import type { MaintenanceHistory, MaintenanceAlert, WorkOrder } from '@/types';
+import type { MaintenanceAlert, WorkOrder } from '@/types';
 
 // ============================================================================
 // Status Colors & Configurations (seguindo Design System)

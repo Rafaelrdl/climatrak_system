@@ -135,6 +135,12 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
             <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           </div>
         );
+      case 'unit':
+        return (
+          <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+            <Factory className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+          </div>
+        );
       case 'sector':
         return (
           <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">

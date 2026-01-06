@@ -131,6 +131,77 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
   useEffect(() => {
     if (equipment && open) {
       const specs = (equipment.specifications || {}) as Record<string, unknown>;
+      const equipmentData = equipment as Equipment & {
+        capacityUnit?: string;
+        nominalVoltage?: number | string;
+        nominalCurrent?: number | string;
+        powerFactor?: number | string;
+        refrigerant?: string;
+        activePower?: number | string;
+        apparentPower?: number | string;
+        reactivePower?: number | string;
+        patrimonio?: string;
+        phases?: number | string;
+      };
+      const parseNumber = (value: unknown): number | undefined => {
+        if (value === null || value === undefined || value === '') return undefined;
+        const num = Number(value);
+        return Number.isFinite(num) ? num : undefined;
+      };
+      const parsePhases = (value: unknown): number | undefined => {
+        if (value === null || value === undefined || value === '') return undefined;
+        if (typeof value === 'number') return value;
+        if (typeof value === 'string') {
+          const normalized = value.toLowerCase();
+          if (normalized === 'monofasico') return 1;
+          if (normalized === 'bifasico') return 2;
+          if (normalized === 'trifasico') return 3;
+          return parseNumber(normalized);
+        }
+        return undefined;
+      };
+
+      const capacityValue = parseNumber(specs.capacity ?? equipmentData.capacity);
+      const capacityUnitValue = (specs.capacityUnit ?? (specs as { capacity_unit?: unknown }).capacity_unit ?? equipmentData.capacityUnit) as
+        | 'BTU'
+        | 'TR'
+        | 'KCAL'
+        | undefined;
+      const nominalVoltageValue = parseNumber(
+        specs.voltage ??
+          (specs as { nominalVoltage?: unknown }).nominalVoltage ??
+          (specs as { nominal_voltage?: unknown }).nominal_voltage ??
+          equipmentData.nominalVoltage
+      );
+      const nominalCurrentValue = parseNumber(
+        specs.maxCurrent ??
+          (specs as { nominalCurrent?: unknown }).nominalCurrent ??
+          (specs as { nominal_current?: unknown }).nominal_current ??
+          equipmentData.nominalCurrent
+      );
+      const powerFactorValue = parseNumber(
+        specs.powerFactor ??
+          (specs as { power_factor?: unknown }).power_factor ??
+          equipmentData.powerFactor
+      );
+      const phasesValue = (parsePhases(specs.phases ?? equipmentData.phases) ?? 3) as 1 | 2 | 3;
+      const refrigerantValue = (specs.refrigerant as string) || equipmentData.refrigerant || '';
+      const activePowerValue = parseNumber(
+        specs.activePower ??
+          (specs as { active_power_kw?: unknown }).active_power_kw ??
+          equipmentData.activePower
+      );
+      const apparentPowerValue = parseNumber(
+        specs.apparentPower ??
+          (specs as { apparent_power_kva?: unknown }).apparent_power_kva ??
+          equipmentData.apparentPower
+      );
+      const reactivePowerValue = parseNumber(
+        specs.reactivePower ??
+          (specs as { reactive_power_kvar?: unknown }).reactive_power_kvar ??
+          equipmentData.reactivePower
+      );
+      const patrimonioValue = (specs.patrimonio as string) || equipmentData.patrimonio || '';
       
       setFormData({
         tag: equipment.tag || '',
@@ -138,7 +209,7 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
         brand: equipment.brand || '',
         model: equipment.model || '',
         serialNumber: equipment.serialNumber || '',
-        patrimonio: (specs.patrimonio as string) || '',
+        patrimonio: patrimonioValue,
         criticidade: equipment.criticidade || 'MEDIA',
         status: equipment.status || 'OK',
         installDate: equipment.installDate ? equipment.installDate.split('T')[0] : '',
@@ -150,16 +221,16 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
         subSectionId: equipment.subSectionId || '',
         location: equipment.location || '',
         // Especificações
-        capacity: specs.capacity?.toString() || equipment.capacity?.toString() || '',
-        capacityUnit: (specs.capacityUnit as 'BTU' | 'TR' | 'KCAL') || 'BTU',
-        nominalVoltage: specs.voltage as number | undefined,
-        phases: (specs.phases === 'monofasico' ? 1 : specs.phases === 'bifasico' ? 2 : 3) as 1 | 2 | 3,
-        nominalCurrent: specs.maxCurrent as number | undefined,
-        powerFactor: specs.powerFactor as number | undefined,
-        refrigerant: (specs.refrigerant as string) || '',
-        activePower: specs.activePower as number | undefined,
-        apparentPower: specs.apparentPower as number | undefined,
-        reactivePower: specs.reactivePower as number | undefined,
+        capacity: capacityValue !== undefined ? capacityValue.toString() : '',
+        capacityUnit: capacityUnitValue || 'BTU',
+        nominalVoltage: nominalVoltageValue,
+        phases: phasesValue,
+        nominalCurrent: nominalCurrentValue,
+        powerFactor: powerFactorValue,
+        refrigerant: refrigerantValue,
+        activePower: activePowerValue,
+        apparentPower: apparentPowerValue,
+        reactivePower: reactivePowerValue,
       });
     }
   }, [equipment, open]);
@@ -170,6 +241,10 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
     const I = formData.nominalCurrent;
     const numPhases = formData.phases || 3;
     const FP = formData.powerFactor;
+
+    let apparentPower: number | undefined;
+    let activePower: number | undefined;
+    let reactivePower: number | undefined;
 
     if (V && I && numPhases) {
       let S: number;
@@ -182,23 +257,23 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
       }
 
       const S_kVA = S / 1000;
-
-      setFormData((prev) => ({
-        ...prev,
-        apparentPower: parseFloat(S_kVA.toFixed(2)),
-      }));
+      apparentPower = parseFloat(S_kVA.toFixed(2));
 
       if (FP && FP > 0 && FP <= 1) {
         const P_kW = S_kVA * FP;
         const Q_kVAr = Math.sqrt(S_kVA * S_kVA - P_kW * P_kW);
 
-        setFormData((prev) => ({
-          ...prev,
-          activePower: parseFloat(P_kW.toFixed(2)),
-          reactivePower: parseFloat(Q_kVAr.toFixed(2)),
-        }));
+        activePower = parseFloat(P_kW.toFixed(2));
+        reactivePower = parseFloat(Q_kVAr.toFixed(2));
       }
     }
+
+    setFormData((prev) => ({
+      ...prev,
+      apparentPower,
+      activePower,
+      reactivePower,
+    }));
   }, [formData.nominalVoltage, formData.nominalCurrent, formData.phases, formData.powerFactor]);
 
   const handleSubmit = async () => {

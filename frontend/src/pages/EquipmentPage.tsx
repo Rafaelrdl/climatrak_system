@@ -17,10 +17,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Building2, MapPin, Users, Search, Activity, Info, Package, LayoutGrid, List, Filter, Plus } from 'lucide-react';
+import { MapPin, Search, Activity, Info, Package, LayoutGrid, List, Filter, Plus } from 'lucide-react';
 import { useEquipments, useDeleteEquipment, equipmentKeys } from '@/hooks/useEquipmentQuery';
 import { useSectors, useSubsections, useCompanies, useUnits } from '@/hooks/useLocationsQuery';
 import { useSitesQuery } from '@/apps/monitor/hooks/useSitesQuery';
+import { sitesService } from '@/apps/monitor/services/sitesService';
 import { useAssetTypes, useCreateAssetType } from '@/hooks/useAssetTypesQuery';
 import { LocationProvider, useLocation as useLocationContext } from '@/contexts/LocationContext';
 import { IfCan } from '@/components/auth/IfCan';
@@ -70,11 +71,6 @@ function AssetsContent() {
   const companies = companiesQuery.data ?? EMPTY_ARRAY;
   const units = unitsQuery.data ?? EMPTY_ARRAY;
   const sites = sitesQuery.data ?? EMPTY_ARRAY;
-  const customAssetTypesFromApi = assetTypesQuery.data ?? [];
-  
-  // Debug: log equipment data to check if location fields are present
-  useEffect(() => {
-  }, [equipment]);
   
   // Force refetch on mount to get fresh data with location fields
   useEffect(() => {
@@ -127,8 +123,6 @@ function AssetsContent() {
     capacityMin?: number;
     capacityMax?: number;
   }>({});
-  // Lista de equipamentos filtrados para exibição
-  const [filteredEquipment, setFilteredEquipment] = useState<Equipment[]>(filteredEquipmentData);
   // Controla a abertura do modal de edição de equipamento
   const [isEquipmentEditModalOpen, setIsEquipmentEditModalOpen] = useState(false);
   // Equipamento sendo editado
@@ -140,17 +134,15 @@ function AssetsContent() {
   // Mutation para excluir equipamento
   const deleteEquipmentMutation = useDeleteEquipment();
 
-  // ========== EFEITO PARA ATUALIZAR EQUIPAMENTOS FILTRADOS ==========
-  // Atualiza os equipamentos filtrados quando os dados baseados em função mudam
-  // ou quando a localização selecionada muda
-  useEffect(() => {
+  // ========== FILTRO POR LOCALIZAÇÃO ==========
+  // Aplica o filtro de localização nos equipamentos já filtrados por permissão
+  const locationFilteredEquipment = useMemo(() => {
     // Garante que temos dados de equipamentos válidos
     const validEquipmentData = Array.isArray(filteredEquipmentData) ? filteredEquipmentData as Equipment[] : [];
     
     if (!selectedNode) {
       // Se nenhum nó estiver selecionado, mostra todos os equipamentos filtrados por permissão
-      setFilteredEquipment(validEquipmentData);
-      return;
+      return validEquipmentData;
     }
 
     // Filtra equipamentos baseado no tipo e ID do nó selecionado
@@ -254,7 +246,7 @@ function AssetsContent() {
         filteredByLocation = validEquipmentData;
     }
     
-    setFilteredEquipment(filteredByLocation);
+    return filteredByLocation;
   }, [selectedNode, filteredEquipmentData, units, sectors, subSections]);
 
   // ========== ESTADO DO MODAL DE NOVO TIPO DE ATIVO ==========
@@ -263,17 +255,17 @@ function AssetsContent() {
   
   // Todos os tipos de ativo vêm do banco de dados
   const assetTypes = useMemo(() => {
-    return customAssetTypesFromApi
+    return (assetTypesQuery.data ?? [])
       .map(t => ({ value: t.code, label: t.name }));
-  }, [customAssetTypesFromApi]);
+  }, [assetTypesQuery.data]);
 
   // Valores únicos para filtros de equipamentos
-  const uniqueEquipmentTypes = useMemo(() => [...new Set(filteredEquipmentData.map(e => e.type))].filter(Boolean).sort(), [filteredEquipmentData]);
-  const uniqueEquipmentStatuses = useMemo(() => [...new Set(filteredEquipmentData.map(e => e.status))].filter(Boolean), [filteredEquipmentData]);
-  const uniqueEquipmentBrands = useMemo(() => [...new Set(filteredEquipmentData.map(e => e.brand))].filter(Boolean).sort(), [filteredEquipmentData]);
-  const uniqueEquipmentCriticidades = useMemo(() => [...new Set(filteredEquipmentData.map(e => e.criticidade))].filter(Boolean), [filteredEquipmentData]);
-  const uniqueEquipmentManufacturers = useMemo(() => [...new Set(filteredEquipmentData.map(e => e.manufacturer))].filter(Boolean).sort(), [filteredEquipmentData]);
-  const uniqueEquipmentSectors = useMemo(() => [...new Set(filteredEquipmentData.map(e => e.sectorName))].filter(Boolean).sort(), [filteredEquipmentData]);
+  const uniqueEquipmentTypes = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.type))].filter(Boolean).sort(), [locationFilteredEquipment]);
+  const uniqueEquipmentStatuses = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.status))].filter(Boolean), [locationFilteredEquipment]);
+  const uniqueEquipmentBrands = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.brand))].filter(Boolean).sort(), [locationFilteredEquipment]);
+  const uniqueEquipmentCriticidades = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.criticidade))].filter(Boolean), [locationFilteredEquipment]);
+  const uniqueEquipmentManufacturers = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.manufacturer))].filter(Boolean).sort(), [locationFilteredEquipment]);
+  const uniqueEquipmentSectors = useMemo(() => [...new Set(locationFilteredEquipment.map(e => e.sectorName))].filter(Boolean).sort(), [locationFilteredEquipment]);
   
   // Conta total de filtros ativos
   const activeEquipmentFiltersCount = useMemo(() => {
@@ -316,7 +308,7 @@ function AssetsContent() {
   
   // Aplica os filtros selecionados aos dados de equipamentos
   const filteredByFiltersEquipmentData = useMemo(() => {
-    let result = filteredEquipmentData;
+    let result = locationFilteredEquipment;
     
     if (equipmentFilters.type?.length) {
       result = result.filter(e => equipmentFilters.type!.includes(e.type));
@@ -344,7 +336,7 @@ function AssetsContent() {
     }
     
     return result;
-  }, [filteredEquipmentData, equipmentFilters]);
+  }, [locationFilteredEquipment, equipmentFilters]);
 
   // ========== ESTADO DO FORMULÁRIO DE NOVO EQUIPAMENTO ==========
   // Estado para armazenar os dados do formulário de criação de equipamento
@@ -446,12 +438,31 @@ function AssetsContent() {
     }
 
     const companyName = companies.find((company) => company.id === companyId)?.name;
-    const siteForCompany = companyName
-      ? sites.find((site) =>
-          (site.company && site.company.toLowerCase() === companyName.toLowerCase()) ||
-          site.name.toLowerCase() === companyName.toLowerCase()
-        )
+    const normalizeName = (value?: string) =>
+      value?.trim().toLowerCase().replace(/\s+/g, ' ') ?? '';
+    const normalizedCompanyName = normalizeName(companyName);
+    const matchesCompany = (site: { name?: string; company?: string; full_name?: string }) => {
+      const siteName = normalizeName(site.name);
+      const siteCompany = normalizeName(site.company);
+      const siteFullName = normalizeName(site.full_name);
+
+      return (siteCompany && siteCompany === normalizedCompanyName) ||
+        siteName === normalizedCompanyName ||
+        siteFullName === normalizedCompanyName;
+    };
+
+    let siteForCompany = normalizedCompanyName
+      ? sites.find((site) => matchesCompany(site))
       : undefined;
+
+    if (!siteForCompany && companyName) {
+      try {
+        const sitesByCompany = await sitesService.getByCompany(companyName);
+        siteForCompany = sitesByCompany.find((site) => matchesCompany(site)) || sitesByCompany[0];
+      } catch (error) {
+        console.error('Erro ao buscar site por empresa:', error);
+      }
+    }
 
     if (!siteForCompany) {
       toast.error('Nenhum site encontrado para a empresa selecionada');
@@ -476,7 +487,7 @@ function AssetsContent() {
         sectorId: sectorId || undefined,
         subSectionId: subSectionId || undefined,
         location: newEquipment.location,
-        capacity: newEquipment.capacity ? parseInt(newEquipment.capacity) : undefined,
+        capacity: newEquipment.capacity ? parseFloat(newEquipment.capacity) : undefined,
         capacityUnit: newEquipment.capacityUnit,
         nominalVoltage: newEquipment.nominalVoltage,
         phases: newEquipment.phases,
@@ -571,6 +582,10 @@ function AssetsContent() {
     const numPhases = newEquipment.phases || 3;
     const FP = newEquipment.powerFactor;
 
+    let apparentPower: number | undefined;
+    let activePower: number | undefined;
+    let reactivePower: number | undefined;
+
     if (V && I && numPhases) {
       let S: number;
       if (numPhases === 3) {
@@ -586,11 +601,7 @@ function AssetsContent() {
 
       // Converte W para kVA
       const S_kVA = S / 1000;
-
-      setNewEquipment((prev) => ({
-        ...prev,
-        apparentPower: parseFloat(S_kVA.toFixed(2)),
-      }));
+      apparentPower = parseFloat(S_kVA.toFixed(2));
 
       // Se tem FP, calcula Potência Ativa (P) e Reativa (Q)
       if (FP && FP > 0 && FP <= 1) {
@@ -600,13 +611,17 @@ function AssetsContent() {
         // Q = √(S² - P²) (Potência Reativa)
         const Q_kVAr = Math.sqrt(S_kVA * S_kVA - P_kW * P_kW);
 
-        setNewEquipment((prev) => ({
-          ...prev,
-          activePower: parseFloat(P_kW.toFixed(2)),
-          reactivePower: parseFloat(Q_kVAr.toFixed(2)),
-        }));
+        activePower = parseFloat(P_kW.toFixed(2));
+        reactivePower = parseFloat(Q_kVAr.toFixed(2));
       }
     }
+
+    setNewEquipment((prev) => ({
+      ...prev,
+      apparentPower,
+      activePower,
+      reactivePower,
+    }));
   }, [newEquipment.nominalVoltage, newEquipment.nominalCurrent, newEquipment.phases, newEquipment.powerFactor]);
 
   /**
@@ -770,9 +785,8 @@ function AssetsContent() {
    * 
    * @param filtered - Lista de equipamentos filtrados
    */
-  const handleFilteredResults = useCallback((filtered: Equipment[]) => {
-    setFilteredEquipment(filtered);
-  }, [setFilteredEquipment]);
+  const handleFilteredResults = useCallback(() => {
+  }, []);
 
   return (
     <div className="flex gap-6 h-[calc(100vh-5rem)]">
@@ -1092,7 +1106,6 @@ function AssetsContent() {
             
             <EquipmentSearch
               equipment={filteredByFiltersEquipmentData}
-              selectedLocation={selectedNode?.id}
               onFilteredResults={handleFilteredResults}
               onEquipmentSelect={handleEquipmentSelect}
               showCreateButton={false}

@@ -3,7 +3,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { assetTypesService, CreateAssetTypeData, AssetType } from '@/services/assetTypesService';
+import { assetTypesService, CreateAssetTypeData } from '@/services/assetTypesService';
 import { isUserAuthenticated } from '@/hooks/useAuth';
 
 // Query Keys
