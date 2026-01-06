@@ -145,6 +145,15 @@ class TenantHeaderMiddleware:
                     connection.set_tenant(tenant)
                     request.tenant = tenant
 
+                    # IMPORTANT: Also switch URLconf to tenant URLs
+                    # Without this, Django keeps using PUBLIC_SCHEMA_URLCONF
+                    # even though the DB schema was switched
+                    if hasattr(settings, "ROOT_URLCONF"):
+                        request.urlconf = settings.ROOT_URLCONF
+                        logger.debug(
+                            f"Switched URLconf to '{settings.ROOT_URLCONF}'"
+                        )
+
                     logger.debug(
                         f"Switched to tenant '{tenant.schema_name}' via X-Tenant header"
                     )

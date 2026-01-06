@@ -58,42 +58,106 @@ export const authService = {
   /**
    * Login to a specific tenant (Step 2 of login)
    * After discovering tenant, user enters password
+   * Uses mobile-specific endpoint that returns tokens in body
    */
   async login(
     credentials: LoginCredentials, 
     tenantSlug: string
   ): Promise<LoginResponse> {
-    // Configure API for this tenant
-    configureApi(tenantSlug);
-
-    const response = await api.post('/api/auth/login/', credentials);
+    // Use mobile-specific endpoint that returns tokens in body
+    const response = await publicApi.post('/api/v2/auth/mobile/login/', {
+      ...credentials,
+      schema_name: tenantSlug, // Pass tenant to avoid multiple-tenant flow
+    });
     
-    const { user, access, refresh } = response.data;
+    const data = response.data;
     
-    // Build tokens object
-    const tokens: AuthTokens = {
-      access_token: access,
-      refresh_token: refresh,
+    if (!data.success) {
+      throw new Error(data.error || 'Email ou senha incorretos');
+    }
+    
+    // Handle multiple tenants case
+    if (data.requires_tenant_selection) {
+      // Find the tenant that matches tenantSlug
+      const matchingTenant = data.tenants.find(
+        (t: any) => t.slug === tenantSlug || t.schema_name === tenantSlug
+      );
+      
+      if (matchingTenant) {
+        // Re-login with specific tenant selected
+        const selectResponse = await publicApi.post('/api/v2/auth/mobile/select-tenant/', {
+          ...credentials,
+          schema_name: matchingTenant.schema_name,
+        });
+        
+        if (!selectResponse.data.success) {
+          throw new Error(selectResponse.data.error || 'Falha ao selecionar tenant');
+        }
+        
+        return this.processLoginResponse(selectResponse.data, tenantSlug);
+      }
+      
+      throw new Error('Tenant não encontrado');
+    }
+    
+    return this.processLoginResponse(data, tenantSlug);
+  },
+  
+  /**
+   * Process login response and store tokens/user data
+   */
+  async processLoginResponse(data: any, tenantSlug: string): Promise<LoginResponse> {
+    const { user: responseUser, tenant: responseTenant } = data;
+    
+    // Build user object
+    const user: User = {
+      id: String(responseUser.id),
+      email: responseUser.email,
+      name: responseUser.full_name || '',
+      first_name: responseUser.full_name?.split(' ')[0] || '',
+      last_name: responseUser.full_name?.split(' ').slice(1).join(' ') || '',
+      avatar: responseUser.avatar,
+      role: responseTenant.role || 'viewer',
+      tenant_id: String(responseTenant.id),
+      tenant_name: responseTenant.name,
+      tenant_schema: responseTenant.schema_name,
+      is_active: true,
+      created_at: new Date().toISOString(),
     };
-
-    // Build tenant object from response or user
+    
+    // Build tenant object
     const tenant: Tenant = {
-      id: user.tenant_id,
-      slug: tenantSlug,
-      name: user.tenant_name || tenantSlug,
-      schema_name: user.tenant_schema || tenantSlug,
+      id: String(responseTenant.id),
+      slug: responseTenant.slug,
+      name: responseTenant.name,
+      schema_name: responseTenant.schema_name,
+    };
+    
+    // Mobile endpoint returns tokens in response body
+    if (!data.access || !data.refresh) {
+      throw new Error('Tokens not found in response. Backend may be using wrong endpoint.');
+    }
+
+    const tokens: AuthTokens = {
+      access_token: data.access,
+      refresh_token: data.refresh,
     };
 
     // Store tokens securely
     await secureStorage.setTokens(tokens);
 
+    // Configure API with tenant schema for subsequent requests
+    // The backend expects schema_name in X-Tenant header
+    const tenantSchema = responseTenant.schema_name || tenantSlug;
+    configureApi(tenantSchema);
+
     // Store user and tenant info
-    tenantStorage.setTenant(tenantSlug);
+    tenantStorage.setTenant(tenantSchema);
     await tenantStorage.setUser(user);
     await tenantStorage.setTenantInfo(tenant);
 
     // Save last tenant for quick login
-    await globalStorage.setLastTenantSlug(tenantSlug);
+    await globalStorage.setLastTenantSlug(tenantSchema);
 
     return { user, tenant, tokens };
   },

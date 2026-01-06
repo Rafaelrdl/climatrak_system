@@ -489,3 +489,258 @@ class RefreshTokenView(APIView):
                 {"success": False, "error": "Token inválido ou expirado."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
+
+
+# =============================================================================
+# Mobile-specific endpoints (tokens returned in body, not just cookies)
+# =============================================================================
+
+
+class MobileLoginView(APIView):
+    """
+    Mobile login endpoint - returns JWT tokens in response body.
+
+    POST /api/v2/auth/mobile/login/
+
+    Request body:
+        {
+            "email": "user@example.com",
+            "password": "secret123",
+            "schema_name": "COMG"  (optional - required if user has multiple tenants)
+        }
+
+    Response:
+        {
+            "success": true,
+            "access": "eyJ...",
+            "refresh": "eyJ...",
+            "user": {
+                "id": 1,
+                "email": "user@example.com",
+                "full_name": "John Doe"
+            },
+            "tenant": {
+                "id": 1,
+                "schema_name": "tenant_acme",
+                "name": "ACME Corp",
+                "slug": "acme",
+                "role": "admin"
+            }
+        }
+
+    Note: This endpoint is designed for mobile apps that cannot use HttpOnly cookies.
+    Tokens are returned in the response body and should be stored securely
+    (e.g., iOS Keychain, Android EncryptedSharedPreferences).
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"]
+        password = serializer.validated_data["password"]
+        schema_name = request.data.get("schema_name")
+
+        # If schema_name is provided, authenticate directly in that tenant
+        if schema_name:
+            result = TenantAuthService.select_tenant(email, password, schema_name)
+        else:
+            result = TenantAuthService.login(email, password)
+
+        if not result.success:
+            return Response(
+                {"success": False, "error": result.error},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        # Check if user has multiple tenants and no schema specified
+        if len(result.authenticated_tenants) > 1 and not result.selected_tenant and not schema_name:
+            tenants_data = [
+                {
+                    "id": t.tenant_id,
+                    "schema_name": t.schema_name,
+                    "name": t.name,
+                    "slug": t.slug,
+                    "role": t.role,
+                }
+                for t in result.authenticated_tenants
+            ]
+
+            return Response(
+                {
+                    "success": True,
+                    "requires_tenant_selection": True,
+                    "tenants": tenants_data,
+                    # Still provide tokens for convenience
+                    "access": result.access_token,
+                    "refresh": result.refresh_token,
+                }
+            )
+
+        # Single tenant or already selected
+        tenant = result.selected_tenant or result.authenticated_tenants[0]
+
+        response_data = {
+            "success": True,
+            "access": result.access_token,
+            "refresh": result.refresh_token,
+            "user": {
+                "id": tenant.user_id,
+                "email": tenant.user_email,
+                "full_name": tenant.user_full_name,
+                "avatar": tenant.user_avatar,
+            },
+            "tenant": {
+                "id": tenant.tenant_id,
+                "schema_name": tenant.schema_name,
+                "name": tenant.name,
+                "slug": tenant.slug,
+                "role": tenant.role,
+            },
+        }
+
+        logger.info(f"Mobile login successful: {email} -> {tenant.schema_name}")
+
+        # Also set cookies for hybrid scenarios (optional)
+        response = Response(response_data)
+        set_auth_cookies(response, result.access_token, result.refresh_token)
+
+        return response
+
+
+class MobileRefreshTokenView(APIView):
+    """
+    Mobile refresh token endpoint - accepts refresh token in body, returns new tokens.
+
+    POST /api/v2/auth/mobile/refresh/
+
+    Request body:
+        {
+            "refresh": "eyJ..."
+        }
+
+    Response:
+        {
+            "success": true,
+            "access": "eyJ...",
+            "refresh": "eyJ..."  (same token, unless rotation is enabled)
+        }
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
+
+        if not refresh_token:
+            return Response(
+                {"success": False, "error": "Refresh token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            from rest_framework_simplejwt.tokens import RefreshToken
+
+            token = RefreshToken(refresh_token)
+            access_token = str(token.access_token)
+
+            # Check if rotation is enabled
+            rotate_tokens = getattr(settings, "SIMPLE_JWT", {}).get(
+                "ROTATE_REFRESH_TOKENS", False
+            )
+
+            response_data = {
+                "success": True,
+                "access": access_token,
+                "refresh": str(token) if rotate_tokens else refresh_token,
+            }
+
+            response = Response(response_data)
+
+            # Also set cookies for hybrid scenarios
+            set_auth_cookies(
+                response,
+                access_token,
+                str(token) if rotate_tokens else refresh_token,
+            )
+
+            return response
+
+        except Exception as e:
+            logger.warning(f"Mobile token refresh failed: {e}")
+            return Response(
+                {"success": False, "error": "Token inválido ou expirado."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+
+class MobileSelectTenantView(APIView):
+    """
+    Mobile select tenant endpoint - for users with multiple tenants.
+
+    POST /api/v2/auth/mobile/select-tenant/
+
+    Request body:
+        {
+            "email": "user@example.com",
+            "password": "secret123",
+            "schema_name": "tenant_acme"
+        }
+
+    Response:
+        {
+            "success": true,
+            "access": "eyJ...",
+            "refresh": "eyJ...",
+            "user": {...},
+            "tenant": {...}
+        }
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = SelectTenantSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"]
+        password = serializer.validated_data["password"]
+        schema_name = serializer.validated_data["schema_name"]
+
+        result = TenantAuthService.select_tenant(email, password, schema_name)
+
+        if not result.success:
+            return Response(
+                {"success": False, "error": result.error},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        tenant = result.selected_tenant
+
+        response_data = {
+            "success": True,
+            "access": result.access_token,
+            "refresh": result.refresh_token,
+            "user": {
+                "id": tenant.user_id,
+                "email": tenant.user_email,
+                "full_name": tenant.user_full_name,
+                "avatar": tenant.user_avatar,
+            },
+            "tenant": {
+                "id": tenant.tenant_id,
+                "schema_name": tenant.schema_name,
+                "name": tenant.name,
+                "slug": tenant.slug,
+                "role": tenant.role,
+            },
+        }
+
+        logger.info(f"Mobile tenant selection: {email} -> {tenant.schema_name}")
+
+        response = Response(response_data)
+        set_auth_cookies(response, result.access_token, result.refresh_token)
+
+        return response

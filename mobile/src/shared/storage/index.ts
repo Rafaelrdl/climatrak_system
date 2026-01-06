@@ -1,12 +1,40 @@
 // ============================================================
 // ClimaTrak Mobile - Secure Storage Service
-// Uses expo-secure-store for sensitive data (tokens)
+// Uses expo-secure-store for sensitive data (tokens) on native
+// Uses localStorage as fallback for web
 // Uses AsyncStorage for general data (namespaced by tenant)
 // ============================================================
 
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import type { AuthTokens, User, Tenant, SyncQueueItem } from '@/types';
+
+// ==================== Platform-aware Secure Storage ====================
+// SecureStore doesn't work on web, so we use localStorage as fallback
+const isWeb = Platform.OS === 'web';
+
+const webStorage = {
+  async setItemAsync(key: string, value: string): Promise<void> {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(key, value);
+    }
+  },
+  async getItemAsync(key: string): Promise<string | null> {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return window.localStorage.getItem(key);
+    }
+    return null;
+  },
+  async deleteItemAsync(key: string): Promise<void> {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem(key);
+    }
+  },
+};
+
+// Use web storage on web, SecureStore on native
+const storage = isWeb ? webStorage : SecureStore;
 
 // ==================== Secure Storage (Tokens) ====================
 const SECURE_KEYS = {
@@ -17,15 +45,15 @@ const SECURE_KEYS = {
 export const secureStorage = {
   async setTokens(tokens: AuthTokens): Promise<void> {
     await Promise.all([
-      SecureStore.setItemAsync(SECURE_KEYS.ACCESS_TOKEN, tokens.access_token),
-      SecureStore.setItemAsync(SECURE_KEYS.REFRESH_TOKEN, tokens.refresh_token),
+      storage.setItemAsync(SECURE_KEYS.ACCESS_TOKEN, tokens.access_token),
+      storage.setItemAsync(SECURE_KEYS.REFRESH_TOKEN, tokens.refresh_token),
     ]);
   },
 
   async getTokens(): Promise<AuthTokens | null> {
     const [access_token, refresh_token] = await Promise.all([
-      SecureStore.getItemAsync(SECURE_KEYS.ACCESS_TOKEN),
-      SecureStore.getItemAsync(SECURE_KEYS.REFRESH_TOKEN),
+      storage.getItemAsync(SECURE_KEYS.ACCESS_TOKEN),
+      storage.getItemAsync(SECURE_KEYS.REFRESH_TOKEN),
     ]);
 
     if (!access_token || !refresh_token) {
@@ -36,21 +64,21 @@ export const secureStorage = {
   },
 
   async getAccessToken(): Promise<string | null> {
-    return SecureStore.getItemAsync(SECURE_KEYS.ACCESS_TOKEN);
+    return storage.getItemAsync(SECURE_KEYS.ACCESS_TOKEN);
   },
 
   async getRefreshToken(): Promise<string | null> {
-    return SecureStore.getItemAsync(SECURE_KEYS.REFRESH_TOKEN);
+    return storage.getItemAsync(SECURE_KEYS.REFRESH_TOKEN);
   },
 
   async setAccessToken(token: string): Promise<void> {
-    await SecureStore.setItemAsync(SECURE_KEYS.ACCESS_TOKEN, token);
+    await storage.setItemAsync(SECURE_KEYS.ACCESS_TOKEN, token);
   },
 
   async clearTokens(): Promise<void> {
     await Promise.all([
-      SecureStore.deleteItemAsync(SECURE_KEYS.ACCESS_TOKEN),
-      SecureStore.deleteItemAsync(SECURE_KEYS.REFRESH_TOKEN),
+      storage.deleteItemAsync(SECURE_KEYS.ACCESS_TOKEN),
+      storage.deleteItemAsync(SECURE_KEYS.REFRESH_TOKEN),
     ]);
   },
 

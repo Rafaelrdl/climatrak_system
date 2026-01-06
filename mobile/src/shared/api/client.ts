@@ -33,6 +33,7 @@ export const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Send cookies for cross-origin requests
 });
 
 // ==================== Tenant Configuration ====================
@@ -86,6 +87,11 @@ api.interceptors.request.use(
       config.headers['X-Tenant'] = currentTenantSlug;
     }
 
+    // Debug logging
+    console.log('[API Client] Request:', config.method?.toUpperCase(), config.url);
+    console.log('[API Client] X-Tenant:', config.headers['X-Tenant'] || 'NOT SET');
+    console.log('[API Client] currentTenantSlug:', currentTenantSlug);
+
     return config;
   },
   (error) => {
@@ -117,15 +123,16 @@ api.interceptors.response.use(
           throw new Error('No refresh token available');
         }
 
-        // Call refresh endpoint
+        // Call mobile-specific refresh endpoint
         const response = await axios.post(
-          `${baseURL}/api/auth/token/refresh/`,
+          `${baseURL}/api/v2/auth/mobile/refresh/`,
           { refresh: refreshToken },
           {
             headers: {
               'Content-Type': 'application/json',
               ...(currentTenantSlug ? { 'X-Tenant': currentTenantSlug } : {}),
             },
+            withCredentials: true,
           }
         );
 
@@ -136,6 +143,9 @@ api.interceptors.response.use(
           access_token: access,
           refresh_token: refresh || refreshToken,
         });
+
+        // Update Authorization header for the retry
+        originalRequest.headers.Authorization = `Bearer ${access}`;
 
         // Process queued requests
         processQueue(null);
