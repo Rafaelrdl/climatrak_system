@@ -1,5 +1,5 @@
 // Importações dos componentes necessários
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { 
   Building2, 
   MapPin, 
@@ -66,6 +66,31 @@ export function LocationTree({ onCreateLocation, companies = [], units = [], sec
   // Estados locais para controle da versão mobile
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const mobileTreeRef = useRef<HTMLDivElement>(null);
+  
+  // Ref para preservar posição do scroll ao expandir/recolher nós
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollPositionRef = useRef<number>(0);
+
+  // Salva a posição do scroll antes de expandir/recolher
+  const handleToggleExpanded = useCallback((nodeId: string) => {
+    // Salva a posição atual do scroll
+    const scrollViewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (scrollViewport) {
+      scrollPositionRef.current = scrollViewport.scrollTop;
+    }
+    toggleExpanded(nodeId);
+  }, [toggleExpanded]);
+
+  // Restaura a posição do scroll após re-render
+  useEffect(() => {
+    const scrollViewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (scrollViewport && scrollPositionRef.current > 0) {
+      // Usa requestAnimationFrame para garantir que o DOM foi atualizado
+      requestAnimationFrame(() => {
+        scrollViewport.scrollTop = scrollPositionRef.current;
+      });
+    }
+  }, [expandedNodes]);
 
   // Efeito para fechar o menu mobile ao pressionar Escape
   useEffect(() => {
@@ -242,7 +267,7 @@ export function LocationTree({ onCreateLocation, companies = [], units = [], sec
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                toggleExpanded(node.id);
+                handleToggleExpanded(node.id);
               }}
               className={cn(
                 'flex items-center justify-center p-1 rounded-md transition-all duration-200',
@@ -297,280 +322,264 @@ export function LocationTree({ onCreateLocation, companies = [], units = [], sec
     );
   };
 
-  /**
-   * Componente da árvore para versão desktop
-   * Sempre visível na sidebar em telas grandes
-   */
-  const DesktopTree = () => (
-    <Card className="h-full flex flex-col border shadow-sm">
-      {/* Header com título e botão de adicionar */}
-      <CardHeader className="px-4 py-3 border-b space-y-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-primary/10">
-              <FolderTree className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-sm">Localizações</h3>
-            </div>
-          </div>
-          
-          {/* Botão de adicionar com dropdown */}
-          {onCreateLocation && (
-            <IfCan action="create" subject="asset">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                  <DropdownMenuItem 
-                    onClick={() => onCreateLocation('company')}
-                    className="gap-2"
-                  >
-                    <Building2 className="h-4 w-4 text-blue-500" />
-                    Empresa
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => onCreateLocation('unit')}
-                    disabled={companies.length === 0}
-                    className="gap-2"
-                  >
-                    <Factory className="h-4 w-4 text-orange-500" />
-                    Unidade
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => onCreateLocation('sector')}
-                    disabled={units.length === 0}
-                    className="gap-2"
-                  >
-                    <MapPin className="h-4 w-4 text-emerald-500" />
-                    Setor
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => onCreateLocation('subsection')}
-                    disabled={sectors.length === 0}
-                    className="gap-2"
-                  >
-                    <Users className="h-4 w-4 text-purple-500" />
-                    Subsetor
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </IfCan>
-          )}
-        </div>
-        
-        {/* Mini KPIs */}
-        <TooltipProvider>
-          <div className="flex items-center gap-1.5 mt-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/20">
-                  <Building2 className="h-3 w-3 text-blue-500" />
-                  <span className="text-xs font-medium text-blue-700 dark:text-blue-400">
-                    {stats.companies}
-                  </span>
+  return (
+    <>
+      {/* Desktop: Sempre mostra a árvore */}
+      <div className="hidden lg:block h-full">
+        <Card className="h-full flex flex-col border shadow-sm">
+          {/* Header com título e botão de adicionar */}
+          <CardHeader className="px-4 py-3 border-b space-y-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-primary/10">
+                  <FolderTree className="h-4 w-4 text-primary" />
                 </div>
-              </TooltipTrigger>
-              <TooltipContent>Empresas</TooltipContent>
-            </Tooltip>
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-900/20">
-                  <Factory className="h-3 w-3 text-orange-500" />
-                  <span className="text-xs font-medium text-orange-700 dark:text-orange-400">
-                    {stats.units}
-                  </span>
+                <div>
+                  <h3 className="font-semibold text-sm">Localizações</h3>
                 </div>
-              </TooltipTrigger>
-              <TooltipContent>Unidades</TooltipContent>
-            </Tooltip>
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-900/20">
-                  <MapPin className="h-3 w-3 text-emerald-500" />
-                  <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                    {stats.sectors}
-                  </span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>Setores</TooltipContent>
-            </Tooltip>
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-900/20">
-                  <Users className="h-3 w-3 text-purple-500" />
-                  <span className="text-xs font-medium text-purple-700 dark:text-purple-400">
-                    {stats.subsections}
-                  </span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>Subsetores</TooltipContent>
-            </Tooltip>
-          </div>
-        </TooltipProvider>
-      </CardHeader>
-      
-      {/* Campo de busca */}
-      <div className="px-3 py-2">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Buscar localização..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="h-8 pl-8 text-sm bg-muted/50 border-0 focus-visible:ring-1"
-            aria-label="Buscar localização"
-          />
-          {searchTerm && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-              onClick={() => setSearchTerm('')}
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Container da árvore com scroll */}
-      <CardContent className="flex-1 p-0 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div 
-            className="p-2 space-y-0.5"
-            role="tree"
-            aria-label="Hierarquia de localizações"
-          >
-            {filteredTree.length > 0 ? (
-              filteredTree.map(node => renderTreeNode(node))
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-                <div className="p-3 rounded-full bg-muted/50 mb-3">
-                  <Layers className="h-6 w-6 text-muted-foreground/50" />
-                </div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {searchTerm ? 'Nenhum resultado' : 'Sem localizações'}
-                </p>
-                <p className="text-xs text-muted-foreground/70 mt-1">
-                  {searchTerm 
-                    ? `Nenhuma localização corresponde a "${searchTerm}"`
-                    : 'Cadastre empresas, setores e subsetores'
-                  }
-                </p>
               </div>
-            )}
-          </div>
-        </ScrollArea>
-      </CardContent>
-    </Card>
-  );
-
-  /**
-   * Componente da árvore para versão mobile
-   * Card colapsável com a árvore
-   */
-  const MobileTree = () => (
-    <Card className="border shadow-sm">
-      <CardHeader className="px-3 py-2 border-b">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FolderTree className="h-4 w-4 text-primary" />
-            <span className="font-medium text-sm">
-              {selectedNode ? selectedNode.name : 'Selecionar localização'}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            {/* Botão de adicionar com dropdown */}
-            {onCreateLocation && (
-              <IfCan action="create" subject="asset">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem onClick={() => onCreateLocation('company')} className="gap-2">
-                      <Building2 className="h-4 w-4 text-blue-500" />
-                      Empresa
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onCreateLocation('unit')} disabled={companies.length === 0} className="gap-2">
-                      <Factory className="h-4 w-4 text-orange-500" />
-                      Unidade
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onCreateLocation('sector')} disabled={units.length === 0} className="gap-2">
-                      <MapPin className="h-4 w-4 text-emerald-500" />
-                      Setor
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onCreateLocation('subsection')} disabled={sectors.length === 0} className="gap-2">
-                      <Users className="h-4 w-4 text-purple-500" />
-                      Subsetor
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </IfCan>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0"
-              onClick={() => setIsMobileOpen(!isMobileOpen)}
-            >
-              {isMobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      
-      {isMobileOpen && (
-        <CardContent className="p-0">
+              
+              {/* Botão de adicionar com dropdown */}
+              {onCreateLocation && (
+                <IfCan action="create" subject="asset">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem 
+                        onClick={() => onCreateLocation('company')}
+                        className="gap-2"
+                      >
+                        <Building2 className="h-4 w-4 text-blue-500" />
+                        Empresa
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => onCreateLocation('unit')}
+                        disabled={companies.length === 0}
+                        className="gap-2"
+                      >
+                        <Factory className="h-4 w-4 text-orange-500" />
+                        Unidade
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => onCreateLocation('sector')}
+                        disabled={units.length === 0}
+                        className="gap-2"
+                      >
+                        <MapPin className="h-4 w-4 text-emerald-500" />
+                        Setor
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => onCreateLocation('subsection')}
+                        disabled={sectors.length === 0}
+                        className="gap-2"
+                      >
+                        <Users className="h-4 w-4 text-purple-500" />
+                        Subsetor
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </IfCan>
+              )}
+            </div>
+            
+            {/* Mini KPIs */}
+            <TooltipProvider>
+              <div className="flex items-center gap-1.5 mt-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/20">
+                      <Building2 className="h-3 w-3 text-blue-500" />
+                      <span className="text-xs font-medium text-blue-700 dark:text-blue-400">
+                        {stats.companies}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Empresas</TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-900/20">
+                      <Factory className="h-3 w-3 text-orange-500" />
+                      <span className="text-xs font-medium text-orange-700 dark:text-orange-400">
+                        {stats.units}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Unidades</TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-900/20">
+                      <MapPin className="h-3 w-3 text-emerald-500" />
+                      <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                        {stats.sectors}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Setores</TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-900/20">
+                      <Users className="h-3 w-3 text-purple-500" />
+                      <span className="text-xs font-medium text-purple-700 dark:text-purple-400">
+                        {stats.subsections}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Subsetores</TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+          </CardHeader>
+          
           {/* Campo de busca */}
-          <div className="p-2 border-b">
+          <div className="px-3 py-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 placeholder="Buscar localização..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-8 pl-8 text-sm"
+                className="h-8 pl-8 text-sm bg-muted/50 border-0 focus-visible:ring-1"
+                aria-label="Buscar localização"
               />
-            </div>
-          </div>
-          
-          {/* Árvore com scroll */}
-          <ScrollArea className="max-h-64">
-            <div className="p-2 space-y-0.5" role="tree">
-              {filteredTree.length > 0 ? (
-                filteredTree.map(node => renderTreeNode(node))
-              ) : (
-                <div className="text-center text-muted-foreground py-6 text-sm">
-                  {searchTerm ? 'Nenhuma localização encontrada' : 'Nenhuma localização'}
-                </div>
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+                  onClick={() => setSearchTerm('')}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
               )}
             </div>
-          </ScrollArea>
-        </CardContent>
-      )}
-    </Card>
-  );
+          </div>
 
-  return (
-    <>
-      {/* Desktop: Sempre mostra a árvore */}
-      <div className="hidden lg:block h-full">
-        <DesktopTree />
+          {/* Container da árvore com scroll */}
+          <CardContent className="flex-1 p-0 overflow-hidden">
+            <ScrollArea className="h-full" ref={scrollAreaRef}>
+              <div 
+                className="p-2 space-y-0.5"
+                role="tree"
+                aria-label="Hierarquia de localizações"
+              >
+                {filteredTree.length > 0 ? (
+                  filteredTree.map(node => renderTreeNode(node))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                    <div className="p-3 rounded-full bg-muted/50 mb-3">
+                      <Layers className="h-6 w-6 text-muted-foreground/50" />
+                    </div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {searchTerm ? 'Nenhum resultado' : 'Sem localizações'}
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">
+                      {searchTerm 
+                        ? `Nenhuma localização corresponde a "${searchTerm}"`
+                        : 'Cadastre empresas, setores e subsetores'
+                      }
+                    </p>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
       </div>
       
       {/* Mobile: Mostra card colapsável */}
       <div className="lg:hidden">
-        <MobileTree />
+        <Card className="border shadow-sm">
+          <CardHeader className="px-3 py-2 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FolderTree className="h-4 w-4 text-primary" />
+                <span className="font-medium text-sm">
+                  {selectedNode ? selectedNode.name : 'Selecionar localização'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                {/* Botão de adicionar com dropdown */}
+                {onCreateLocation && (
+                  <IfCan action="create" subject="asset">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem onClick={() => onCreateLocation('company')} className="gap-2">
+                          <Building2 className="h-4 w-4 text-blue-500" />
+                          Empresa
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onCreateLocation('unit')} disabled={companies.length === 0} className="gap-2">
+                          <Factory className="h-4 w-4 text-orange-500" />
+                          Unidade
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onCreateLocation('sector')} disabled={units.length === 0} className="gap-2">
+                          <MapPin className="h-4 w-4 text-emerald-500" />
+                          Setor
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onCreateLocation('subsection')} disabled={sectors.length === 0} className="gap-2">
+                          <Users className="h-4 w-4 text-purple-500" />
+                          Subsetor
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </IfCan>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setIsMobileOpen(!isMobileOpen)}
+                >
+                  {isMobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          
+          {isMobileOpen && (
+            <CardContent className="p-0">
+              {/* Campo de busca */}
+              <div className="p-2 border-b">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar localização..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="h-8 pl-8 text-sm"
+                  />
+                </div>
+              </div>
+              
+              {/* Árvore com scroll */}
+              <ScrollArea className="max-h-64">
+                <div className="p-2 space-y-0.5" role="tree">
+                  {filteredTree.length > 0 ? (
+                    filteredTree.map(node => renderTreeNode(node))
+                  ) : (
+                    <div className="text-center text-muted-foreground py-6 text-sm">
+                      {searchTerm ? 'Nenhuma localização encontrada' : 'Nenhuma localização'}
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          )}
+        </Card>
       </div>
     </>
   );
