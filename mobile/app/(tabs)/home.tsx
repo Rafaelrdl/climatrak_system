@@ -1,8 +1,7 @@
 // ============================================================
-// ClimaTrak Mobile - Home Screen (Dashboard)
+// ClimaTrak Mobile - Home Screen (Migrated to Design System)
 // ============================================================
 
-import { useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,18 +15,21 @@ import { useQuery } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ClipboardList,
-  AlertTriangle,
-  Box,
   Wifi,
   WifiOff,
   QrCode,
   ChevronRight,
   Clock,
   CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react-native';
+
+// Design system imports
+import { colors, spacing, radius, typography, shadows } from '@/theme/tokens';
+import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '@/components/ui';
+import { AlertCard, WorkOrderCard } from '@/components/composed';
 import { useAuthStore, useSyncStore } from '@/store';
 import { workOrderService, alertService } from '@/shared/api';
-import { theme } from '@/theme';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -81,7 +83,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={isLoading}
             onRefresh={handleRefresh}
-            colors={[theme.colors.primary[500]]}
+            colors={[colors.primary.DEFAULT]}
+            tintColor={colors.primary.DEFAULT}
           />
         }
       >
@@ -98,9 +101,9 @@ export default function HomeScreen() {
             isOnline ? styles.online : styles.offline,
           ]}>
             {isOnline ? (
-              <Wifi size={14} color={theme.colors.semantic.success} />
+              <Wifi size={14} color={colors.status.online} />
             ) : (
-              <WifiOff size={14} color={theme.colors.semantic.error} />
+              <WifiOff size={14} color={colors.status.critical} />
             )}
             <Text style={[
               styles.connectionText,
@@ -119,7 +122,7 @@ export default function HomeScreen() {
             disabled={!isOnline || isSyncing}
           >
             <View style={styles.syncBannerContent}>
-              <Clock size={18} color={theme.colors.semantic.warning} />
+              <Clock size={18} color={colors.status.warning} />
               <Text style={styles.syncBannerText}>
                 {pendingCount} {pendingCount === 1 ? 'item pendente' : 'itens pendentes'} de sincronização
               </Text>
@@ -140,7 +143,7 @@ export default function HomeScreen() {
             onPress={() => router.push('/scanner')}
           >
             <View style={styles.quickActionIcon}>
-              <QrCode size={24} color={theme.colors.white} />
+              <QrCode size={24} color={colors.white} />
             </View>
             <Text style={styles.quickActionText}>Escanear QR</Text>
           </TouchableOpacity>
@@ -153,10 +156,10 @@ export default function HomeScreen() {
         >
           <View style={styles.cardHeader}>
             <View style={styles.cardTitleRow}>
-              <ClipboardList size={20} color={theme.colors.primary[600]} />
+              <ClipboardList size={20} color={colors.primary[600]} />
               <Text style={styles.cardTitle}>Minhas OS</Text>
             </View>
-            <ChevronRight size={20} color={theme.colors.neutral[400]} />
+            <ChevronRight size={20} color={colors.muted.foreground} />
           </View>
           
           <View style={styles.statsRow}>
@@ -166,7 +169,7 @@ export default function HomeScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: theme.colors.semantic.warning }]}>
+              <Text style={[styles.statValue, { color: colors.status.warning }]}>
                 {orderStats.in_progress}
               </Text>
               <Text style={styles.statLabel}>Em Andamento</Text>
@@ -183,7 +186,7 @@ export default function HomeScreen() {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={styles.cardTitleRow}>
-              <AlertTriangle size={20} color={theme.colors.semantic.error} />
+              <AlertTriangle size={20} color={colors.status.critical} />
               <Text style={styles.cardTitle}>Alertas Ativos</Text>
             </View>
             <TouchableOpacity onPress={() => router.push('/(tabs)/alerts')}>
@@ -193,31 +196,18 @@ export default function HomeScreen() {
 
           {activeAlerts?.results?.length === 0 ? (
             <View style={styles.emptyState}>
-              <CheckCircle2 size={32} color={theme.colors.semantic.success} />
+              <CheckCircle2 size={32} color={colors.status.online} />
               <Text style={styles.emptyStateText}>Nenhum alerta ativo</Text>
             </View>
           ) : (
             <View style={styles.alertsList}>
               {activeAlerts?.results?.slice(0, 3).map((alert) => (
-                <TouchableOpacity
+                <AlertCard
                   key={alert.id}
-                  style={styles.alertItem}
+                  alert={alert}
+                  variant="compact"
                   onPress={() => router.push(`/alert/${alert.id}`)}
-                >
-                  <View style={[
-                    styles.alertSeverity,
-                    { backgroundColor: theme.colors.alert[alert.severity] },
-                  ]} />
-                  <View style={styles.alertContent}>
-                    <Text style={styles.alertTitle} numberOfLines={1}>
-                      {alert.rule_name || 'Alerta'}
-                    </Text>
-                    <Text style={styles.alertAsset} numberOfLines={1}>
-                      {alert.asset_name}
-                    </Text>
-                  </View>
-                  <ChevronRight size={18} color={theme.colors.neutral[400]} />
-                </TouchableOpacity>
+                />
               ))}
             </View>
           )}
@@ -227,50 +217,25 @@ export default function HomeScreen() {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={styles.cardTitleRow}>
-              <Clock size={20} color={theme.colors.neutral[600]} />
+              <Clock size={20} color={colors.muted.foreground} />
               <Text style={styles.cardTitle}>OS Recentes</Text>
             </View>
           </View>
 
           {myOrders?.results?.length === 0 ? (
             <View style={styles.emptyState}>
-              <ClipboardList size={32} color={theme.colors.neutral[300]} />
+              <ClipboardList size={32} color={colors.muted.foreground} />
               <Text style={styles.emptyStateText}>Nenhuma OS atribuída</Text>
             </View>
           ) : (
             <View style={styles.ordersList}>
               {myOrders?.results?.slice(0, 5).map((order) => (
-                <TouchableOpacity
+                <WorkOrderCard
                   key={order.id}
-                  style={styles.orderItem}
+                  workOrder={order}
+                  variant="compact"
                   onPress={() => router.push(`/work-order/${order.id}`)}
-                >
-                  <View style={[
-                    styles.orderStatus,
-                    { backgroundColor: theme.colors.workOrder[order.status] },
-                  ]} />
-                  <View style={styles.orderContent}>
-                    <Text style={styles.orderTitle} numberOfLines={1}>
-                      {order.title}
-                    </Text>
-                    <Text style={styles.orderInfo} numberOfLines={1}>
-                      {order.asset_name} • {order.number}
-                    </Text>
-                  </View>
-                  <View style={[
-                    styles.priorityBadge,
-                    { backgroundColor: theme.colors.priority[order.priority] + '20' },
-                  ]}>
-                    <Text style={[
-                      styles.priorityText,
-                      { color: theme.colors.priority[order.priority] },
-                    ]}>
-                      {order.priority === 'CRITICAL' ? 'Urgente' :
-                       order.priority === 'HIGH' ? 'Alta' :
-                       order.priority === 'MEDIUM' ? 'Média' : 'Baixa'}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+                />
               ))}
             </View>
           )}
@@ -283,63 +248,63 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.neutral[50],
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: theme.spacing[4],
-    paddingBottom: theme.spacing[8],
+    padding: spacing[4],
+    paddingBottom: spacing[8],
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: theme.spacing[4],
+    marginBottom: spacing[4],
   },
   greeting: {
-    fontSize: theme.typography.fontSize.xl,
+    fontSize: typography.sizes.xl,
     fontWeight: '600',
-    color: theme.colors.neutral[900],
+    color: colors.foreground,
   },
   tenantName: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[500],
+    fontSize: typography.sizes.sm,
+    color: colors.muted.foreground,
     marginTop: 2,
   },
   connectionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.borderRadius.full,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: radius.full,
     gap: 4,
   },
   online: {
-    backgroundColor: theme.colors.semantic.success + '15',
+    backgroundColor: colors.status.online + '15',
   },
   offline: {
-    backgroundColor: theme.colors.semantic.error + '15',
+    backgroundColor: colors.status.critical + '15',
   },
   connectionText: {
-    fontSize: theme.typography.fontSize.xs,
+    fontSize: typography.sizes.xs,
     fontWeight: '500',
   },
   onlineText: {
-    color: theme.colors.semantic.success,
+    color: colors.status.online,
   },
   offlineText: {
-    color: theme.colors.semantic.error,
+    color: colors.status.critical,
   },
   syncBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: theme.colors.semantic.warning + '15',
-    padding: theme.spacing[3],
-    borderRadius: theme.borderRadius.lg,
-    marginBottom: theme.spacing[4],
+    backgroundColor: colors.status.warning + '15',
+    padding: spacing[3],
+    borderRadius: radius.lg,
+    marginBottom: spacing[4],
   },
   syncBannerContent: {
     flexDirection: 'row',
@@ -347,50 +312,50 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   syncBannerText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[700],
+    fontSize: typography.sizes.sm,
+    color: colors.foreground,
   },
   syncBannerAction: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: typography.sizes.sm,
     fontWeight: '600',
-    color: theme.colors.semantic.warning,
+    color: colors.status.warning,
   },
   quickActions: {
-    marginBottom: theme.spacing[4],
+    marginBottom: spacing[4],
   },
   quickActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary[500],
-    padding: theme.spacing[4],
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: colors.primary.DEFAULT,
+    padding: spacing[4],
+    borderRadius: radius.lg,
     gap: 12,
   },
   quickActionIcon: {
     width: 44,
     height: 44,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.primary[600],
+    borderRadius: radius.md,
+    backgroundColor: colors.primary[600],
     justifyContent: 'center',
     alignItems: 'center',
   },
   quickActionText: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: typography.sizes.base,
     fontWeight: '600',
-    color: theme.colors.white,
+    color: '#ffffff',
   },
   card: {
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[4],
-    marginBottom: theme.spacing[4],
-    ...theme.shadows.sm,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: spacing[4],
+    marginBottom: spacing[4],
+    ...shadows.sm,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing[4],
+    marginBottom: spacing[4],
   },
   cardTitleRow: {
     flexDirection: 'row',
@@ -398,14 +363,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cardTitle: {
-    fontSize: theme.typography.fontSize.base,
+    fontSize: typography.sizes.base,
     fontWeight: '600',
-    color: theme.colors.neutral[900],
+    color: colors.foreground,
   },
   cardAction: {
-    fontSize: theme.typography.fontSize.sm,
+    fontSize: typography.sizes.sm,
     fontWeight: '500',
-    color: theme.colors.primary[600],
+    color: colors.primary.DEFAULT,
   },
   statsRow: {
     flexDirection: 'row',
@@ -416,94 +381,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: theme.typography.fontSize['2xl'],
+    fontSize: typography.sizes['2xl'],
     fontWeight: '700',
-    color: theme.colors.neutral[900],
+    color: colors.foreground,
   },
   statLabel: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.neutral[500],
+    fontSize: typography.sizes.xs,
+    color: colors.muted.foreground,
     marginTop: 2,
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: theme.colors.neutral[200],
+    backgroundColor: colors.border,
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: theme.spacing[6],
+    paddingVertical: spacing[6],
     gap: 8,
   },
   emptyStateText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[500],
+    fontSize: typography.sizes.sm,
+    color: colors.muted.foreground,
   },
   alertsList: {
     gap: 8,
   },
-  alertItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: theme.spacing[3],
-    backgroundColor: theme.colors.neutral[50],
-    borderRadius: theme.borderRadius.md,
-    gap: 12,
-  },
-  alertSeverity: {
-    width: 4,
-    height: 40,
-    borderRadius: 2,
-  },
-  alertContent: {
-    flex: 1,
-  },
-  alertTitle: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: '500',
-    color: theme.colors.neutral[900],
-  },
-  alertAsset: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.neutral[500],
-    marginTop: 2,
-  },
   ordersList: {
     gap: 8,
-  },
-  orderItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: theme.spacing[3],
-    backgroundColor: theme.colors.neutral[50],
-    borderRadius: theme.borderRadius.md,
-    gap: 12,
-  },
-  orderStatus: {
-    width: 4,
-    height: 40,
-    borderRadius: 2,
-  },
-  orderContent: {
-    flex: 1,
-  },
-  orderTitle: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: '500',
-    color: theme.colors.neutral[900],
-  },
-  orderInfo: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.neutral[500],
-    marginTop: 2,
-  },
-  priorityBadge: {
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.borderRadius.sm,
-  },
-  priorityText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: '500',
   },
 });

@@ -1,5 +1,5 @@
 // ============================================================
-// ClimaTrak Mobile - Alerts Screen
+// ClimaTrak Mobile - Alerts Screen (Migrated to Design System)
 // ============================================================
 
 import { useState, useCallback } from 'react';
@@ -15,32 +15,22 @@ import {
 import { useRouter } from 'expo-router';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  AlertTriangle,
-  Clock,
-  MapPin,
-  ChevronRight,
-  CheckCircle,
-  Bell,
-} from 'lucide-react-native';
+import { CheckCircle } from 'lucide-react-native';
+
+// Design system imports
+import { colors, spacing, radius, typography } from '@/theme/tokens';
+import { AlertCard, AlertCardSkeleton } from '@/components/composed';
 import { alertService } from '@/shared/api';
-import { theme } from '@/theme';
 import type { Alert, AlertFilters, AlertStatus } from '@/types';
 
 type FilterTab = 'ACTIVE' | 'ACKNOWLEDGED' | 'RESOLVED' | 'all';
 
-const STATUS_LABELS: Record<string, string> = {
-  ACTIVE: 'Ativo',
-  ACKNOWLEDGED: 'Reconhecido',
-  RESOLVED: 'Resolvido',
-};
-
-const SEVERITY_LABELS: Record<string, string> = {
-  CRITICAL: 'Crítico',
-  HIGH: 'Alto',
-  MEDIUM: 'Médio',
-  LOW: 'Baixo',
-};
+const TABS: { key: FilterTab; label: string }[] = [
+  { key: 'ACTIVE', label: 'Ativos' },
+  { key: 'ACKNOWLEDGED', label: 'Reconhecidos' },
+  { key: 'RESOLVED', label: 'Resolvidos' },
+  { key: 'all', label: 'Todos' },
+];
 
 export default function AlertsScreen() {
   const router = useRouter();
@@ -49,11 +39,9 @@ export default function AlertsScreen() {
   // Build filters based on active tab
   const getFilters = (): AlertFilters => {
     const filters: AlertFilters = {};
-    
     if (activeTab !== 'all') {
       filters.status = [activeTab as AlertStatus];
     }
-
     return filters;
   };
 
@@ -81,12 +69,8 @@ export default function AlertsScreen() {
     initialPageParam: 1,
   });
 
-  // Flatten pages and filter out any undefined items
+  // Flatten pages
   const alerts = data?.pages.flatMap(page => page.results).filter(Boolean) || [];
-
-  // Debug logging
-  console.log('[AlertsScreen] data:', data);
-  console.log('[AlertsScreen] alerts count:', alerts.length);
 
   const handleEndReached = () => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -94,132 +78,20 @@ export default function AlertsScreen() {
     }
   };
 
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const handleAlertPress = useCallback((alert: Alert) => {
+    router.push(`/alert/${alert.id}`);
+  }, [router]);
 
-    if (diffMins < 60) {
-      return `${diffMins}min atrás`;
-    } else if (diffHours < 24) {
-      return `${diffHours}h atrás`;
-    } else {
-      return `${diffDays}d atrás`;
-    }
-  };
-
+  // Render alert using AlertCard component
   const renderAlert = useCallback(({ item }: { item: Alert }) => {
-    // Guard against undefined items
     if (!item) return null;
-    
-    return (
-      <TouchableOpacity
-        style={styles.alertCard}
-        onPress={() => router.push(`/alert/${item.id}`)}
-        activeOpacity={0.7}
-      >
-        {/* Severity indicator */}
-        <View style={[
-          styles.severityBar,
-          { backgroundColor: theme.colors.alert[item.severity] || theme.colors.neutral[400] },
-        ]} />
+    return <AlertCard alert={item} onPress={handleAlertPress} />;
+  }, [handleAlertPress]);
 
-      <View style={styles.alertContent}>
-        <View style={styles.alertHeader}>
-          <View style={[
-            styles.severityBadge,
-            { backgroundColor: theme.colors.alert[item.severity] + '15' },
-          ]}>
-            <AlertTriangle size={14} color={theme.colors.alert[item.severity]} />
-            <Text style={[
-              styles.severityText,
-              { color: theme.colors.alert[item.severity] },
-            ]}>
-              {SEVERITY_LABELS[item.severity]}
-            </Text>
-          </View>
-
-          <View style={[
-            styles.statusBadge,
-            { backgroundColor: 
-              item.status === 'ACTIVE' 
-                ? theme.colors.semantic.error + '15'
-                : item.status === 'ACKNOWLEDGED'
-                  ? theme.colors.semantic.warning + '15'
-                  : theme.colors.semantic.success + '15'
-            },
-          ]}>
-            {item.status === 'RESOLVED' ? (
-              <CheckCircle size={12} color={theme.colors.semantic.success} />
-            ) : (
-              <Bell size={12} color={
-                item.status === 'ACTIVE' 
-                  ? theme.colors.semantic.error 
-                  : theme.colors.semantic.warning
-              } />
-            )}
-            <Text style={[
-              styles.statusText,
-              { color: 
-                item.status === 'ACTIVE' 
-                  ? theme.colors.semantic.error
-                  : item.status === 'ACKNOWLEDGED'
-                    ? theme.colors.semantic.warning
-                    : theme.colors.semantic.success
-              },
-            ]}>
-              {STATUS_LABELS[item.status]}
-            </Text>
-          </View>
-        </View>
-
-        <Text style={styles.alertTitle} numberOfLines={2}>
-          {item.rule_name || 'Alerta do Sistema'}
-        </Text>
-
-        {item.message && (
-          <Text style={styles.alertMessage} numberOfLines={2}>
-            {item.message}
-          </Text>
-        )}
-
-        <View style={styles.alertMeta}>
-          {item.asset_name && (
-            <View style={styles.metaItem}>
-              <MapPin size={14} color={theme.colors.neutral[400]} />
-              <Text style={styles.metaText} numberOfLines={1}>
-                {item.asset_name}
-              </Text>
-            </View>
-          )}
-
-          <View style={styles.metaItem}>
-            <Clock size={14} color={theme.colors.neutral[400]} />
-            <Text style={styles.metaText}>
-              {formatTimeAgo(item.triggered_at)}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.alertFooter}>
-          {item.sensor_name && (
-            <Text style={styles.sensorText} numberOfLines={1}>
-              Sensor: {item.sensor_name}
-            </Text>
-          )}
-          <ChevronRight size={18} color={theme.colors.neutral[400]} />
-        </View>
-      </View>
-    </TouchableOpacity>
-    );
-  }, [router, formatTimeAgo]);
-
+  // Empty state
   const renderEmpty = () => (
     <View style={styles.emptyState}>
-      <CheckCircle size={48} color={theme.colors.semantic.success} />
+      <CheckCircle size={48} color={colors.status.online} />
       <Text style={styles.emptyTitle}>
         {activeTab === 'ACTIVE' 
           ? 'Nenhum alerta ativo' 
@@ -233,89 +105,73 @@ export default function AlertsScreen() {
     </View>
   );
 
+  // Loading skeletons
+  const renderLoading = () => (
+    <View style={styles.loadingContainer}>
+      {[1, 2, 3].map((i) => (
+        <AlertCardSkeleton key={i} />
+      ))}
+    </View>
+  );
+
+  // Footer loading
   const renderFooter = () => {
     if (!isFetchingNextPage) return null;
     return (
       <View style={styles.footer}>
-        <ActivityIndicator size="small" color={theme.colors.primary[500]} />
+        <ActivityIndicator size="small" color={colors.primary.DEFAULT} />
       </View>
     );
   };
 
-  // Count active alerts
+  // Active count for badge
   const activeCount = activeTab === 'ACTIVE' ? alerts.length : 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       {/* Filter Tabs */}
       <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'ACTIVE' && styles.tabActive]}
-          onPress={() => setActiveTab('ACTIVE')}
-        >
-          <Text style={[styles.tabText, activeTab === 'ACTIVE' && styles.tabTextActive]}>
-            Ativos
-          </Text>
-          {activeCount > 0 && (
-            <View style={styles.tabBadge}>
-              <Text style={styles.tabBadgeText}>{activeCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'ACKNOWLEDGED' && styles.tabActive]}
-          onPress={() => setActiveTab('ACKNOWLEDGED')}
-        >
-          <Text style={[styles.tabText, activeTab === 'ACKNOWLEDGED' && styles.tabTextActive]}>
-            Reconhecidos
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'RESOLVED' && styles.tabActive]}
-          onPress={() => setActiveTab('RESOLVED')}
-        >
-          <Text style={[styles.tabText, activeTab === 'RESOLVED' && styles.tabTextActive]}>
-            Resolvidos
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'all' && styles.tabActive]}
-          onPress={() => setActiveTab('all')}
-        >
-          <Text style={[styles.tabText, activeTab === 'all' && styles.tabTextActive]}>
-            Todos
-          </Text>
-        </TouchableOpacity>
+        {TABS.map(({ key, label }) => (
+          <TouchableOpacity
+            key={key}
+            style={[styles.tab, activeTab === key && styles.tabActive]}
+            onPress={() => setActiveTab(key)}
+          >
+            <Text style={[styles.tabText, activeTab === key && styles.tabTextActive]}>
+              {label}
+            </Text>
+            {key === 'ACTIVE' && activeCount > 0 && (
+              <View style={styles.tabBadge}>
+                <Text style={styles.tabBadgeText}>{activeCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* List */}
-      <FlatList
-        data={alerts}
-        renderItem={renderAlert}
-        keyExtractor={(item, index) => item?.id?.toString() || `alert-${index}`}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            colors={[theme.colors.primary[500]]}
-          />
-        }
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.5}
-        ListEmptyComponent={!isLoading ? renderEmpty : null}
-        ListFooterComponent={renderFooter}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-      />
-
-      {/* Loading Overlay */}
-      {isLoading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
-        </View>
+      {isLoading ? (
+        renderLoading()
+      ) : (
+        <FlatList
+          data={alerts}
+          renderItem={renderAlert}
+          keyExtractor={(item, index) => item?.id?.toString() || `alert-${index}`}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              colors={[colors.primary.DEFAULT]}
+              tintColor={colors.primary.DEFAULT}
+            />
+          }
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          ListEmptyComponent={renderEmpty}
+          ListFooterComponent={renderFooter}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+        />
       )}
     </SafeAreaView>
   );
@@ -324,165 +180,103 @@ export default function AlertsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.neutral[50],
+    backgroundColor: colors.background,
   },
+
+  // Tabs
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.white,
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[2],
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.neutral[200],
-    gap: 4,
+    borderBottomColor: colors.border,
+    gap: spacing[1],
   },
+
   tab: {
     flex: 1,
     flexDirection: 'row',
-    paddingVertical: theme.spacing[2],
+    paddingVertical: spacing[2],
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: theme.borderRadius.md,
-    gap: 4,
+    borderRadius: radius.md,
+    gap: spacing[1],
   },
+
   tabActive: {
-    backgroundColor: theme.colors.primary[50],
+    backgroundColor: colors.primary[50],
   },
+
   tabText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[500],
-    fontWeight: '500',
+    fontSize: typography.sizes.sm,
+    fontFamily: typography.fonts.sans,
+    fontWeight: typography.weights.medium,
+    color: colors.muted.foreground,
   },
+
   tabTextActive: {
-    color: theme.colors.primary[600],
+    color: colors.primary[600],
   },
+
   tabBadge: {
     minWidth: 18,
     height: 18,
-    borderRadius: 9,
-    backgroundColor: theme.colors.semantic.error,
+    borderRadius: radius.full,
+    backgroundColor: colors.destructive.DEFAULT,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: spacing[1],
   },
+
   tabBadgeText: {
     fontSize: 10,
-    fontWeight: '600',
-    color: theme.colors.white,
+    fontFamily: typography.fonts.sans,
+    fontWeight: typography.weights.semibold,
+    color: colors.white,
   },
+
+  // List
   listContent: {
-    padding: theme.spacing[4],
-    paddingTop: theme.spacing[3],
+    padding: spacing[4],
+    paddingTop: spacing[3],
+    flexGrow: 1,
   },
-  alertCard: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
-    overflow: 'hidden',
-    ...theme.shadows.sm,
-  },
-  severityBar: {
-    width: 4,
-  },
-  alertContent: {
-    flex: 1,
-    padding: theme.spacing[4],
-  },
-  alertHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing[2],
-  },
-  severityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.borderRadius.sm,
-    gap: 4,
-  },
-  severityText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: '600',
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.borderRadius.full,
-    gap: 4,
-  },
-  statusText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: '500',
-  },
-  alertTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: '500',
-    color: theme.colors.neutral[900],
-    marginBottom: theme.spacing[1],
-    lineHeight: 22,
-  },
-  alertMessage: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[600],
-    marginBottom: theme.spacing[3],
-    lineHeight: 20,
-  },
-  alertMeta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: theme.spacing[3],
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[500],
-  },
-  alertFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: theme.spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.neutral[100],
-  },
-  sensorText: {
-    flex: 1,
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.neutral[500],
-  },
+
   separator: {
-    height: theme.spacing[3],
+    height: spacing[3],
   },
+
+  // Empty state
   emptyState: {
     alignItems: 'center',
-    paddingVertical: theme.spacing[12],
-    gap: 12,
+    paddingVertical: spacing[12],
+    gap: spacing[3],
   },
+
   emptyTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: '600',
-    color: theme.colors.neutral[900],
+    fontSize: typography.sizes.lg,
+    fontFamily: typography.fonts.sans,
+    fontWeight: typography.weights.semibold,
+    color: colors.foreground,
   },
+
   emptySubtitle: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[500],
+    fontSize: typography.sizes.sm,
+    fontFamily: typography.fonts.sans,
+    color: colors.muted.foreground,
     textAlign: 'center',
+    maxWidth: 280,
   },
+
+  // Loading
+  loadingContainer: {
+    padding: spacing[4],
+    gap: spacing[3],
+  },
+
   footer: {
-    paddingVertical: theme.spacing[4],
-    alignItems: 'center',
-  },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.colors.white,
-    justifyContent: 'center',
+    paddingVertical: spacing[4],
     alignItems: 'center',
   },
 });

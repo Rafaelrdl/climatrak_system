@@ -5,6 +5,10 @@
 
 import { Platform, ViewStyle } from 'react-native';
 
+// Re-export unified tokens for new code
+export * from './tokens';
+export { default as tokens } from './tokens';
+
 export const colors = {
   // Primary
   primary: {
