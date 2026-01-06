@@ -78,6 +78,9 @@ const mapSubsection = (ss: ApiSubsection): SubSection => ({
   sectorId: String(ss.sector),
   unitId: ss.unit_id ? String(ss.unit_id) : undefined,
   companyId: ss.company_id ? String(ss.company_id) : undefined,
+  area: ss.area ? Number(ss.area) : undefined,
+  occupants: ss.occupants ?? undefined,
+  hvacUnits: ss.hvac_units ?? undefined,
   notes: ss.description || ss.notes || '',
 });
 
@@ -368,6 +371,9 @@ export const locationsService = {
       name: data.name,
       sector: Number(data.sectorId),
       description: data.notes || '',
+      area: data.area ?? null,
+      occupants: data.occupants ?? null,
+      hvac_units: data.hvacUnits ?? null,
     };
 
     const response = await api.post<ApiSubsection>('/locations/subsections/', payload);
@@ -380,8 +386,9 @@ export const locationsService = {
     if (data.name) payload.name = data.name;
     if (data.sectorId) payload.sector = Number(data.sectorId);
     if (data.notes !== undefined) payload.description = data.notes;
-    
-
+    if (data.area !== undefined) payload.area = data.area;
+    if (data.occupants !== undefined) payload.occupants = data.occupants;
+    if (data.hvacUnits !== undefined) payload.hvac_units = data.hvacUnits;
 
     const response = await api.patch<ApiSubsection>(`/locations/subsections/${id}/`, payload);
     return mapSubsection(response.data);

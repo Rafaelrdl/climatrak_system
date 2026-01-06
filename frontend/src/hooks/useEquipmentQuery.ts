@@ -119,6 +119,37 @@ export function useUpdateEquipment() {
 }
 
 /**
+ * Exclui um equipamento
+ */
+export function useDeleteEquipment() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: string) => equipmentService.delete(id),
+    onSuccess: (_data, deletedId) => {
+      // Remove do cache de detalhes
+      queryClient.removeQueries({ queryKey: equipmentKeys.detail(deletedId) });
+      
+      // Remove da lista em cache (otimistic update)
+      queryClient.setQueriesData(
+        { queryKey: equipmentKeys.lists() },
+        (oldData: Equipment[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.filter(eq => eq.id !== deletedId);
+        }
+      );
+      
+      // Invalida e refetch para garantir dados atualizados
+      queryClient.invalidateQueries({ 
+        queryKey: equipmentKeys.lists(),
+        refetchType: 'all'
+      });
+      queryClient.invalidateQueries({ queryKey: equipmentKeys.stats() });
+    },
+  });
+}
+
+/**
  * Prefetch de equipamentos para navegação otimizada
  */
 export function usePrefetchEquipments(queryClient: ReturnType<typeof useQueryClient>) {
@@ -137,4 +168,5 @@ export default {
   useEquipment,
   useEquipmentStats,
   useUpdateEquipment,
+  useDeleteEquipment,
 };

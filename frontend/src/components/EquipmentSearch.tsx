@@ -21,6 +21,7 @@ import {
   Settings,
   Plus,
   Pencil,
+  Trash2,
   CheckCircle2,
   AlertTriangle,
   XCircle,
@@ -55,6 +56,7 @@ interface EquipmentSearchProps {
   showCreateButton?: boolean;
   onCreateAsset?: () => void;
   onEditAsset?: (equipment: Equipment) => void;
+  onDeleteAsset?: (equipment: Equipment) => void;
   // Props externas para controle a partir do pai
   externalSearchTerm?: string;
   externalViewMode?: 'grid' | 'list';
@@ -70,6 +72,7 @@ export function EquipmentSearch({
   showCreateButton = false,
   onCreateAsset,
   onEditAsset,
+  onDeleteAsset,
   externalSearchTerm,
   externalViewMode,
   externalShowFilters,
@@ -820,6 +823,20 @@ export function EquipmentSearch({
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       )}
+                      {onDeleteAsset && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteAsset(eq);
+                          }}
+                          title="Excluir ativo"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -865,6 +882,20 @@ export function EquipmentSearch({
                           title="Editar ativo"
                         >
                           <Pencil className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {onDeleteAsset && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteAsset(eq);
+                          }}
+                          title="Excluir ativo"
+                        >
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       )}
                       {getStatusIcon(eq.status)}

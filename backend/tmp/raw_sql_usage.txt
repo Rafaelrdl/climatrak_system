@@ -1,0 +1,80 @@
+PYTHON_RAW_SQL
+backend\apps\ingest\migrations\0002_convert_to_hypertable.py
+  L13: RunSQL | telemetry | ALTER TABLE telemetry DROP CONSTRAINT telemetry_pkey;
+  L13: RunSQL | telemetry | ALTER TABLE telemetry ADD PRIMARY KEY (id);
+  L18: RunSQL | telemetry | SELECT create_hypertable(                     'telemetry',                      'timestamp',                     chunk_time_interval => INTERVAL '1 day',                     if_not_exists => TRUE                 );
+  L30: RunSQL | telemetry | CREATE INDEX IF NOT EXISTS telemetry_id_idx ON telemetry (id);
+backend\apps\ingest\migrations\0004_timescale_hypertable_continuous_aggregates.py
+  L13: RunSQL | reading | ALTER TABLE reading DROP CONSTRAINT IF EXISTS reading_pkey;
+  L18: RunSQL | reading | SELECT create_hypertable('reading', 'ts', if_not_exists => TRUE, migrate_data => TRUE);
+backend\apps\tenants\tests\test_multi_tenant_isolation.py
+  L449: execute | users | SELECT COUNT(*) FROM users WHERE email = %s
+backend\check_timestamps_db.py
+  L104: execute | reading | SELECT                  sensor_id,                 value,                 ts,                 EXTRACT(EPOCH FROM ts) as unix_timestamp,                 EXTRACT(EPOCH FROM (NOW() - ts)) as age_seconds             FROM reading             WHERE device_id = %s             ORDER BY ts DESC             LIMIT 5;
+backend\verify_migration.py
+  L13: execute | reading | SELECT column_name, data_type, is_nullable, character_maximum_length         FROM information_schema.columns         WHERE table_name = 'reading'           AND column_name IN ('asset_tag', 'tenant', 'site')         ORDER BY column_name
+  L29: execute | reading | SELECT indexname, indexdef         FROM pg_indexes         WHERE tablename = 'reading'           AND indexname LIKE '%asset%'         ORDER BY indexname
+  L45: execute | reading | SELECT COUNT(*) FROM reading
+  L48: execute | reading | SELECT COUNT(*) FROM reading WHERE asset_tag IS NOT NULL
+  L58: execute | reading | SELECT asset_tag, tenant, site, COUNT(*) as count             FROM reading             WHERE asset_tag IS NOT NULL             GROUP BY asset_tag, tenant, site             ORDER BY count DESC             LIMIT 5
+
+SQL_FILES
+backend\check_user_location.sql
+  L2: users | SELECT 'public' as schema_name, COUNT(*) as user_count FROM public.users;
+  L3: users | SELECT 'UMC' as schema_name, COUNT(*) as user_count FROM "UMC".users;
+  L4: users | SELECT 'COMG' as schema_name, COUNT(*) as user_count FROM "COMG".users;
+  L7: users | SELECT 'public' as schema_name, username, email FROM public.users WHERE email = 'rafael@ascitech.com.br';
+  L10: users | SELECT 'UMC' as schema_name, username, email FROM "UMC".users WHERE email = 'rafael@ascitech.com.br';
+backend\check_users.sql
+  L2: Users | SELECT 'UMC Schema - Users:' as info;
+  L4: users | SELECT id, email FROM users;
+  L6: Users | SELECT 'COMG Schema - Users:' as info;
+  L8: users | SELECT id, email FROM users;
+  L10: Users | SELECT 'Public Schema - Users:' as info;
+  L12: users | SELECT id, email FROM users;
+backend\cleanup_public.sql
+  L5: Users | SELECT 'Users before:' as info;
+  L6: users | SELECT id, email FROM users;
+  L9: tenant_memberships | SELECT * FROM tenant_memberships;
+  L12: password_reset_tokens | DELETE FROM password_reset_tokens;
+  L13: invites | DELETE FROM invites;
+  L15: users_groups | DELETE FROM users_groups;
+  L16: users_user_permissions | DELETE FROM users_user_permissions;
+  L19: tenant_memberships | -- Limpar tenant_memberships
+  L20: tenant_memberships | DELETE FROM tenant_memberships;
+  L23: users | DELETE FROM users;
+  L26: Users | SELECT 'Users after:' as info;
+  L27: users | SELECT id, email FROM users;
+  L30: tenant_memberships | SELECT * FROM tenant_memberships;
+backend\delete_comg_user.sql
+  L6: users | SELECT id, email FROM users WHERE email = 'rafaelrdlessa@gmail.com';
+  L9: password_reset_tokens | DELETE FROM password_reset_tokens WHERE user_id IN (SELECT id FROM users WHERE email = 'rafaelrdlessa@gmail.com');
+  L10: invites | UPDATE invites SET accepted_by_id = NULL WHERE accepted_by_id IN (SELECT id FROM users WHERE email = 'rafaelrdlessa@gmail.com');
+  L11: tenant_memberships | DELETE FROM tenant_memberships WHERE user_id IN (SELECT id FROM users WHERE email = 'rafaelrdlessa@gmail.com');
+  L12: users_groups | DELETE FROM users_groups WHERE user_id IN (SELECT id FROM users WHERE email = 'rafaelrdlessa@gmail.com');
+  L13: users_user_permissions | DELETE FROM users_user_permissions WHERE user_id IN (SELECT id FROM users WHERE email = 'rafaelrdlessa@gmail.com');
+  L16: users | DELETE FROM users WHERE email = 'rafaelrdlessa@gmail.com';
+  L19: users | SELECT 'After - remaining users:' as info;
+  L20: users | SELECT id, email FROM users;
+backend\delete_users.sql
+  L5: Users | SELECT 'Public Schema - Users to delete:' as info;
+  L6: users | SELECT id, email FROM users WHERE email IN ('rafaelrdlessa@gmail.com', 'rafael@ascitech.com.br');
+  L8: password_reset_tokens | -- Deletar password_reset_tokens
+  L9: password_reset_tokens | DELETE FROM password_reset_tokens WHERE user_id IN (
+  L10: users | SELECT id FROM users WHERE email IN ('rafaelrdlessa@gmail.com', 'rafael@ascitech.com.br')
+  L13: invites | -- Remover referências em invites (public)
+  L14: invites | UPDATE invites SET accepted_by_id = NULL WHERE accepted_by_id IN (
+  L15: users | SELECT id FROM users WHERE email IN ('rafaelrdlessa@gmail.com', 'rafael@ascitech.com.br')
+  L18: tenant_memberships | -- Deletar tenant_memberships (public)
+  L19: tenant_memberships | DELETE FROM tenant_memberships WHERE user_id IN (
+  L20: users | SELECT id FROM users WHERE email IN ('rafaelrdlessa@gmail.com', 'rafael@ascitech.com.br')
+  L35: users_groups | -- Limpar users_groups
+  L36: users_groups | DELETE FROM users_groups WHERE user_id IN (
+  L37: users | SELECT id FROM users WHERE email IN ('rafaelrdlessa@gmail.com', 'rafael@ascitech.com.br')
+  L40: users_user_permissions | -- Limpar users_user_permissions
+  L41: users_user_permissions | DELETE FROM users_user_permissions WHERE user_id IN (
+  L42: users | SELECT id FROM users WHERE email IN ('rafaelrdlessa@gmail.com', 'rafael@ascitech.com.br')
+  L47: users | SELECT id FROM users WHERE email IN ('rafaelrdlessa@gmail.com', 'rafael@ascitech.com.br')
+  L51: users | DELETE FROM users WHERE email IN ('rafaelrdlessa@gmail.com', 'rafael@ascitech.com.br');
+  L54: users | SELECT 'Remaining users in public:' as info;
+  L55: users | SELECT id, email FROM users;

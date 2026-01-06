@@ -1,0 +1,65 @@
+table	model	module	file	auto_created	owner	m2m_field
+alerts_alert	alerts.Alert	apps.alerts.models	backend/apps/alerts/models.py	false		
+alerts_notification_preference	alerts.NotificationPreference	apps.alerts.models	backend/apps/alerts/models.py	false		
+alerts_rule	alerts.Rule	apps.alerts.models	backend/apps/alerts/models.py	false		
+alerts_ruleparameter	alerts.RuleParameter	apps.alerts.models	backend/apps/alerts/models.py	false		
+asset_types	assets.AssetType	apps.assets.models	backend/apps/assets/models.py	false		
+assets	assets.Asset	apps.assets.models	backend/apps/assets/models.py	false		
+auth_group	auth.Group	django.contrib.auth.models	/usr/local/lib/python3.12/site-packages/django/contrib/auth/models.py	false		
+auth_group_permissions	auth.Group_permissions	django.contrib.auth.models	/usr/local/lib/python3.12/site-packages/django/contrib/auth/models.py	true	auth.Group	permissions
+auth_permission	auth.Permission	django.contrib.auth.models	/usr/local/lib/python3.12/site-packages/django/contrib/auth/models.py	false		
+cmms_checklistcategory	cmms.ChecklistCategory	apps.cmms.models	backend/apps/cmms/models.py	false		
+cmms_checklisttemplate	cmms.ChecklistTemplate	apps.cmms.models	backend/apps/cmms/models.py	false		
+cmms_externalcost	cmms.ExternalCost	apps.cmms.models	backend/apps/cmms/models.py	false		
+cmms_externalcostattachment	cmms.ExternalCostAttachment	apps.cmms.models	backend/apps/cmms/models.py	false		
+cmms_maintenanceplan	cmms.MaintenancePlan	apps.cmms.models	backend/apps/cmms/models.py	false		
+cmms_maintenanceplan_assets	cmms.MaintenancePlan_assets	apps.cmms.models	backend/apps/cmms/models.py	true	cmms.MaintenancePlan	assets
+cmms_partusage	cmms.PartUsage	apps.cmms.models	backend/apps/cmms/models.py	false		
+cmms_procedure	cmms.Procedure	apps.cmms.models	backend/apps/cmms/models.py	false		
+cmms_procedurecategory	cmms.ProcedureCategory	apps.cmms.models	backend/apps/cmms/models.py	false		
+cmms_procedureversion	cmms.ProcedureVersion	apps.cmms.models	backend/apps/cmms/models.py	false		
+cmms_request	cmms.Request	apps.cmms.models	backend/apps/cmms/models.py	false		
+cmms_requestitem	cmms.RequestItem	apps.cmms.models	backend/apps/cmms/models.py	false		
+cmms_timeentry	cmms.TimeEntry	apps.cmms.models	backend/apps/cmms/models.py	false		
+cmms_workorder	cmms.WorkOrder	apps.cmms.models	backend/apps/cmms/models.py	false		
+cmms_workorderitem	cmms.WorkOrderItem	apps.cmms.models	backend/apps/cmms/models.py	false		
+cmms_workorderphoto	cmms.WorkOrderPhoto	apps.cmms.models	backend/apps/cmms/models.py	false		
+core_events_outboxevent	core_events.OutboxEvent	apps.core_events.models	backend/apps/core_events/models.py	false		
+devices	assets.Device	apps.assets.models	backend/apps/assets/models.py	false		
+django_content_type	contenttypes.ContentType	django.contrib.contenttypes.models	/usr/local/lib/python3.12/site-packages/django/contrib/contenttypes/models.py	false		
+django_migrations						
+django_session	sessions.Session	django.contrib.sessions.models	/usr/local/lib/python3.12/site-packages/django/contrib/sessions/models.py	false		
+finance_baseline	finance.Baseline	apps.finance.models	backend/apps/finance/models.py	false		
+finance_budgetenvelope	finance.BudgetEnvelope	apps.finance.models	backend/apps/finance/models.py	false		
+finance_budgetmonth	finance.BudgetMonth	apps.finance.models	backend/apps/finance/models.py	false		
+finance_budgetplan	finance.BudgetPlan	apps.finance.models	backend/apps/finance/models.py	false		
+finance_commitment	finance.Commitment	apps.finance.models	backend/apps/finance/models.py	false		
+finance_costcenter	finance.CostCenter	apps.finance.models	backend/apps/finance/models.py	false		
+finance_costtransaction	finance.CostTransaction	apps.finance.models	backend/apps/finance/models.py	false		
+finance_energyreading	finance.EnergyReading	apps.finance.models	backend/apps/finance/models.py	false		
+finance_energytariff	finance.EnergyTariff	apps.finance.models	backend/apps/finance/models.py	false		
+finance_ledgeradjustment	finance.LedgerAdjustment	apps.finance.models	backend/apps/finance/models.py	false		
+finance_ratecard	finance.RateCard	apps.finance.models	backend/apps/finance/models.py	false		
+finance_risksnapshot	finance.RiskSnapshot	apps.finance.models	backend/apps/finance/models.py	false		
+finance_savingsevent	finance.SavingsEvent	apps.finance.models	backend/apps/finance/models.py	false		
+inventory_inventorycategory	inventory.InventoryCategory	apps.inventory.models	backend/apps/inventory/models.py	false		
+inventory_inventorycount	inventory.InventoryCount	apps.inventory.models	backend/apps/inventory/models.py	false		
+inventory_inventorycount_categories	inventory.InventoryCount_categories	apps.inventory.models	backend/apps/inventory/models.py	true	inventory.InventoryCount	categories
+inventory_inventorycountitem	inventory.InventoryCountItem	apps.inventory.models	backend/apps/inventory/models.py	false		
+inventory_inventoryitem	inventory.InventoryItem	apps.inventory.models	backend/apps/inventory/models.py	false		
+inventory_inventorymovement	inventory.InventoryMovement	apps.inventory.models	backend/apps/inventory/models.py	false		
+invites	accounts.Invite	apps.accounts.models	backend/apps/accounts/models.py	false		
+locations_company	locations.Company	apps.locations.models	backend/apps/locations/models.py	false		
+locations_locationcontact	locations.LocationContact	apps.locations.models	backend/apps/locations/models.py	false		
+locations_sector	locations.Sector	apps.locations.models	backend/apps/locations/models.py	false		
+locations_subsection	locations.Subsection	apps.locations.models	backend/apps/locations/models.py	false		
+locations_unit	locations.Unit	apps.locations.models	backend/apps/locations/models.py	false		
+password_reset_tokens	accounts.PasswordResetToken	apps.accounts.models	backend/apps/accounts/models.py	false		
+reading	ingest.Reading	apps.ingest.models	backend/apps/ingest/models.py	false		
+sensors	assets.Sensor	apps.assets.models	backend/apps/assets/models.py	false		
+sites	assets.Site	apps.assets.models	backend/apps/assets/models.py	false		
+telemetry	ingest.Telemetry	apps.ingest.models	backend/apps/ingest/models.py	false		
+tenant_memberships	accounts.TenantMembership	apps.accounts.models	backend/apps/accounts/models.py	false		
+users	accounts.User	apps.accounts.models	backend/apps/accounts/models.py	false		
+users_groups	accounts.User_groups	apps.accounts.models	backend/apps/accounts/models.py	true	accounts.User	groups
+users_user_permissions	accounts.User_user_permissions	apps.accounts.models	backend/apps/accounts/models.py	true	accounts.User	user_permissions

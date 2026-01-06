@@ -110,6 +110,9 @@ export function LocationFormModal({
   const [subSectionForm, setSubSectionForm] = useState<Partial<SubSection>>({
     name: '',                   // Nome da subseção
     sectorId: 'no-sector',      // ID do setor (inicialmente vazio)
+    area: undefined,            // Área em m²
+    occupants: undefined,       // Número de ocupantes
+    hvacUnits: undefined,       // Unidades HVAC
     notes: ''                   // Observações
   });
 
@@ -129,9 +132,9 @@ export function LocationFormModal({
             segment: company.segment || '',
             cnpj: company.cnpj || '',
             address: company.address || { zip: '', city: '', state: '', fullAddress: '' },
-            totalArea: company.totalArea || 0,
-            occupants: company.occupants || 0,
-            hvacUnits: company.hvacUnits || 0,
+            totalArea: company.totalArea || undefined,
+            occupants: company.occupants || undefined,
+            hvacUnits: company.hvacUnits || undefined,
             notes: company.notes || ''
           });
         } else if (type === 'unit') {
@@ -142,9 +145,9 @@ export function LocationFormModal({
             companyId: unit.companyId || 'no-company',
             cnpj: unit.cnpj || '',
             address: unit.address || { zip: '', city: '', state: '', fullAddress: '' },
-            totalArea: unit.totalArea || 0,
-            occupants: unit.occupants || 0,
-            hvacUnits: unit.hvacUnits || 0,
+            totalArea: unit.totalArea || undefined,
+            occupants: unit.occupants || undefined,
+            hvacUnits: unit.hvacUnits || undefined,
             notes: unit.notes || ''
           });
         } else if (type === 'sector') {
@@ -156,9 +159,9 @@ export function LocationFormModal({
             responsible: sector.responsible || '',
             phone: sector.phone || '',
             email: sector.email || '',
-            area: sector.area || 0,
-            occupants: sector.occupants || 0,
-            hvacUnits: sector.hvacUnits || 0,
+            area: sector.area || undefined,
+            occupants: sector.occupants || undefined,
+            hvacUnits: sector.hvacUnits || undefined,
             notes: sector.notes || ''
           });
         } else if (type === 'subsection') {
@@ -167,6 +170,9 @@ export function LocationFormModal({
             ...subsection,
             name: subsection.name || '',
             sectorId: subsection.sectorId || 'no-sector',
+            area: subsection.area || undefined,
+            occupants: subsection.occupants || undefined,
+            hvacUnits: subsection.hvacUnits || undefined,
             notes: subsection.notes || ''
           });
         }
@@ -206,6 +212,9 @@ export function LocationFormModal({
         setSubSectionForm({
           name: '',
           sectorId: 'no-sector',
+          area: undefined,
+          occupants: undefined,
+          hvacUnits: undefined,
           notes: ''
         });
       }
@@ -1069,6 +1078,52 @@ export function LocationFormModal({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Área, Ocupantes e Unidades HVAC */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="subSectionArea" className="mb-2 block">
+                Área (m²)
+              </Label>
+              <Input
+                id="subSectionArea"
+                type="number"
+                value={subSectionForm.area ?? ''}
+                onChange={(e) => setSubSectionForm(prev => ({ ...prev, area: e.target.value ? Number(e.target.value) : undefined }))}
+                placeholder="0"
+                className="h-10"
+                min="0"
+              />
+            </div>
+            <div>
+              <Label htmlFor="subSectionOccupants" className="mb-2 block">
+                Ocupantes
+              </Label>
+              <Input
+                id="subSectionOccupants"
+                type="number"
+                value={subSectionForm.occupants ?? ''}
+                onChange={(e) => setSubSectionForm(prev => ({ ...prev, occupants: e.target.value ? Number(e.target.value) : undefined }))}
+                placeholder="0"
+                className="h-10"
+                min="0"
+              />
+            </div>
+            <div>
+              <Label htmlFor="subSectionHvacUnits" className="mb-2 block">
+                Unidades HVAC
+              </Label>
+              <Input
+                id="subSectionHvacUnits"
+                type="number"
+                value={subSectionForm.hvacUnits ?? ''}
+                onChange={(e) => setSubSectionForm(prev => ({ ...prev, hvacUnits: e.target.value ? Number(e.target.value) : undefined }))}
+                placeholder="0"
+                className="h-10"
+                min="0"
+              />
+            </div>
           </div>
 
           {/* Observações */}

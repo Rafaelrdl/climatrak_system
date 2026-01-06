@@ -10,12 +10,13 @@ import { EquipmentSearch } from '@/components/EquipmentSearch';
 import { EquipmentEditModal } from '@/components/EquipmentEditModal';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Building2, MapPin, Users, Search, Activity, Info, Package, LayoutGrid, List, Filter, Plus } from 'lucide-react';
-import { useEquipments, equipmentKeys } from '@/hooks/useEquipmentQuery';
+import { useEquipments, useDeleteEquipment, equipmentKeys } from '@/hooks/useEquipmentQuery';
 import { useSectors, useSubsections, useCompanies, useUnits } from '@/hooks/useLocationsQuery';
 import { useSitesQuery } from '@/apps/monitor/hooks/useSitesQuery';
 import { useAssetTypes, useCreateAssetType } from '@/hooks/useAssetTypesQuery';
@@ -119,6 +120,12 @@ function AssetsContent() {
   const [isEquipmentEditModalOpen, setIsEquipmentEditModalOpen] = useState(false);
   // Equipamento sendo editado
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
+  // Controla a abertura do dialog de confirmação de exclusão
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  // Equipamento sendo excluído
+  const [deletingEquipment, setDeletingEquipment] = useState<Equipment | null>(null);
+  // Mutation para excluir equipamento
+  const deleteEquipmentMutation = useDeleteEquipment();
 
   // ========== EFEITO PARA ATUALIZAR EQUIPAMENTOS FILTRADOS ==========
   // Atualiza os equipamentos filtrados quando os dados baseados em função mudam
@@ -533,6 +540,53 @@ function AssetsContent() {
   }, []);
 
   /**
+   * ABRIR DIALOG DE EXCLUSÃO DE EQUIPAMENTO
+   * 
+   * Abre o dialog de confirmação para excluir um equipamento.
+   * 
+   * @param equipment - Equipamento a ser excluído
+   */
+  const handleDeleteEquipment = useCallback((equipment: Equipment) => {
+    setDeletingEquipment(equipment);
+    setIsDeleteDialogOpen(true);
+  }, []);
+
+  /**
+   * CONFIRMAR EXCLUSÃO DE EQUIPAMENTO
+   * 
+   * Executa a exclusão do equipamento após confirmação do usuário.
+   */
+  const confirmDeleteEquipment = useCallback(async () => {
+    if (!deletingEquipment) return;
+
+    try {
+      await deleteEquipmentMutation.mutateAsync(deletingEquipment.id);
+      toast.success(`Ativo "${deletingEquipment.tag}" excluído com sucesso!`);
+      setIsDeleteDialogOpen(false);
+      setDeletingEquipment(null);
+    } catch (error) {
+      console.error('Erro ao excluir equipamento:', error);
+      
+      // Extrair mensagem de erro do backend
+      let errorMessage = 'Erro ao excluir equipamento';
+      
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: Record<string, unknown>; status?: number } };
+        const responseData = axiosError.response?.data;
+        
+        if (responseData?.detail) {
+          errorMessage = String(responseData.detail);
+        } else if (responseData?.non_field_errors) {
+          const nonFieldErrors = responseData.non_field_errors;
+          errorMessage = Array.isArray(nonFieldErrors) ? nonFieldErrors.join(', ') : String(nonFieldErrors);
+        }
+      }
+      
+      toast.error(errorMessage);
+    }
+  }, [deletingEquipment, deleteEquipmentMutation]);
+
+  /**
    * CRIAR NOVO LOCAL
    * 
    * Abre o modal para criação de um novo local (empresa, unidade, setor ou subsetor).
@@ -759,6 +813,7 @@ function AssetsContent() {
                 setIsEquipmentDialogOpen(true);
               }}
               onEditAsset={handleEditEquipment}
+              onDeleteAsset={handleDeleteEquipment}
               externalSearchTerm={equipmentSearchTerm}
               externalViewMode={equipmentViewMode}
               externalShowFilters={showEquipmentFilters}
@@ -1404,6 +1459,33 @@ function AssetsContent() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ========== DIALOG DE CONFIRMAÇÃO DE EXCLUSÃO ========== */}
+      {/* Dialog para confirmar a exclusão de um equipamento */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Ativo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o ativo <strong>{deletingEquipment?.tag}</strong>?
+              <br /><br />
+              Esta ação não pode ser desfeita. Todos os dados relacionados a este ativo serão removidos permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletingEquipment(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteEquipment}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteEquipmentMutation.isPending}
+            >
+              {deleteEquipmentMutation.isPending ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

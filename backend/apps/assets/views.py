@@ -388,6 +388,45 @@ class AssetViewSet(viewsets.ModelViewSet):
             return AssetListSerializer
         return AssetSerializer
 
+    def destroy(self, request, *args, **kwargs):
+        """
+        Remove um asset e todos os devices/sensors relacionados.
+
+        DELETE /api/assets/{id}/
+
+        Retorna:
+            - 204 No Content: Asset removido com sucesso
+            - 400 Bad Request: Asset tem ordens de serviço ativas
+            - 404 Not Found: Asset não encontrado
+        """
+        asset = self.get_object()
+
+        # Verificar se há ordens de serviço ativas vinculadas
+        # (não bloqueia, apenas avisa - pode ser alterado conforme regra de negócio)
+        active_work_orders = getattr(asset, "work_orders", None)
+        if active_work_orders:
+            active_count = active_work_orders.filter(
+                status__in=["OPEN", "IN_PROGRESS", "PENDING"]
+            ).count()
+            if active_count > 0:
+                from rest_framework.response import Response
+                from rest_framework import status
+
+                return Response(
+                    {
+                        "detail": f"Este ativo possui {active_count} ordem(s) de serviço ativa(s). "
+                        "Finalize ou cancele as ordens de serviço antes de excluir o ativo."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Log para auditoria (opcional - pode ser expandido)
+        device_count = asset.devices.count()
+        sensor_count = sum(d.sensors.count() for d in asset.devices.all())
+
+        # Exclui o asset (cascade remove devices e sensors)
+        return super().destroy(request, *args, **kwargs)
+
     @action(detail=True, methods=["get"])
     def devices(self, request, pk=None):
         """

@@ -540,40 +540,61 @@ export function LocationDetails({ onEdit }: LocationDetailsProps) {
 
   /**
    * Renderiza os detalhes específicos para uma subseção
-   * Exibe informações em 1 cartão com observações
+   * Exibe informações em cartões: Dados Operacionais e Observações
    * @param subSection - Dados da subseção
    */
   const renderSubSectionDetails = (subSection: SubSection) => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 lg:gap-6">
-        {/* Cartão: Informações */}
+        {/* Cartão: Dados Operacionais */}
         <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-purple-100 dark:bg-purple-900/30">
-                <FileText className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <div className="p-1.5 rounded-md bg-amber-100 dark:bg-amber-900/30">
+                <Ruler className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               </div>
-              <CardTitle className="text-base">Informações</CardTitle>
+              <CardTitle className="text-base">Dados Operacionais</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            {subSection.notes ? (
-              <div className="flex items-start gap-3">
-                <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/30">
+                  <Ruler className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Observações</label>
-                  <p className="text-sm text-muted-foreground break-words mt-1">{subSection.notes}</p>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Área</label>
+                  <p className="text-base font-semibold">{subSection.area?.toLocaleString() || '-'} <span className="text-xs font-normal text-muted-foreground">m²</span></p>
                 </div>
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-6 text-center">
-                <div className="p-3 rounded-full bg-muted/50 mb-3">
-                  <FileText className="h-5 w-5 text-muted-foreground/50" />
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="p-2 rounded-md bg-emerald-100 dark:bg-emerald-900/30">
+                  <UsersRound className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                <p className="text-sm text-muted-foreground">Nenhuma observação cadastrada</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">
-                  Clique em editar para adicionar informações
-                </p>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Ocupantes</label>
+                  <p className="text-base font-semibold">{subSection.occupants || '-'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="p-2 rounded-md bg-cyan-100 dark:bg-cyan-900/30">
+                  <Wind className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Unidades HVAC</label>
+                  <p className="text-base font-semibold">{subSection.hvacUnits || '-'}</p>
+                </div>
+              </div>
+            </div>
+            {subSection.notes && (
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-start gap-3">
+                  <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Observações</label>
+                    <p className="text-sm text-muted-foreground break-words mt-1">{subSection.notes}</p>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>

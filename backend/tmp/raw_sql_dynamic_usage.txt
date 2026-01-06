@@ -1,0 +1,41 @@
+DYNAMIC_SQL_CALLS
+backend\apps\ingest\api_views.py
+  L249: cursor.execute
+    - arg0: variable | sql
+backend\apps\ingest\api_views_extended.py
+  L80: cursor.execute
+    - arg0: variable | sql
+  L444: cursor.execute
+    - arg0: variable | sql_latest
+  L455: cursor.execute
+    - arg0: variable | sql_stats
+  L472: cursor.execute
+    - arg0: variable | stats_24h_sql
+  L357: cursor.execute
+    - arg0: variable | sql
+  L359: cursor.execute
+    - arg0: variable | sql
+  L793: cursor.execute
+    - arg0: variable | sql
+backend\apps\ops\views.py
+  L145: cursor.execute
+    - arg0: variable | sql
+  L174: cursor.execute
+    - arg0: variable | count_sql
+  L263: cursor.execute
+    - arg0: variable | sql
+  L291: cursor.execute
+    - arg0: variable | stats_sql
+  L404: cursor.execute
+    - arg0: variable | sql
+  L573: cursor.execute
+    - arg0: variable | sql
+  L479: cursor.execute
+    - arg0: variable | sql
+backend\test_telemetry_api.py
+  L149: cursor.execute
+    - arg0: variable | sql
+  L169: cursor.execute
+    - arg0: variable | sql_sample
+
+RAW_OR_EXTRA_LITERAL_CALLS

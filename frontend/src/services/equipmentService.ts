@@ -482,6 +482,13 @@ export const equipmentService = {
   },
 
   /**
+   * Exclui um equipamento/ativo
+   */
+  async delete(id: string): Promise<void> {
+    await api.delete(`/assets/${id}/`);
+  },
+
+  /**
    * Busca estatísticas gerais dos equipamentos
    */
   async getStats(): Promise<{

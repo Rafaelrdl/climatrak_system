@@ -37,6 +37,9 @@ class SubsectionSerializer(serializers.ModelSerializer):
     description = serializers.CharField(required=False, allow_blank=True)
     position = serializers.CharField(required=False, allow_blank=True, max_length=100)
     reference = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    area = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    occupants = serializers.IntegerField(required=False, allow_null=True)
+    hvac_units = serializers.IntegerField(required=False, allow_null=True)
 
     # Campos de navegação (somente leitura)
     sector_name = serializers.CharField(source="sector.name", read_only=True)
@@ -85,6 +88,9 @@ class SubsectionSerializer(serializers.ModelSerializer):
             "company_name",
             "position",
             "reference",
+            "area",
+            "occupants",
+            "hvac_units",
             "full_path",
             "asset_count",
             "contacts",
@@ -119,6 +125,9 @@ class SubsectionListSerializer(serializers.ModelSerializer):
             "company_name",
             "position",
             "reference",
+            "area",
+            "occupants",
+            "hvac_units",
             "asset_count",
             "created_at",
             "updated_at",

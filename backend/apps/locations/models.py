@@ -269,6 +269,15 @@ class Subsection(Location):
     position = models.CharField("Posição", max_length=100, blank=True)
     reference = models.CharField("Referência", max_length=200, blank=True)
 
+    # Dados operacionais
+    area = models.DecimalField(
+        "Área (m²)", max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    occupants = models.PositiveIntegerField(
+        "Número de Ocupantes", null=True, blank=True
+    )
+    hvac_units = models.PositiveIntegerField("Unidades HVAC", null=True, blank=True)
+
     class Meta(Location.Meta):
         verbose_name = "Subseção"
         verbose_name_plural = "Subseções"
