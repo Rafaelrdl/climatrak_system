@@ -67,13 +67,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
    * Step 2: Login with credentials
    */
   login: async (email: string, password: string, tenantSlug: string) => {
+    console.log('[AuthStore] login called:', { email, tenantSlug });
     set({ isLoading: true, error: null });
 
     try {
+      console.log('[AuthStore] Calling authService.login...');
       const { user, tokens } = await authService.login(
         { email, password },
         tenantSlug
       );
+      console.log('[AuthStore] authService.login success');
 
       // Configure API with tenant
       configureApi(tenantSlug);
@@ -89,6 +92,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Save last tenant for quick login
       await globalStorage.setLastTenantSlug(tenantSlug);
 
+      console.log('[AuthStore] Setting isAuthenticated: true');
       set({
         user,
         tenant: currentTenant,

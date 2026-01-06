@@ -31,6 +31,8 @@ export default function LoginEmailScreen() {
   };
 
   const handleContinue = async () => {
+    console.log('[LoginEmail] handleContinue called, email:', email);
+    
     if (!email.trim()) {
       Alert.alert('Atenção', 'Digite seu email');
       return;
@@ -43,9 +45,16 @@ export default function LoginEmailScreen() {
 
     try {
       clearError();
+      console.log('[LoginEmail] Calling discoverTenant...');
       const tenant = await discoverTenant(email.trim().toLowerCase());
+      console.log('[LoginEmail] discoverTenant success:', tenant);
       
       // Navigate to password screen with email and tenant
+      console.log('[LoginEmail] Navigating to login-password with params:', {
+        email: email.trim().toLowerCase(),
+        tenantSlug: tenant.slug,
+        tenantName: tenant.name,
+      });
       router.push({
         pathname: '/(auth)/login-password',
         params: { 
@@ -55,6 +64,7 @@ export default function LoginEmailScreen() {
         },
       });
     } catch (err: any) {
+      console.log('[LoginEmail] Error:', err);
       Alert.alert('Erro', err.message || 'Não foi possível encontrar sua organização');
     }
   };

@@ -2,7 +2,7 @@
 // ClimaTrak Mobile - Login Password Screen (Step 2)
 // ============================================================
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -27,31 +27,58 @@ export default function LoginPasswordScreen() {
     tenantName: string;
   }>();
   
-  const { login, isLoading, clearError } = useAuthStore();
+  // Get tenant from store as fallback (saved during discoverTenant)
+  const { login, isLoading, clearError, tenant: storedTenant } = useAuthStore();
   
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  // Use params if available, otherwise fallback to stored tenant
+  const email = params.email;
+  const tenantSlug = params.tenantSlug || storedTenant?.slug;
+  const tenantName = params.tenantName || storedTenant?.name;
+
+  // Redirect to login-email if missing required data
+  useEffect(() => {
+    if (!email || !tenantSlug) {
+      console.log('[LoginPassword] Missing required data, redirecting to login-email');
+      router.replace('/(auth)/login-email');
+    }
+  }, [email, tenantSlug]);
+
   const handleLogin = async () => {
+    console.log('[LoginPassword] handleLogin called');
+    console.log('[LoginPassword] password:', password ? '***' : '(empty)');
+    console.log('[LoginPassword] email:', email);
+    console.log('[LoginPassword] tenantSlug:', tenantSlug);
+    
     if (!password.trim()) {
       Alert.alert('Atenção', 'Digite sua senha');
       return;
     }
 
-    if (!params.email || !params.tenantSlug) {
-      Alert.alert('Erro', 'Dados de login inválidos');
-      router.back();
+    if (!email || !tenantSlug) {
+      Alert.alert('Erro', 'Dados de login inválidos. Volte e tente novamente.');
+      router.replace('/(auth)/login-email');
       return;
     }
 
     try {
       clearError();
-      await login(params.email, password, params.tenantSlug);
+      console.log('[LoginPassword] Calling login...');
+      await login(email, password, tenantSlug);
+      console.log('[LoginPassword] Login successful!');
       // Navigation happens automatically via auth state change in _layout
     } catch (err: any) {
+      console.log('[LoginPassword] Login error:', err);
       Alert.alert('Erro', err.message || 'Email ou senha incorretos');
     }
   };
+
+  // Don't render if missing required data
+  if (!email || !tenantSlug) {
+    return null;
+  }
 
   const handleBack = () => {
     clearError();
@@ -82,8 +109,8 @@ export default function LoginPasswordScreen() {
               <Building2 size={24} color={theme.colors.primary[500]} />
             </View>
             <View style={styles.tenantInfo}>
-              <Text style={styles.tenantName}>{params.tenantName}</Text>
-              <Text style={styles.tenantEmail}>{params.email}</Text>
+              <Text style={styles.tenantName}>{tenantName}</Text>
+              <Text style={styles.tenantEmail}>{email}</Text>
             </View>
           </View>
 

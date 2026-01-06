@@ -41,7 +41,9 @@ function RootLayoutNav() {
 
   // Handle auth state changes
   useEffect(() => {
-    if (isRestoring) return;
+    if (isRestoring) {
+      return;
+    }
 
     const inAuthGroup = segments[0] === '(auth)';
 

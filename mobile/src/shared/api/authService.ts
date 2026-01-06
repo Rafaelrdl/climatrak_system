@@ -24,11 +24,35 @@ export const authService = {
    * Returns tenant info if user exists
    */
   async discoverTenant(email: string): Promise<DiscoverTenantResponse> {
-    const response = await publicApi.post<DiscoverTenantResponse>(
+    interface BackendDiscoverResponse {
+      found: boolean;
+      email: string;
+      primary_tenant: {
+        schema_name: string;
+        slug: string;
+        name: string;
+        domain?: string;
+      };
+      has_multiple_tenants: boolean;
+    }
+    
+    const response = await publicApi.post<BackendDiscoverResponse>(
       '/api/v2/auth/discover-tenant/',
       { email }
     );
-    return response.data;
+    
+    const data = response.data;
+    
+    if (!data.found || !data.primary_tenant) {
+      throw new Error('Usuário não encontrado');
+    }
+    
+    // Transform backend response to expected format
+    return {
+      tenant_id: data.primary_tenant.schema_name,
+      tenant_slug: data.primary_tenant.slug,
+      tenant_name: data.primary_tenant.name,
+    };
   },
 
   /**
