@@ -14,7 +14,11 @@ const API_TIMEOUT = 30000; // 30 seconds
 // In development, this should point to your local backend
 // For Android emulator, use 10.0.2.2 instead of localhost
 const getDefaultBaseUrl = (): string => {
-  // This will be configured via environment variables
+  // Use Expo environment variable if available
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envUrl) {
+    return envUrl;
+  }
   // Default for development
   return 'http://localhost:8000';
 };
@@ -215,7 +219,7 @@ export const isNetworkError = (error: unknown): boolean => {
 };
 
 // ==================== Public API URL (for tenant discovery) ====================
-let publicApiUrl = 'http://localhost:8000';
+let publicApiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
 export const setPublicApiUrl = (url: string): void => {
   publicApiUrl = url;

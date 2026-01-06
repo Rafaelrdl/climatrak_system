@@ -25,7 +25,7 @@ export const authService = {
    */
   async discoverTenant(email: string): Promise<DiscoverTenantResponse> {
     const response = await publicApi.post<DiscoverTenantResponse>(
-      '/v2/auth/discover-tenant/',
+      '/api/v2/auth/discover-tenant/',
       { email }
     );
     return response.data;
