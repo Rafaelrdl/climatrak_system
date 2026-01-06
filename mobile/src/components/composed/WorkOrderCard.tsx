@@ -192,7 +192,7 @@ export const WorkOrderCard: React.FC<WorkOrderCardProps> = ({
           {dueDate && (
             <View style={styles.dueDateContainer}>
               <Clock size={14} color={isOverdue ? colors.destructive.DEFAULT : colors.muted.foreground} />
-              <Text style={[styles.dueDateText, isOverdue && styles.overdueText]}>
+              <Text style={[styles.dueDateText, isOverdue ? styles.overdueText : undefined]}>
                 {dueDate}
               </Text>
             </View>

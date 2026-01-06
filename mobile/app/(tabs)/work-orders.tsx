@@ -1,5 +1,5 @@
 // ============================================================
-// ClimaTrak Mobile - Work Orders Screen
+// ClimaTrak Mobile - Work Orders Screen (Migrated to Design System)
 // ============================================================
 
 import { useState, useCallback } from 'react';
@@ -18,7 +18,6 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Search,
-  Filter,
   X,
   Clock,
   User,
@@ -27,7 +26,8 @@ import {
 } from 'lucide-react-native';
 import { workOrderService } from '@/shared/api';
 import { useSyncStore } from '@/store';
-import { theme } from '@/theme';
+import { colors, spacing, radius, typography, shadows, iconSizes } from '@/theme/tokens';
+import { Badge } from '@/components/ui';
 import type { WorkOrder, WorkOrderFilters } from '@/types';
 
 type FilterTab = 'all' | 'mine' | 'pending' | 'in_progress';
@@ -46,6 +46,22 @@ const PRIORITY_LABELS: Record<string, string> = {
   MEDIUM: 'Média',
   HIGH: 'Alta',
   CRITICAL: 'Urgente',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  OPEN: colors.workOrder.open,
+  IN_PROGRESS: colors.workOrder.inProgress,
+  COMPLETED: colors.workOrder.completed,
+  CANCELLED: colors.workOrder.cancelled,
+  ON_HOLD: colors.neutral[500],
+  PENDING_REVIEW: colors.status.warning,
+};
+
+const PRIORITY_COLORS: Record<string, string> = {
+  LOW: colors.priority.low,
+  MEDIUM: colors.priority.medium,
+  HIGH: colors.priority.high,
+  CRITICAL: colors.priority.critical,
 };
 
 export default function WorkOrdersScreen() {
@@ -112,79 +128,74 @@ export default function WorkOrdersScreen() {
     }
   };
 
-  const renderWorkOrder = useCallback(({ item }: { item: WorkOrder }) => (
-    <TouchableOpacity
-      style={styles.orderCard}
-      onPress={() => router.push(`/work-order/${item.id}`)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.orderHeader}>
-        <View style={styles.orderNumber}>
-          <Text style={styles.orderNumberText}>{item.number}</Text>
-        </View>
-        <View style={[
-          styles.statusBadge,
-          { backgroundColor: theme.colors.workOrder[item.status] + '20' },
-        ]}>
-          <View style={[
-            styles.statusDot,
-            { backgroundColor: theme.colors.workOrder[item.status] },
-          ]} />
-          <Text style={[
-            styles.statusText,
-            { color: theme.colors.workOrder[item.status] },
-          ]}>
+  const renderWorkOrder = useCallback(({ item }: { item: WorkOrder }) => {
+    const statusColor = STATUS_COLORS[item.status] || colors.neutral[500];
+    const priorityColor = PRIORITY_COLORS[item.priority] || colors.neutral[500];
+    
+    return (
+      <TouchableOpacity
+        style={styles.orderCard}
+        onPress={() => router.push(`/work-order/${item.id}`)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.orderHeader}>
+          <View style={styles.orderNumber}>
+            <Text style={styles.orderNumberText}>{item.number}</Text>
+          </View>
+          <Badge 
+            variant="outline"
+            size="sm"
+            style={{ backgroundColor: `${statusColor}20`, borderColor: statusColor }}
+            textStyle={{ color: statusColor }}
+          >
             {STATUS_LABELS[item.status]}
-          </Text>
+          </Badge>
         </View>
-      </View>
 
-      <Text style={styles.orderTitle} numberOfLines={2}>
-        {item.title}
-      </Text>
+        <Text style={styles.orderTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
 
-      <View style={styles.orderMeta}>
-        <View style={styles.metaItem}>
-          <MapPin size={14} color={theme.colors.neutral[400]} />
-          <Text style={styles.metaText} numberOfLines={1}>
-            {item.asset_name || 'Sem ativo'}
-          </Text>
-        </View>
-        
-        {item.assigned_to_name && (
+        <View style={styles.orderMeta}>
           <View style={styles.metaItem}>
-            <User size={14} color={theme.colors.neutral[400]} />
+            <MapPin size={iconSizes.xs} color={colors.neutral[400]} />
             <Text style={styles.metaText} numberOfLines={1}>
-              {item.assigned_to_name}
+              {item.asset_name || 'Sem ativo'}
             </Text>
           </View>
-        )}
-      </View>
+          
+          {item.assigned_to_name && (
+            <View style={styles.metaItem}>
+              <User size={iconSizes.xs} color={colors.neutral[400]} />
+              <Text style={styles.metaText} numberOfLines={1}>
+                {item.assigned_to_name}
+              </Text>
+            </View>
+          )}
+        </View>
 
-      <View style={styles.orderFooter}>
-        <View style={[
-          styles.priorityBadge,
-          { backgroundColor: theme.colors.priority[item.priority] + '15' },
-        ]}>
-          <Text style={[
-            styles.priorityText,
-            { color: theme.colors.priority[item.priority] },
+        <View style={styles.orderFooter}>
+          <View style={[
+            styles.priorityBadge,
+            { backgroundColor: `${priorityColor}15` },
           ]}>
-            {PRIORITY_LABELS[item.priority]}
-          </Text>
-        </View>
+            <Text style={[styles.priorityText, { color: priorityColor }]}>
+              {PRIORITY_LABELS[item.priority]}
+            </Text>
+          </View>
 
-        <View style={styles.dateContainer}>
-          <Clock size={14} color={theme.colors.neutral[400]} />
-          <Text style={styles.dateText}>
-            {new Date(item.created_at).toLocaleDateString('pt-BR')}
-          </Text>
-        </View>
+          <View style={styles.dateContainer}>
+            <Clock size={iconSizes.xs} color={colors.neutral[400]} />
+            <Text style={styles.dateText}>
+              {new Date(item.created_at).toLocaleDateString('pt-BR')}
+            </Text>
+          </View>
 
-        <ChevronRight size={18} color={theme.colors.neutral[400]} />
-      </View>
-    </TouchableOpacity>
-  ), [router]);
+          <ChevronRight size={iconSizes.sm} color={colors.neutral[400]} />
+        </View>
+      </TouchableOpacity>
+    );
+  }, [router]);
 
   const renderEmpty = () => (
     <View style={styles.emptyState}>
@@ -199,7 +210,7 @@ export default function WorkOrdersScreen() {
     if (!isFetchingNextPage) return null;
     return (
       <View style={styles.footer}>
-        <ActivityIndicator size="small" color={theme.colors.primary[500]} />
+        <ActivityIndicator size="small" color={colors.primary.DEFAULT} />
       </View>
     );
   };
@@ -209,17 +220,17 @@ export default function WorkOrdersScreen() {
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Search size={20} color={theme.colors.neutral[400]} />
+          <Search size={iconSizes.md} color={colors.neutral[400]} />
           <TextInput
             style={styles.searchInput}
             value={search}
             onChangeText={setSearch}
             placeholder="Buscar por número, título, ativo..."
-            placeholderTextColor={theme.colors.neutral[400]}
+            placeholderTextColor={colors.neutral[400]}
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <X size={20} color={theme.colors.neutral[400]} />
+              <X size={iconSizes.md} color={colors.neutral[400]} />
             </TouchableOpacity>
           )}
         </View>
@@ -274,7 +285,7 @@ export default function WorkOrdersScreen() {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            colors={[theme.colors.primary[500]]}
+            colors={[colors.primary.DEFAULT]}
           />
         }
         onEndReached={handleEndReached}
@@ -287,7 +298,7 @@ export default function WorkOrdersScreen() {
       {/* Loading Overlay */}
       {isLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
+          <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
         </View>
       )}
     </SafeAreaView>
@@ -297,171 +308,154 @@ export default function WorkOrdersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.neutral[50],
+    backgroundColor: colors.background,
   },
   searchContainer: {
-    backgroundColor: theme.colors.white,
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[3],
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.neutral[200],
+    borderBottomColor: colors.neutral[200],
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.neutral[100],
-    borderRadius: theme.borderRadius.lg,
-    paddingHorizontal: theme.spacing[3],
+    backgroundColor: colors.neutral[100],
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing[3],
     height: 44,
-    gap: 8,
+    gap: spacing[2],
   },
   searchInput: {
     flex: 1,
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.neutral[900],
+    fontSize: typography.sizes.base,
+    color: colors.neutral[900],
   },
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.white,
-    paddingHorizontal: theme.spacing[4],
-    paddingBottom: theme.spacing[2],
-    gap: 4,
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing[4],
+    paddingBottom: spacing[2],
+    gap: spacing[1],
   },
   tab: {
     flex: 1,
-    paddingVertical: theme.spacing[2],
+    paddingVertical: spacing[2],
     alignItems: 'center',
-    borderRadius: theme.borderRadius.md,
+    borderRadius: radius.md,
   },
   tabActive: {
-    backgroundColor: theme.colors.primary[50],
+    backgroundColor: colors.primary[50],
   },
   tabText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[500],
-    fontWeight: '500',
+    fontSize: typography.sizes.sm,
+    color: colors.neutral[500],
+    fontWeight: typography.weights.medium,
   },
   tabTextActive: {
-    color: theme.colors.primary[600],
+    color: colors.primary[600],
   },
   listContent: {
-    padding: theme.spacing[4],
-    paddingTop: theme.spacing[3],
+    padding: spacing[4],
+    paddingTop: spacing[3],
   },
   orderCard: {
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[4],
-    ...theme.shadows.sm,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: spacing[4],
+    ...shadows.sm,
   },
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing[2],
+    marginBottom: spacing[2],
   },
   orderNumber: {
-    backgroundColor: theme.colors.neutral[100],
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.borderRadius.sm,
+    backgroundColor: colors.neutral[100],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: radius.sm,
   },
   orderNumberText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: '600',
-    color: theme.colors.neutral[600],
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.borderRadius.full,
-    gap: 6,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: '500',
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+    color: colors.neutral[600],
   },
   orderTitle: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: '500',
-    color: theme.colors.neutral[900],
-    marginBottom: theme.spacing[3],
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.medium,
+    color: colors.neutral[900],
+    marginBottom: spacing[3],
     lineHeight: 22,
   },
   orderMeta: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: theme.spacing[3],
+    gap: spacing[3],
+    marginBottom: spacing[3],
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing[1],
     maxWidth: '45%',
   },
   metaText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[500],
+    fontSize: typography.sizes.sm,
+    color: colors.neutral[500],
   },
   orderFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: theme.spacing[3],
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: theme.colors.neutral[100],
+    borderTopColor: colors.neutral[100],
   },
   priorityBadge: {
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: radius.sm,
   },
   priorityText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: '500',
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
   },
   dateContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing[1],
     marginLeft: 'auto',
-    marginRight: theme.spacing[2],
+    marginRight: spacing[2],
   },
   dateText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.neutral[500],
+    fontSize: typography.sizes.xs,
+    color: colors.neutral[500],
   },
   separator: {
-    height: theme.spacing[3],
+    height: spacing[3],
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: theme.spacing[12],
+    paddingVertical: spacing[12],
   },
   emptyTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: '600',
-    color: theme.colors.neutral[900],
-    marginBottom: theme.spacing[2],
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.semibold,
+    color: colors.neutral[900],
+    marginBottom: spacing[2],
   },
   emptySubtitle: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[500],
+    fontSize: typography.sizes.sm,
+    color: colors.neutral[500],
   },
   footer: {
-    paddingVertical: theme.spacing[4],
+    paddingVertical: spacing[4],
     alignItems: 'center',
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.colors.white,
+    backgroundColor: colors.card,
     justifyContent: 'center',
     alignItems: 'center',
   },

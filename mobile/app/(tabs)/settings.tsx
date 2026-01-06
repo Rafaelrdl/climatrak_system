@@ -1,5 +1,5 @@
 // ============================================================
-// ClimaTrak Mobile - Settings Screen
+// ClimaTrak Mobile - Settings Screen (Migrated to Design System)
 // ============================================================
 
 import {
@@ -9,13 +9,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   User,
   Building2,
-  Bell,
   Wifi,
   WifiOff,
   CloudOff,
@@ -27,8 +25,9 @@ import {
   Shield,
 } from 'lucide-react-native';
 import { useAuthStore, useSyncStore } from '@/store';
-import { cacheStorage, syncQueueStorage } from '@/shared/storage';
-import { theme } from '@/theme';
+import { cacheStorage } from '@/shared/storage';
+import { colors, spacing, radius, typography, shadows, iconSizes } from '@/theme/tokens';
+import { Card, CardContent, Button, Badge } from '@/components/ui';
 
 export default function SettingsScreen() {
   const { user, tenant, logout } = useAuthStore();
@@ -94,139 +93,136 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Conta</Text>
           
-          <View style={styles.card}>
-            <View style={styles.userInfo}>
-              <View style={styles.avatar}>
-                <User size={24} color={theme.colors.primary[600]} />
+          <Card style={styles.card}>
+            <CardContent style={styles.cardContent}>
+              <View style={styles.userInfo}>
+                <View style={styles.avatar}>
+                  <User size={iconSizes.lg} color={colors.primary[600]} />
+                </View>
+                <View style={styles.userDetails}>
+                  <Text style={styles.userName}>{user?.name || 'Usuário'}</Text>
+                  <Text style={styles.userEmail}>{user?.email}</Text>
+                </View>
               </View>
-              <View style={styles.userDetails}>
-                <Text style={styles.userName}>{user?.name || 'Usuário'}</Text>
-                <Text style={styles.userEmail}>{user?.email}</Text>
+              
+              <View style={styles.divider} />
+              
+              <View style={styles.infoRow}>
+                <View style={styles.infoLabel}>
+                  <Building2 size={iconSizes.sm} color={colors.neutral[500]} />
+                  <Text style={styles.infoLabelText}>Organização</Text>
+                </View>
+                <Text style={styles.infoValue}>{tenant?.name}</Text>
               </View>
-            </View>
-            
-            <View style={styles.divider} />
-            
-            <View style={styles.infoRow}>
-              <View style={styles.infoLabel}>
-                <Building2 size={18} color={theme.colors.neutral[500]} />
-                <Text style={styles.infoLabelText}>Organização</Text>
+              
+              <View style={styles.infoRow}>
+                <View style={styles.infoLabel}>
+                  <Shield size={iconSizes.sm} color={colors.neutral[500]} />
+                  <Text style={styles.infoLabelText}>Função</Text>
+                </View>
+                <Text style={styles.infoValue}>
+                  {user?.role === 'technician' ? 'Técnico' : 
+                   user?.role === 'admin' ? 'Administrador' : 
+                   user?.role || 'N/A'}
+                </Text>
               </View>
-              <Text style={styles.infoValue}>{tenant?.name}</Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <View style={styles.infoLabel}>
-                <Shield size={18} color={theme.colors.neutral[500]} />
-                <Text style={styles.infoLabelText}>Função</Text>
-              </View>
-              <Text style={styles.infoValue}>
-                {user?.role === 'technician' ? 'Técnico' : 
-                 user?.role === 'admin' ? 'Administrador' : 
-                 user?.role || 'N/A'}
-              </Text>
-            </View>
-          </View>
+            </CardContent>
+          </Card>
         </View>
 
         {/* Sync Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Sincronização</Text>
           
-          <View style={styles.card}>
-            <View style={styles.infoRow}>
-              <View style={styles.infoLabel}>
-                {isOnline ? (
-                  <Wifi size={18} color={theme.colors.semantic.success} />
-                ) : (
-                  <WifiOff size={18} color={theme.colors.semantic.error} />
-                )}
-                <Text style={styles.infoLabelText}>Conexão</Text>
-              </View>
-              <View style={[
-                styles.statusBadge,
-                isOnline ? styles.statusOnline : styles.statusOffline,
-              ]}>
-                <Text style={[
-                  styles.statusText,
-                  isOnline ? styles.statusTextOnline : styles.statusTextOffline,
-                ]}>
+          <Card style={styles.card}>
+            <CardContent style={styles.cardContent}>
+              <View style={styles.infoRow}>
+                <View style={styles.infoLabel}>
+                  {isOnline ? (
+                    <Wifi size={iconSizes.sm} color={colors.status.online} />
+                  ) : (
+                    <WifiOff size={iconSizes.sm} color={colors.destructive.DEFAULT} />
+                  )}
+                  <Text style={styles.infoLabelText}>Conexão</Text>
+                </View>
+                <Badge 
+                  variant={isOnline ? 'success' : 'destructive'}
+                  size="sm"
+                >
                   {isOnline ? 'Online' : 'Offline'}
-                </Text>
+                </Badge>
               </View>
-            </View>
 
-            <View style={styles.infoRow}>
-              <View style={styles.infoLabel}>
-                <CloudOff size={18} color={theme.colors.neutral[500]} />
-                <Text style={styles.infoLabelText}>Pendentes</Text>
+              <View style={styles.infoRow}>
+                <View style={styles.infoLabel}>
+                  <CloudOff size={iconSizes.sm} color={colors.neutral[500]} />
+                  <Text style={styles.infoLabelText}>Pendentes</Text>
+                </View>
+                <Badge 
+                  variant={pendingCount > 0 ? 'warning' : 'secondary'}
+                  size="sm"
+                >
+                  {pendingCount} {pendingCount === 1 ? 'item' : 'itens'}
+                </Badge>
               </View>
-              <Text style={[
-                styles.infoValue,
-                pendingCount > 0 && { color: theme.colors.semantic.warning },
-              ]}>
-                {pendingCount} {pendingCount === 1 ? 'item' : 'itens'}
-              </Text>
-            </View>
 
-            <View style={styles.infoRow}>
-              <View style={styles.infoLabel}>
-                <RefreshCw size={18} color={theme.colors.neutral[500]} />
-                <Text style={styles.infoLabelText}>Última sincronização</Text>
+              <View style={styles.infoRow}>
+                <View style={styles.infoLabel}>
+                  <RefreshCw size={iconSizes.sm} color={colors.neutral[500]} />
+                  <Text style={styles.infoLabelText}>Última sincronização</Text>
+                </View>
+                <Text style={styles.infoValue}>{formatDate(lastSyncAt)}</Text>
               </View>
-              <Text style={styles.infoValue}>{formatDate(lastSyncAt)}</Text>
-            </View>
 
-            <View style={styles.divider} />
+              <View style={styles.divider} />
 
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                (!isOnline || isSyncing) && styles.actionButtonDisabled,
-              ]}
-              onPress={handleSync}
-              disabled={!isOnline || isSyncing}
-            >
-              <RefreshCw 
-                size={18} 
-                color={isOnline ? theme.colors.primary[600] : theme.colors.neutral[400]} 
-              />
-              <Text style={[
-                styles.actionButtonText,
-                (!isOnline || isSyncing) && styles.actionButtonTextDisabled,
-              ]}>
+              <Button
+                variant="secondary"
+                onPress={handleSync}
+                disabled={!isOnline || isSyncing}
+                loading={isSyncing}
+                leftIcon={<RefreshCw size={iconSizes.sm} color={isOnline ? colors.primary[600] : colors.neutral[400]} />}
+                fullWidth
+              >
                 {isSyncing ? 'Sincronizando...' : 'Sincronizar Agora'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+              </Button>
+            </CardContent>
+          </Card>
         </View>
 
         {/* App Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Aplicativo</Text>
           
-          <View style={styles.card}>
-            <TouchableOpacity style={styles.menuItem} onPress={handleClearCache}>
-              <Trash2 size={18} color={theme.colors.neutral[600]} />
-              <Text style={styles.menuItemText}>Limpar Cache</Text>
-              <ChevronRight size={18} color={theme.colors.neutral[400]} />
-            </TouchableOpacity>
+          <Card style={styles.card}>
+            <CardContent style={styles.cardContent}>
+              <TouchableOpacity style={styles.menuItem} onPress={handleClearCache}>
+                <Trash2 size={iconSizes.sm} color={colors.neutral[600]} />
+                <Text style={styles.menuItemText}>Limpar Cache</Text>
+                <ChevronRight size={iconSizes.sm} color={colors.neutral[400]} />
+              </TouchableOpacity>
 
-            <View style={styles.divider} />
+              <View style={styles.divider} />
 
-            <View style={styles.menuItem}>
-              <Info size={18} color={theme.colors.neutral[600]} />
-              <Text style={styles.menuItemText}>Versão</Text>
-              <Text style={styles.menuItemValue}>1.0.0</Text>
-            </View>
-          </View>
+              <View style={styles.menuItem}>
+                <Info size={iconSizes.sm} color={colors.neutral[600]} />
+                <Text style={styles.menuItemText}>Versão</Text>
+                <Text style={styles.menuItemValue}>1.0.0</Text>
+              </View>
+            </CardContent>
+          </Card>
         </View>
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <LogOut size={20} color={theme.colors.semantic.error} />
-          <Text style={styles.logoutText}>Sair da Conta</Text>
-        </TouchableOpacity>
+        <Button
+          variant="destructive"
+          onPress={handleLogout}
+          leftIcon={<LogOut size={iconSizes.md} color={colors.white} />}
+          fullWidth
+          style={styles.logoutButton}
+        >
+          Sair da Conta
+        </Button>
 
         {/* Footer */}
         <View style={styles.footer}>
@@ -241,168 +237,115 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.neutral[50],
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: theme.spacing[4],
-    paddingBottom: theme.spacing[8],
+    padding: spacing[4],
+    paddingBottom: spacing[8],
   },
   section: {
-    marginBottom: theme.spacing[6],
+    marginBottom: spacing[6],
   },
   sectionTitle: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: '600',
-    color: theme.colors.neutral[500],
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.neutral[500],
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: theme.spacing[2],
-    marginLeft: theme.spacing[1],
+    marginBottom: spacing[2],
+    marginLeft: spacing[1],
   },
   card: {
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[4],
-    ...theme.shadows.sm,
+    ...shadows.sm,
+  },
+  cardContent: {
+    padding: spacing[4],
   },
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing[4],
+    marginBottom: spacing[4],
   },
   avatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.primary[50],
+    backgroundColor: colors.primary[50],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing[3],
+    marginRight: spacing[3],
   },
   userDetails: {
     flex: 1,
   },
   userName: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: '600',
-    color: theme.colors.neutral[900],
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.semibold,
+    color: colors.neutral[900],
   },
   userEmail: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[500],
+    fontSize: typography.sizes.sm,
+    color: colors.neutral[500],
     marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: theme.colors.neutral[100],
-    marginVertical: theme.spacing[3],
+    backgroundColor: colors.neutral[100],
+    marginVertical: spacing[3],
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing[2],
+    paddingVertical: spacing[2],
   },
   infoLabel: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[2],
   },
   infoLabelText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[600],
+    fontSize: typography.sizes.sm,
+    color: colors.neutral[600],
   },
   infoValue: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: '500',
-    color: theme.colors.neutral[900],
-  },
-  statusBadge: {
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.borderRadius.full,
-  },
-  statusOnline: {
-    backgroundColor: theme.colors.semantic.success + '15',
-  },
-  statusOffline: {
-    backgroundColor: theme.colors.semantic.error + '15',
-  },
-  statusText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: '500',
-  },
-  statusTextOnline: {
-    color: theme.colors.semantic.success,
-  },
-  statusTextOffline: {
-    color: theme.colors.semantic.error,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: theme.spacing[3],
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.primary[50],
-    gap: 8,
-  },
-  actionButtonDisabled: {
-    backgroundColor: theme.colors.neutral[100],
-  },
-  actionButtonText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: '600',
-    color: theme.colors.primary[600],
-  },
-  actionButtonTextDisabled: {
-    color: theme.colors.neutral[400],
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.neutral[900],
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing[2],
-    gap: 12,
+    paddingVertical: spacing[2],
+    gap: spacing[3],
   },
   menuItemText: {
     flex: 1,
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.neutral[700],
+    fontSize: typography.sizes.base,
+    color: colors.neutral[700],
   },
   menuItemValue: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[500],
+    fontSize: typography.sizes.sm,
+    color: colors.neutral[500],
   },
   logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: theme.spacing[4],
-    borderRadius: theme.borderRadius.lg,
-    backgroundColor: theme.colors.semantic.error + '10',
-    gap: 8,
-    marginBottom: theme.spacing[6],
-  },
-  logoutText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: '600',
-    color: theme.colors.semantic.error,
+    marginBottom: spacing[6],
   },
   footer: {
     alignItems: 'center',
-    paddingVertical: theme.spacing[4],
+    paddingVertical: spacing[4],
   },
   footerText: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: '500',
-    color: theme.colors.neutral[400],
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.neutral[400],
   },
   footerSubtext: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.neutral[300],
+    fontSize: typography.sizes.xs,
+    color: colors.neutral[300],
     marginTop: 4,
   },
 });

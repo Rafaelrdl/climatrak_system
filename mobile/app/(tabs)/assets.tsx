@@ -1,5 +1,5 @@
 // ============================================================
-// ClimaTrak Mobile - Assets Screen
+// ClimaTrak Mobile - Assets Screen (Migrated to Design System)
 // ============================================================
 
 import { useState, useCallback } from 'react';
@@ -26,7 +26,8 @@ import {
   Tag,
 } from 'lucide-react-native';
 import { assetService } from '@/shared/api';
-import { theme } from '@/theme';
+import { colors, spacing, radius, typography, shadows, iconSizes } from '@/theme/tokens';
+import { Card, Badge } from '@/components/ui';
 import type { Asset, AssetFilters } from '@/types';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -41,6 +42,20 @@ const CRITICALITY_LABELS: Record<string, string> = {
   ALTA: 'Alto',
   MEDIA: 'Médio',
   BAIXA: 'Baixo',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  OK: colors.status.online,
+  MAINTENANCE: colors.status.warning,
+  STOPPED: colors.status.offline,
+  ALERT: colors.status.critical,
+};
+
+const CRITICALITY_COLORS: Record<string, string> = {
+  CRITICA: colors.priority.critical,
+  ALTA: colors.priority.high,
+  MEDIA: colors.priority.medium,
+  BAIXA: colors.priority.low,
 };
 
 export default function AssetsScreen() {
@@ -95,88 +110,83 @@ export default function AssetsScreen() {
     router.push('/scanner');
   };
 
-  const renderAsset = useCallback(({ item }: { item: Asset }) => (
-    <TouchableOpacity
-      style={styles.assetCard}
-      onPress={() => router.push(`/asset/${item.id}`)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.assetHeader}>
-        <View style={styles.assetTag}>
-          <Tag size={14} color={theme.colors.neutral[600]} />
-          <Text style={styles.assetTagText}>{item.tag}</Text>
-        </View>
-        <View style={[
-          styles.statusBadge,
-          { backgroundColor: theme.colors.asset[item.status] + '20' },
-        ]}>
-          <View style={[
-            styles.statusDot,
-            { backgroundColor: theme.colors.asset[item.status] },
-          ]} />
-          <Text style={[
-            styles.statusText,
-            { color: theme.colors.asset[item.status] },
-          ]}>
+  const renderAsset = useCallback(({ item }: { item: Asset }) => {
+    const statusColor = STATUS_COLORS[item.status] || colors.neutral[500];
+    const criticalityColor = CRITICALITY_COLORS[item.criticality] || colors.neutral[500];
+    
+    return (
+      <TouchableOpacity
+        style={styles.assetCard}
+        onPress={() => router.push(`/asset/${item.id}`)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.assetHeader}>
+          <View style={styles.assetTag}>
+            <Tag size={iconSizes.xs} color={colors.neutral[600]} />
+            <Text style={styles.assetTagText}>{item.tag}</Text>
+          </View>
+          <Badge 
+            variant="outline" 
+            size="sm"
+            style={{ backgroundColor: `${statusColor}20`, borderColor: statusColor }}
+            textStyle={{ color: statusColor }}
+          >
             {STATUS_LABELS[item.status]}
-          </Text>
+          </Badge>
         </View>
-      </View>
 
-      <Text style={styles.assetName} numberOfLines={2}>
-        {item.name}
-      </Text>
-
-      {item.description && (
-        <Text style={styles.assetDescription} numberOfLines={1}>
-          {item.description}
+        <Text style={styles.assetName} numberOfLines={2}>
+          {item.name}
         </Text>
-      )}
 
-      <View style={styles.assetMeta}>
-        {item.location_name && (
-          <View style={styles.metaItem}>
-            <MapPin size={14} color={theme.colors.neutral[400]} />
-            <Text style={styles.metaText} numberOfLines={1}>
-              {item.location_name}
-            </Text>
-          </View>
-        )}
-        
-        {item.type && (
-          <View style={styles.metaItem}>
-            <Text style={styles.metaLabel}>Tipo:</Text>
-            <Text style={styles.metaText} numberOfLines={1}>
-              {item.type}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.assetFooter}>
-        <View style={[
-          styles.criticalityBadge,
-          { backgroundColor: theme.colors.criticality[item.criticality] + '15' },
-        ]}>
-          <AlertCircle size={12} color={theme.colors.criticality[item.criticality]} />
-          <Text style={[
-            styles.criticalityText,
-            { color: theme.colors.criticality[item.criticality] },
-          ]}>
-            {CRITICALITY_LABELS[item.criticality]}
+        {item.description && (
+          <Text style={styles.assetDescription} numberOfLines={1}>
+            {item.description}
           </Text>
+        )}
+
+        <View style={styles.assetMeta}>
+          {item.location_name && (
+            <View style={styles.metaItem}>
+              <MapPin size={iconSizes.xs} color={colors.neutral[400]} />
+              <Text style={styles.metaText} numberOfLines={1}>
+                {item.location_name}
+              </Text>
+            </View>
+          )}
+          
+          {item.type && (
+            <View style={styles.metaItem}>
+              <Text style={styles.metaLabel}>Tipo:</Text>
+              <Text style={styles.metaText} numberOfLines={1}>
+                {item.type}
+              </Text>
+            </View>
+          )}
         </View>
 
-        {item.manufacturer && (
-          <Text style={styles.manufacturerText} numberOfLines={1}>
-            {item.manufacturer}
-          </Text>
-        )}
+        <View style={styles.assetFooter}>
+          <View style={[
+            styles.criticalityBadge,
+            { backgroundColor: `${criticalityColor}15` },
+          ]}>
+            <AlertCircle size={iconSizes.xs} color={criticalityColor} />
+            <Text style={[styles.criticalityText, { color: criticalityColor }]}>
+              {CRITICALITY_LABELS[item.criticality]}
+            </Text>
+          </View>
 
-        <ChevronRight size={18} color={theme.colors.neutral[400]} />
-      </View>
-    </TouchableOpacity>
-  ), [router]);
+          {item.manufacturer && (
+            <Text style={styles.manufacturerText} numberOfLines={1}>
+              {item.manufacturer}
+            </Text>
+          )}
+
+          <ChevronRight size={iconSizes.sm} color={colors.neutral[400]} />
+        </View>
+      </TouchableOpacity>
+    );
+  }, [router]);
 
   const renderEmpty = () => (
     <View style={styles.emptyState}>
@@ -191,7 +201,7 @@ export default function AssetsScreen() {
     if (!isFetchingNextPage) return null;
     return (
       <View style={styles.footer}>
-        <ActivityIndicator size="small" color={theme.colors.primary[500]} />
+        <ActivityIndicator size="small" color={colors.primary.DEFAULT} />
       </View>
     );
   };
@@ -201,17 +211,17 @@ export default function AssetsScreen() {
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Search size={20} color={theme.colors.neutral[400]} />
+          <Search size={iconSizes.md} color={colors.neutral[400]} />
           <TextInput
             style={styles.searchInput}
             value={search}
             onChangeText={setSearch}
             placeholder="Buscar por tag, nome, fabricante..."
-            placeholderTextColor={theme.colors.neutral[400]}
+            placeholderTextColor={colors.neutral[400]}
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <X size={20} color={theme.colors.neutral[400]} />
+              <X size={iconSizes.md} color={colors.neutral[400]} />
             </TouchableOpacity>
           )}
         </View>
@@ -220,7 +230,7 @@ export default function AssetsScreen() {
           style={styles.scanButton}
           onPress={handleScan}
         >
-          <QrCode size={20} color={theme.colors.white} />
+          <QrCode size={iconSizes.md} color={colors.white} />
         </TouchableOpacity>
       </View>
 
@@ -234,7 +244,7 @@ export default function AssetsScreen() {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            colors={[theme.colors.primary[500]]}
+            colors={[colors.primary.DEFAULT]}
           />
         }
         onEndReached={handleEndReached}
@@ -247,7 +257,7 @@ export default function AssetsScreen() {
       {/* Loading Overlay */}
       {isLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
+          <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
         </View>
       )}
     </SafeAreaView>
@@ -257,170 +267,153 @@ export default function AssetsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.neutral[50],
+    backgroundColor: colors.background,
   },
   searchContainer: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.white,
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[3],
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.neutral[200],
-    gap: 12,
+    borderBottomColor: colors.neutral[200],
+    gap: spacing[3],
   },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.neutral[100],
-    borderRadius: theme.borderRadius.lg,
-    paddingHorizontal: theme.spacing[3],
+    backgroundColor: colors.neutral[100],
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing[3],
     height: 44,
-    gap: 8,
+    gap: spacing[2],
   },
   searchInput: {
     flex: 1,
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.neutral[900],
+    fontSize: typography.sizes.base,
+    color: colors.neutral[900],
   },
   scanButton: {
     width: 44,
     height: 44,
-    borderRadius: theme.borderRadius.lg,
-    backgroundColor: theme.colors.primary[500],
+    borderRadius: radius.lg,
+    backgroundColor: colors.primary.DEFAULT,
     justifyContent: 'center',
     alignItems: 'center',
   },
   listContent: {
-    padding: theme.spacing[4],
-    paddingTop: theme.spacing[3],
+    padding: spacing[4],
+    paddingTop: spacing[3],
   },
   assetCard: {
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing[4],
-    ...theme.shadows.sm,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: spacing[4],
+    ...shadows.sm,
   },
   assetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing[2],
+    marginBottom: spacing[2],
   },
   assetTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.neutral[100],
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.borderRadius.sm,
-    gap: 4,
+    backgroundColor: colors.neutral[100],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: radius.sm,
+    gap: spacing[1],
   },
   assetTagText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: '600',
-    color: theme.colors.neutral[700],
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.borderRadius.full,
-    gap: 6,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: '500',
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+    color: colors.neutral[700],
   },
   assetName: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: '500',
-    color: theme.colors.neutral[900],
-    marginBottom: theme.spacing[1],
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.medium,
+    color: colors.neutral[900],
+    marginBottom: spacing[1],
     lineHeight: 22,
   },
   assetDescription: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[500],
-    marginBottom: theme.spacing[3],
+    fontSize: typography.sizes.sm,
+    color: colors.neutral[500],
+    marginBottom: spacing[3],
   },
   assetMeta: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: theme.spacing[3],
+    gap: spacing[3],
+    marginBottom: spacing[3],
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing[1],
     maxWidth: '45%',
   },
   metaLabel: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.neutral[400],
+    fontSize: typography.sizes.xs,
+    color: colors.neutral[400],
   },
   metaText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[600],
+    fontSize: typography.sizes.sm,
+    color: colors.neutral[600],
   },
   assetFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: theme.spacing[3],
+    paddingTop: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: theme.colors.neutral[100],
-    gap: 8,
+    borderTopColor: colors.neutral[100],
+    gap: spacing[2],
   },
   criticalityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.borderRadius.sm,
-    gap: 4,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: radius.sm,
+    gap: spacing[1],
   },
   criticalityText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontWeight: '500',
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
   },
   manufacturerText: {
     flex: 1,
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.neutral[500],
+    fontSize: typography.sizes.xs,
+    color: colors.neutral[500],
     textAlign: 'right',
-    marginRight: theme.spacing[1],
+    marginRight: spacing[1],
   },
   separator: {
-    height: theme.spacing[3],
+    height: spacing[3],
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: theme.spacing[12],
+    paddingVertical: spacing[12],
   },
   emptyTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: '600',
-    color: theme.colors.neutral[900],
-    marginBottom: theme.spacing[2],
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.semibold,
+    color: colors.neutral[900],
+    marginBottom: spacing[2],
   },
   emptySubtitle: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.neutral[500],
+    fontSize: typography.sizes.sm,
+    color: colors.neutral[500],
   },
   footer: {
-    paddingVertical: theme.spacing[4],
+    paddingVertical: spacing[4],
     alignItems: 'center',
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.colors.white,
+    backgroundColor: colors.card,
     justifyContent: 'center',
     alignItems: 'center',
   },

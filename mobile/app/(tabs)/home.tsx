@@ -1,5 +1,5 @@
 // ============================================================
-// ClimaTrak Mobile - Home Screen (Migrated to Design System)
+// ClimaTrak Mobile - Home Screen (Platform Design System 2.0)
 // ============================================================
 
 import {
@@ -7,7 +7,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -22,11 +22,21 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
+  Zap,
 } from 'lucide-react-native';
 
-// Design system imports
-import { colors, spacing, radius, typography, shadows } from '@/theme/tokens';
-import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '@/components/ui';
+// Design system imports - Platform Design
+import { colors, spacing, radius, typography, shadows, iconSizes } from '@/theme/tokens';
+import { 
+  Card, 
+  CardHeader, 
+  CardTitle, 
+  CardContent, 
+  Button, 
+  StatusBadge,
+  StatCard,
+  StatRow,
+} from '@/components/ui';
 import { AlertCard, WorkOrderCard } from '@/components/composed';
 import { useAuthStore, useSyncStore } from '@/store';
 import { workOrderService, alertService } from '@/shared/api';
@@ -88,164 +98,161 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* Header */}
+        {/* Header - Design System Platform */}
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerLeft}>
             <Text style={styles.greeting}>Olá, {firstName} 👋</Text>
             <Text style={styles.tenantName}>{tenant?.name}</Text>
           </View>
           
-          {/* Connection Status */}
-          <View style={[
-            styles.connectionBadge,
-            isOnline ? styles.online : styles.offline,
-          ]}>
-            {isOnline ? (
-              <Wifi size={14} color={colors.status.online} />
-            ) : (
-              <WifiOff size={14} color={colors.status.critical} />
-            )}
-            <Text style={[
-              styles.connectionText,
-              isOnline ? styles.onlineText : styles.offlineText,
-            ]}>
-              {isOnline ? 'Online' : 'Offline'}
-            </Text>
-          </View>
+          {/* Connection Status Badge */}
+          <StatusBadge 
+            status={isOnline ? 'online' : 'offline'} 
+            size="sm"
+          />
         </View>
 
-        {/* Pending Sync Banner */}
+        {/* Pending Sync Banner - Improved UX */}
         {pendingCount > 0 && (
-          <TouchableOpacity 
-            style={styles.syncBanner}
+          <Pressable 
+            style={({ pressed }) => [
+              styles.syncBanner,
+              pressed && styles.syncBannerPressed,
+            ]}
             onPress={syncAll}
             disabled={!isOnline || isSyncing}
           >
             <View style={styles.syncBannerContent}>
-              <Clock size={18} color={colors.status.warning} />
-              <Text style={styles.syncBannerText}>
-                {pendingCount} {pendingCount === 1 ? 'item pendente' : 'itens pendentes'} de sincronização
-              </Text>
+              <View style={styles.syncIconWrapper}>
+                <Clock size={iconSizes.md} color={colors.warning.DEFAULT} />
+              </View>
+              <View style={styles.syncTextWrapper}>
+                <Text style={styles.syncBannerTitle}>
+                  {pendingCount} {pendingCount === 1 ? 'item pendente' : 'itens pendentes'}
+                </Text>
+                <Text style={styles.syncBannerSubtitle}>
+                  {isSyncing ? 'Sincronizando...' : 'Toque para sincronizar'}
+                </Text>
+              </View>
             </View>
             {isOnline && !isSyncing && (
-              <Text style={styles.syncBannerAction}>Sincronizar</Text>
+              <Zap size={iconSizes.md} color={colors.warning.DEFAULT} />
             )}
-            {isSyncing && (
-              <Text style={styles.syncBannerAction}>Sincronizando...</Text>
-            )}
-          </TouchableOpacity>
+          </Pressable>
         )}
 
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity
-            style={styles.quickActionButton}
-            onPress={() => router.push('/scanner')}
-          >
-            <View style={styles.quickActionIcon}>
-              <QrCode size={24} color={colors.white} />
-            </View>
-            <Text style={styles.quickActionText}>Escanear QR</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* My Work Orders Summary */}
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => router.push('/(tabs)/work-orders')}
+        {/* Quick Actions - Primary CTA */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.quickActionButton,
+            pressed && styles.quickActionPressed,
+          ]}
+          onPress={() => router.push('/scanner')}
         >
-          <View style={styles.cardHeader}>
-            <View style={styles.cardTitleRow}>
-              <ClipboardList size={20} color={colors.primary[600]} />
-              <Text style={styles.cardTitle}>Minhas OS</Text>
-            </View>
-            <ChevronRight size={20} color={colors.muted.foreground} />
+          <View style={styles.quickActionIcon}>
+            <QrCode size={iconSizes.lg} color={colors.white} />
           </View>
-          
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{orderStats.pending}</Text>
-              <Text style={styles.statLabel}>Pendentes</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: colors.status.warning }]}>
-                {orderStats.in_progress}
-              </Text>
-              <Text style={styles.statLabel}>Em Andamento</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{orderStats.total}</Text>
-              <Text style={styles.statLabel}>Total</Text>
-            </View>
+          <View style={styles.quickActionContent}>
+            <Text style={styles.quickActionText}>Escanear QR Code</Text>
+            <Text style={styles.quickActionSubtext}>Acesso rápido ao ativo</Text>
           </View>
-        </TouchableOpacity>
+          <ChevronRight size={iconSizes.md} color={colors.primary[300]} />
+        </Pressable>
 
-        {/* Active Alerts */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
+        {/* Work Order Stats - Platform Design */}
+        <View style={styles.statsSection}>
+          <Text style={styles.sectionTitle}>Minhas Ordens de Serviço</Text>
+          <StatRow style={styles.statsRow}>
+            <StatCard
+              title="Pendentes"
+              value={orderStats.pending}
+              variant={orderStats.pending > 0 ? 'warning' : 'default'}
+              compact
+              onPress={() => router.push('/(tabs)/work-orders')}
+              style={styles.statCardFlex}
+            />
+            <StatCard
+              title="Em Andamento"
+              value={orderStats.in_progress}
+              variant={orderStats.in_progress > 0 ? 'primary' : 'default'}
+              compact
+              onPress={() => router.push('/(tabs)/work-orders')}
+              style={styles.statCardFlex}
+            />
+          </StatRow>
+        </View>
+
+        {/* Active Alerts - Platform Design */}
+        <Card variant="default" style={styles.sectionCard}>
+          <CardHeader row>
             <View style={styles.cardTitleRow}>
-              <AlertTriangle size={20} color={colors.status.critical} />
-              <Text style={styles.cardTitle}>Alertas Ativos</Text>
+              <AlertTriangle size={iconSizes.md} color={colors.status.critical} />
+              <CardTitle size="sm">Alertas Ativos</CardTitle>
             </View>
-            <TouchableOpacity onPress={() => router.push('/(tabs)/alerts')}>
+            <Pressable 
+              onPress={() => router.push('/(tabs)/alerts')}
+              hitSlop={8}
+            >
               <Text style={styles.cardAction}>Ver todos</Text>
-            </TouchableOpacity>
-          </View>
+            </Pressable>
+          </CardHeader>
+          <CardContent compact>
+            {activeAlerts?.results?.length === 0 ? (
+              <View style={styles.emptyState}>
+                <CheckCircle2 size={iconSizes['2xl']} color={colors.status.online} />
+                <Text style={styles.emptyStateText}>Nenhum alerta ativo</Text>
+                <Text style={styles.emptyStateSubtext}>Todos os sistemas operando normalmente</Text>
+              </View>
+            ) : (
+              <View style={styles.alertsList}>
+                {activeAlerts?.results?.slice(0, 3).map((alert) => (
+                  <AlertCard
+                    key={alert.id}
+                    alert={alert}
+                    variant="compact"
+                    onPress={() => router.push(`/alert/${alert.id}`)}
+                  />
+                ))}
+              </View>
+            )}
+          </CardContent>
+        </Card>
 
-          {activeAlerts?.results?.length === 0 ? (
-            <View style={styles.emptyState}>
-              <CheckCircle2 size={32} color={colors.status.online} />
-              <Text style={styles.emptyStateText}>Nenhum alerta ativo</Text>
-            </View>
-          ) : (
-            <View style={styles.alertsList}>
-              {activeAlerts?.results?.slice(0, 3).map((alert) => (
-                <AlertCard
-                  key={alert.id}
-                  alert={alert}
-                  variant="compact"
-                  onPress={() => router.push(`/alert/${alert.id}`)}
-                />
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Recent Work Orders */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
+        {/* Recent Work Orders - Platform Design */}
+        <Card variant="default" style={styles.sectionCard}>
+          <CardHeader row>
             <View style={styles.cardTitleRow}>
-              <Clock size={20} color={colors.muted.foreground} />
-              <Text style={styles.cardTitle}>OS Recentes</Text>
+              <Clock size={iconSizes.md} color={colors.muted.foreground} />
+              <CardTitle size="sm">OS Recentes</CardTitle>
             </View>
-          </View>
-
-          {myOrders?.results?.length === 0 ? (
-            <View style={styles.emptyState}>
-              <ClipboardList size={32} color={colors.muted.foreground} />
-              <Text style={styles.emptyStateText}>Nenhuma OS atribuída</Text>
-            </View>
-          ) : (
-            <View style={styles.ordersList}>
-              {myOrders?.results?.slice(0, 5).map((order) => (
-                <WorkOrderCard
-                  key={order.id}
-                  workOrder={order}
-                  variant="compact"
-                  onPress={() => router.push(`/work-order/${order.id}`)}
-                />
-              ))}
-            </View>
-          )}
-        </View>
+          </CardHeader>
+          <CardContent compact>
+            {myOrders?.results?.length === 0 ? (
+              <View style={styles.emptyState}>
+                <ClipboardList size={iconSizes['2xl']} color={colors.muted.foreground} />
+                <Text style={styles.emptyStateText}>Nenhuma OS atribuída</Text>
+              </View>
+            ) : (
+              <View style={styles.ordersList}>
+                {myOrders?.results?.slice(0, 5).map((order) => (
+                  <WorkOrderCard
+                    key={order.id}
+                    workOrder={order}
+                    variant="compact"
+                    onPress={() => router.push(`/work-order/${order.id}`)}
+                  />
+                ))}
+              </View>
+            )}
+          </CardContent>
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  // === CONTAINER ===
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -256,158 +263,164 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing[4],
     paddingBottom: spacing[8],
+    gap: spacing[4],
   },
+
+  // === HEADER ===
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing[4],
+  },
+  headerLeft: {
+    flex: 1,
   },
   greeting: {
     fontSize: typography.sizes.xl,
-    fontWeight: '600',
+    fontWeight: typography.weights.semibold,
     color: colors.foreground,
+    letterSpacing: typography.tracking.tight,
   },
   tenantName: {
     fontSize: typography.sizes.sm,
     color: colors.muted.foreground,
-    marginTop: 2,
+    marginTop: spacing[0.5],
   },
-  connectionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-    borderRadius: radius.full,
-    gap: 4,
-  },
-  online: {
-    backgroundColor: colors.status.online + '15',
-  },
-  offline: {
-    backgroundColor: colors.status.critical + '15',
-  },
-  connectionText: {
-    fontSize: typography.sizes.xs,
-    fontWeight: '500',
-  },
-  onlineText: {
-    color: colors.status.online,
-  },
-  offlineText: {
-    color: colors.status.critical,
-  },
+
+  // === SYNC BANNER ===
   syncBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.status.warning + '15',
+    backgroundColor: colors.warning.background,
     padding: spacing[3],
     borderRadius: radius.lg,
-    marginBottom: spacing[4],
+    borderWidth: 1,
+    borderColor: colors.warning.light,
+  },
+  syncBannerPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.99 }],
   },
   syncBannerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing[3],
+    flex: 1,
   },
-  syncBannerText: {
-    fontSize: typography.sizes.sm,
+  syncIconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.status.warningBg,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  syncTextWrapper: {
+    flex: 1,
+  },
+  syncBannerTitle: {
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.semibold,
     color: colors.foreground,
   },
-  syncBannerAction: {
-    fontSize: typography.sizes.sm,
-    fontWeight: '600',
-    color: colors.status.warning,
+  syncBannerSubtitle: {
+    fontSize: typography.sizes.xs,
+    color: colors.warning.dark,
+    marginTop: spacing[0.5],
   },
-  quickActions: {
-    marginBottom: spacing[4],
-  },
+
+  // === QUICK ACTION ===
   quickActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.primary.DEFAULT,
     padding: spacing[4],
     borderRadius: radius.lg,
-    gap: 12,
+    gap: spacing[3],
+    ...shadows.md,
+  },
+  quickActionPressed: {
+    backgroundColor: colors.primary.dark,
+    transform: [{ scale: 0.98 }],
   },
   quickActionIcon: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: radius.md,
-    backgroundColor: colors.primary[600],
+    backgroundColor: colors.primary[700],
     justifyContent: 'center',
     alignItems: 'center',
   },
+  quickActionContent: {
+    flex: 1,
+  },
   quickActionText: {
     fontSize: typography.sizes.base,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontWeight: typography.weights.semibold,
+    color: colors.white,
   },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-    ...shadows.sm,
+  quickActionSubtext: {
+    fontSize: typography.sizes.xs,
+    color: colors.primary[200],
+    marginTop: spacing[0.5],
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[4],
+
+  // === STATS SECTION ===
+  statsSection: {
+    gap: spacing[2],
+  },
+  sectionTitle: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.muted.foreground,
+    textTransform: 'uppercase',
+    letterSpacing: typography.tracking.wide,
+    marginLeft: spacing[1],
+  },
+  statsRow: {
+    marginTop: spacing[1],
+  },
+  statCardFlex: {
+    flex: 1,
+  },
+
+  // === CARDS ===
+  sectionCard: {
+    // Card styling handled by Card component
   },
   cardTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  cardTitle: {
-    fontSize: typography.sizes.base,
-    fontWeight: '600',
-    color: colors.foreground,
+    gap: spacing[2],
   },
   cardAction: {
     fontSize: typography.sizes.sm,
-    fontWeight: '500',
+    fontWeight: typography.weights.semibold,
     color: colors.primary.DEFAULT,
   },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: typography.sizes['2xl'],
-    fontWeight: '700',
-    color: colors.foreground,
-  },
-  statLabel: {
-    fontSize: typography.sizes.xs,
-    color: colors.muted.foreground,
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: colors.border,
-  },
+
+  // === EMPTY STATE ===
   emptyState: {
     alignItems: 'center',
     paddingVertical: spacing[6],
-    gap: 8,
+    gap: spacing[2],
   },
   emptyStateText: {
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.medium,
+    color: colors.foreground,
+  },
+  emptyStateSubtext: {
     fontSize: typography.sizes.sm,
     color: colors.muted.foreground,
   },
+
+  // === LISTS ===
   alertsList: {
-    gap: 8,
+    gap: spacing[2],
   },
   ordersList: {
-    gap: 8,
+    gap: spacing[2],
   },
 });
