@@ -41,7 +41,14 @@ import {
   Save,
   RotateCcw,
   ChevronRight,
-  Info
+  Info,
+  FileUp,
+  Download,
+  Upload,
+  FileSpreadsheet,
+  CheckCircle,
+  XCircle,
+  Loader2
 } from 'lucide-react';
 import { useSLAStore, type SLASettings } from '@/store/useSLAStore';
 import { 
@@ -74,7 +81,7 @@ const colorOptions = [
 ];
 
 // Seções de configuração
-type SettingSection = 'work-orders' | 'sla' | 'notifications' | 'organization' | 'integrations';
+type SettingSection = 'work-orders' | 'sla' | 'notifications' | 'organization' | 'integrations' | 'imports';
 
 const settingSections: { 
   id: SettingSection; 
@@ -111,6 +118,12 @@ const settingSections: {
     label: 'Integrações', 
     icon: Plug, 
     description: 'APIs e conexões' 
+  },
+  { 
+    id: 'imports', 
+    label: 'Importações', 
+    icon: FileUp, 
+    description: 'Importar localizações' 
   },
 ];
 
@@ -274,6 +287,8 @@ export function SettingsPage() {
         return <OrganizationSection />;
       case 'integrations':
         return <IntegrationsSection />;
+      case 'imports':
+        return <ImportsSection />;
       default:
         return null;
     }
@@ -976,6 +991,716 @@ function IntegrationsSection() {
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+// Interface para os dados do CSV
+interface LocationCSVRow {
+  empresa_nome: string;
+  empresa_cnpj?: string;
+  empresa_endereco?: string;
+  empresa_cidade?: string;
+  empresa_estado?: string;
+  empresa_cep?: string;
+  empresa_area_total?: string;
+  empresa_ocupantes?: string;
+  empresa_hvac?: string;
+  unidade_nome?: string;
+  unidade_cnpj?: string;
+  unidade_endereco?: string;
+  unidade_cidade?: string;
+  unidade_estado?: string;
+  unidade_cep?: string;
+  unidade_area_total?: string;
+  unidade_ocupantes?: string;
+  unidade_hvac?: string;
+  setor_nome?: string;
+  setor_responsavel?: string;
+  setor_telefone?: string;
+  setor_email?: string;
+  setor_area?: string;
+  setor_ocupantes?: string;
+  setor_hvac?: string;
+  subsetor_nome?: string;
+  subsetor_observacoes?: string;
+}
+
+interface ImportResult {
+  success: boolean;
+  type: 'company' | 'unit' | 'sector' | 'subsection';
+  name: string;
+  error?: string;
+}
+
+function ImportsSection() {
+  const [isUploading, setIsUploading] = useState(false);
+  const [importResults, setImportResults] = useState<ImportResult[]>([]);
+  const [showResults, setShowResults] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Função para gerar o modelo CSV
+  const handleDownloadTemplate = () => {
+    const headers = [
+      'empresa_nome',
+      'empresa_cnpj',
+      'empresa_endereco',
+      'empresa_cidade',
+      'empresa_estado',
+      'empresa_cep',
+      'empresa_area_total',
+      'empresa_ocupantes',
+      'empresa_hvac',
+      'unidade_nome',
+      'unidade_cnpj',
+      'unidade_endereco',
+      'unidade_cidade',
+      'unidade_estado',
+      'unidade_cep',
+      'unidade_area_total',
+      'unidade_ocupantes',
+      'unidade_hvac',
+      'setor_nome',
+      'setor_responsavel',
+      'setor_telefone',
+      'setor_email',
+      'setor_area',
+      'setor_ocupantes',
+      'setor_hvac',
+      'subsetor_nome',
+      'subsetor_observacoes'
+    ];
+
+    // Dados de exemplo - demonstra a hierarquia com múltiplas empresas
+    // IMPORTANTE: Repita o nome da empresa/unidade/setor em cada linha para indicar a hierarquia
+    const exampleData = [
+      // === EMPRESA 1: Empresa Exemplo ===
+      // Linha 1: Empresa + Unidade + Setor + Subsetor (todos os níveis preenchidos)
+      [
+        'Empresa Exemplo',           // empresa_nome (OBRIGATÓRIO)
+        '00.000.000/0001-00',        // empresa_cnpj
+        'Av. Principal, 1000',       // empresa_endereco
+        'São Paulo',                 // empresa_cidade
+        'SP',                        // empresa_estado
+        '01310-100',                 // empresa_cep
+        '5000',                      // empresa_area_total
+        '100',                       // empresa_ocupantes
+        '10',                        // empresa_hvac
+        'Filial Centro',             // unidade_nome
+        '00.000.000/0002-00',        // unidade_cnpj
+        'Rua Secundária, 500',       // unidade_endereco
+        'São Paulo',                 // unidade_cidade
+        'SP',                        // unidade_estado
+        '01310-200',                 // unidade_cep
+        '2000',                      // unidade_area_total
+        '50',                        // unidade_ocupantes
+        '5',                         // unidade_hvac
+        'Produção',                  // setor_nome
+        'João Silva',                // setor_responsavel
+        '(11) 99999-9999',           // setor_telefone
+        'joao@empresa.com',          // setor_email
+        '500',                       // setor_area
+        '20',                        // setor_ocupantes
+        '3',                         // setor_hvac
+        'Linha 1',                   // subsetor_nome
+        'Linha de montagem principal' // subsetor_observacoes
+      ],
+      // Linha 2: Outro subsetor no mesmo setor (repete empresa + unidade + setor)
+      [
+        'Empresa Exemplo',           // MESMO nome da empresa
+        '', '', '', '', '', '', '', '',
+        'Filial Centro',             // MESMO nome da unidade
+        '', '', '', '', '', '', '', '',
+        'Produção',                  // MESMO nome do setor
+        '', '', '', '', '', '',
+        'Linha 2',                   // NOVO subsetor
+        'Linha de montagem secundária'
+      ],
+      // Linha 3: Novo setor na mesma unidade (repete empresa + unidade)
+      [
+        'Empresa Exemplo',           // MESMO nome da empresa
+        '', '', '', '', '', '', '', '',
+        'Filial Centro',             // MESMO nome da unidade
+        '', '', '', '', '', '', '', '',
+        'Administrativo',            // NOVO setor
+        'Maria Santos',
+        '(11) 88888-8888',
+        'maria@empresa.com',
+        '200',
+        '10',
+        '2',
+        '',                          // sem subsetor
+        ''
+      ],
+      // Linha 4: Nova unidade na mesma empresa (repete empresa)
+      [
+        'Empresa Exemplo',           // MESMO nome da empresa
+        '', '', '', '', '', '', '', '',
+        'Filial Norte',              // NOVA unidade
+        '00.000.000/0003-00',
+        'Av. Norte, 200',
+        'Guarulhos',
+        'SP',
+        '07000-000',
+        '1500',
+        '30',
+        '3',
+        'Estoque',                   // setor da nova unidade
+        'Carlos Souza',
+        '(11) 77777-7777',
+        'carlos@empresa.com',
+        '800',
+        '15',
+        '1',
+        '',
+        ''
+      ],
+      // === EMPRESA 2: Outra Empresa ===
+      // Linha 5: Nova empresa completa
+      [
+        'Outra Empresa LTDA',        // NOVA empresa
+        '11.111.111/0001-11',
+        'Rua das Flores, 50',
+        'Rio de Janeiro',
+        'RJ',
+        '20000-000',
+        '3000',
+        '80',
+        '8',
+        'Matriz RJ',                 // unidade da nova empresa
+        '',
+        'Rua das Flores, 50',
+        'Rio de Janeiro',
+        'RJ',
+        '20000-000',
+        '3000',
+        '80',
+        '8',
+        'Comercial',                 // setor
+        'Ana Paula',
+        '(21) 99999-8888',
+        'ana@outraempresa.com',
+        '400',
+        '25',
+        '2',
+        'Vendas',                    // subsetor
+        'Equipe de vendas externas'
+      ]
+    ];
+
+    const csvContent = [
+      headers.join(';'),
+      ...exampleData.map(row => row.join(';'))
+    ].join('\n');
+
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'modelo_importacao_localizacoes.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success('Modelo CSV baixado com sucesso!');
+  };
+
+  // Função para processar o arquivo CSV
+  const parseCSV = (text: string): LocationCSVRow[] => {
+    const lines = text.split('\n').filter(line => line.trim());
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split(';').map(h => h.trim().toLowerCase());
+    const rows: LocationCSVRow[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(';').map(v => v.trim());
+      const row: Record<string, string> = {};
+      
+      headers.forEach((header, index) => {
+        row[header] = values[index] || '';
+      });
+
+      rows.push(row as unknown as LocationCSVRow);
+    }
+
+    return rows;
+  };
+
+  // Função para importar os dados
+  const handleImport = async () => {
+    if (!selectedFile) {
+      toast.error('Selecione um arquivo CSV');
+      return;
+    }
+
+    setIsUploading(true);
+    setImportResults([]);
+    setShowResults(false);
+
+    try {
+      const text = await selectedFile.text();
+      const rows = parseCSV(text);
+
+      if (rows.length === 0) {
+        toast.error('Arquivo CSV vazio ou inválido');
+        setIsUploading(false);
+        return;
+      }
+
+      const results: ImportResult[] = [];
+      const { locationsService } = await import('@/services/locationsService');
+      
+      // Mapas para guardar IDs criados
+      const companyMap = new Map<string, string>();
+      const unitMap = new Map<string, string>();
+      const sectorMap = new Map<string, string>();
+
+      // Buscar empresas e unidades existentes
+      const existingCompanies = await locationsService.getCompanies();
+      const existingUnits = await locationsService.getUnits();
+      const existingSectors = await locationsService.getSectors();
+
+      existingCompanies.forEach(c => companyMap.set(c.name.toLowerCase(), c.id));
+      existingUnits.forEach(u => unitMap.set(`${u.companyId}-${u.name.toLowerCase()}`, u.id));
+      existingSectors.forEach(s => sectorMap.set(`${s.unitId}-${s.name.toLowerCase()}`, s.id));
+
+      for (const row of rows) {
+        // 1. Processar Empresa
+        if (row.empresa_nome) {
+          const companyKey = row.empresa_nome.toLowerCase();
+          
+          if (!companyMap.has(companyKey)) {
+            try {
+              const company = await locationsService.createCompany({
+                name: row.empresa_nome,
+                segment: '',
+                cnpj: row.empresa_cnpj || '',
+                address: {
+                  fullAddress: row.empresa_endereco || '',
+                  city: row.empresa_cidade || '',
+                  state: row.empresa_estado || '',
+                  zip: row.empresa_cep || ''
+                },
+                responsible: '',
+                role: '',
+                totalArea: row.empresa_area_total ? Number(row.empresa_area_total) : 0,
+                occupants: row.empresa_ocupantes ? Number(row.empresa_ocupantes) : 0,
+                hvacUnits: row.empresa_hvac ? Number(row.empresa_hvac) : 0
+              });
+              companyMap.set(companyKey, company.id);
+              results.push({ success: true, type: 'company', name: row.empresa_nome });
+            } catch (error) {
+              results.push({ 
+                success: false, 
+                type: 'company', 
+                name: row.empresa_nome,
+                error: error instanceof Error ? error.message : 'Erro ao criar empresa'
+              });
+              continue;
+            }
+          }
+        }
+
+        // 2. Processar Unidade
+        if (row.unidade_nome && row.empresa_nome) {
+          const companyId = companyMap.get(row.empresa_nome.toLowerCase());
+          if (companyId) {
+            const unitKey = `${companyId}-${row.unidade_nome.toLowerCase()}`;
+            
+            if (!unitMap.has(unitKey)) {
+              try {
+                const unit = await locationsService.createUnit({
+                  name: row.unidade_nome,
+                  companyId: companyId,
+                  cnpj: row.unidade_cnpj || '',
+                  address: {
+                    fullAddress: row.unidade_endereco || '',
+                    city: row.unidade_cidade || '',
+                    state: row.unidade_estado || '',
+                    zip: row.unidade_cep || ''
+                  },
+                  totalArea: row.unidade_area_total ? Number(row.unidade_area_total) : undefined,
+                  occupants: row.unidade_ocupantes ? Number(row.unidade_ocupantes) : undefined,
+                  hvacUnits: row.unidade_hvac ? Number(row.unidade_hvac) : undefined
+                });
+                unitMap.set(unitKey, unit.id);
+                results.push({ success: true, type: 'unit', name: row.unidade_nome });
+              } catch (error) {
+                results.push({ 
+                  success: false, 
+                  type: 'unit', 
+                  name: row.unidade_nome,
+                  error: error instanceof Error ? error.message : 'Erro ao criar unidade'
+                });
+              }
+            }
+          }
+        }
+
+        // 3. Processar Setor
+        if (row.setor_nome && row.unidade_nome && row.empresa_nome) {
+          const companyId = companyMap.get(row.empresa_nome.toLowerCase());
+          const unitKey = companyId ? `${companyId}-${row.unidade_nome.toLowerCase()}` : null;
+          const unitId = unitKey ? unitMap.get(unitKey) : null;
+          
+          if (unitId) {
+            const sectorKey = `${unitId}-${row.setor_nome.toLowerCase()}`;
+            
+            if (!sectorMap.has(sectorKey)) {
+              try {
+                const sector = await locationsService.createSector({
+                  name: row.setor_nome,
+                  unitId: unitId,
+                  responsible: row.setor_responsavel || '',
+                  phone: row.setor_telefone || '',
+                  email: row.setor_email || '',
+                  area: row.setor_area ? Number(row.setor_area) : 0,
+                  occupants: row.setor_ocupantes ? Number(row.setor_ocupantes) : 0,
+                  hvacUnits: row.setor_hvac ? Number(row.setor_hvac) : 0
+                });
+                sectorMap.set(sectorKey, sector.id);
+                results.push({ success: true, type: 'sector', name: row.setor_nome });
+              } catch (error) {
+                results.push({ 
+                  success: false, 
+                  type: 'sector', 
+                  name: row.setor_nome,
+                  error: error instanceof Error ? error.message : 'Erro ao criar setor'
+                });
+              }
+            }
+          }
+        }
+
+        // 4. Processar Subsetor
+        if (row.subsetor_nome && row.setor_nome && row.unidade_nome && row.empresa_nome) {
+          const companyId = companyMap.get(row.empresa_nome.toLowerCase());
+          const unitKey = companyId ? `${companyId}-${row.unidade_nome.toLowerCase()}` : null;
+          const unitId = unitKey ? unitMap.get(unitKey) : null;
+          const sectorKey = unitId ? `${unitId}-${row.setor_nome.toLowerCase()}` : null;
+          const sectorId = sectorKey ? sectorMap.get(sectorKey) : null;
+          
+          if (sectorId) {
+            try {
+              await locationsService.createSubsection({
+                name: row.subsetor_nome,
+                sectorId: sectorId,
+                notes: row.subsetor_observacoes || ''
+              });
+              results.push({ success: true, type: 'subsection', name: row.subsetor_nome });
+            } catch (error) {
+              results.push({ 
+                success: false, 
+                type: 'subsection', 
+                name: row.subsetor_nome,
+                error: error instanceof Error ? error.message : 'Erro ao criar subsetor'
+              });
+            }
+          }
+        }
+      }
+
+      setImportResults(results);
+      setShowResults(true);
+
+      const successCount = results.filter(r => r.success).length;
+      const errorCount = results.filter(r => !r.success).length;
+
+      if (errorCount === 0) {
+        toast.success(`Importação concluída! ${successCount} itens criados.`);
+      } else {
+        toast.warning(`Importação concluída com ${successCount} sucessos e ${errorCount} erros.`);
+      }
+
+    } catch (error) {
+      console.error('Erro na importação:', error);
+      toast.error('Erro ao processar o arquivo CSV');
+    } finally {
+      setIsUploading(false);
+      setSelectedFile(null);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.name.endsWith('.csv')) {
+        toast.error('Por favor, selecione um arquivo CSV');
+        return;
+      }
+      setSelectedFile(file);
+      setShowResults(false);
+    }
+  };
+
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'company': return 'Empresa';
+      case 'unit': return 'Unidade';
+      case 'sector': return 'Setor';
+      case 'subsection': return 'Subsetor';
+      default: return type;
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'company': return 'bg-blue-100 text-blue-700';
+      case 'unit': return 'bg-orange-100 text-orange-700';
+      case 'sector': return 'bg-emerald-100 text-emerald-700';
+      case 'subsection': return 'bg-purple-100 text-purple-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Header da seção */}
+      <div>
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <FileUp className="h-5 w-5 text-primary" />
+          Importação de Localizações
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Importe empresas, unidades, setores e subsetores em lote através de um arquivo CSV.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Card de Download do Modelo */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-500/10">
+                <Download className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <CardTitle className="text-base">1. Baixar Modelo</CardTitle>
+                <CardDescription>
+                  Baixe o modelo CSV com os campos necessários
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-sm text-muted-foreground space-y-2">
+              <p>O arquivo modelo contém as seguintes colunas:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li><strong>Empresa:</strong> nome, cnpj, endereço, cidade, estado, cep, área, ocupantes, hvac</li>
+                <li><strong>Unidade:</strong> nome, cnpj, endereço, cidade, estado, cep, área, ocupantes, hvac</li>
+                <li><strong>Setor:</strong> nome, responsável, telefone, email, área, ocupantes, hvac</li>
+                <li><strong>Subsetor:</strong> nome, observações</li>
+              </ul>
+            </div>
+            <Button onClick={handleDownloadTemplate} className="w-full gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Baixar Modelo CSV
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Card de Upload */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-500/10">
+                <Upload className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <CardTitle className="text-base">2. Enviar Arquivo</CardTitle>
+                <CardDescription>
+                  Faça upload do arquivo CSV preenchido
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileChange}
+                className="hidden"
+                id="csv-upload"
+                disabled={isUploading}
+              />
+              <label htmlFor="csv-upload" className="cursor-pointer">
+                <FileSpreadsheet className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                {selectedFile ? (
+                  <div>
+                    <p className="font-medium text-foreground">{selectedFile.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {(selectedFile.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="font-medium">Clique para selecionar</p>
+                    <p className="text-sm text-muted-foreground">ou arraste o arquivo CSV</p>
+                  </div>
+                )}
+              </label>
+            </div>
+            <Button 
+              onClick={handleImport} 
+              className="w-full gap-2"
+              disabled={!selectedFile || isUploading}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Importando...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  Importar Dados
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Instruções */}
+      <Card className="bg-muted/30">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Info className="h-4 w-4" />
+            Instruções de Uso
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-muted-foreground space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-medium text-foreground mb-2">Como preencher o CSV:</h4>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Use ponto e vírgula (;) como separador</li>
+                  <li>A primeira linha deve conter os cabeçalhos</li>
+                  <li>O campo <code className="bg-muted px-1 rounded">empresa_nome</code> é obrigatório</li>
+                  <li>Deixe campos vazios se não precisar preencher</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-medium text-foreground mb-2">Hierarquia:</h4>
+                <ul className="list-disc list-inside space-y-1">
+                  <li><strong>Empresa</strong> → nível mais alto</li>
+                  <li><strong>Unidade</strong> → pertence a uma Empresa</li>
+                  <li><strong>Setor</strong> → pertence a uma Unidade</li>
+                  <li><strong>Subsetor</strong> → pertence a um Setor</li>
+                </ul>
+              </div>
+            </div>
+            
+            {/* Exemplo visual da hierarquia */}
+            <div className="mt-4 p-4 bg-background rounded-lg border">
+              <h4 className="font-medium text-foreground mb-3">⚠️ Como funciona a identificação da hierarquia:</h4>
+              <p className="mb-3">
+                O sistema identifica a qual nível cada item pertence através do <strong>nome repetido</strong> nas colunas.
+                Cada linha do CSV pode criar até 4 itens (empresa, unidade, setor, subsetor).
+              </p>
+              <div className="font-mono text-xs bg-muted p-3 rounded overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-1 text-blue-600">empresa_nome</th>
+                      <th className="text-left p-1 text-orange-600">unidade_nome</th>
+                      <th className="text-left p-1 text-emerald-600">setor_nome</th>
+                      <th className="text-left p-1 text-purple-600">subsetor_nome</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b">
+                      <td className="p-1 text-blue-600">Empresa A</td>
+                      <td className="p-1 text-orange-600">Filial 1</td>
+                      <td className="p-1 text-emerald-600">Produção</td>
+                      <td className="p-1 text-purple-600">Linha 1</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="p-1 text-blue-600">Empresa A</td>
+                      <td className="p-1 text-orange-600">Filial 1</td>
+                      <td className="p-1 text-emerald-600">Produção</td>
+                      <td className="p-1 text-purple-600">Linha 2</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="p-1 text-blue-600">Empresa A</td>
+                      <td className="p-1 text-orange-600">Filial 1</td>
+                      <td className="p-1 text-emerald-600">Administrativo</td>
+                      <td className="p-1 text-muted-foreground">(vazio)</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="p-1 text-blue-600">Empresa A</td>
+                      <td className="p-1 text-orange-600">Filial 2</td>
+                      <td className="p-1 text-emerald-600">Estoque</td>
+                      <td className="p-1 text-muted-foreground">(vazio)</td>
+                    </tr>
+                    <tr>
+                      <td className="p-1 text-blue-600">Empresa B</td>
+                      <td className="p-1 text-orange-600">Matriz</td>
+                      <td className="p-1 text-emerald-600">Vendas</td>
+                      <td className="p-1 text-purple-600">Loja 1</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-3 text-xs">
+                <strong>Resultado:</strong> 2 empresas, 3 unidades, 4 setores, 3 subsetores.
+                O sistema não cria duplicatas - se já existir, apenas vincula ao próximo nível.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Resultados da Importação */}
+      {showResults && importResults.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              Resultado da Importação
+            </CardTitle>
+            <CardDescription>
+              {importResults.filter(r => r.success).length} itens criados com sucesso, 
+              {importResults.filter(r => !r.success).length} erros
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="max-h-64 overflow-y-auto space-y-2">
+              {importResults.map((result, index) => (
+                <div 
+                  key={index}
+                  className={cn(
+                    "flex items-center justify-between p-2 rounded-lg text-sm",
+                    result.success ? "bg-green-50" : "bg-red-50"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    {result.success ? (
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-red-600" />
+                    )}
+                    <Badge variant="outline" className={getTypeColor(result.type)}>
+                      {getTypeLabel(result.type)}
+                    </Badge>
+                    <span className={result.success ? "text-green-700" : "text-red-700"}>
+                      {result.name}
+                    </span>
+                  </div>
+                  {result.error && (
+                    <span className="text-xs text-red-600">{result.error}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

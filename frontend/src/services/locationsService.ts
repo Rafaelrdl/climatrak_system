@@ -43,8 +43,19 @@ const mapUnit = (u: ApiUnit): Unit => ({
   id: String(u.id),
   name: u.name,
   companyId: String(u.company),
+  cnpj: u.cnpj || '',
+  address: {
+    zip: u.zip_code || '',
+    city: u.city || '',
+    state: u.state || '',
+    fullAddress: u.address || '',
+  },
+  responsible: u.manager_name || u.responsible_name || '',
+  role: u.responsible_role || '',
+  totalArea: u.total_area ?? undefined,
+  occupants: u.occupants ?? undefined,
+  hvacUnits: u.hvac_units ?? undefined,
   notes: u.description || u.notes || '',
-  createdAt: u.created_at || new Date().toISOString(),
 });
 
 const mapSector = (s: ApiSector): Sector => ({
@@ -180,6 +191,14 @@ export const locationsService = {
       name: data.name,
       company: Number(data.companyId),
       description: data.notes || '',
+      cnpj: data.cnpj || '',
+      address: data.address?.fullAddress || '',
+      city: data.address?.city || '',
+      state: data.address?.state || '',
+      zip_code: data.address?.zip || '',
+      total_area: data.totalArea || null,
+      occupants: data.occupants || null,
+      hvac_units: data.hvacUnits || null,
     };
 
     try {
@@ -201,6 +220,14 @@ export const locationsService = {
     if (data.name !== undefined) payload.name = data.name;
     if (data.companyId !== undefined) payload.company = Number(data.companyId);
     if (data.notes !== undefined) payload.description = data.notes;
+    if (data.cnpj !== undefined) payload.cnpj = data.cnpj;
+    if (data.address?.fullAddress !== undefined) payload.address = data.address.fullAddress;
+    if (data.address?.city !== undefined) payload.city = data.address.city;
+    if (data.address?.state !== undefined) payload.state = data.address.state;
+    if (data.address?.zip !== undefined) payload.zip_code = data.address.zip;
+    if (data.totalArea !== undefined) payload.total_area = data.totalArea;
+    if (data.occupants !== undefined) payload.occupants = data.occupants;
+    if (data.hvacUnits !== undefined) payload.hvac_units = data.hvacUnits;
 
     const response = await api.patch<ApiUnit>(`/locations/units/${id}/`, payload);
     return mapUnit(response.data);

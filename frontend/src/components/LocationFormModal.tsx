@@ -80,7 +80,17 @@ export function LocationFormModal({
   const [unitForm, setUnitForm] = useState<Partial<Unit>>({
     name: '',                    // Nome da unidade
     companyId: 'no-company',     // ID da empresa (inicialmente vazio)
-    notes: ''                   // Observações
+    cnpj: '',                    // CNPJ da unidade
+    address: {
+      zip: '',         // CEP
+      city: '',        // Cidade
+      state: '',       // Estado
+      fullAddress: ''  // Endereço completo
+    },
+    totalArea: undefined,        // Área total em m²
+    occupants: undefined,        // Número de ocupantes
+    hvacUnits: undefined,        // Unidades HVAC
+    notes: ''                    // Observações
   });
 
   // Estado do formulário para setores
@@ -130,6 +140,11 @@ export function LocationFormModal({
             ...unit,
             name: unit.name || '',
             companyId: unit.companyId || 'no-company',
+            cnpj: unit.cnpj || '',
+            address: unit.address || { zip: '', city: '', state: '', fullAddress: '' },
+            totalArea: unit.totalArea || 0,
+            occupants: unit.occupants || 0,
+            hvacUnits: unit.hvacUnits || 0,
             notes: unit.notes || ''
           });
         } else if (type === 'sector') {
@@ -170,6 +185,11 @@ export function LocationFormModal({
         setUnitForm({
           name: '',
           companyId: 'no-company',
+          cnpj: '',
+          address: { zip: '', city: '', state: '', fullAddress: '' },
+          totalArea: undefined,
+          occupants: undefined,
+          hvacUnits: undefined,
           notes: ''
         });
         setSectorForm({
@@ -519,7 +539,7 @@ export function LocationFormModal({
 
   /**
    * Renderiza o formulário específico para unidades
-   * Inclui seleção de empresa e dados básicos
+   * Inclui seleção de empresa, CNPJ, endereço e informações operacionais
    */
   const renderUnitForm = () => (
     <div className="bg-muted/30 rounded-lg p-6 border border-border/50">
@@ -529,46 +549,174 @@ export function LocationFormModal({
       </h3>
       
       <div className="space-y-5">
-        {/* Nome da Unidade */}
+        {/* Nome da Unidade e Empresa */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="unitName" className="mb-2 block">
+              Nome da Unidade *
+              <span className="text-xs text-muted-foreground ml-2 font-normal">
+                Identificação da filial
+              </span>
+            </Label>
+            <Input
+              id="unitName"
+              value={unitForm.name}
+              onChange={(e) => setUnitForm(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Ex: Filial Centro"
+              className="h-10"
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="unitCompanySelect" className="mb-2 block">
+              Empresa *
+              <span className="text-xs text-muted-foreground ml-2 font-normal">
+                Empresa matriz
+              </span>
+            </Label>
+            <Select 
+              value={unitForm.companyId} 
+              onValueChange={(value) => setUnitForm(prev => ({ ...prev, companyId: value }))}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Selecione uma empresa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="no-company">Selecione uma empresa</SelectItem>
+                {(companies || []).map(company => (
+                  <SelectItem key={company.id} value={company.id}>
+                    {company.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* CNPJ */}
         <div>
-          <Label htmlFor="unitName" className="mb-2 block">
-            Nome da Unidade *
+          <Label htmlFor="unitCnpj" className="mb-2 block">
+            CNPJ
+            <span className="text-xs text-muted-foreground ml-2 font-normal">
+              Cadastro Nacional da Pessoa Jurídica (opcional)
+            </span>
           </Label>
           <Input
-            id="unitName"
-            value={unitForm.name}
-            onChange={(e) => setUnitForm(prev => ({ ...prev, name: e.target.value }))}
-            placeholder="Ex: Filial Centro"
+            id="unitCnpj"
+            value={unitForm.cnpj || ''}
+            onChange={(e) => setUnitForm(prev => ({ ...prev, cnpj: e.target.value }))}
+            placeholder="00.000.000/0000-00"
             className="h-10"
-            required
           />
         </div>
 
-        {/* Empresa */}
-        <div>
-          <Label htmlFor="unitCompanySelect" className="mb-2 block">Empresa *</Label>
-          <Select 
-            value={unitForm.companyId} 
-            onValueChange={(value) => setUnitForm(prev => ({ ...prev, companyId: value }))}
-          >
-            <SelectTrigger className="h-10">
-              <SelectValue placeholder="Selecione uma empresa" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="no-company">Selecione uma empresa</SelectItem>
-              {(companies || []).map(company => (
-                <SelectItem key={company.id} value={company.id}>
-                  {company.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Endereço */}
+        <div className="space-y-3">
+          <Label className="mb-2 block">Endereço</Label>
+          <div>
+            <Input
+              value={unitForm.address?.fullAddress || ''}
+              onChange={(e) => setUnitForm(prev => ({ 
+                ...prev, 
+                address: { ...prev.address!, fullAddress: e.target.value }
+              }))}
+              placeholder="Ex: Av. Industrial, 1000 - Centro"
+              className="h-10 mb-3"
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Input
+              value={unitForm.address?.zip || ''}
+              onChange={(e) => setUnitForm(prev => ({ 
+                ...prev, 
+                address: { ...prev.address!, zip: e.target.value }
+              }))}
+              placeholder="CEP"
+              className="h-10"
+            />
+            <Input
+              value={unitForm.address?.city || ''}
+              onChange={(e) => setUnitForm(prev => ({ 
+                ...prev, 
+                address: { ...prev.address!, city: e.target.value }
+              }))}
+              placeholder="Cidade"
+              className="h-10"
+            />
+            <Input
+              value={unitForm.address?.state || ''}
+              onChange={(e) => setUnitForm(prev => ({ 
+                ...prev, 
+                address: { ...prev.address!, state: e.target.value }
+              }))}
+              placeholder="Estado"
+              className="h-10"
+            />
+          </div>
+        </div>
+
+        {/* Área Total, Ocupantes e Unidades HVAC */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="unitTotalArea" className="mb-2 block">
+              Área Total (m²)
+              <span className="text-xs text-muted-foreground ml-2 font-normal">
+                Metragem total
+              </span>
+            </Label>
+            <Input
+              id="unitTotalArea"
+              type="number"
+              value={unitForm.totalArea ?? ''}
+              onChange={(e) => setUnitForm(prev => ({ ...prev, totalArea: e.target.value ? Number(e.target.value) : undefined }))}
+              placeholder="0"
+              className="h-10"
+              min="0"
+            />
+          </div>
+          <div>
+            <Label htmlFor="unitOccupants" className="mb-2 block">
+              Ocupantes
+              <span className="text-xs text-muted-foreground ml-2 font-normal">
+                Número de pessoas
+              </span>
+            </Label>
+            <Input
+              id="unitOccupants"
+              type="number"
+              value={unitForm.occupants ?? ''}
+              onChange={(e) => setUnitForm(prev => ({ ...prev, occupants: e.target.value ? Number(e.target.value) : undefined }))}
+              placeholder="0"
+              className="h-10"
+              min="0"
+            />
+          </div>
+          <div>
+            <Label htmlFor="unitHvacUnits" className="mb-2 block">
+              Unidades HVAC
+              <span className="text-xs text-muted-foreground ml-2 font-normal">
+                Quantidade total
+              </span>
+            </Label>
+            <Input
+              id="unitHvacUnits"
+              type="number"
+              value={unitForm.hvacUnits ?? ''}
+              onChange={(e) => setUnitForm(prev => ({ ...prev, hvacUnits: e.target.value ? Number(e.target.value) : undefined }))}
+              placeholder="0"
+              className="h-10"
+              min="0"
+            />
+          </div>
         </div>
 
         {/* Observações */}
         <div>
           <Label htmlFor="unitNotes" className="mb-2 block">
-            Observações Adicionais (opcional)
+            Observações Adicionais
+            <span className="text-xs text-muted-foreground ml-2 font-normal">
+              (opcional)
+            </span>
           </Label>
           <Textarea
             id="unitNotes"
