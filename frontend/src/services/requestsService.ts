@@ -93,6 +93,9 @@ const mapRequest = (req: ApiRequest): Solicitation => ({
         h.to_status === 'REJECTED' ? 'Rejeitada' : 'Nova',
     at: h.changed_at,
   })) || [],
+  rejection_reason: req.rejection_reason || undefined,
+  work_order_id: req.work_order_id ? String(req.work_order_id) : undefined,
+  work_order_number: req.work_order_number || undefined,
   created_at: req.created_at,
   updated_at: req.updated_at,
 });

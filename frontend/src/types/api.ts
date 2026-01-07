@@ -345,8 +345,9 @@ export interface ApiRequest {
   note: string;
   items: ApiRequestItem[];
   status_history: ApiStatusChange[];
+  rejection_reason?: string | null;
   work_order_id?: number | null;
-  work_order_number: string | null;
+  work_order_number?: string | null;
   created_at: string;
   updated_at: string;
 }

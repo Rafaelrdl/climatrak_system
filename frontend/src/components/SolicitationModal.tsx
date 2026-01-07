@@ -1,8 +1,10 @@
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   ArrowRight, 
   PlayCircle, 
@@ -13,7 +15,9 @@ import {
   User,
   FileText,
   Clock,
-  ArrowRightCircle
+  ArrowRightCircle,
+  ExternalLink,
+  AlertTriangle
 } from 'lucide-react';
 import { StatusBadge } from '@/shared/ui';
 import type { Solicitation } from '@/types';
@@ -31,6 +35,8 @@ export function SolicitationModal({
   onClose,
   onConvert
 }: SolicitationModalProps) {
+  const navigate = useNavigate();
+
   if (!solicitation) {
     return null;
   }
@@ -136,6 +142,62 @@ export function SolicitationModal({
                   <p className="text-sm whitespace-pre-wrap">{solicitation.note}</p>
                 </div>
               </div>
+            )}
+
+            {/* Ordem de Serviço Gerada */}
+            {isConverted && solicitation.work_order_number && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    Ordem de Serviço Gerada
+                  </Label>
+                  <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                          OS #{solicitation.work_order_number}
+                        </p>
+                        <p className="text-xs text-green-600 dark:text-green-500">
+                          Esta solicitação foi convertida em ordem de serviço
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 text-green-700 border-green-300 hover:bg-green-100 dark:text-green-400 dark:border-green-700 dark:hover:bg-green-900/50"
+                        onClick={() => {
+                          onClose();
+                          navigate(`/cmms/work-orders/${solicitation.work_order_id}`);
+                        }}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Ver Ordem de Serviço
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Motivo da Rejeição */}
+            {isRejected && solicitation.rejection_reason && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                    Motivo da Rejeição
+                  </Label>
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="whitespace-pre-wrap">
+                      {solicitation.rejection_reason}
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              </>
             )}
 
             {/* Histórico de Status */}

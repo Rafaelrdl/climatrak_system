@@ -345,6 +345,9 @@ export interface Solicitation {
   status: SolicitationStatus;
   status_history: SolicitationStatusHistory[];
   items: SolicitationItem[];
+  rejection_reason?: string;
+  work_order_id?: string;
+  work_order_number?: string;
   created_at: string;
   updated_at: string;
 }
