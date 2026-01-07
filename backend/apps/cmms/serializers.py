@@ -78,6 +78,7 @@ class ChecklistTemplateListSerializer(serializers.ModelSerializer):
             "category",
             "category_name",
             "category_color",
+            "items",
             "status",
             "is_active",
             "version",

@@ -26,10 +26,10 @@ function apiToLocalChecklist(api: ApiChecklistTemplate): ChecklistTemplate {
     name: api.name,
     description: api.description || '',
     category_id: api.category ? String(api.category) : null,
-    items: api.items.map((item, index) => ({
+    items: (api.items || []).map((item, index) => ({
       id: item.id,
       order: item.order || index + 1,
-      description: item.label,
+      description: item.label || '',
       type: item.type,
       required: item.required,
       // Converter options de string para objeto se necessário
