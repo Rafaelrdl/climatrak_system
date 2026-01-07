@@ -19,8 +19,8 @@ from django.utils import timezone
 from django_tenants.test.cases import TenantTestCase
 
 from apps.core_events.models import OutboxEvent
-from apps.finance.cost_engine import CostEngineError, CostEngineService
-from apps.finance.models import CostCenter, CostTransaction, RateCard
+from apps.trakledger.cost_engine import CostEngineError, CostEngineService
+from apps.trakledger.models import CostCenter, CostTransaction, RateCard
 
 
 class CostEngineTestCase(TenantTestCase):

@@ -24,14 +24,14 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 from django_tenants.test.cases import TenantTestCase
 
-from apps.finance.models import (
+from apps.trakledger.models import (
     BudgetEnvelope,
     BudgetMonth,
     BudgetPlan,
     CostCenter,
     RateCard,
 )
-from apps.finance.views import (
+from apps.trakledger.views import (
     BudgetEnvelopeViewSet,
     BudgetMonthViewSet,
     BudgetPlanViewSet,
@@ -54,7 +54,7 @@ class BaseFinanceAPITestCase(TenantTestCase):
         self.factory = APIRequestFactory()
 
         # Limpar dados entre testes
-        from apps.finance.models import (
+        from apps.trakledger.models import (
             BudgetEnvelope,
             BudgetMonth,
             BudgetPlan,

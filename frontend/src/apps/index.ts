@@ -11,7 +11,7 @@
  *    Rotas: /monitor/*
  *    Funcionalidades: Dashboard tempo real, Sensores, Alertas, etc.
  * 
- * 3. Finance - Sistema de Gestão Financeira
+ * 3. TrakLedger - Orçamento Vivo
  *    Rotas: /finance/*
  *    Funcionalidades: Orçamentos, Ledger, Compromissos, Economia
  */

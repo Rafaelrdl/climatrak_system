@@ -1,9 +1,9 @@
 from django.apps import AppConfig
 
 
-class FinanceConfig(AppConfig):
+class TrakLedgerConfig(AppConfig):
     """
-    Configuração do app Finance - Orçamento Vivo.
+    Configuração do app TrakLedger - Orçamento Vivo.
 
     Gerencia:
     - CostCenter: Centros de custo hierárquicos
@@ -15,8 +15,8 @@ class FinanceConfig(AppConfig):
     """
 
     default_auto_field = "django.db.models.BigAutoField"
-    name = "apps.finance"
-    verbose_name = "Finance - Orçamento Vivo"
+    name = "apps.trakledger"
+    verbose_name = "TrakLedger - Orçamento Vivo"
 
     def ready(self):
         """

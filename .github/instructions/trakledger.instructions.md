@@ -1,12 +1,12 @@
 ---
-applyTo: "backend/apps/finance/**"
+applyTo: "backend/apps/TrakLedger/**"
 ---
 
-## Finance — Orçamento Vivo (MVP)
+## TrakLedger — Orçamento Vivo (MVP)
 Referências obrigatórias:
-- docs/finance/00-mvp-spec.md
-- docs/finance/01-erd.md
-- docs/finance/02-regras-negocio.md
+- docs/TrakLedger/00-mvp-spec.md
+- docs/TrakLedger/01-erd.md
+- docs/TrakLedger/02-regras-negocio.md
 - docs/events/*
 
 Regras:

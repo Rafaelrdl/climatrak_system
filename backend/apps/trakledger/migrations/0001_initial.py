@@ -185,7 +185,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="children",
-                        to="finance.costcenter",
+                        to="trakledger.costcenter",
                         verbose_name="Centro de Custo Pai",
                     ),
                 ),
@@ -265,7 +265,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="envelopes",
-                        to="finance.budgetplan",
+                        to="trakledger.budgetplan",
                         verbose_name="Plano Orçamentário",
                     ),
                 ),
@@ -274,7 +274,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="budget_envelopes",
-                        to="finance.costcenter",
+                        to="trakledger.costcenter",
                         verbose_name="Centro de Custo",
                     ),
                 ),
@@ -432,7 +432,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="months",
-                        to="finance.budgetenvelope",
+                        to="trakledger.budgetenvelope",
                         verbose_name="Envelope",
                     ),
                 ),
@@ -453,9 +453,9 @@ class Migration(migrations.Migration):
                 "verbose_name_plural": "Meses do Orçamento",
                 "ordering": ["envelope", "month"],
                 "indexes": [
-                    models.Index(fields=["envelope"], name="finance_bm_envelope_idx"),
-                    models.Index(fields=["month"], name="finance_bm_month_idx"),
-                    models.Index(fields=["is_locked"], name="finance_bm_locked_idx"),
+                    models.Index(fields=["envelope"], name="trakledger_bm_envelope_idx"),
+                    models.Index(fields=["month"], name="trakledger_bm_month_idx"),
+                    models.Index(fields=["is_locked"], name="trakledger_bm_locked_idx"),
                 ],
             },
         ),
@@ -463,81 +463,81 @@ class Migration(migrations.Migration):
             model_name="budgetmonth",
             constraint=models.UniqueConstraint(
                 fields=("envelope", "month"),
-                name="finance_budgetmonth_unique_env_month",
+                name="trakledger_budgetmonth_unique_env_month",
             ),
         ),
         migrations.AddIndex(
             model_name="budgetplan",
-            index=models.Index(fields=["code"], name="finance_bp_code_idx"),
+            index=models.Index(fields=["code"], name="trakledger_bp_code_idx"),
         ),
         migrations.AddIndex(
             model_name="budgetplan",
-            index=models.Index(fields=["year"], name="finance_bp_year_idx"),
+            index=models.Index(fields=["year"], name="trakledger_bp_year_idx"),
         ),
         migrations.AddIndex(
             model_name="budgetplan",
-            index=models.Index(fields=["status"], name="finance_bp_status_idx"),
+            index=models.Index(fields=["status"], name="trakledger_bp_status_idx"),
         ),
         migrations.AddConstraint(
             model_name="budgetplan",
             constraint=models.UniqueConstraint(
-                fields=("code",), name="finance_budgetplan_unique_code"
+                fields=("code",), name="trakledger_budgetplan_unique_code"
             ),
         ),
         migrations.AddIndex(
             model_name="costcenter",
-            index=models.Index(fields=["code"], name="finance_cc_code_idx"),
+            index=models.Index(fields=["code"], name="trakledger_cc_code_idx"),
         ),
         migrations.AddIndex(
             model_name="costcenter",
-            index=models.Index(fields=["parent"], name="finance_cc_parent_idx"),
+            index=models.Index(fields=["parent"], name="trakledger_cc_parent_idx"),
         ),
         migrations.AddIndex(
             model_name="costcenter",
-            index=models.Index(fields=["is_active"], name="finance_cc_active_idx"),
+            index=models.Index(fields=["is_active"], name="trakledger_cc_active_idx"),
         ),
         migrations.AddConstraint(
             model_name="costcenter",
             constraint=models.UniqueConstraint(
-                fields=("code",), name="finance_costcenter_unique_code"
+                fields=("code",), name="trakledger_costcenter_unique_code"
             ),
         ),
         migrations.AddIndex(
             model_name="budgetenvelope",
-            index=models.Index(fields=["budget_plan"], name="finance_env_plan_idx"),
+            index=models.Index(fields=["budget_plan"], name="trakledger_env_plan_idx"),
         ),
         migrations.AddIndex(
             model_name="budgetenvelope",
-            index=models.Index(fields=["cost_center"], name="finance_env_cc_idx"),
+            index=models.Index(fields=["cost_center"], name="trakledger_env_cc_idx"),
         ),
         migrations.AddIndex(
             model_name="budgetenvelope",
-            index=models.Index(fields=["category"], name="finance_env_cat_idx"),
+            index=models.Index(fields=["category"], name="trakledger_env_cat_idx"),
         ),
         migrations.AddConstraint(
             model_name="budgetenvelope",
             constraint=models.UniqueConstraint(
                 fields=("budget_plan", "cost_center", "category"),
-                name="finance_envelope_unique_plan_cc_cat",
+                name="trakledger_envelope_unique_plan_cc_cat",
             ),
         ),
         migrations.AddIndex(
             model_name="ratecard",
-            index=models.Index(fields=["role"], name="finance_rc_role_idx"),
+            index=models.Index(fields=["role"], name="trakledger_rc_role_idx"),
         ),
         migrations.AddIndex(
             model_name="ratecard",
-            index=models.Index(fields=["role_code"], name="finance_rc_role_code_idx"),
+            index=models.Index(fields=["role_code"], name="trakledger_rc_role_code_idx"),
         ),
         migrations.AddIndex(
             model_name="ratecard",
             index=models.Index(
                 fields=["effective_from", "effective_to"],
-                name="finance_rc_vigencia_idx",
+                name="trakledger_rc_vigencia_idx",
             ),
         ),
         migrations.AddIndex(
             model_name="ratecard",
-            index=models.Index(fields=["is_active"], name="finance_rc_active_idx"),
+            index=models.Index(fields=["is_active"], name="trakledger_rc_active_idx"),
         ),
     ]

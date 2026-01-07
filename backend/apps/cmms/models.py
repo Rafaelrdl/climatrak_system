@@ -208,9 +208,9 @@ class WorkOrder(models.Model):
         help_text="Equipamento relacionado à OS",
     )
 
-    # Centro de Custo (para integração com Finance)
+    # Centro de Custo (para integração com TrakLedger)
     cost_center = models.ForeignKey(
-        "finance.CostCenter",
+        "trakledger.CostCenter",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

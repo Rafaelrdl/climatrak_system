@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         ("alerts", "0004_add_work_order_to_alert"),
         ("assets", "0005_asset_sector_asset_subsection"),
         ("cmms", "0009_add_commitment_model"),
-        ("finance", "0003_add_commitment_model"),
+        ("trakledger", "0003_add_commitment_model"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -144,7 +144,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="savings_events",
-                        to="finance.costcenter",
+                        to="trakledger.costcenter",
                         verbose_name="Centro de Custo",
                     ),
                 ),

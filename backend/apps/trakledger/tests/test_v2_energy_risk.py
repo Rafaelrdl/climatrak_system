@@ -23,10 +23,10 @@ from django_tenants.test.cases import TenantTestCase
 
 # Imports para criar Asset nos testes
 from apps.assets.models import Asset, Site
-from apps.finance.auto_savings_engine import AutoSavingsEngine
-from apps.finance.bar_calculator import BARCalculator
-from apps.finance.energy_engine import EnergyCostEngine
-from apps.finance.models import (
+from apps.trakledger.auto_savings_engine import AutoSavingsEngine
+from apps.trakledger.bar_calculator import BARCalculator
+from apps.trakledger.energy_engine import EnergyCostEngine
+from apps.trakledger.models import (
     Baseline,
     CostCenter,
     CostTransaction,
@@ -35,7 +35,7 @@ from apps.finance.models import (
     RiskSnapshot,
     SavingsEvent,
 )
-from apps.finance.views import BARViewSet, EnergyTariffViewSet, RiskSnapshotViewSet
+from apps.trakledger.views import BARViewSet, EnergyTariffViewSet, RiskSnapshotViewSet
 
 # ============================================================================
 # EnergyTariff Tests
@@ -470,7 +470,7 @@ class EnergyCostEngineTests(TenantTestCase):
         # 100 × 1.01 = 101.00
         self.assertEqual(cost, Decimal("101.00"))
 
-    @patch("apps.finance.energy_engine.EventPublisher.publish")
+    @patch("apps.trakledger.energy_engine.EventPublisher.publish")
     def test_process_reading_creates_transaction(self, mock_publish):
         """Testa que process_reading cria transação no ledger."""
         reading = EnergyReading.objects.create(
@@ -504,7 +504,7 @@ class EnergyCostEngineTests(TenantTestCase):
         # Verifica evento publicado
         mock_publish.assert_called_once()
 
-    @patch("apps.finance.energy_engine.EventPublisher.publish")
+    @patch("apps.trakledger.energy_engine.EventPublisher.publish")
     def test_process_reading_idempotent(self, mock_publish):
         """Testa idempotência do processamento."""
         reading = EnergyReading.objects.create(

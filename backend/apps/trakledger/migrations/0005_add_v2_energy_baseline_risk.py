@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("assets", "0005_asset_sector_asset_subsection"),
         ("cmms", "0009_add_commitment_model"),
-        ("finance", "0004_add_savings_event_model"),
+        ("trakledger", "0004_add_savings_event_model"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -329,7 +329,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="energy_readings",
-                        to="finance.costcenter",
+                        to="trakledger.costcenter",
                         verbose_name="Centro de Custo",
                     ),
                 ),
@@ -341,7 +341,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="energy_readings",
-                        to="finance.costtransaction",
+                        to="trakledger.costtransaction",
                         verbose_name="Transação de Custo",
                     ),
                 ),
@@ -364,7 +364,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="readings",
-                        to="finance.energytariff",
+                        to="trakledger.energytariff",
                         verbose_name="Tarifa Aplicada",
                     ),
                 ),
@@ -540,7 +540,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="risk_snapshots",
-                        to="finance.costcenter",
+                        to="trakledger.costcenter",
                         verbose_name="Centro de Custo",
                     ),
                 ),
@@ -799,7 +799,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="baselines",
-                        to="finance.costcenter",
+                        to="trakledger.costcenter",
                         verbose_name="Centro de Custo",
                     ),
                 ),
@@ -822,7 +822,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="baselines",
-                        to="finance.savingsevent",
+                        to="trakledger.savingsevent",
                         verbose_name="Evento de Economia",
                     ),
                 ),
@@ -844,95 +844,95 @@ class Migration(migrations.Migration):
                 "verbose_name_plural": "Baselines",
                 "ordering": ["-created_at"],
                 "indexes": [
-                    models.Index(fields=["asset"], name="finance_baseline_asset_idx"),
+                    models.Index(fields=["asset"], name="trakledger_baseline_asset_idx"),
                     models.Index(
-                        fields=["cost_center"], name="finance_baseline_cc_idx"
+                        fields=["cost_center"], name="trakledger_baseline_cc_idx"
                     ),
-                    models.Index(fields=["status"], name="finance_baseline_status_idx"),
+                    models.Index(fields=["status"], name="trakledger_baseline_status_idx"),
                     models.Index(
-                        fields=["baseline_type"], name="finance_baseline_type_idx"
+                        fields=["baseline_type"], name="trakledger_baseline_type_idx"
                     ),
-                    models.Index(fields=["work_order"], name="finance_baseline_wo_idx"),
+                    models.Index(fields=["work_order"], name="trakledger_baseline_wo_idx"),
                 ],
             },
         ),
         migrations.AddIndex(
             model_name="energytariff",
             index=models.Index(
-                fields=["distributor"], name="finance_etariff_distrib_idx"
+                fields=["distributor"], name="trakledger_etariff_distrib_idx"
             ),
         ),
         migrations.AddIndex(
             model_name="energytariff",
             index=models.Index(
-                fields=["tariff_class"], name="finance_etariff_class_idx"
+                fields=["tariff_class"], name="trakledger_etariff_class_idx"
             ),
         ),
         migrations.AddIndex(
             model_name="energytariff",
             index=models.Index(
                 fields=["effective_from", "effective_to"],
-                name="finance_etariff_vig_idx",
+                name="trakledger_etariff_vig_idx",
             ),
         ),
         migrations.AddIndex(
             model_name="energytariff",
-            index=models.Index(fields=["is_active"], name="finance_etariff_active_idx"),
+            index=models.Index(fields=["is_active"], name="trakledger_etariff_active_idx"),
         ),
         migrations.AddIndex(
             model_name="energyreading",
             index=models.Index(
-                fields=["asset", "reading_date"], name="finance_ereading_asset_idx"
+                fields=["asset", "reading_date"], name="trakledger_ereading_asset_idx"
             ),
         ),
         migrations.AddIndex(
             model_name="energyreading",
             index=models.Index(
-                fields=["reading_date"], name="finance_ereading_date_idx"
+                fields=["reading_date"], name="trakledger_ereading_date_idx"
             ),
         ),
         migrations.AddIndex(
             model_name="energyreading",
-            index=models.Index(fields=["cost_center"], name="finance_ereading_cc_idx"),
+            index=models.Index(fields=["cost_center"], name="trakledger_ereading_cc_idx"),
         ),
         migrations.AddIndex(
             model_name="energyreading",
-            index=models.Index(fields=["source"], name="finance_ereading_source_idx"),
+            index=models.Index(fields=["source"], name="trakledger_ereading_source_idx"),
         ),
         migrations.AddConstraint(
             model_name="energyreading",
             constraint=models.UniqueConstraint(
                 fields=("asset", "reading_date"),
-                name="finance_ereading_unique_asset_date",
+                name="trakledger_ereading_unique_asset_date",
             ),
         ),
         migrations.AddIndex(
             model_name="risksnapshot",
             index=models.Index(
-                fields=["asset", "snapshot_date"], name="finance_risk_asset_idx"
+                fields=["asset", "snapshot_date"], name="trakledger_risk_asset_idx"
             ),
         ),
         migrations.AddIndex(
             model_name="risksnapshot",
-            index=models.Index(fields=["snapshot_date"], name="finance_risk_date_idx"),
+            index=models.Index(fields=["snapshot_date"], name="trakledger_risk_date_idx"),
         ),
         migrations.AddIndex(
             model_name="risksnapshot",
-            index=models.Index(fields=["cost_center"], name="finance_risk_cc_idx"),
+            index=models.Index(fields=["cost_center"], name="trakledger_risk_cc_idx"),
         ),
         migrations.AddIndex(
             model_name="risksnapshot",
-            index=models.Index(fields=["risk_level"], name="finance_risk_level_idx"),
+            index=models.Index(fields=["risk_level"], name="trakledger_risk_level_idx"),
         ),
         migrations.AddIndex(
             model_name="risksnapshot",
-            index=models.Index(fields=["risk_score"], name="finance_risk_score_idx"),
+            index=models.Index(fields=["risk_score"], name="trakledger_risk_score_idx"),
         ),
         migrations.AddConstraint(
             model_name="risksnapshot",
             constraint=models.UniqueConstraint(
                 fields=("asset", "snapshot_date"),
-                name="finance_risksnapshot_unique_asset_date",
+                name="trakledger_risksnapshot_unique_asset_date",
             ),
         ),
     ]

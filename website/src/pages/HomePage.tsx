@@ -64,11 +64,11 @@ const products = [
     href: '/produtos/airtrak',
   },
   {
-    name: 'Finance',
+    name: 'TrakLedger',
     subtitle: 'Cost Control',
-    description: 'Módulo de gestão financeira com orçamentos, lançamentos automáticos e economias.',
+    description: 'Módulo de gestão TrakLedgerira com orçamentos, lançamentos automáticos e economias.',
     color: 'from-violet-600 to-violet-400',
-    href: '/produtos/finance',
+    href: '/produtos/TrakLedger',
   },
 ]
 

@@ -326,7 +326,7 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
             from django.db import connection
 
             from apps.cmms.models import PartUsage, TimeEntry
-            from apps.finance.cost_engine import CostEngineService
+            from apps.trakledger.cost_engine import CostEngineService
 
             logger.info(
                 f"🤖 Processamento automático de custos para OS {work_order.number}..."
@@ -502,7 +502,7 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
             from django.db import connection
 
             from apps.cmms.models import PartUsage, TimeEntry
-            from apps.finance.cost_engine import CostEngineService
+            from apps.trakledger.cost_engine import CostEngineService
 
             logger.info(
                 f"🤖 Processamento automático de custos para OS {work_order.number}..."
@@ -839,7 +839,7 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
 
         from django.db import connection
 
-        from apps.finance.cost_engine import CostEngineService
+        from apps.trakledger.cost_engine import CostEngineService
 
         from .models import PartUsage, TimeEntry
         from .services import WorkOrderService

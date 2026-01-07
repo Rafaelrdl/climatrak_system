@@ -1,5 +1,5 @@
 """
-Finance Models - Orçamento Vivo MVP
+TrakLedger Models - Orçamento Vivo MVP
 
 Modelos principais:
 - CostCenter: Centros de custo com hierarquia
@@ -13,8 +13,8 @@ Modelos principais:
 - RiskSnapshot: Snapshots de risco (V2)
 
 Referências:
-- docs/finance/01-erd.md
-- docs/finance/02-regras-negocio.md
+- docs/trakledger/01-erd.md
+- docs/trakledger/02-regras-negocio.md
 """
 
 import uuid
@@ -90,13 +90,13 @@ class CostCenter(models.Model):
         ordering = ["code", "name"]
         constraints = [
             models.UniqueConstraint(
-                fields=["code"], name="finance_costcenter_unique_code"
+                fields=["code"], name="tl_cc_unique_code"
             )
         ]
         indexes = [
-            models.Index(fields=["code"], name="finance_cc_code_idx"),
-            models.Index(fields=["parent"], name="finance_cc_parent_idx"),
-            models.Index(fields=["is_active"], name="finance_cc_active_idx"),
+            models.Index(fields=["code"], name="trakledger_cc_code_idx"),
+            models.Index(fields=["parent"], name="trakledger_cc_parent_idx"),
+            models.Index(fields=["is_active"], name="trakledger_cc_active_idx"),
         ]
 
     def __str__(self):
@@ -216,13 +216,13 @@ class RateCard(models.Model):
         verbose_name_plural = "Tabelas de Custo"
         ordering = ["role", "-effective_from"]
         indexes = [
-            models.Index(fields=["role"], name="finance_rc_role_idx"),
-            models.Index(fields=["role_code"], name="finance_rc_role_code_idx"),
+            models.Index(fields=["role"], name="trakledger_rc_role_idx"),
+            models.Index(fields=["role_code"], name="trakledger_rc_role_code_idx"),
             models.Index(
                 fields=["effective_from", "effective_to"],
-                name="finance_rc_vigencia_idx",
+                name="trakledger_rc_vigencia_idx",
             ),
-            models.Index(fields=["is_active"], name="finance_rc_active_idx"),
+            models.Index(fields=["is_active"], name="trakledger_rc_active_idx"),
         ]
 
     def __str__(self):
@@ -349,13 +349,13 @@ class BudgetPlan(models.Model):
         ordering = ["-year", "name"]
         constraints = [
             models.UniqueConstraint(
-                fields=["code"], name="finance_budgetplan_unique_code"
+                fields=["code"], name="tl_bp_unique_code"
             )
         ]
         indexes = [
-            models.Index(fields=["code"], name="finance_bp_code_idx"),
-            models.Index(fields=["year"], name="finance_bp_year_idx"),
-            models.Index(fields=["status"], name="finance_bp_status_idx"),
+            models.Index(fields=["code"], name="trakledger_bp_code_idx"),
+            models.Index(fields=["year"], name="trakledger_bp_year_idx"),
+            models.Index(fields=["status"], name="trakledger_bp_status_idx"),
         ]
 
     def __str__(self):
@@ -460,13 +460,13 @@ class BudgetEnvelope(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["budget_plan", "cost_center", "category"],
-                name="finance_envelope_unique_plan_cc_cat",
+                name="tl_env_uniq_plan_cc_cat",
             )
         ]
         indexes = [
-            models.Index(fields=["budget_plan"], name="finance_env_plan_idx"),
-            models.Index(fields=["cost_center"], name="finance_env_cc_idx"),
-            models.Index(fields=["category"], name="finance_env_cat_idx"),
+            models.Index(fields=["budget_plan"], name="trakledger_env_plan_idx"),
+            models.Index(fields=["cost_center"], name="trakledger_env_cc_idx"),
+            models.Index(fields=["category"], name="trakledger_env_cat_idx"),
         ]
 
     def __str__(self):
@@ -550,13 +550,13 @@ class BudgetMonth(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["envelope", "month"],
-                name="finance_budgetmonth_unique_env_month",
+                name="tl_bm_uniq_env_month",
             )
         ]
         indexes = [
-            models.Index(fields=["envelope"], name="finance_bm_envelope_idx"),
-            models.Index(fields=["month"], name="finance_bm_month_idx"),
-            models.Index(fields=["is_locked"], name="finance_bm_locked_idx"),
+            models.Index(fields=["envelope"], name="trakledger_bm_envelope_idx"),
+            models.Index(fields=["month"], name="trakledger_bm_month_idx"),
+            models.Index(fields=["is_locked"], name="trakledger_bm_locked_idx"),
         ]
 
     def __str__(self):
@@ -751,22 +751,22 @@ class CostTransaction(models.Model):
             models.UniqueConstraint(
                 fields=["idempotency_key"],
                 condition=models.Q(idempotency_key__isnull=False),
-                name="finance_costtx_unique_idempotency",
+                name="tl_ctx_uniq_idempotency",
             )
         ]
         indexes = [
-            models.Index(fields=["idempotency_key"], name="finance_ctx_idemp_idx"),
-            models.Index(fields=["transaction_type"], name="finance_ctx_type_idx"),
-            models.Index(fields=["category"], name="finance_ctx_cat_idx"),
-            models.Index(fields=["occurred_at"], name="finance_ctx_occurred_idx"),
-            models.Index(fields=["cost_center"], name="finance_ctx_cc_idx"),
-            models.Index(fields=["work_order"], name="finance_ctx_wo_idx"),
-            models.Index(fields=["asset"], name="finance_ctx_asset_idx"),
-            models.Index(fields=["is_locked"], name="finance_ctx_locked_idx"),
+            models.Index(fields=["idempotency_key"], name="trakledger_ctx_idemp_idx"),
+            models.Index(fields=["transaction_type"], name="trakledger_ctx_type_idx"),
+            models.Index(fields=["category"], name="trakledger_ctx_cat_idx"),
+            models.Index(fields=["occurred_at"], name="trakledger_ctx_occurred_idx"),
+            models.Index(fields=["cost_center"], name="trakledger_ctx_cc_idx"),
+            models.Index(fields=["work_order"], name="trakledger_ctx_wo_idx"),
+            models.Index(fields=["asset"], name="trakledger_ctx_asset_idx"),
+            models.Index(fields=["is_locked"], name="trakledger_ctx_locked_idx"),
             # Índice composto para queries de summary
             models.Index(
                 fields=["cost_center", "category", "occurred_at"],
-                name="finance_ctx_summary_idx",
+                name="trakledger_ctx_summary_idx",
             ),
         ]
 
@@ -990,15 +990,15 @@ class Commitment(models.Model):
         verbose_name_plural = "Compromissos"
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["cost_center"], name="finance_commit_cc_idx"),
-            models.Index(fields=["budget_month"], name="finance_commit_month_idx"),
-            models.Index(fields=["status"], name="finance_commit_status_idx"),
-            models.Index(fields=["category"], name="finance_commit_cat_idx"),
-            models.Index(fields=["work_order"], name="finance_commit_wo_idx"),
+            models.Index(fields=["cost_center"], name="trakledger_commit_cc_idx"),
+            models.Index(fields=["budget_month"], name="trakledger_commit_month_idx"),
+            models.Index(fields=["status"], name="trakledger_commit_status_idx"),
+            models.Index(fields=["category"], name="trakledger_commit_cat_idx"),
+            models.Index(fields=["work_order"], name="trakledger_commit_wo_idx"),
             # Índice composto para queries de summary
             models.Index(
                 fields=["cost_center", "budget_month", "status"],
-                name="finance_commit_summary_idx",
+                name="trakledger_commit_summary_idx",
             ),
         ]
 
@@ -1216,11 +1216,11 @@ class LedgerAdjustment(models.Model):
         ordering = ["-created_at"]
         indexes = [
             models.Index(
-                fields=["original_transaction"], name="finance_adj_orig_tx_idx"
+                fields=["original_transaction"], name="trakledger_adj_orig_tx_idx"
             ),
-            models.Index(fields=["adjustment_type"], name="finance_adj_type_idx"),
-            models.Index(fields=["created_at"], name="finance_adj_created_idx"),
-            models.Index(fields=["is_approved"], name="finance_adj_approved_idx"),
+            models.Index(fields=["adjustment_type"], name="trakledger_adj_type_idx"),
+            models.Index(fields=["created_at"], name="trakledger_adj_created_idx"),
+            models.Index(fields=["is_approved"], name="trakledger_adj_approved_idx"),
         ]
 
     def __str__(self):
@@ -1379,15 +1379,15 @@ class SavingsEvent(models.Model):
         verbose_name_plural = "Eventos de Economia"
         ordering = ["-occurred_at"]
         indexes = [
-            models.Index(fields=["cost_center"], name="finance_savings_cc_idx"),
-            models.Index(fields=["event_type"], name="finance_savings_type_idx"),
-            models.Index(fields=["occurred_at"], name="finance_savings_occurred_idx"),
-            models.Index(fields=["asset"], name="finance_savings_asset_idx"),
-            models.Index(fields=["work_order"], name="finance_savings_wo_idx"),
+            models.Index(fields=["cost_center"], name="tl_savings_cc_idx"),
+            models.Index(fields=["event_type"], name="tl_savings_type_idx"),
+            models.Index(fields=["occurred_at"], name="tl_savings_occurred_idx"),
+            models.Index(fields=["asset"], name="tl_savings_asset_idx"),
+            models.Index(fields=["work_order"], name="tl_savings_wo_idx"),
             # Índice composto para summary
             models.Index(
                 fields=["cost_center", "occurred_at", "event_type"],
-                name="finance_savings_summary_idx",
+                name="tl_savings_summary_idx",
             ),
         ]
 
@@ -1575,13 +1575,13 @@ class EnergyTariff(models.Model):
         verbose_name_plural = "Tarifas de Energia"
         ordering = ["-effective_from", "distributor"]
         indexes = [
-            models.Index(fields=["distributor"], name="finance_etariff_distrib_idx"),
-            models.Index(fields=["tariff_class"], name="finance_etariff_class_idx"),
+            models.Index(fields=["distributor"], name="trakledger_etariff_distrib_idx"),
+            models.Index(fields=["tariff_class"], name="trakledger_etariff_class_idx"),
             models.Index(
                 fields=["effective_from", "effective_to"],
-                name="finance_etariff_vig_idx",
+                name="trakledger_etariff_vig_idx",
             ),
-            models.Index(fields=["is_active"], name="finance_etariff_active_idx"),
+            models.Index(fields=["is_active"], name="trakledger_etariff_active_idx"),
         ]
 
     def __str__(self):
@@ -1804,16 +1804,16 @@ class EnergyReading(models.Model):
             # Uma leitura por ativo por dia
             models.UniqueConstraint(
                 fields=["asset", "reading_date"],
-                name="finance_ereading_unique_asset_date",
+                name="tl_eread_uniq_asset_date",
             )
         ]
         indexes = [
             models.Index(
-                fields=["asset", "reading_date"], name="finance_ereading_asset_idx"
+                fields=["asset", "reading_date"], name="trakledger_ereading_asset_idx"
             ),
-            models.Index(fields=["reading_date"], name="finance_ereading_date_idx"),
-            models.Index(fields=["cost_center"], name="finance_ereading_cc_idx"),
-            models.Index(fields=["source"], name="finance_ereading_source_idx"),
+            models.Index(fields=["reading_date"], name="trakledger_ereading_date_idx"),
+            models.Index(fields=["cost_center"], name="trakledger_ereading_cc_idx"),
+            models.Index(fields=["source"], name="trakledger_ereading_source_idx"),
         ]
 
     def __str__(self):
@@ -2071,11 +2071,11 @@ class Baseline(models.Model):
         verbose_name_plural = "Baselines"
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["asset"], name="finance_baseline_asset_idx"),
-            models.Index(fields=["cost_center"], name="finance_baseline_cc_idx"),
-            models.Index(fields=["status"], name="finance_baseline_status_idx"),
-            models.Index(fields=["baseline_type"], name="finance_baseline_type_idx"),
-            models.Index(fields=["work_order"], name="finance_baseline_wo_idx"),
+            models.Index(fields=["asset"], name="trakledger_baseline_asset_idx"),
+            models.Index(fields=["cost_center"], name="trakledger_baseline_cc_idx"),
+            models.Index(fields=["status"], name="trakledger_baseline_status_idx"),
+            models.Index(fields=["baseline_type"], name="trakledger_baseline_type_idx"),
+            models.Index(fields=["work_order"], name="trakledger_baseline_wo_idx"),
         ]
 
     def __str__(self):
@@ -2289,17 +2289,17 @@ class RiskSnapshot(models.Model):
             # Um snapshot por ativo por dia
             models.UniqueConstraint(
                 fields=["asset", "snapshot_date"],
-                name="finance_risksnapshot_unique_asset_date",
+                name="tl_risk_uniq_asset_date",
             )
         ]
         indexes = [
             models.Index(
-                fields=["asset", "snapshot_date"], name="finance_risk_asset_idx"
+                fields=["asset", "snapshot_date"], name="trakledger_risk_asset_idx"
             ),
-            models.Index(fields=["snapshot_date"], name="finance_risk_date_idx"),
-            models.Index(fields=["cost_center"], name="finance_risk_cc_idx"),
-            models.Index(fields=["risk_level"], name="finance_risk_level_idx"),
-            models.Index(fields=["risk_score"], name="finance_risk_score_idx"),
+            models.Index(fields=["snapshot_date"], name="trakledger_risk_date_idx"),
+            models.Index(fields=["cost_center"], name="trakledger_risk_cc_idx"),
+            models.Index(fields=["risk_level"], name="trakledger_risk_level_idx"),
+            models.Index(fields=["risk_score"], name="trakledger_risk_score_idx"),
         ]
 
     def __str__(self):

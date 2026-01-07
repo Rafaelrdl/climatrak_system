@@ -42,8 +42,8 @@ urlpatterns = [
     path("api/inventory/", include("apps.inventory.urls")),
     # CMMS API (Work Orders, Requests, Maintenance Plans)
     path("api/cmms/", include("apps.cmms.urls")),
-    # Finance API (Cost Centers, Rate Cards, Budget Plans)
-    path("api/finance/", include("apps.finance.urls")),
+    # TrakLedger API (Cost Centers, Rate Cards, Budget Plans)
+    path("api/trakledger/", include("apps.trakledger.urls")),
 ]
 
 # Serve media files in development

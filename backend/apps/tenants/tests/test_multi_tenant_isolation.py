@@ -150,9 +150,9 @@ class TenantConfigurationTests(TestCase):
         """Finance deve estar em TENANT_APPS para isolamento de dados financeiros."""
         tenant_apps = getattr(settings, "TENANT_APPS", [])
         self.assertIn(
-            "apps.finance",
+            "apps.trakledger",
             tenant_apps,
-            "apps.finance DEVE estar em TENANT_APPS para isolamento!",
+            "apps.trakledger DEVE estar em TENANT_APPS para isolamento!",
         )
 
     @pytest.mark.tenant
@@ -336,7 +336,7 @@ class TenantDataLeakagePreventionTests(TenantTestCase):
 
         from django.utils import timezone
 
-        from apps.finance.models import CostCenter, CostTransaction
+        from apps.trakledger.models import CostCenter, CostTransaction
 
         # Criar dados no tenant atual
         cc = CostCenter.objects.create(

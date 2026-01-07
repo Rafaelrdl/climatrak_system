@@ -75,9 +75,9 @@ const products = [
     href: '/produtos/airtrak',
   },
   {
-    id: 'finance',
-    name: 'Finance',
-    subtitle: 'Módulo de Gestão Financeira',
+    id: 'TrakLedger',
+    name: 'TrakLedger',
+    subtitle: 'Módulo de Gestão TrakLedgerira',
     description: 'Controle total dos custos de manutenção com orçamentos, lançamentos automáticos, compromissos e registro de economias.',
     icon: DollarSign,
     color: 'violet',
@@ -90,12 +90,12 @@ const products = [
       'Lançamentos Automáticos',
       'Compromissos de Manutenção',
       'Registro de Economias',
-      'Dashboards Financeiros',
+      'Dashboards TrakLedgeriros',
       'Alertas de Orçamento',
       'Relatórios por Período',
       'Integração com TrakNor',
     ],
-    href: '/produtos/finance',
+    href: '/produtos/TrakLedger',
   },
 ]
 
@@ -174,7 +174,7 @@ export function ProductsPage() {
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Nosso ecossistema foi projetado para integração perfeita. 
               Os sensores AirTrak alimentam o TrakSense, que cria alertas e OS automáticas no TrakNor, 
-              com custos registrados automaticamente no Finance.
+              com custos registrados automaticamente no TrakLedger.
             </p>
           </div>
           

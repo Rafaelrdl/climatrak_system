@@ -25,8 +25,8 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 from django_tenants.test.cases import TenantTestCase
 
-from apps.finance.models import Commitment, CostCenter
-from apps.finance.views import CommitmentViewSet
+from apps.trakledger.models import Commitment, CostCenter
+from apps.trakledger.views import CommitmentViewSet
 
 
 class BaseCommitmentTestCase(TenantTestCase):

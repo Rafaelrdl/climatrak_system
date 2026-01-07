@@ -110,7 +110,7 @@ class CrossTenantPreventionTests(TestCase):
         from django.conf import settings
 
         tenant_apps = getattr(settings, "TENANT_APPS", [])
-        self.assertIn("apps.finance", tenant_apps)
+        self.assertIn("apps.trakledger", tenant_apps)
 
     @pytest.mark.tenant
     def test_cmms_models_are_tenant_aware(self):

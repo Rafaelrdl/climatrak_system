@@ -20,7 +20,7 @@ from django.utils import timezone
 
 from django_tenants.test.cases import TenantTestCase
 
-from apps.finance.models import (
+from apps.trakledger.models import (
     BudgetEnvelope,
     BudgetMonth,
     BudgetPlan,
@@ -29,7 +29,7 @@ from apps.finance.models import (
     LedgerAdjustment,
     RateCard,
 )
-from apps.finance.serializers import (
+from apps.trakledger.serializers import (
     CostCenterSerializer,
     CostTransactionCreateSerializer,
     CostTransactionSerializer,

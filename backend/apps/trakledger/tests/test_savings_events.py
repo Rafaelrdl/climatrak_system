@@ -22,8 +22,8 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 from django_tenants.test.cases import TenantTestCase
 
-from apps.finance.models import CostCenter, SavingsEvent
-from apps.finance.views import SavingsEventViewSet
+from apps.trakledger.models import CostCenter, SavingsEvent
+from apps.trakledger.views import SavingsEventViewSet
 
 
 class SavingsEventAPITests(TenantTestCase):
@@ -517,7 +517,7 @@ class BudgetSummaryAPITests(TenantTestCase):
 
     def setUp(self):
         """Setup antes de cada teste."""
-        from apps.finance.models import (
+        from apps.trakledger.models import (
             BudgetEnvelope,
             BudgetMonth,
             BudgetPlan,
@@ -607,7 +607,7 @@ class BudgetSummaryAPITests(TenantTestCase):
 
     def test_budget_summary_monthly(self):
         """Deve retornar summary mensal correto."""
-        from apps.finance.views import BudgetSummaryViewSet
+        from apps.trakledger.views import BudgetSummaryViewSet
 
         view = BudgetSummaryViewSet.as_view({"get": "list"})
         request = self.factory.get(
@@ -629,7 +629,7 @@ class BudgetSummaryAPITests(TenantTestCase):
 
     def test_budget_summary_with_cost_center_filter(self):
         """Deve filtrar summary por centro de custo."""
-        from apps.finance.views import BudgetSummaryViewSet
+        from apps.trakledger.views import BudgetSummaryViewSet
 
         view = BudgetSummaryViewSet.as_view({"get": "list"})
         request = self.factory.get(
@@ -646,7 +646,7 @@ class BudgetSummaryAPITests(TenantTestCase):
 
     def test_budget_summary_missing_month(self):
         """Deve falhar sem parâmetro month."""
-        from apps.finance.views import BudgetSummaryViewSet
+        from apps.trakledger.views import BudgetSummaryViewSet
 
         view = BudgetSummaryViewSet.as_view({"get": "list"})
         request = self.factory.get("/api/finance/budget-summary/")
@@ -659,7 +659,7 @@ class BudgetSummaryAPITests(TenantTestCase):
 
     def test_budget_summary_invalid_month_format(self):
         """Deve falhar com formato de mês inválido."""
-        from apps.finance.views import BudgetSummaryViewSet
+        from apps.trakledger.views import BudgetSummaryViewSet
 
         view = BudgetSummaryViewSet.as_view({"get": "list"})
         request = self.factory.get(
@@ -673,7 +673,7 @@ class BudgetSummaryAPITests(TenantTestCase):
 
     def test_budget_summary_empty_month(self):
         """Deve retornar zeros para mês sem dados."""
-        from apps.finance.views import BudgetSummaryViewSet
+        from apps.trakledger.views import BudgetSummaryViewSet
 
         view = BudgetSummaryViewSet.as_view({"get": "list"})
         request = self.factory.get(
@@ -689,7 +689,7 @@ class BudgetSummaryAPITests(TenantTestCase):
 
     def test_budget_summary_by_category(self):
         """Deve retornar breakdown por categoria."""
-        from apps.finance.views import BudgetSummaryViewSet
+        from apps.trakledger.views import BudgetSummaryViewSet
 
         view = BudgetSummaryViewSet.as_view({"get": "list"})
         request = self.factory.get(
@@ -711,7 +711,7 @@ class BudgetSummaryAPITests(TenantTestCase):
 
     def test_budget_summary_year(self):
         """Deve retornar summary anual."""
-        from apps.finance.views import BudgetSummaryViewSet
+        from apps.trakledger.views import BudgetSummaryViewSet
 
         view = BudgetSummaryViewSet.as_view({"get": "year"})
         request = self.factory.get(
@@ -734,7 +734,7 @@ class BudgetSummaryAPITests(TenantTestCase):
 
     def test_budget_summary_year_missing(self):
         """Deve falhar sem parâmetro year no endpoint anual."""
-        from apps.finance.views import BudgetSummaryViewSet
+        from apps.trakledger.views import BudgetSummaryViewSet
 
         view = BudgetSummaryViewSet.as_view({"get": "year"})
         request = self.factory.get("/api/finance/budget-summary/year/")

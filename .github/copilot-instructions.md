@@ -1,6 +1,6 @@
 # Copilot Instructions — ClimaTrak System (Monorepo)
 
-Plataforma multi-tenant para **CMMS** (manutenção), **Monitoramento IoT/HVAC** e **Finance** (Orçamento Vivo).
+Plataforma multi-tenant para **CMMS** (manutenção), **Monitoramento IoT/HVAC** e **TrakLedger** (Orçamento Vivo).
 
 ## Arquitetura Principal
 
@@ -17,7 +17,7 @@ docs/             Especificações (MVP, ERD, APIs, eventos)
 
 ## Documentação de Referência (obrigatória)
 - Specs gerais: `docs/README.md` → `docs/backend/`, `docs/frontend/`
-- Finance: `docs/backend/finance/` (MVP, ERD, regras-negocio)
+- TrakLedger: `docs/backend/trakledger/` (MVP, ERD, regras-negocio)
 - Eventos: `docs/backend/events/` (contrato Outbox)
 - Design System: `docs/design/DESIGN_SYSTEM.md` (UI/UX obrigatório)
 
@@ -65,7 +65,7 @@ EventPublisher.publish(
 )
 ```
 
-**Idempotência Finance**: `idempotency_key` unique por tenant (ex: `wo:{id}:labor`).
+**Idempotência TrakLedger**: `idempotency_key` unique por tenant (ex: `wo:{id}:labor`).
 
 ## Padrões Frontend (React/TypeScript)
 
@@ -127,7 +127,7 @@ Ver `.github/instructions/testing.instructions.md` para detalhes completos.
 
 1. **Multi-tenant**: Nunca vazar dados entre tenants. Queries operam no schema correto automaticamente via middleware.
 2. **Eventos**: Consumidores Celery idempotentes com retry/backoff.
-3. **Finance**: Ledger (CostTransaction) é fonte da verdade. Mês locked → apenas adjustments.
+3. **TrakLedger**: Ledger (CostTransaction) é fonte da verdade. Mês locked → apenas adjustments.
 4. **Models**: Sempre gerar migration + testes.
 5. **Testes**: Toda feature com dados de tenant precisa de teste de isolamento.
 6. **PRs**: Pequenos, 1 issue por PR.

@@ -28,7 +28,7 @@ from apps.core_events.tasks import (
     process_outbox_event,
     register_event_handler,
 )
-from apps.finance.models import CostCenter, CostTransaction
+from apps.trakledger.models import CostCenter, CostTransaction
 
 
 class OutboxIdempotencyTests(TenantTestCase):
@@ -254,7 +254,7 @@ class RetryNoSideEffectTests(TenantTestCase):
 
         Processar mesmo evento 2x não deve criar transações duplicadas.
         """
-        from apps.finance.cost_engine import CostEngineService
+        from apps.trakledger.cost_engine import CostEngineService
 
         work_order_id = str(uuid.uuid4())
         event_data = {
@@ -451,7 +451,7 @@ class AtLeastOnceDeliveryTests(TenantTestCase):
         """
         Reprocessamento não deve inflar contagem de eventos.
         """
-        from apps.finance.cost_engine import CostEngineService
+        from apps.trakledger.cost_engine import CostEngineService
 
         work_order_id = str(uuid.uuid4())
         event_data = {

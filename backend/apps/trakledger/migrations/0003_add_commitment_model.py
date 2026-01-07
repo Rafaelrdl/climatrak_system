@@ -12,7 +12,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
     dependencies = [
         ("cmms", "0009_add_commitment_model"),
-        ("finance", "0002_ledger_costtransaction"),
+        ("trakledger", "0002_ledger_costtransaction"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -135,7 +135,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="commitments",
-                        to="finance.costcenter",
+                        to="trakledger.costcenter",
                         verbose_name="Centro de Custo",
                     ),
                 ),

@@ -102,7 +102,7 @@ def tenant_client(db):
 @pytest.fixture
 def cost_center(db):
     """Create a test cost center."""
-    from apps.finance.models import CostCenter
+    from apps.trakledger.models import CostCenter
     return CostCenter.objects.create(
         code="CC-TEST-001",
         name="Test Cost Center",
@@ -114,7 +114,7 @@ def cost_center(db):
 @pytest.fixture
 def rate_card(db):
     """Create a test rate card."""
-    from apps.finance.models import RateCard
+    from apps.trakledger.models import RateCard
     from decimal import Decimal
     return RateCard.objects.create(
         name="Default Rate Card",

@@ -18,7 +18,7 @@ from apps.assets.models import Asset
 from apps.cmms.models import ExternalCost, PartUsage, TimeEntry, WorkOrder
 from apps.cmms.services import WorkOrderService
 from apps.core_events.models import OutboxEvent
-from apps.finance.models import CostCenter
+from apps.trakledger.models import CostCenter
 
 User = get_user_model()
 

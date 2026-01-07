@@ -1,6 +1,6 @@
 # ClimaTrak System (Monorepo)
 
-Backend unificado + Frontend único para **CMMS (manutenção)** + **Monitoramento IoT/HVAC** + **Finance (Orçamento Vivo)**, com arquitetura **multi-tenant** (isolamento por schema no PostgreSQL).
+Backend unificado + Frontend único para **CMMS (manutenção)** + **Monitoramento IoT/HVAC** + **TrakLedger (Orçamento Vivo)**, com arquitetura **multi-tenant** (isolamento por schema no PostgreSQL).
 
 > 📌 Comece por aqui: `docs/README.md`  
 > O README foca em "como rodar e contribuir". A especificação completa fica na pasta `/docs` (MVP, ERD, APIs, eventos, backlog).  
@@ -16,7 +16,7 @@ Backend unificado + Frontend único para **CMMS (manutenção)** + **Monitoramen
 - [Setup Local (Quickstart)](#setup-local-quickstart)
 - [Multi-tenant e Domínios](#multi-tenant-e-domínios)
 - [Fluxo IoT (MQTT → EMQX → Ingest)](#fluxo-iot-mqtt--emqx--ingest)
-- [Finance: Orçamento Vivo](#finance-orçamento-vivo)
+- [TrakLedger: Orçamento Vivo](#TrakLedger-orçamento-vivo)
 - [Comandos Úteis](#comandos-úteis)
 - [Testes, Lint e Formatação](#testes-lint-e-formatação)
 - [Contribuindo](#contribuindo)
@@ -30,7 +30,7 @@ O ClimaTrak System é uma plataforma multi-tenant para:
 
 - **CMMS**: ordens de serviço, planos de manutenção, procedimentos, inventário
 - **Monitoramento IoT/HVAC**: telemetria, alertas, dashboards em tempo real
-- **Finance (Orçamento Vivo)**: orçamento por mês/categoria/centro de custo + custos automáticos por OS + comprometidos + economia/ROI (MVP + evoluções)
+- **TrakLedger (Orçamento Vivo)**: orçamento por mês/categoria/centro de custo + custos automáticos por OS + comprometidos + economia/ROI (MVP + evoluções)
 
 ---
 
@@ -170,9 +170,9 @@ tenants/{slug}/sites/{site}/assets/{asset}/...
 
 ---
 
-## Finance: Orçamento Vivo
+## TrakLedger: Orçamento Vivo
 
-O módulo Finance (MVP) entrega:
+O módulo TrakLedger (MVP) entrega:
 
 - Orçamento por centro de custo/categoria (plano anual + meses)
 - Ledger (CostTransaction) como fonte de verdade (imutável após lock mensal)
@@ -181,13 +181,13 @@ O módulo Finance (MVP) entrega:
 - Economia manual (SavingsEvent) com evidências
 - Dashboard mensal: Planejado vs Comprometido vs Realizado (+ Economia)
 
-📚 **Documentação do Finance:**
+📚 **Documentação do TrakLedger:**
 
-- `docs/finance/00-mvp-spec.md`
-- `docs/finance/01-erd.md`
-- `docs/finance/02-regras-negocio.md`
+- `docs/TrakLedger/00-mvp-spec.md`
+- `docs/TrakLedger/01-erd.md`
+- `docs/TrakLedger/02-regras-negocio.md`
 - `docs/events/*`
-- `docs/api/finance.md`
+- `docs/api/TrakLedger.md`
 - `docs/delivery/02-backlog-issues.md`
 
 ---
@@ -305,7 +305,7 @@ O desenvolvimento segue o backlog em:
 
 - **Multi-tenant**: nunca vazar dados entre tenants
 - **Eventos**: usar Outbox + consumidores idempotentes
-- **Finance**: ledger como fonte de verdade
+- **TrakLedger**: ledger como fonte de verdade
 
 ---
 

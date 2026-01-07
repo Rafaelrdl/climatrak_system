@@ -8,7 +8,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("finance", "0005_add_v2_energy_baseline_risk"),
+        ("trakledger", "0005_add_v2_energy_baseline_risk"),
     ]
 
     operations = [

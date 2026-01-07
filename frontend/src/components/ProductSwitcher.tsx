@@ -1,10 +1,10 @@
 /**
- * ProductSwitcher - Componente para alternar entre produtos (CMMS, Monitor e Finance)
+ * ProductSwitcher - Componente para alternar entre produtos (CMMS, Monitor e TrakLedger)
  * 
  * Dropdown no header que permite navegar rapidamente entre:
  * - TrakNor CMMS (Gestão de Manutenção)
  * - TrakSense Monitor (Monitoramento IoT)
- * - Finance (Gestão Financeira)
+ * - TrakLedger (Orçamento Vivo)
  */
 
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -62,9 +62,9 @@ const products: Product[] = [
     borderColor: 'border-green-200',
   },
   {
-    id: 'finance',
-    name: 'Finance',
-    description: 'Gestão Financeira',
+    id: 'trakledger',
+    name: 'TrakLedger',
+    description: 'Orçamento Vivo',
     icon: <Wallet className="h-5 w-5" />,
     path: '/finance',
     color: 'text-emerald-600',

@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("assets", "0005_asset_sector_asset_subsection"),
         ("cmms", "0006_add_checklist_category"),
-        ("finance", "0001_initial"),
+        ("trakledger", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -155,7 +155,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="transactions",
-                        to="finance.costcenter",
+                        to="trakledger.costcenter",
                         verbose_name="Centro de Custo",
                     ),
                 ),
@@ -274,7 +274,7 @@ class Migration(migrations.Migration):
                     models.OneToOneField(
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="adjustment_record",
-                        to="finance.costtransaction",
+                        to="trakledger.costtransaction",
                         verbose_name="Transação de Ajuste",
                     ),
                 ),
@@ -305,7 +305,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="adjustments",
-                        to="finance.costtransaction",
+                        to="trakledger.costtransaction",
                         verbose_name="Transação Original",
                     ),
                 ),

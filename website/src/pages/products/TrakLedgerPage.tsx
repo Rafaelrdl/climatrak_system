@@ -49,14 +49,14 @@ const moduleScreens = [
     id: 'painel',
     name: 'Painel',
     icon: BarChart3,
-    description: 'Dashboard financeiro completo com visão de orçamento, realizado, comprometido e economias. Gráficos por período, categoria e localidade.',
+    description: 'Dashboard TrakLedgeriro completo com visão de orçamento, realizado, comprometido e economias. Gráficos por período, categoria e localidade.',
     features: ['Orçamento vs Realizado', 'Gastos por categoria', 'Tendências mensais', 'Top 10 ativos por custo', 'Alertas de orçamento'],
   },
   {
     id: 'lancamentos',
     name: 'Lançamentos',
     icon: FileText,
-    description: 'Ledger completo com todos os lançamentos financeiros de manutenção. Filtros avançados, exportação e rastreabilidade por OS.',
+    description: 'Ledger completo com todos os lançamentos TrakLedgeriros de manutenção. Filtros avançados, exportação e rastreabilidade por OS.',
     features: ['Histórico completo', 'Filtros por período/categoria', 'Exportação Excel/PDF', 'Vínculo com OS', 'Compromissos futuros'],
   },
   {
@@ -75,7 +75,7 @@ const kpis = [
   { label: 'Economia', value: 'R$ 124k', icon: PiggyBank, color: 'text-emerald-600', bg: 'bg-emerald-100' },
 ]
 
-export function FinancePage() {
+export function TrakLedgerPage() {
   const [activeModule, setActiveModule] = useState('painel')
   const activeScreen = moduleScreens.find(m => m.id === activeModule)!
 
@@ -90,11 +90,11 @@ export function FinancePage() {
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-teal-600 to-teal-400 flex items-center justify-center">
                   <DollarSign className="w-6 h-6 text-white" />
                 </div>
-                <Badge className="bg-teal-100 text-teal-700">Módulo Finance</Badge>
+                <Badge className="bg-teal-100 text-teal-700">Módulo TrakLedger</Badge>
               </div>
-              <h1 className="text-4xl sm:text-5xl font-bold mb-6">Finance</h1>
+              <h1 className="text-4xl sm:text-5xl font-bold mb-6">TrakLedger</h1>
               <p className="text-xl text-gray-600 mb-4">
-                Gestão Financeira de Manutenção
+                Gestão TrakLedgerira de Manutenção
               </p>
               <p className="text-lg text-gray-500 mb-8">
                 Controle total dos custos de manutenção com orçamentos, lançamentos automáticos, 
@@ -113,7 +113,7 @@ export function FinancePage() {
             </div>
             
             {/* Hero Screen Mockup */}
-            <ScreenMockup title="Finance — Painel Financeiro">
+            <ScreenMockup title="TrakLedger — Painel TrakLedgeriro">
               <div className="p-4 bg-gray-50 min-h-[400px]">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -221,7 +221,7 @@ export function FinancePage() {
           <div className="text-center mb-12">
             <Badge className="mb-4 bg-teal-100 text-teal-700">Funcionalidades</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Explore os Módulos do Finance
+              Explore os Módulos do TrakLedger
             </h2>
             <p className="text-lg text-gray-500 max-w-2xl mx-auto">
               Clique em cada módulo para ver detalhes e preview da interface.
@@ -257,7 +257,7 @@ export function FinancePage() {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold">{activeScreen.name}</h3>
-                      <p className="text-sm text-gray-500">Módulo Finance</p>
+                      <p className="text-sm text-gray-500">Módulo TrakLedger</p>
                     </div>
                   </div>
                   
@@ -293,7 +293,7 @@ export function FinancePage() {
             </p>
           </div>
 
-          <ScreenMockup title="Finance — Lançamentos" className="max-w-5xl mx-auto">
+          <ScreenMockup title="TrakLedger — Lançamentos" className="max-w-5xl mx-auto">
             <div className="flex min-h-[500px]">
               <div className="w-56 bg-gray-50 border-r p-3 space-y-1">
                 {[
@@ -398,7 +398,7 @@ export function FinancePage() {
               <div className="space-y-4">
                 {[
                   'Registro de falhas evitadas com cálculo de custo estimado',
-                  'Downtime prevenido convertido em valor financeiro',
+                  'Downtime prevenido convertido em valor TrakLedgeriro',
                   'ROI automático baseado em investimento vs economia',
                   'Relatórios gerenciais para apresentação à diretoria',
                   'Histórico de economias por período e categoria',
@@ -413,7 +413,7 @@ export function FinancePage() {
               </div>
             </div>
             
-            <ScreenMockup title="Finance — Registro de Economia">
+            <ScreenMockup title="TrakLedger — Registro de Economia">
               <div className="p-6 bg-white">
                 <div className="mb-4">
                   <h3 className="text-lg font-bold text-gray-900 mb-1">Nova Economia Registrada</h3>
@@ -541,7 +541,7 @@ export function FinancePage() {
       {/* CTA Section */}
       <section className="py-16 md:py-24 bg-gradient-to-r from-teal-600 to-teal-500 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Transforme a Gestão Financeira da Manutenção</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Transforme a Gestão TrakLedgerira da Manutenção</h2>
           <p className="text-lg text-teal-100 mb-8 max-w-2xl mx-auto">
             Junte-se às empresas que já controlam seus custos de manutenção de forma profissional.
           </p>

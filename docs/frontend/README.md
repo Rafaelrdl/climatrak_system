@@ -11,15 +11,15 @@ Este diretório descreve a arquitetura e o plano de entrega do frontend (React/V
 
 ---
 
-## Comece por aqui (Finance UI)
-- [MVP UI Spec — Finance](finance/00-mvp-spec-ui.md)
-- [Roadmap UI — Finance](finance/01-roadmap-ui.md)
-- [IA (Info Architecture) e Rotas](finance/02-ia-rotas.md)
-- [Componentes Base (UI kit Finance)](finance/03-componentes-base.md)
-- [Hooks/Services (React Query + API)](finance/04-hooks-services.md)
-- [Telas e Fluxos (passo a passo)](finance/05-telas-fluxos.md)
-- [RBAC (permissões)](finance/06-rbac-permissoes.md)
-- [Testes E2E](finance/07-tests-e2e.md)
+## Comece por aqui (TrakLedger UI)
+- [MVP UI Spec — TrakLedger](TrakLedger/00-mvp-spec-ui.md)
+- [Roadmap UI — TrakLedger](TrakLedger/01-roadmap-ui.md)
+- [IA (Info Architecture) e Rotas](TrakLedger/02-ia-rotas.md)
+- [Componentes Base (UI kit TrakLedger)](TrakLedger/03-componentes-base.md)
+- [Hooks/Services (React Query + API)](TrakLedger/04-hooks-services.md)
+- [Telas e Fluxos (passo a passo)](TrakLedger/05-telas-fluxos.md)
+- [RBAC (permissões)](TrakLedger/06-rbac-permissoes.md)
+- [Testes E2E](TrakLedger/07-tests-e2e.md)
 
 ---
 
