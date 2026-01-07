@@ -45,7 +45,6 @@ export function SolicitationFilters({
 
   const statusOptions: { value: SolicitationStatus; label: string; color: string }[] = [
     { value: 'Nova', label: 'Nova', color: 'bg-blue-100 text-blue-800' },
-    { value: 'Em triagem', label: 'Em Triagem', color: 'bg-yellow-100 text-yellow-800' },
     { value: 'Convertida em OS', label: 'Convertida em OS', color: 'bg-green-100 text-green-800' },
     { value: 'Rejeitada', label: 'Rejeitada', color: 'bg-red-100 text-red-800' }
   ];

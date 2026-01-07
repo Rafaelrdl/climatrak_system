@@ -145,7 +145,6 @@ export function RequestsPage() {
   const stats = {
     total: filteredSolicitations.length,
     nova: filteredSolicitations.filter(s => s.status === 'Nova').length,
-    triagem: filteredSolicitations.filter(s => s.status === 'Em triagem').length,
     convertida: filteredSolicitations.filter(s => s.status === 'Convertida em OS').length,
     rejeitada: filteredSolicitations.filter(s => s.status === 'Rejeitada').length
   };
@@ -164,7 +163,7 @@ export function RequestsPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
@@ -188,20 +187,6 @@ export function RequestsPage() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Novas</p>
                 <div className="text-2xl font-bold text-blue-600">{stats.nova}</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="h-8 w-8 rounded-full bg-yellow-100 flex items-center justify-center">
-                <span className="text-yellow-600 font-bold text-sm">{stats.triagem}</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Em Triagem</p>
-                <div className="text-2xl font-bold text-yellow-600">{stats.triagem}</div>
               </div>
             </div>
           </CardContent>
