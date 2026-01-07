@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader, StatusBadge, ConfirmDialog } from '@/shared/ui';
+import { PageHeader, StatusBadge } from '@/shared/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { MessageSquare, Users, Calendar, Loader2, Plus, Eye, ArrowRightCircle, X
 import { SolicitationModal } from '@/components/SolicitationModal';
 import { SolicitationFilters, type SolicitationFilters as SolicitationFiltersType } from '@/components/SolicitationFilters';
 import { CreateRequestModal } from '@/components/CreateRequestModal';
+import { RejectRequestDialog } from '@/components/RejectRequestDialog';
 import { toast } from 'sonner';
 import {
   useSolicitations,
@@ -107,13 +108,17 @@ export function RequestsPage() {
     setRejectTarget(solicitation);
   };
 
-  const handleConfirmReject = async () => {
+  const handleConfirmReject = async (reason: string) => {
     if (!rejectTarget) {
       return;
     }
 
     try {
-      await updateStatusMutation.mutateAsync({ id: rejectTarget.id, status: 'REJECTED' });
+      await updateStatusMutation.mutateAsync({ 
+        id: rejectTarget.id, 
+        status: 'REJECTED',
+        rejection_reason: reason 
+      });
       toast.success('Solicitacao rejeitada com sucesso.');
       if (selectedSolicitation?.id === rejectTarget.id) {
         setSelectedSolicitation(null);
@@ -456,17 +461,13 @@ export function RequestsPage() {
         onConvert={handleConvertToWorkOrder}
       />
 
-      <ConfirmDialog
+      <RejectRequestDialog
         open={!!rejectTarget}
         onOpenChange={(open) => {
           if (!open) {
             setRejectTarget(null);
           }
         }}
-        title="Rejeitar solicitacao"
-        description="Esta acao marca a solicitacao como rejeitada e impede a conversao em OS."
-        confirmText="Rejeitar"
-        variant="destructive"
         onConfirm={handleConfirmReject}
         loading={updateStatusMutation.isPending}
       />

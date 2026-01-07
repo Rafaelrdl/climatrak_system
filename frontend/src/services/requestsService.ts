@@ -152,8 +152,12 @@ export const requestsService = {
   /**
    * Atualiza status de uma solicitação
    */
-  async updateStatus(id: string, status: 'NEW' | 'TRIAGING' | 'REJECTED'): Promise<Solicitation> {
-    const response = await api.patch<ApiRequest>(`/cmms/requests/${id}/`, { status });
+  async updateStatus(id: string, status: 'NEW' | 'TRIAGING' | 'REJECTED', rejection_reason?: string): Promise<Solicitation> {
+    const payload: { status: string; rejection_reason?: string } = { status };
+    if (status === 'REJECTED' && rejection_reason) {
+      payload.rejection_reason = rejection_reason;
+    }
+    const response = await api.patch<ApiRequest>(`/cmms/requests/${id}/`, payload);
     return mapRequest(response.data);
   },
 

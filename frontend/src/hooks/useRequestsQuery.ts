@@ -85,8 +85,8 @@ export function useUpdateRequestStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'NEW' | 'TRIAGING' | 'REJECTED' }) =>
-      requestsService.updateStatus(id, status),
+    mutationFn: ({ id, status, rejection_reason }: { id: string; status: 'NEW' | 'TRIAGING' | 'REJECTED'; rejection_reason?: string }) =>
+      requestsService.updateStatus(id, status, rejection_reason),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: requestKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: requestKeys.lists() });
