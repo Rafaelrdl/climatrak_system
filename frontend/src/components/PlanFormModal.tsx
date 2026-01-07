@@ -7,13 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, CheckSquare, Eye, ListChecks } from 'lucide-react';
+import { Trash2, CheckSquare, Eye, ListChecks, Plus, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import type { MaintenancePlan } from '@/types';
 import { plansService } from '@/services/plansService';
 import { useCompanies, useSectors } from '@/hooks/useLocationsQuery';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useChecklists } from '@/hooks/useChecklistsQuery';
+import { AddEquipmentsModal, type SelectedEquipment } from './AddEquipmentsModal';
 import type { ChecklistTemplate } from '@/models/checklist';
 
 interface PlanFormModalProps {
@@ -34,12 +35,7 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
     name: string;
     description: string;
     frequency: MaintenancePlan['frequency'] | '';
-    scope: {
-      location_id: string;
-      location_name: string;
-      equipment_ids: string[];
-      equipment_names: string[];
-    };
+    selectedEquipments: SelectedEquipment[];
     checklist_id: string;
     status: MaintenancePlan['status'];
     start_date: string;
@@ -48,12 +44,7 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
     name: '',
     description: '',
     frequency: '',
-    scope: {
-      location_id: '',
-      location_name: '',
-      equipment_ids: [],
-      equipment_names: []
-    },
+    selectedEquipments: [],
     checklist_id: '',
     status: 'Ativo',
     start_date: '',
@@ -64,6 +55,7 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedChecklist, setSelectedChecklist] = useState<ChecklistTemplate | null>(null);
   const [isViewingChecklist, setIsViewingChecklist] = useState(false);
+  const [isAddEquipmentsOpen, setIsAddEquipmentsOpen] = useState(false);
 
   // Load plan data when editing
   useEffect(() => {
@@ -72,19 +64,31 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
       const equipmentIds = plan.assets || plan.scope?.equipment_ids || [];
       const equipmentNames = plan.asset_names || plan.scope?.equipment_names || [];
       
+      // Converter para o formato SelectedEquipment
+      const selectedEquipments: SelectedEquipment[] = equipmentIds.map((id, index) => {
+        const eq = equipment.find(e => e.id === id);
+        const sector = eq ? sectors.find(s => s.id === eq.sectorId) : null;
+        const company = sector ? companies.find(c => c.id === sector.companyId) : null;
+        
+        return {
+          id,
+          name: eq?.name || eq?.model || '',
+          tag: equipmentNames[index] || eq?.tag || '',
+          brand: eq?.brand,
+          type: eq?.type,
+          sectorName: sector?.name,
+          companyName: company?.name,
+        };
+      });
+      
       setFormData({
         name: plan.name,
         description: plan.description || '',
         frequency: plan.frequency,
-        scope: {
-          location_id: plan.scope?.location_id || '',
-          location_name: plan.scope?.location_name || '',
-          equipment_ids: equipmentIds,
-          equipment_names: equipmentNames
-        },
+        selectedEquipments,
         checklist_id: plan.checklist_id || '',
         status: plan.status || (plan.isActive ? 'Ativo' : 'Inativo'),
-        start_date: plan.next_execution_date?.split('T')[0] || '', // Usar next_execution como referência
+        start_date: plan.next_execution_date?.split('T')[0] || '',
         auto_generate: plan.auto_generate || false
       });
     } else {
@@ -93,12 +97,7 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
         name: '',
         description: '',
         frequency: '',
-        scope: {
-          location_id: '',
-          location_name: '',
-          equipment_ids: [],
-          equipment_names: []
-        },
+        selectedEquipments: [],
         checklist_id: '',
         status: 'Ativo',
         start_date: '',
@@ -106,54 +105,7 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
       });
     }
     setErrors({});
-  }, [plan, open]);
-
-  // Efeito separado para inferir localização quando os dados de equipamentos/setores carregarem
-  useEffect(() => {
-    const inferLocationFromEquipments = (equipmentIds: string[]) => {
-      if (equipmentIds.length === 0 || equipment.length === 0) {
-        return { location_id: '', location_name: '' };
-      }
-
-      const firstEquipmentId = equipmentIds[0];
-      const firstEquipment = equipment.find(eq => eq.id === firstEquipmentId);
-
-      if (firstEquipment?.sectorId) {
-        const sector = sectors.find(s => s.id === firstEquipment.sectorId);
-        if (sector) {
-          return { location_id: sector.id, location_name: sector.name };
-        }
-      }
-
-      return { location_id: '', location_name: '' };
-    };
-    if (plan && equipment.length > 0 && sectors.length > 0) {
-      const equipmentIds = plan.assets || plan.scope?.equipment_ids || [];
-      console.log('[PlanFormModal] Inferindo localização:', {
-        equipmentIds,
-        equipmentCount: equipment.length,
-        sectorsCount: sectors.length,
-        currentLocationId: formData.scope.location_id
-      });
-      
-      // Só infere se ainda não tem localização definida e tem equipamentos
-      if (equipmentIds.length > 0 && !formData.scope.location_id) {
-        const locationInfo = inferLocationFromEquipments(equipmentIds);
-        console.log('[PlanFormModal] Localização inferida:', locationInfo);
-        
-        if (locationInfo.location_id) {
-          setFormData(prev => ({
-            ...prev,
-            scope: {
-              ...prev.scope,
-              location_id: locationInfo.location_id,
-              location_name: locationInfo.location_name,
-            }
-          }));
-        }
-      }
-    }
-  }, [plan, equipment, sectors, formData.scope.location_id]);
+  }, [plan, open, equipment, sectors, companies]);
 
   // Sincronizar selectedChecklist com formData.checklist_id
   useEffect(() => {
@@ -178,18 +130,9 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
       newErrors.frequency = 'Frequência é obrigatória';
     }
 
-    // Validate location selection for equipment filtering
-    if (!formData.scope.location_id) {
-      newErrors.location = 'Selecione uma empresa ou setor antes de escolher equipamentos';
-    }
-
     // Validate equipment selection
-    if ((formData.scope.equipment_ids || []).length === 0) {
-      if (!formData.scope.location_id) {
-        newErrors.equipment = 'Primeiro selecione uma empresa ou setor';
-      } else {
-        newErrors.equipment = 'Pelo menos um equipamento deve ser selecionado';
-      }
+    if (formData.selectedEquipments.length === 0) {
+      newErrors.equipment = 'Pelo menos um equipamento deve ser selecionado';
     }
 
     // Validate checklist
@@ -227,7 +170,7 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
         description: formData.description,
         frequency: formData.frequency, // Já está em inglês (MONTHLY, QUARTERLY, etc.)
         is_active: formData.status === 'Ativo',
-        assets: formData.scope.equipment_ids,
+        assets: formData.selectedEquipments.map(eq => eq.id),
         checklist_template: formData.checklist_id || undefined,
         auto_generate: formData.auto_generate,
         next_execution: formData.start_date || undefined, // Data de início = próxima execução
@@ -271,96 +214,6 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
     }
   };
 
-  const handleLocationChange = (locationId: string) => {
-    if (locationId === "no-location") {
-      setFormData(prev => ({
-        ...prev,
-        scope: {
-          ...prev.scope,
-          location_id: '',
-          location_name: '',
-          // Clear selected equipment when location changes
-          equipment_ids: [],
-          equipment_names: []
-        }
-      }));
-      return;
-    }
-
-    const company = companies.find(c => c.id === locationId);
-    const sector = sectors.find(s => s.id === locationId);
-    
-    let locationName = '';
-    if (company) {
-      locationName = company.name;
-    } else if (sector) {
-      locationName = sector.name;
-    }
-
-    setFormData(prev => ({
-      ...prev,
-      scope: {
-        ...prev.scope,
-        location_id: locationId,
-        location_name: locationName,
-        // Clear selected equipment when location changes
-        equipment_ids: [],
-        equipment_names: []
-      }
-    }));
-  };
-
-  const handleEquipmentChange = (equipmentId: string) => {
-    const selectedEquipment = equipment.find(eq => eq.id === equipmentId);
-    if (!selectedEquipment) return;
-
-    setFormData(prev => {
-      // Ensure equipment_ids is always an array
-      const currentEquipmentIds = prev.scope.equipment_ids || [];
-      const currentEquipmentNames = prev.scope.equipment_names || [];
-      
-      const isAlreadySelected = currentEquipmentIds.includes(equipmentId);
-      
-      if (isAlreadySelected) {
-        // Remove equipment
-        const newIds = currentEquipmentIds.filter(id => id !== equipmentId);
-        const newNames = currentEquipmentNames.filter((_, index) => 
-          currentEquipmentIds[index] !== equipmentId
-        );
-        
-        return {
-          ...prev,
-          scope: {
-            ...prev.scope,
-            equipment_ids: newIds,
-            equipment_names: newNames
-          }
-        };
-      } else {
-        // Add equipment
-        return {
-          ...prev,
-          scope: {
-            ...prev.scope,
-            equipment_ids: [...currentEquipmentIds, equipmentId],
-            equipment_names: [...currentEquipmentNames, selectedEquipment.tag || selectedEquipment.model || `Equipment ${equipmentId}`]
-          }
-        };
-      }
-    });
-  };
-
-  const removeEquipment = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      scope: {
-        ...prev.scope,
-        equipment_ids: (prev.scope.equipment_ids || []).filter((_, i) => i !== index),
-        equipment_names: (prev.scope.equipment_names || []).filter((_, i) => i !== index)
-      }
-    }));
-  };
-
   const handleChecklistChange = (checklistId: string) => {
     const actualChecklistId = checklistId === "none" ? "" : checklistId;
     setFormData(prev => ({ ...prev, checklist_id: actualChecklistId }));
@@ -372,32 +225,17 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
     setIsViewingChecklist(true);
   };
 
-  // Filter equipment based on selected location (company or sector)
-  const getFilteredEquipment = () => {
-    if (!formData.scope.location_id) {
-      // If no location selected, return empty array to force selection
-      return [];
-    }
+  // Handler para confirmar equipamentos do modal
+  const handleEquipmentsConfirm = (equipments: SelectedEquipment[]) => {
+    setFormData(prev => ({ ...prev, selectedEquipments: equipments }));
+  };
 
-    // Check if selected location is a company
-    const selectedCompany = companies.find(c => c.id === formData.scope.location_id);
-    if (selectedCompany) {
-      // Get all sectors for this company
-      const companySectors = sectors.filter(s => s.companyId === selectedCompany.id);
-      const sectorIds = companySectors.map(s => s.id);
-      
-      // Return equipment that belongs to any sector of this company
-      return equipment.filter(eq => eq.sectorId && sectorIds.includes(eq.sectorId));
-    }
-
-    // Check if selected location is a sector
-    const selectedSector = sectors.find(s => s.id === formData.scope.location_id);
-    if (selectedSector) {
-      // Return equipment that belongs to this specific sector
-      return equipment.filter(eq => eq.sectorId === selectedSector.id);
-    }
-
-    return [];
+  // Handler para remover equipamento individual
+  const removeEquipment = (equipmentId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedEquipments: prev.selectedEquipments.filter(eq => eq.id !== equipmentId)
+    }));
   };
 
   const isEditing = !!plan;
@@ -407,6 +245,13 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
     : 'Configure um novo plano de manutenção preventiva para seus equipamentos';
 
   return (
+    <>
+    <AddEquipmentsModal
+      open={isAddEquipmentsOpen}
+      onOpenChange={setIsAddEquipmentsOpen}
+      selectedEquipments={formData.selectedEquipments}
+      onConfirm={handleEquipmentsConfirm}
+    />
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className="w-[98vw] max-w-7xl h-[95vh] max-h-[95vh] overflow-hidden flex flex-col p-0 sm:w-[95vw] lg:w-[90vw] xl:w-[85vw]"
@@ -580,161 +425,83 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
 
             {/* Scope Configuration */}
             <section className="space-y-6">
-              <h3 className="text-lg font-medium text-foreground border-b border-border pb-2">
-                Escopo
-              </h3>
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Empresa/Localização *</Label>
-                    <Select
-                      value={formData.scope.location_id || "no-location"}
-                      onValueChange={handleLocationChange}
-                    >
-                      <SelectTrigger className={`w-full ${errors.location ? 'border-red-500' : ''}`}>
-                        <SelectValue placeholder="Selecione uma empresa ou setor" />
-                      </SelectTrigger>
-                      <SelectContent className="max-w-[350px] lg:max-w-[500px]">
-                        <SelectItem value="no-location">Nenhuma selecionada</SelectItem>
-                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                          Empresas
-                        </div>
-                        {companies.map((company) => (
-                          <SelectItem key={company.id} value={company.id}>
-                            <div className="flex flex-col items-start min-w-0">
-                              <span className="font-medium truncate">{company.name}</span>
-                              <span className="text-xs text-muted-foreground truncate">{company.segment}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t">
-                          Setores
-                        </div>
-                        {sectors.map((sector) => {
-                          const company = companies.find(c => c.id === sector.companyId);
-                          return (
-                            <SelectItem key={sector.id} value={sector.id}>
-                              <div className="flex flex-col items-start min-w-0">
-                                <span className="font-medium truncate">{sector.name}</span>
-                                <span className="text-xs text-muted-foreground truncate">
-                                  {company?.name || 'Empresa não encontrada'}
-                                </span>
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                    {errors.location && (
-                      <p className="text-sm text-red-600" role="alert">
-                        {errors.location}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      Selecione uma empresa para ver todos os equipamentos ou um setor específico para filtrar
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Equipamentos *</Label>
-                    <Select 
-                      onValueChange={handleEquipmentChange}
-                      disabled={!formData.scope.location_id}
-                    >
-                      <SelectTrigger className={`w-full ${errors.equipment ? 'border-red-500' : ''}`}>
-                        <SelectValue 
-                          placeholder={
-                            !formData.scope.location_id 
-                              ? "Primeiro selecione uma empresa" 
-                              : getFilteredEquipment().length === 0
-                                ? "Nenhum equipamento disponível para esta localização"
-                                : "Selecione equipamentos para o plano"
-                          } 
-                        />
-                      </SelectTrigger>
-                      <SelectContent className="max-w-[450px] lg:max-w-[600px]">
-                        {getFilteredEquipment().map((eq) => (
-                          <SelectItem 
-                            key={eq.id} 
-                            value={eq.id}
-                            disabled={(formData.scope.equipment_ids || []).includes(eq.id)}
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              {(formData.scope.equipment_ids || []).includes(eq.id) && (
-                                <span className="text-primary shrink-0">✓</span>
-                              )}
-                              <div className="flex flex-col items-start min-w-0">
-                                <span className="block truncate font-medium">{eq.tag} - {eq.model}</span>
-                                <span className="text-xs text-muted-foreground truncate">{eq.brand} | {eq.type}</span>
-                              </div>
-                            </div>
-                          </SelectItem>
-                        ))}
-                        {getFilteredEquipment().length === 0 && formData.scope.location_id && (
-                          <SelectItem value="no-equipment" disabled>
-                            <span className="text-muted-foreground italic">
-                              Nenhum equipamento cadastrado para esta localização
-                            </span>
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {errors.equipment && (
-                      <p className="text-sm text-red-600" role="alert">
-                        {errors.equipment}
-                      </p>
-                    )}
-                    {!formData.scope.location_id && (
-                      <p className="text-sm text-muted-foreground">
-                        Selecione uma empresa ou setor para visualizar os equipamentos disponíveis
-                      </p>
-                    )}
-                  </div>
-                </div>
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <h3 className="text-lg font-medium text-foreground">
+                  Escopo
+                </h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAddEquipmentsOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Adicionar Equipamentos
+                </Button>
               </div>
 
-              {/* Selected Equipment Display - Full Width */}
-              {(formData.scope.equipment_ids || []).length > 0 && (
+              {/* Selected Equipment Display */}
+              {formData.selectedEquipments.length > 0 ? (
                 <div className="space-y-3">
-                  <Label className="text-sm font-medium">Equipamentos Selecionados ({(formData.scope.equipment_ids || []).length})</Label>
-                  <div className="space-y-2 max-h-40 overflow-y-auto border border-border rounded-md p-4 bg-muted/20">
-                    {(formData.scope.equipment_ids || []).map((equipmentId, index) => {
-                      const equipmentData = equipment.find(eq => eq.id === equipmentId);
-                      const sectorData = sectors.find(s => s.id === equipmentData?.sectorId);
-                      const companyData = companies.find(c => c.id === sectorData?.companyId);
-                      
-                      return (
-                        <div key={index} className="flex items-center justify-between bg-background rounded-md px-4 py-3 border border-border">
-                          <div className="flex-1 mr-3 min-w-0">
-                            <span className="text-sm font-medium truncate block">{(formData.scope.equipment_names || [])[index]}</span>
-                            {equipmentData && (
-                              <span className="text-xs text-muted-foreground truncate block">
-                                {equipmentData.brand} • {equipmentData.type} • {companyData?.name || sectorData?.name || 'Local não identificado'}
-                              </span>
-                            )}
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeEquipment(index)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0 h-8 w-8 p-0"
-                            aria-label={`Remover ${(formData.scope.equipment_names || [])[index]}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                  <Label className="text-sm font-medium">
+                    Equipamentos Selecionados ({formData.selectedEquipments.length})
+                  </Label>
+                  <div className="space-y-2 max-h-52 overflow-y-auto border border-border rounded-md p-4 bg-muted/20">
+                    {formData.selectedEquipments.map((eq) => (
+                      <div 
+                        key={eq.id} 
+                        className="flex items-center justify-between bg-background rounded-md px-4 py-3 border border-border"
+                      >
+                        <div className="flex-1 mr-3 min-w-0">
+                          <span className="text-sm font-medium truncate block">
+                            {eq.tag || eq.name}
+                          </span>
+                          <span className="text-xs text-muted-foreground truncate block">
+                            {[eq.brand, eq.type, eq.companyName || eq.sectorName]
+                              .filter(Boolean)
+                              .join(' • ')}
+                          </span>
                         </div>
-                      );
-                    })}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeEquipment(eq.id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0 h-8 w-8 p-0"
+                          aria-label={`Remover ${eq.tag || eq.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
-                  {formData.scope.location_id && (
-                    <p className="text-xs text-muted-foreground">
-                      Mostrando equipamentos de: <span className="font-medium">{formData.scope.location_name}</span>
-                    </p>
-                  )}
                 </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-border rounded-lg bg-muted/10">
+                  <Package className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Nenhum equipamento selecionado
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Clique em "Adicionar Equipamentos" para selecionar os equipamentos do plano
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsAddEquipmentsOpen(true)}
+                    className="mt-4 flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adicionar Equipamentos
+                  </Button>
+                </div>
+              )}
+              {errors.equipment && (
+                <p className="text-sm text-red-600" role="alert">
+                  {errors.equipment}
+                </p>
               )}
             </section>
 
@@ -937,5 +704,6 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
         )}
       </DialogContent>
     </Dialog>
+    </>
   );
 }
