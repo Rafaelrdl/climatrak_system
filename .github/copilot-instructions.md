@@ -35,6 +35,10 @@ make fmt          # black + ruff
 cd frontend && npm run dev    # localhost:5173 (proxy → backend)
 npm test                      # vitest
 npm run cy:open               # cypress e2e
+
+# Mobile
+cd mobile && npm start        # Expo dev server
+npm test                      # jest
 ```
 
 ## Padrões Backend (Django/DRF)
@@ -83,13 +87,50 @@ export function useAssetTypes() {
 
 **Platform-first**: Viewport fixo (100vh), densidade alta, desktop-first. Seguir `DESIGN_SYSTEM.md`.
 
+## Mobile (React Native/Expo)
+
+**Stack**: Expo SDK 51 + React Native 0.74 + TypeScript + Expo Router + TanStack Query + Zustand.
+
+**Estrutura**: `mobile/src/` (components, store, config, types), `mobile/app/` (file-based routing).
+
+**Padrões**:
+- Offline-first: operações críticas devem funcionar sem conexão (sync depois)
+- Multi-tenant: API_URL configurável, auth via token SecureStore
+- Scanner QR Code: usar `expo-camera` para localizar ativos
+- Ícones: Lucide (`lucide-react-native`)
+
+```typescript
+// mobile/src/store/authStore.ts (Zustand)
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      token: null,
+      tenant: null,
+      login: async (credentials) => { ... },
+    }),
+    { name: 'auth-storage', storage: createJSONStorage(() => SecureStore) }
+  )
+);
+```
+
+## Testes (Regras Críticas)
+
+Ver `.github/instructions/testing.instructions.md` para detalhes completos.
+
+**Obrigatórios**:
+1. **Multi-tenant isolation**: Sempre testar com 2 tenants (tenant A não vê dados de tenant B)
+2. **Idempotência**: Repetir operação com mesma `idempotency_key` não duplica ledger
+3. **Outbox reprocessamento**: Reprocessar evento não duplica efeito
+4. **Lock mensal**: Transação locked → falha ao editar, correção via adjustment
+
 ## Regras Críticas
 
 1. **Multi-tenant**: Nunca vazar dados entre tenants. Queries operam no schema correto automaticamente via middleware.
 2. **Eventos**: Consumidores Celery idempotentes com retry/backoff.
 3. **Finance**: Ledger (CostTransaction) é fonte da verdade. Mês locked → apenas adjustments.
 4. **Models**: Sempre gerar migration + testes.
-5. **PRs**: Pequenos, 1 issue por PR.
+5. **Testes**: Toda feature com dados de tenant precisa de teste de isolamento.
+6. **PRs**: Pequenos, 1 issue por PR.
 
 ## Workflow de Implementação
 
