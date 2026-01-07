@@ -302,26 +302,27 @@ export function AddEquipmentsModal({
           </div>
 
           {/* Equipment list */}
-          <ScrollArea className="flex-1 -mx-6 px-6">
-            {filteredEquipments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Package className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground font-medium">
-                  {searchTerm || selectedLocationId 
-                    ? 'Nenhum equipamento encontrado com os filtros aplicados'
-                    : 'Nenhum equipamento disponível'
-                  }
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Tente ajustar os filtros de busca
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {filteredEquipments.map((equipment) => {
-                  const sector = sectors.find(s => s.id === equipment.sectorId);
-                  const company = sector ? companies.find(c => c.id === sector.companyId) : null;
-                  const selected = isSelected(equipment.id);
+          <div className="flex-1 min-h-0 -mx-6">
+            <ScrollArea className="h-full px-6">
+              {filteredEquipments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Package className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                  <p className="text-muted-foreground font-medium">
+                    {searchTerm || selectedLocationId 
+                      ? 'Nenhum equipamento encontrado com os filtros aplicados'
+                      : 'Nenhum equipamento disponível'
+                    }
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Tente ajustar os filtros de busca
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 pr-4">
+                  {filteredEquipments.map((equipment) => {
+                    const sector = sectors.find(s => s.id === equipment.sectorId);
+                    const company = sector ? companies.find(c => c.id === sector.companyId) : null;
+                    const selected = isSelected(equipment.id);
 
                   return (
                     <div
@@ -383,7 +384,8 @@ export function AddEquipmentsModal({
                 })}
               </div>
             )}
-          </ScrollArea>
+            </ScrollArea>
+          </div>
 
           {/* Selected items preview */}
           {tempSelected.length > 0 && (
