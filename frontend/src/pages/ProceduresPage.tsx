@@ -224,33 +224,17 @@ export function ProceduresPage() {
   };
 
   const handleSaveChecklist = (data: Omit<ChecklistTemplate, 'id' | 'created_at' | 'updated_at'>) => {
-    // Converter para formato da API
-    const apiData = {
-      name: data.name,
-      description: data.description,
-      category: data.category_id ? Number(data.category_id) : null,
-      items: data.items.map((item, index) => ({
-        id: item.id,
-        description: item.description,
-        type: item.type,
-        required: item.required,
-        order: index + 1,
-        options: item.options,
-      })),
-      status: data.is_active ? 'ACTIVE' as const : 'INACTIVE' as const,
-      is_active: data.is_active,
-      estimated_time: null,
-    };
-
+    // Os hooks useCreateChecklist/useUpdateChecklist já fazem a conversão para o formato da API
+    // Então enviamos os dados no formato local (ChecklistTemplate)
     if (selectedChecklist) {
       // Update existing
       updateChecklistMutation.mutate({ 
         id: selectedChecklist.id, 
-        data: apiData 
+        data: data 
       });
     } else {
       // Create new
-      createChecklistMutation.mutate(apiData);
+      createChecklistMutation.mutate(data);
     }
     handleCloseChecklistModal();
   };
