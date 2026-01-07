@@ -236,33 +236,28 @@ export function WorkOrderEditModal({
       setOriginalStockItems(stockItemRequests); // Salvar itens originais para comparação
       setUploadedPhotos(currentWorkOrder.photos || []);
       
-      // Se for ordem preventiva sem checklist, criar um exemplo
-      const defaultChecklist: ChecklistResponse[] = currentWorkOrder.type === 'PREVENTIVE' && (!currentWorkOrder.checklistResponses || currentWorkOrder.checklistResponses.length === 0) ? [
-        {
-          taskId: 'task-1',
-          taskName: 'Inspeção Visual do Equipamento',
-          completed: false,
-          observations: '',
-          checkItems: [
-            { id: 'check-1', description: 'Verificar ruídos anormais', checked: false },
-            { id: 'check-2', description: 'Verificar vazamentos', checked: false },
-            { id: 'check-3', description: 'Verificar condição das mangueiras', checked: false }
-          ]
-        },
-        {
-          taskId: 'task-2',
-          taskName: 'Limpeza e Manutenção',
-          completed: false,
-          observations: '',
-          checkItems: [
-            { id: 'check-4', description: 'Limpar filtros', checked: false },
-            { id: 'check-5', description: 'Verificar pressão do sistema', checked: false },
-            { id: 'check-6', description: 'Lubrificar componentes', checked: false }
-          ]
-        }
-      ] : (currentWorkOrder.checklistResponses || []);
+      // Determinar o checklist a ser usado
+      let checklistToUse: ChecklistResponse[] = [];
       
-      setChecklistResponses(defaultChecklist);
+      if (currentWorkOrder.checklistResponses && currentWorkOrder.checklistResponses.length > 0) {
+        // Se já tem respostas salvas, usar elas
+        checklistToUse = currentWorkOrder.checklistResponses;
+      } else if (currentWorkOrder.checklistTemplateItems && currentWorkOrder.checklistTemplateItems.length > 0) {
+        // Se tem um template de checklist associado, converter para o formato de respostas
+        checklistToUse = [{
+          taskId: `template-${currentWorkOrder.checklistTemplate || 'default'}`,
+          taskName: currentWorkOrder.checklistTemplateName || 'Checklist',
+          completed: false,
+          observations: '',
+          checkItems: currentWorkOrder.checklistTemplateItems.map((item, index) => ({
+            id: item.id || `item-${index}`,
+            description: item.label,
+            checked: false
+          }))
+        }];
+      }
+      
+      setChecklistResponses(checklistToUse);
       setExecutionDescription(currentWorkOrder.executionDescription || '');
       
       // Carregar dados de assinatura

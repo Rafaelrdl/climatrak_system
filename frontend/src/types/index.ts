@@ -162,6 +162,12 @@ export interface WorkOrder {
   executionDescription?: string;
   photos?: UploadedPhoto[];
   checklistResponses?: ChecklistResponse[];
+  /** ID do checklist template associado (se aplicável) */
+  checklistTemplate?: number;
+  /** Nome do checklist template */
+  checklistTemplateName?: string;
+  /** Itens do checklist template (items completos do template) */
+  checklistTemplateItems?: ChecklistTemplateItem[];
   /** ID do plano de manutenção que gerou esta OS (se aplicável) */
   maintenancePlanId?: string;
   /** ID da solicitação que gerou esta OS (se aplicável) */
@@ -172,6 +178,16 @@ export interface WorkOrder {
   signedBy?: string;
   /** Data/hora da assinatura */
   signedAt?: string;
+}
+
+/** Item de checklist template (estrutura da API) */
+export interface ChecklistTemplateItem {
+  id: string;
+  label: string;
+  type: 'checkbox' | 'text' | 'number' | 'select' | 'photo';
+  required: boolean;
+  order: number;
+  options?: string[];
 }
 
 export interface WorkOrderStockItem {

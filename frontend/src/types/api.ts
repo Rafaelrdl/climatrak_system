@@ -266,6 +266,18 @@ export interface ApiWorkOrderItem {
 }
 
 /**
+ * Item de checklist template (estrutura da API)
+ */
+export interface ApiChecklistTemplateItem {
+  id: string;
+  label: string;
+  type: 'checkbox' | 'text' | 'number' | 'select' | 'photo';
+  required: boolean;
+  order: number;
+  options?: string[];
+}
+
+/**
  * Work Order (Ordem de Serviço)
  */
 export interface ApiWorkOrder {
@@ -288,6 +300,8 @@ export interface ApiWorkOrder {
   estimated_hours: number | null;
   actual_hours: number | null;
   checklist_template: number | null;
+  checklist_template_name: string | null;
+  checklist_template_items: ApiChecklistTemplateItem[] | null;
   checklist_responses: ApiChecklistResponse[];
   photos: ApiPhoto[];
   items: ApiWorkOrderItem[];

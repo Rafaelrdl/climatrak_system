@@ -16,7 +16,7 @@
  */
 
 import { api } from '@/lib/api';
-import type { WorkOrder, ChecklistResponse, UploadedPhoto, WorkOrderStockItem } from '@/types';
+import type { WorkOrder, ChecklistResponse, UploadedPhoto, WorkOrderStockItem, ChecklistTemplateItem } from '@/types';
 import type { ApiChecklistResponse, ApiWorkOrder, PaginatedResponse } from '@/types/api';
 
 // ============================================
@@ -163,6 +163,19 @@ const mapWorkOrder = (wo: ApiWorkOrder): WorkOrder => ({
   signature: wo.signature || undefined,
   signedBy: wo.signed_by || undefined,
   signedAt: wo.signed_at || undefined,
+  // Campos de checklist template
+  checklistTemplate: wo.checklist_template || undefined,
+  checklistTemplateName: wo.checklist_template_name || undefined,
+  checklistTemplateItems: Array.isArray(wo.checklist_template_items) 
+    ? wo.checklist_template_items.map((item): ChecklistTemplateItem => ({
+        id: item.id,
+        label: item.label,
+        type: item.type,
+        required: item.required,
+        order: item.order,
+        options: item.options,
+      }))
+    : undefined,
 });
 
 /**

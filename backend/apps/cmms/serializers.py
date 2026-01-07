@@ -295,6 +295,10 @@ class WorkOrderSerializer(serializers.ModelSerializer):
     photos = WorkOrderPhotoSerializer(many=True, read_only=True)
     items = WorkOrderItemSerializer(many=True, read_only=True)
     is_overdue = serializers.BooleanField(read_only=True)
+    checklist_template_name = serializers.CharField(
+        source="checklist_template.name", read_only=True, allow_null=True
+    )
+    checklist_template_items = serializers.SerializerMethodField()
 
     class Meta:
         model = WorkOrder
@@ -320,6 +324,8 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             "estimated_hours",
             "actual_hours",
             "checklist_template",
+            "checklist_template_name",
+            "checklist_template_items",
             "checklist_responses",
             "photos",
             "items",
@@ -342,6 +348,12 @@ class WorkOrderSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def get_checklist_template_items(self, obj):
+        """Retorna os itens do checklist template se existir."""
+        if obj.checklist_template and obj.checklist_template.items:
+            return obj.checklist_template.items
+        return None
 
     def update(self, instance, validated_data):
         """
