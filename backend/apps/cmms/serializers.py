@@ -408,6 +408,7 @@ class RequestListSerializer(serializers.ModelSerializer):
     requester_name = serializers.CharField(
         source="requester.get_full_name", read_only=True
     )
+    work_order_id = serializers.SerializerMethodField()
     work_order_number = serializers.SerializerMethodField()
 
     class Meta:
@@ -426,10 +427,18 @@ class RequestListSerializer(serializers.ModelSerializer):
             "requester_name",
             "status",
             "note",
+            "status_history",
+            "rejection_reason",
+            "work_order_id",
             "work_order_number",
             "created_at",
             "updated_at",
         ]
+
+    def get_work_order_id(self, obj):
+        if hasattr(obj, "generated_work_order"):
+            return obj.generated_work_order.id
+        return None
 
     def get_work_order_number(self, obj):
         if hasattr(obj, "generated_work_order"):
