@@ -786,7 +786,7 @@ class MaintenancePlan(models.Model):
             Lista de IDs das OS criadas
         """
         work_orders = []
-        scheduled_date = self.next_execution or timezone.now().date()
+        execution_date = self.next_execution or timezone.now().date()
 
         for asset in self.assets.all():
             wo = WorkOrder.objects.create(
@@ -794,7 +794,7 @@ class MaintenancePlan(models.Model):
                 type=WorkOrder.Type.PREVENTIVE,
                 priority=WorkOrder.Priority.MEDIUM,
                 description=f"Manutenção preventiva - {self.name}",
-                scheduled_date=scheduled_date,
+                scheduled_date=None,  # Data agendada fica vazia para ser preenchida manualmente
                 checklist_template=self.checklist_template,
                 maintenance_plan=self,
                 created_by=user,
@@ -802,7 +802,7 @@ class MaintenancePlan(models.Model):
             work_orders.append(wo)
 
         # Atualiza plano
-        self.last_execution = scheduled_date
+        self.last_execution = execution_date
         self.next_execution = self.calculate_next_execution()
         self.work_orders_generated += len(work_orders)
         self.save(

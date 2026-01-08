@@ -396,6 +396,7 @@ export function WorkOrderList({
       <TableHeader>
         <TableRow>
           <TableHead>Número</TableHead>
+          <TableHead>Criado em</TableHead>
           <TableHead>Equipamento</TableHead>
           <TableHead>Tipo</TableHead>
           <TableHead>Origem</TableHead>
@@ -436,6 +437,17 @@ export function WorkOrderList({
           return (
             <TableRow key={wo.id}>
               <TableCell className="font-medium">{wo.number}</TableCell>
+              <TableCell>
+                {wo.createdAt
+                  ? new Date(wo.createdAt).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })
+                  : '-'}
+              </TableCell>
               <TableCell>
                 <div>
                   <div className="font-medium">{eq?.tag}</div>
