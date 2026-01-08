@@ -261,6 +261,10 @@ class CentralizedLoginView(APIView):
         # Single tenant or already selected
         tenant = result.selected_tenant or result.authenticated_tenants[0]
 
+        # Get tenant features
+        from apps.tenants.features import get_tenant_features
+        features = get_tenant_features(tenant.tenant_id)
+
         response_data = {
             "success": True,
             "user": {
@@ -275,6 +279,7 @@ class CentralizedLoginView(APIView):
                 "name": tenant.name,
                 "slug": tenant.slug,
                 "role": tenant.role,
+                "features": features,
             },
         }
 
@@ -331,6 +336,10 @@ class SelectTenantView(APIView):
 
         tenant = result.selected_tenant
 
+        # Get tenant features
+        from apps.tenants.features import get_tenant_features
+        features = get_tenant_features(tenant.tenant_id)
+
         response_data = {
             "success": True,
             "user": {
@@ -345,6 +354,7 @@ class SelectTenantView(APIView):
                 "name": tenant.name,
                 "slug": tenant.slug,
                 "role": tenant.role,
+                "features": features,
             },
         }
 

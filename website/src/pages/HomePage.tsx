@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { personaSections } from '@/content/marketingStructure'
 import { 
   ArrowRight, 
   Activity, 
@@ -242,6 +243,44 @@ export function HomePage() {
                   </CardContent>
                 </Card>
               </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Persona Features Section */}
+      <section id="funcionalidades" className="section-padding">
+        <div className="container-wide">
+          <div className="text-center mb-12">
+            <Badge className="mb-4">Funcionalidades</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+              Funcionalidades por perfil
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Uma organizaÇõÇœo clara das capacidades da plataforma para gestores e clientes.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            {personaSections.map((section) => (
+              <Card key={section.id} className="card-hover">
+                <CardContent className="pt-6">
+                  <Badge variant="secondary" className="mb-3">{section.name}</Badge>
+                  <p className="text-sm text-muted-foreground mb-6">{section.description}</p>
+                  <div className="space-y-4">
+                    {section.items.map((item) => (
+                      <div key={item.name} className="flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                        <div>
+                          <Link to={item.href} className="font-semibold hover:underline">
+                            {item.name}
+                          </Link>
+                          <p className="text-sm text-muted-foreground">{item.description}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>

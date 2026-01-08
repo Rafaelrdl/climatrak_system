@@ -113,7 +113,9 @@ export function useFeature(key: FeatureKey): boolean {
  * Hook to check if TrakService is enabled
  */
 export function useTrakService(): boolean {
-  return useFeaturesStore((state) => state.features['trakservice.enabled'] ?? false);
+  const enabled = useFeaturesStore((state) => state.features['trakservice.enabled'] ?? false);
+  console.log('🏪 [useTrakService] trakservice.enabled =', enabled, '| all features:', useFeaturesStore.getState().features);
+  return enabled;
 }
 
 /**

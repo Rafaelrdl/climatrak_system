@@ -4,32 +4,9 @@ import { Menu, X, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import logoClimatrak from '@/assets/logo_climatrak.svg'
+import { marketingNavigation } from '@/content/marketingStructure'
 
-const navigation = [
-  {
-    name: 'Produtos',
-    href: '/produtos',
-    children: [
-      { name: 'TrakNor CMMS', href: '/produtos/traknor', description: 'Sistema de gestão de manutenção' },
-      { name: 'TrakSense IoT', href: '/produtos/traksense', description: 'Monitoramento em tempo real' },
-      { name: 'AirTrak Sensor', href: '/produtos/airtrak', description: 'Sensor inteligente para HVAC' },
-      { name: 'TrakLedger', href: '/produtos/TrakLedger', description: 'Gestão TrakLedgerira de manutenção' },
-    ],
-  },
-  {
-    name: 'Soluções',
-    href: '/solucoes',
-    children: [
-      { name: 'Hospitais', href: '/solucoes#hospitais', description: 'Compliance ANVISA e gestão clínica' },
-      { name: 'Indústrias', href: '/solucoes#industrias', description: 'Prevenção de downtime produtivo' },
-      { name: 'Shoppings & Facilities', href: '/solucoes#facilities', description: 'Gestão multi-site' },
-    ],
-  },
-  { name: 'Preços', href: '/precos' },
-  { name: 'Para Técnicos', href: '/tecnicos' },
-  { name: 'Sobre', href: '/sobre' },
-  { name: 'Blog', href: '/blog' },
-]
+const navigation = marketingNavigation.primary
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -48,54 +25,84 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <div className="hidden lg:flex lg:items-center lg:gap-1">
-          {navigation.map((item) => (
-            <div
-              key={item.name}
-              className="relative"
-              onMouseEnter={() => item.children && setOpenDropdown(item.name)}
-              onMouseLeave={() => setOpenDropdown(null)}
-            >
-              <Link
-                to={item.href}
-                className={cn(
-                  "flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-                  isActive(item.href)
-                    ? "text-primary bg-primary/10"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                )}
-              >
-                {item.name}
-                {item.children && <ChevronDown className="h-4 w-4" />}
-              </Link>
+          {navigation.map((item) => {
+            const hasChildren = 'children' in item
+            const hasGroups = 'groups' in item
+            const hasDropdown = hasChildren || hasGroups
+            const groups = hasGroups ? item.groups : undefined
+            const children = hasChildren ? item.children : undefined
 
-              {/* Dropdown Menu */}
-              {item.children && openDropdown === item.name && (
-                <div className="absolute left-0 top-full pt-2">
-                  <div className="w-64 rounded-xl border bg-card p-2 shadow-lg">
-                    {item.children.map((child) => (
-                      <Link
-                        key={child.name}
-                        to={child.href}
-                        className="block rounded-lg px-4 py-3 hover:bg-muted transition-colors"
-                      >
-                        <div className="font-medium text-foreground">{child.name}</div>
-                        <div className="text-sm text-muted-foreground">{child.description}</div>
-                      </Link>
-                    ))}
+            return (
+              <div
+                key={item.name}
+                className="relative"
+                onMouseEnter={() => hasDropdown && setOpenDropdown(item.name)}
+                onMouseLeave={() => setOpenDropdown(null)}
+              >
+                <Link
+                  to={item.href}
+                  className={cn(
+                    "flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                    isActive(item.href)
+                      ? "text-primary bg-primary/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  {item.name}
+                  {hasDropdown && <ChevronDown className="h-4 w-4" />}
+                </Link>
+
+                {/* Dropdown Menu */}
+                {hasDropdown && openDropdown === item.name && (
+                  <div className="absolute left-0 top-full pt-2">
+                    {groups ? (
+                      <div className="w-[520px] rounded-xl border bg-card p-4 shadow-lg grid gap-4 md:grid-cols-2">
+                        {groups.map((group) => (
+                          <div key={group.name} className="space-y-2">
+                            <div className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              {group.name}
+                            </div>
+                            {group.items.map((child) => (
+                              <Link
+                                key={child.name}
+                                to={child.href}
+                                className="block rounded-lg px-4 py-3 hover:bg-muted transition-colors"
+                              >
+                                <div className="font-medium text-foreground">{child.name}</div>
+                                <div className="text-sm text-muted-foreground">{child.description}</div>
+                              </Link>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="w-64 rounded-xl border bg-card p-2 shadow-lg">
+                        {children?.map((child) => (
+                          <Link
+                            key={child.name}
+                            to={child.href}
+                            className="block rounded-lg px-4 py-3 hover:bg-muted transition-colors"
+                          >
+                            <div className="font-medium text-foreground">{child.name}</div>
+                            <div className="text-sm text-muted-foreground">{child.description}</div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            )
+          })}
         </div>
 
         {/* Desktop CTA */}
         <div className="hidden lg:flex lg:items-center lg:gap-3">
-          <Link to="/contato">
-            <Button variant="ghost">Contato</Button>
+          <Link to={marketingNavigation.cta.secondary.href}>
+            <Button variant="ghost">{marketingNavigation.cta.secondary.name}</Button>
           </Link>
-          <Link to="/demo">
-            <Button>Agendar Demo</Button>
+          <Link to={marketingNavigation.cta.primary.href}>
+            <Button>{marketingNavigation.cta.primary.name}</Button>
           </Link>
         </div>
 
@@ -112,42 +119,71 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="lg:hidden border-t bg-background">
           <div className="container-wide py-4 space-y-2">
-            {navigation.map((item) => (
-              <div key={item.name}>
-                <Link
-                  to={item.href}
-                  className={cn(
-                    "block px-4 py-3 text-base font-medium rounded-lg",
-                    isActive(item.href)
-                      ? "text-primary bg-primary/10"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            {navigation.map((item) => {
+              const hasChildren = 'children' in item
+              const hasGroups = 'groups' in item
+              const groups = hasGroups ? item.groups : undefined
+              const children = hasChildren ? item.children : undefined
+
+              return (
+                <div key={item.name}>
+                  <Link
+                    to={item.href}
+                    className={cn(
+                      "block px-4 py-3 text-base font-medium rounded-lg",
+                      isActive(item.href)
+                        ? "text-primary bg-primary/10"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    )}
+                    onClick={() => !hasChildren && !hasGroups && setMobileMenuOpen(false)}
+                  >
+                    {item.name}
+                  </Link>
+                  {groups ? (
+                    <div className="pl-4 mt-2 space-y-3">
+                      {groups.map((group) => (
+                        <div key={group.name} className="space-y-1">
+                          <div className="px-4 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            {group.name}
+                          </div>
+                          {group.items.map((child) => (
+                            <Link
+                              key={child.name}
+                              to={child.href}
+                              className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted"
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              {child.name}
+                            </Link>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    children && (
+                      <div className="pl-4 mt-1 space-y-1">
+                        {children.map((child) => (
+                          <Link
+                            key={child.name}
+                            to={child.href}
+                            className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            {child.name}
+                          </Link>
+                        ))}
+                      </div>
+                    )
                   )}
-                  onClick={() => !item.children && setMobileMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-                {item.children && (
-                  <div className="pl-4 mt-1 space-y-1">
-                    {item.children.map((child) => (
-                      <Link
-                        key={child.name}
-                        to={child.href}
-                        className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        {child.name}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+                </div>
+              )
+            })}
             <div className="pt-4 space-y-2 border-t">
-              <Link to="/contato" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="outline" className="w-full">Contato</Button>
+              <Link to={marketingNavigation.cta.secondary.href} onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="outline" className="w-full">{marketingNavigation.cta.secondary.name}</Button>
               </Link>
-              <Link to="/demo" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full">Agendar Demo</Button>
+              <Link to={marketingNavigation.cta.primary.href} onClick={() => setMobileMenuOpen(false)}>
+                <Button className="w-full">{marketingNavigation.cta.primary.name}</Button>
               </Link>
             </div>
           </div>

@@ -3,6 +3,7 @@ import { tenantStorage, updateTenantSlugCache } from '@/lib/tenantStorage';
 import type { ApiUser } from '@/types/api';
 import type { User, UserRole } from '@/models/user';
 import { defaultPreferences, defaultSecurity } from '@/models/user';
+import { useFeaturesStore } from '@/store/useFeaturesStore';
 
 /**
  * Mapeia o role da API (uppercase) para o role do app (lowercase)
@@ -62,7 +63,8 @@ export async function logout() {
     localStorage.removeItem('auth:tenant_schema');
     localStorage.removeItem('auth:user');
     localStorage.removeItem('auth:role');
-    localStorage.removeItem('tenant:features'); // Clear tenant features
+    // Clear tenant features from store
+    useFeaturesStore.getState().clearFeatures();
     window.dispatchEvent(new Event('authChange'));
   }
 }
@@ -107,17 +109,18 @@ export async function tenantLogin(email: string, password: string): Promise<{
     features?: TenantFeatures;
   };
 }> {
-  const { data } = await api.post('/auth/login/', {
+  const { data } = await api.post('/v2/auth/login/', {
     email,
     password,
   });
 
-  if (import.meta.env.DEV) {
-    console.log('🔐 Tenant login response:', data);
-  }
+  // Debug: Log completo da resposta
+  console.log('🔐 [AUTH] Login response completa:', data);
+  console.log('🔐 [AUTH] tenant.features recebido:', data.tenant?.features);
+  console.log('🔐 [AUTH] tenant.role recebido:', data.tenant?.role);
 
-  // Map user data
-  const user = mapApiUserToUser(data.user);
+  // Map user data - role comes from tenant, not user
+  const user = mapApiUserToUser({ ...data.user, role: data.tenant?.role });
 
   // Persist user locally
   localStorage.setItem('auth:user', JSON.stringify(user));
@@ -126,11 +129,14 @@ export async function tenantLogin(email: string, password: string): Promise<{
   updateTenantSlugCache(data.tenant.schema_name);
   
   // Persist tenant features if available
-  if (data.tenant.features) {
-    localStorage.setItem('tenant:features', JSON.stringify({ 
-      state: { features: data.tenant.features },
-      version: 0,
-    }));
+  console.log('🔐 [AUTH] Verificando features...', { hasFeatures: !!data.tenant?.features, features: data.tenant?.features });
+  if (data.tenant?.features) {
+    console.log('🔐 [AUTH] Salvando features no store:', data.tenant.features);
+    // Update Zustand store (this also persists to localStorage)
+    useFeaturesStore.getState().setFeatures(data.tenant.features);
+    console.log('🔐 [AUTH] Features após save:', useFeaturesStore.getState().features);
+  } else {
+    console.warn('🔐 [AUTH] ⚠️ Nenhuma feature recebida do backend!');
   }
   
   window.dispatchEvent(new Event('authChange'));

@@ -1,0 +1,293 @@
+{
+  "nav": {
+    "primary": [
+      {
+        "name": "Produtos",
+        "href": "/produtos",
+        "children": [
+          {
+            "name": "TrakNor CMMS",
+            "href": "/produtos/traknor",
+            "description": "Gestao completa de manutencao e PMOC."
+          },
+          {
+            "name": "TrakSense IoT",
+            "href": "/produtos/traksense",
+            "description": "Monitoramento e alertas em tempo real."
+          },
+          {
+            "name": "AirTrak Sensor",
+            "href": "/produtos/airtrak",
+            "description": "Sensor inteligente para HVAC."
+          },
+          {
+            "name": "TrakLedger",
+            "href": "/produtos/trakledger",
+            "description": "Orcamentos, custos e economia."
+          }
+        ]
+      },
+      {
+        "name": "Funcionalidades",
+        "href": "/#funcionalidades",
+        "groups": [
+          {
+            "name": "Para Gestores",
+            "items": [
+              {
+                "name": "Ordens de servico e planos",
+                "href": "/produtos/traknor",
+                "description": "Planejamento, execucao e controle das OS."
+              },
+              {
+                "name": "Monitoramento IoT",
+                "href": "/produtos/traksense",
+                "description": "Sensores, alertas e dashboards."
+              },
+              {
+                "name": "Conformidade PMOC",
+                "href": "/produtos/traknor",
+                "description": "Relatorios e laudos automatizados."
+              },
+              {
+                "name": "Relatorios e KPIs",
+                "href": "/produtos/traknor",
+                "description": "Indicadores como MTTR e backlog."
+              },
+              {
+                "name": "Financeiro e custos",
+                "href": "/produtos/trakledger",
+                "description": "Orcamentos, lancamentos e economia."
+              },
+              {
+                "name": "Equipe e produtividade",
+                "href": "/produtos/traknor",
+                "description": "Gestao de tecnicos e desempenho."
+              }
+            ]
+          },
+          {
+            "name": "Para seus Clientes",
+            "items": [
+              {
+                "name": "Solicitacoes e acompanhamento",
+                "href": "/produtos/traknor",
+                "description": "Abertura e status de chamados."
+              },
+              {
+                "name": "Alertas e comunicacao",
+                "href": "/produtos/traksense",
+                "description": "Notificacoes sobre eventos e falhas."
+              },
+              {
+                "name": "Relatorios compartilhaveis",
+                "href": "/produtos/traknor",
+                "description": "Laudos, historico e evidencias."
+              },
+              {
+                "name": "Central de ajuda",
+                "href": "/produtos/traknor",
+                "description": "Base de conhecimento e suporte."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Segmentos",
+        "href": "/solucoes",
+        "children": [
+          {
+            "name": "Hospitais e Clinicas",
+            "href": "/solucoes#hospitais",
+            "description": "Compliance e areas criticas."
+          },
+          {
+            "name": "Industrias",
+            "href": "/solucoes#industrias",
+            "description": "Previsao de falhas e uptime."
+          },
+          {
+            "name": "Shoppings e Facilities",
+            "href": "/solucoes#facilities",
+            "description": "Gestao multi-site de ativos."
+          }
+        ]
+      },
+      {
+        "name": "Precos",
+        "href": "/precos"
+      },
+      {
+        "name": "Para Tecnicos",
+        "href": "/tecnicos"
+      },
+      {
+        "name": "Sobre",
+        "href": "/sobre"
+      },
+      {
+        "name": "Blog",
+        "href": "/blog"
+      }
+    ],
+    "cta": {
+      "secondary": {
+        "name": "Contato",
+        "href": "/contato"
+      },
+      "primary": {
+        "name": "Agendar Demo",
+        "href": "/demo"
+      }
+    }
+  },
+  "personas": [
+    {
+      "id": "gestores",
+      "name": "Para Gestores",
+      "description": "Controle operacao, equipe e custos em um painel unificado.",
+      "items": [
+        {
+          "name": "Ordens de servico e planos",
+          "href": "/produtos/traknor",
+          "description": "Planejamento, execucao e controle das OS."
+        },
+        {
+          "name": "Monitoramento IoT",
+          "href": "/produtos/traksense",
+          "description": "Sensores, alertas e dashboards."
+        },
+        {
+          "name": "Conformidade PMOC",
+          "href": "/produtos/traknor",
+          "description": "Relatorios e laudos automatizados."
+        },
+        {
+          "name": "Relatorios e KPIs",
+          "href": "/produtos/traknor",
+          "description": "Indicadores como MTTR e backlog."
+        },
+        {
+          "name": "Financeiro e custos",
+          "href": "/produtos/trakledger",
+          "description": "Orcamentos, lancamentos e economia."
+        },
+        {
+          "name": "Equipe e produtividade",
+          "href": "/produtos/traknor",
+          "description": "Gestao de tecnicos e desempenho."
+        }
+      ]
+    },
+    {
+      "id": "clientes",
+      "name": "Para seus Clientes",
+      "description": "Transparencia e comunicacao do atendimento ao longo do ciclo.",
+      "items": [
+        {
+          "name": "Solicitacoes e acompanhamento",
+          "href": "/produtos/traknor",
+          "description": "Abertura e status de chamados."
+        },
+        {
+          "name": "Alertas e comunicacao",
+          "href": "/produtos/traksense",
+          "description": "Notificacoes sobre eventos e falhas."
+        },
+        {
+          "name": "Relatorios compartilhaveis",
+          "href": "/produtos/traknor",
+          "description": "Laudos, historico e evidencias."
+        },
+        {
+          "name": "Central de ajuda",
+          "href": "/produtos/traknor",
+          "description": "Base de conhecimento e suporte."
+        }
+      ]
+    }
+  ],
+  "segments": [
+    {
+      "id": "hospitais",
+      "name": "Hospitais e Clinicas",
+      "description": "Compliance, areas criticas e auditorias.",
+      "href": "/solucoes#hospitais"
+    },
+    {
+      "id": "industrias",
+      "name": "Industrias",
+      "description": "Manutencao preditiva e continuidade operacional.",
+      "href": "/solucoes#industrias"
+    },
+    {
+      "id": "facilities",
+      "name": "Shoppings e Facilities",
+      "description": "Gestao multi-site e padronizacao.",
+      "href": "/solucoes#facilities"
+    }
+  ],
+  "modules": [
+    {
+      "id": "traknor",
+      "name": "TrakNor CMMS",
+      "websiteHref": "/produtos/traknor",
+      "frontendRoute": "/cmms"
+    },
+    {
+      "id": "traksense",
+      "name": "TrakSense Monitor",
+      "websiteHref": "/produtos/traksense",
+      "frontendRoute": "/monitor"
+    },
+    {
+      "id": "trakledger",
+      "name": "TrakLedger Finance",
+      "websiteHref": "/produtos/trakledger",
+      "frontendRoute": "/finance"
+    },
+    {
+      "id": "trakservice",
+      "name": "TrakService Field Service",
+      "frontendRoute": "/trakservice",
+      "backendFeatures": [
+        "trakservice.enabled",
+        "trakservice.dispatch",
+        "trakservice.tracking",
+        "trakservice.routing",
+        "trakservice.km",
+        "trakservice.quotes"
+      ]
+    }
+  ],
+  "mobile": {
+    "tabs": [
+      {
+        "id": "home",
+        "name": "Inicio",
+        "route": "/(tabs)/home"
+      },
+      {
+        "id": "work-orders",
+        "name": "OS",
+        "route": "/(tabs)/work-orders"
+      },
+      {
+        "id": "assets",
+        "name": "Ativos",
+        "route": "/(tabs)/assets"
+      },
+      {
+        "id": "alerts",
+        "name": "Alertas",
+        "route": "/(tabs)/alerts"
+      },
+      {
+        "id": "settings",
+        "name": "Config",
+        "route": "/(tabs)/settings"
+      }
+    ]
+  }
+}
