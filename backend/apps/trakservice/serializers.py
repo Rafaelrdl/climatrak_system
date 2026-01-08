@@ -7,7 +7,7 @@ Serializers for TrakService API endpoints.
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import LocationPing, ServiceAssignment, TechnicianProfile
+from .models import DailyRoute, LocationPing, RouteStop, ServiceAssignment, TechnicianProfile
 
 User = get_user_model()
 
@@ -461,4 +461,233 @@ class LocationTrailSerializer(serializers.Serializer):
     to_date = serializers.DateTimeField()
     total_pings = serializers.IntegerField()
     pings = LocationPingSerializer(many=True)
+
+
+# =============================================================================
+# Routing & KM Serializers
+# =============================================================================
+
+
+class RouteStopSerializer(serializers.ModelSerializer):
+    """Serializer for reading RouteStop data."""
+    
+    assignment_id = serializers.UUIDField(source="assignment.id", read_only=True, allow_null=True)
+    work_order_number = serializers.CharField(
+        source="assignment.work_order.number",
+        read_only=True,
+        allow_null=True,
+    )
+    
+    class Meta:
+        model = RouteStop
+        fields = [
+            "id",
+            "sequence",
+            "assignment_id",
+            "work_order_number",
+            "latitude",
+            "longitude",
+            "address",
+            "description",
+            "estimated_arrival",
+            "estimated_duration_minutes",
+            "distance_from_previous_km",
+            "actual_arrival",
+            "actual_departure",
+        ]
+        read_only_fields = ["id"]
+
+
+class DailyRouteSerializer(serializers.ModelSerializer):
+    """Serializer for reading DailyRoute data."""
+    
+    technician_id = serializers.UUIDField(source="technician.id", read_only=True)
+    technician_name = serializers.CharField(source="technician.full_name", read_only=True)
+    stops = RouteStopSerializer(many=True, read_only=True)
+    total_stops = serializers.IntegerField(read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    
+    class Meta:
+        model = DailyRoute
+        fields = [
+            "id",
+            "technician_id",
+            "technician_name",
+            "route_date",
+            "status",
+            "status_display",
+            "start_latitude",
+            "start_longitude",
+            "start_address",
+            "estimated_km",
+            "actual_km",
+            "total_stops",
+            "stops",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class DailyRouteListSerializer(serializers.ModelSerializer):
+    """Serializer for listing DailyRoutes (without nested stops)."""
+    
+    technician_id = serializers.UUIDField(source="technician.id", read_only=True)
+    technician_name = serializers.CharField(source="technician.full_name", read_only=True)
+    total_stops = serializers.IntegerField(read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    
+    class Meta:
+        model = DailyRoute
+        fields = [
+            "id",
+            "technician_id",
+            "technician_name",
+            "route_date",
+            "status",
+            "status_display",
+            "estimated_km",
+            "actual_km",
+            "total_stops",
+            "created_at",
+        ]
+
+
+class RouteGenerateSerializer(serializers.Serializer):
+    """
+    Serializer for route generation request.
+    
+    Used by POST /api/trakservice/routes/generate
+    """
+    
+    technician_id = serializers.UUIDField(
+        required=True,
+        help_text="ID do técnico para gerar a rota",
+    )
+    route_date = serializers.DateField(
+        required=True,
+        help_text="Data da rota (YYYY-MM-DD)",
+    )
+    start_latitude = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        required=False,
+        allow_null=True,
+        help_text="Latitude do ponto de partida",
+    )
+    start_longitude = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        required=False,
+        allow_null=True,
+        help_text="Longitude do ponto de partida",
+    )
+    start_address = serializers.CharField(
+        max_length=500,
+        required=False,
+        allow_blank=True,
+        default="",
+        help_text="Endereço do ponto de partida",
+    )
+    
+    def validate_technician_id(self, value):
+        """Validate technician exists and is active."""
+        try:
+            technician = TechnicianProfile.objects.get(id=value)
+        except TechnicianProfile.DoesNotExist:
+            raise serializers.ValidationError("Técnico não encontrado.")
+        
+        if not technician.is_active:
+            raise serializers.ValidationError("Este técnico não está ativo.")
+        
+        return value
+    
+    def validate(self, data):
+        """Cross-field validation."""
+        # If start coordinates provided, both are required
+        lat = data.get("start_latitude")
+        lon = data.get("start_longitude")
+        
+        if (lat is not None and lon is None) or (lat is None and lon is not None):
+            raise serializers.ValidationError({
+                "start_latitude": "Latitude e longitude devem ser fornecidas juntas.",
+                "start_longitude": "Latitude e longitude devem ser fornecidas juntas.",
+            })
+        
+        return data
+
+
+class NearestTechnicianSerializer(serializers.Serializer):
+    """
+    Serializer for nearest technician response.
+    
+    Used by GET /api/trakservice/routes/nearest-technician?lat=...&lon=...
+    """
+    
+    technician_id = serializers.UUIDField()
+    technician_name = serializers.CharField()
+    latitude = serializers.FloatField()
+    longitude = serializers.FloatField()
+    distance_km = serializers.FloatField()
+    last_updated = serializers.DateTimeField()
+
+
+class NearestTechnicianRequestSerializer(serializers.Serializer):
+    """Serializer for nearest technician request parameters."""
+    
+    latitude = serializers.FloatField(
+        required=True,
+        min_value=-90,
+        max_value=90,
+        help_text="Latitude do ponto de referência",
+    )
+    longitude = serializers.FloatField(
+        required=True,
+        min_value=-180,
+        max_value=180,
+        help_text="Longitude do ponto de referência",
+    )
+    max_distance_km = serializers.FloatField(
+        required=False,
+        min_value=0,
+        allow_null=True,
+        help_text="Distância máxima de busca (km)",
+    )
+
+
+class KMSummarySerializer(serializers.Serializer):
+    """
+    Serializer for KM summary response.
+    
+    Used by GET /api/trakservice/km?date=...&technician_id=...
+    """
+    
+    technician_id = serializers.UUIDField()
+    technician_name = serializers.CharField()
+    date = serializers.DateField()
+    km_estimated = serializers.FloatField(help_text="KM estimado da rota planejada")
+    km_actual = serializers.FloatField(help_text="KM real calculado dos pings GPS")
+    km_difference = serializers.FloatField(help_text="Diferença (real - estimado)")
+    route_id = serializers.UUIDField(allow_null=True)
+    route_status = serializers.CharField(allow_null=True)
+    ping_count = serializers.IntegerField(help_text="Número de pings GPS usados no cálculo")
+
+
+class KMSummaryRequestSerializer(serializers.Serializer):
+    """Serializer for KM summary request parameters."""
+    
+    date = serializers.DateField(
+        required=True,
+        help_text="Data para calcular KM (YYYY-MM-DD)",
+    )
+    technician_id = serializers.UUIDField(
+        required=True,
+        help_text="ID do técnico",
+    )
+    
+    def validate_technician_id(self, value):
+        """Validate technician exists."""
+        if not TechnicianProfile.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Técnico não encontrado.")
+        return value
 

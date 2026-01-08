@@ -355,4 +355,218 @@ class LocationPing(models.Model):
         return f"{self.technician} @ ({self.latitude}, {self.longitude}) - {self.recorded_at}"
 
 
-__all__ = ["TechnicianProfile", "ServiceAssignment", "LocationPing"]
+# =============================================================================
+# Routing & KM Models
+# =============================================================================
+
+
+class DailyRoute(models.Model):
+    """
+    Daily route for a technician.
+    
+    Represents the planned sequence of stops (assignments) for a given day.
+    Used for route optimization and KM tracking.
+    """
+    
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Rascunho"
+        CONFIRMED = "confirmed", "Confirmado"
+        IN_PROGRESS = "in_progress", "Em Andamento"
+        COMPLETED = "completed", "Concluído"
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Link to technician
+    technician = models.ForeignKey(
+        TechnicianProfile,
+        on_delete=models.CASCADE,
+        related_name="daily_routes",
+        verbose_name="Técnico",
+    )
+    
+    # Date for the route
+    route_date = models.DateField(
+        verbose_name="Data da Rota",
+        help_text="Data para a qual a rota foi planejada",
+    )
+    
+    # Status
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.DRAFT,
+        verbose_name="Status",
+    )
+    
+    # Starting point (technician's home/base or first location)
+    start_latitude = models.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        null=True,
+        blank=True,
+        verbose_name="Latitude Inicial",
+    )
+    start_longitude = models.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        null=True,
+        blank=True,
+        verbose_name="Longitude Inicial",
+    )
+    start_address = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name="Endereço Inicial",
+    )
+    
+    # KM estimates (calculated at route generation)
+    estimated_km = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0,
+        verbose_name="KM Estimado",
+        help_text="Quilometragem estimada para a rota completa",
+    )
+    
+    # KM actual (aggregated from pings/legs)
+    actual_km = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0,
+        verbose_name="KM Real",
+        help_text="Quilometragem real percorrida (calculada dos pings)",
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_routes",
+        verbose_name="Criado por",
+    )
+    
+    class Meta:
+        verbose_name = "Rota Diária"
+        verbose_name_plural = "Rotas Diárias"
+        ordering = ["-route_date", "technician"]
+        unique_together = [["technician", "route_date"]]
+        indexes = [
+            models.Index(fields=["route_date", "technician"]),
+            models.Index(fields=["status"]),
+        ]
+    
+    def __str__(self):
+        return f"Rota {self.technician} - {self.route_date}"
+    
+    @property
+    def total_stops(self):
+        return self.stops.count()
+
+
+class RouteStop(models.Model):
+    """
+    A stop in a daily route.
+    
+    Links to a ServiceAssignment and represents one destination
+    in the technician's planned route for the day.
+    """
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Link to route
+    route = models.ForeignKey(
+        DailyRoute,
+        on_delete=models.CASCADE,
+        related_name="stops",
+        verbose_name="Rota",
+    )
+    
+    # Sequence in the route (1, 2, 3, ...)
+    sequence = models.PositiveIntegerField(
+        verbose_name="Sequência",
+        help_text="Ordem da parada na rota (1 = primeira)",
+    )
+    
+    # Link to assignment (optional - can have manual stops)
+    assignment = models.ForeignKey(
+        ServiceAssignment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="route_stops",
+        verbose_name="Atribuição",
+    )
+    
+    # Location (can be from assignment or manual)
+    latitude = models.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        verbose_name="Latitude",
+    )
+    longitude = models.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        verbose_name="Longitude",
+    )
+    address = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name="Endereço",
+    )
+    
+    # Description (from assignment or custom)
+    description = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name="Descrição",
+    )
+    
+    # Estimated times
+    estimated_arrival = models.TimeField(
+        null=True,
+        blank=True,
+        verbose_name="Chegada Estimada",
+    )
+    estimated_duration_minutes = models.PositiveIntegerField(
+        default=60,
+        verbose_name="Duração Estimada (min)",
+    )
+    
+    # Distance from previous stop (km)
+    distance_from_previous_km = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0,
+        verbose_name="Distância do Anterior (km)",
+    )
+    
+    # Actual data (filled during execution)
+    actual_arrival = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Chegada Real",
+    )
+    actual_departure = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Saída Real",
+    )
+    
+    class Meta:
+        verbose_name = "Parada da Rota"
+        verbose_name_plural = "Paradas da Rota"
+        ordering = ["route", "sequence"]
+        unique_together = [["route", "sequence"]]
+        indexes = [
+            models.Index(fields=["route", "sequence"]),
+        ]
+    
+    def __str__(self):
+        return f"Parada {self.sequence} - {self.route}"
+
+
+__all__ = ["TechnicianProfile", "ServiceAssignment", "LocationPing", "DailyRoute", "RouteStop"]
