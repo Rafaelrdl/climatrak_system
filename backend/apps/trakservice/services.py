@@ -662,3 +662,355 @@ class QuoteService(TrakServiceBaseService):
     """Service for quote/estimate operations."""
 
     pass
+
+
+class QuoteFinanceService(TrakServiceBaseService):
+    """
+    Service for bridging TrakService Quotes with TrakLedger (Finance).
+    
+    When a Quote is approved:
+    1. Creates CostTransaction entries in TrakLedger (idempotent)
+    2. Publishes outbox event: trakservice.quote.approved.v1
+    
+    Idempotency:
+    - Uses deterministic idempotency_key: quote:{quote_id}:service / quote:{quote_id}:material
+    - If transaction already exists, returns existing without error
+    
+    Lock handling:
+    - Checks if BudgetMonth is locked before creating transaction
+    - If locked, raises error (caller should use adjustment workflow)
+    """
+    
+    @classmethod
+    def process_quote_approved(
+        cls,
+        quote,
+        approved_by=None,
+        publish_event: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Process an approved quote and create finance entries.
+        
+        Args:
+            quote: Quote instance (must be in APPROVED status)
+            approved_by: User who approved (optional)
+            publish_event: Whether to publish outbox event
+            
+        Returns:
+            Dict with:
+            - success: bool
+            - transactions_created: int
+            - transactions: list of transaction IDs
+            - skipped: int (already existing)
+            - event_published: bool
+            
+        Raises:
+            ValueError: If quote is not approved or data is invalid
+            FinanceLockError: If target month is locked
+        """
+        from decimal import Decimal
+        from django.db import transaction
+        from django.utils import timezone
+        
+        from .models import Quote, QuoteItem
+        
+        if quote.status != Quote.Status.APPROVED:
+            raise ValueError("Quote must be in APPROVED status to create finance entries")
+        
+        result = {
+            "success": False,
+            "transactions_created": 0,
+            "transactions": [],
+            "skipped": 0,
+            "event_published": False,
+            "errors": [],
+        }
+        
+        # Get work order for references
+        work_order = quote.work_order
+        
+        with transaction.atomic():
+            # Process services
+            services_result = cls._create_service_transaction(quote, work_order)
+            result["transactions"].extend(services_result.get("transactions", []))
+            result["transactions_created"] += services_result.get("created", 0)
+            result["skipped"] += services_result.get("skipped", 0)
+            
+            # Process materials
+            materials_result = cls._create_material_transaction(quote, work_order)
+            result["transactions"].extend(materials_result.get("transactions", []))
+            result["transactions_created"] += materials_result.get("created", 0)
+            result["skipped"] += materials_result.get("skipped", 0)
+            
+            # Publish outbox event
+            if publish_event:
+                try:
+                    cls._publish_quote_approved_event(quote, approved_by)
+                    result["event_published"] = True
+                except Exception as e:
+                    logger.error(f"Failed to publish quote approved event: {e}")
+                    result["errors"].append(f"Event publish failed: {e}")
+        
+        result["success"] = True
+        logger.info(
+            f"QuoteFinanceService processed quote:{quote.id} - "
+            f"created:{result['transactions_created']} skipped:{result['skipped']}"
+        )
+        
+        return result
+    
+    @classmethod
+    def _create_service_transaction(cls, quote, work_order) -> Dict[str, Any]:
+        """Create CostTransaction for services in the quote."""
+        from decimal import Decimal
+        from django.utils import timezone
+        
+        from apps.trakledger.models import CostCenter, CostTransaction
+        from .models import QuoteItem
+        
+        result = {"transactions": [], "created": 0, "skipped": 0}
+        
+        # Calculate total services
+        service_items = quote.items.filter(item_type=QuoteItem.ItemType.SERVICE)
+        if not service_items.exists():
+            return result
+        
+        total_services = Decimal("0")
+        service_breakdown = []
+        
+        for item in service_items:
+            total_services += item.total_price
+            service_breakdown.append({
+                "item_id": str(item.id),
+                "code": item.code,
+                "description": item.description,
+                "quantity": float(item.quantity),
+                "unit_price": float(item.unit_price),
+                "total_price": float(item.total_price),
+            })
+        
+        if total_services <= 0:
+            return result
+        
+        # Get cost center (from work order or default)
+        cost_center = cls._get_cost_center(work_order)
+        if not cost_center:
+            logger.warning(f"No cost center for quote {quote.id}, skipping service transaction")
+            return result
+        
+        # Idempotency key
+        idempotency_key = f"quote:{quote.id}:service"
+        
+        # Check if exists
+        existing = CostTransaction.objects.filter(idempotency_key=idempotency_key).first()
+        if existing:
+            logger.info(f"Service transaction already exists: {idempotency_key}")
+            result["skipped"] = 1
+            result["transactions"].append(str(existing.id))
+            return result
+        
+        # Check lock
+        cls._check_month_lock(quote.approved_at or timezone.now())
+        
+        # Create transaction
+        tx = CostTransaction.objects.create(
+            idempotency_key=idempotency_key,
+            transaction_type=CostTransaction.TransactionType.THIRD_PARTY,
+            category=cls._map_wo_category(work_order),
+            amount=total_services,
+            occurred_at=quote.approved_at or timezone.now(),
+            description=f"Serviços orçamento {quote.number}",
+            meta={
+                "quote_id": str(quote.id),
+                "quote_number": quote.number,
+                "work_order_id": str(work_order.id) if work_order else None,
+                "work_order_number": work_order.number if work_order else None,
+                "breakdown": service_breakdown,
+                "source": "trakservice.quote",
+            },
+            cost_center=cost_center,
+            work_order=work_order,
+        )
+        
+        result["created"] = 1
+        result["transactions"].append(str(tx.id))
+        logger.info(f"Created service transaction {tx.id} for quote {quote.id}")
+        
+        return result
+    
+    @classmethod
+    def _create_material_transaction(cls, quote, work_order) -> Dict[str, Any]:
+        """Create CostTransaction for materials in the quote."""
+        from decimal import Decimal
+        from django.utils import timezone
+        
+        from apps.trakledger.models import CostCenter, CostTransaction
+        from .models import QuoteItem
+        
+        result = {"transactions": [], "created": 0, "skipped": 0}
+        
+        # Calculate total materials
+        material_items = quote.items.filter(item_type=QuoteItem.ItemType.MATERIAL)
+        if not material_items.exists():
+            return result
+        
+        total_materials = Decimal("0")
+        material_breakdown = []
+        
+        for item in material_items:
+            total_materials += item.total_price
+            material_breakdown.append({
+                "item_id": str(item.id),
+                "code": item.code,
+                "description": item.description,
+                "quantity": float(item.quantity),
+                "unit_price": float(item.unit_price),
+                "total_price": float(item.total_price),
+            })
+        
+        if total_materials <= 0:
+            return result
+        
+        # Get cost center (from work order or default)
+        cost_center = cls._get_cost_center(work_order)
+        if not cost_center:
+            logger.warning(f"No cost center for quote {quote.id}, skipping material transaction")
+            return result
+        
+        # Idempotency key
+        idempotency_key = f"quote:{quote.id}:material"
+        
+        # Check if exists
+        existing = CostTransaction.objects.filter(idempotency_key=idempotency_key).first()
+        if existing:
+            logger.info(f"Material transaction already exists: {idempotency_key}")
+            result["skipped"] = 1
+            result["transactions"].append(str(existing.id))
+            return result
+        
+        # Check lock
+        cls._check_month_lock(quote.approved_at or timezone.now())
+        
+        # Create transaction
+        tx = CostTransaction.objects.create(
+            idempotency_key=idempotency_key,
+            transaction_type=CostTransaction.TransactionType.PARTS,
+            category=CostTransaction.Category.PARTS,
+            amount=total_materials,
+            occurred_at=quote.approved_at or timezone.now(),
+            description=f"Materiais orçamento {quote.number}",
+            meta={
+                "quote_id": str(quote.id),
+                "quote_number": quote.number,
+                "work_order_id": str(work_order.id) if work_order else None,
+                "work_order_number": work_order.number if work_order else None,
+                "breakdown": material_breakdown,
+                "source": "trakservice.quote",
+            },
+            cost_center=cost_center,
+            work_order=work_order,
+        )
+        
+        result["created"] = 1
+        result["transactions"].append(str(tx.id))
+        logger.info(f"Created material transaction {tx.id} for quote {quote.id}")
+        
+        return result
+    
+    @classmethod
+    def _get_cost_center(cls, work_order):
+        """Get cost center from work order or default."""
+        from apps.trakledger.models import CostCenter
+        
+        # Try work order's cost center
+        if work_order and hasattr(work_order, 'cost_center') and work_order.cost_center:
+            return work_order.cost_center
+        
+        # Fallback to first active cost center
+        return CostCenter.objects.filter(is_active=True).first()
+    
+    @classmethod
+    def _map_wo_category(cls, work_order):
+        """Map work order type to Finance category."""
+        from apps.trakledger.models import CostTransaction
+        
+        if not work_order:
+            return CostTransaction.Category.OTHER
+        
+        # WorkOrder.Type choices: PREVENTIVE, CORRECTIVE, EMERGENCY, REQUEST
+        category_map = {
+            "PREVENTIVE": CostTransaction.Category.PREVENTIVE,
+            "CORRECTIVE": CostTransaction.Category.CORRECTIVE,
+            "EMERGENCY": CostTransaction.Category.CORRECTIVE,
+            "REQUEST": CostTransaction.Category.OTHER,
+        }
+        
+        wo_type = getattr(work_order, 'type', None) or 'CORRECTIVE'
+        return category_map.get(wo_type, CostTransaction.Category.OTHER)
+    
+    @classmethod
+    def _check_month_lock(cls, occurred_at):
+        """
+        Check if the target month is locked.
+        
+        Raises:
+            FinanceLockError: If month is locked
+        """
+        from apps.trakledger.models import BudgetMonth
+        
+        # Get month for the occurred_at date
+        month_start = occurred_at.replace(day=1).date() if hasattr(occurred_at, 'date') else occurred_at.replace(day=1)
+        
+        locked_month = BudgetMonth.objects.filter(
+            month=month_start,
+            is_locked=True,
+        ).first()
+        
+        if locked_month:
+            raise FinanceLockError(
+                f"Month {month_start.strftime('%Y-%m')} is locked. "
+                "Use adjustment workflow to make changes."
+            )
+    
+    @classmethod
+    def _publish_quote_approved_event(cls, quote, approved_by=None):
+        """Publish trakservice.quote.approved.v1 event to outbox."""
+        from apps.core_events.services import EventPublisher
+        
+        tenant_id = cls.get_tenant_id()
+        if not tenant_id:
+            logger.warning("No tenant_id available, skipping event publish")
+            return
+        
+        # Build event data
+        event_data = {
+            "quote_id": str(quote.id),
+            "quote_number": quote.number,
+            "work_order_id": str(quote.work_order.id) if quote.work_order else None,
+            "status": quote.status,
+            "total": float(quote.total),
+            "subtotal_services": float(quote.subtotal_services),
+            "subtotal_materials": float(quote.subtotal_materials),
+            "discount_percent": float(quote.discount_percent),
+            "discount_amount": float(quote.discount_amount),
+            "approved_at": quote.approved_at.isoformat() if quote.approved_at else None,
+            "approved_by_id": str(approved_by.id) if approved_by else None,
+            "valid_until": quote.valid_until.isoformat() if quote.valid_until else None,
+            "item_count": quote.items.count(),
+        }
+        
+        EventPublisher.publish(
+            tenant_id=tenant_id,
+            event_name="trakservice.quote.approved.v1",
+            aggregate_type="quote",
+            aggregate_id=str(quote.id),
+            data=event_data,
+            idempotency_key=f"quote:{quote.id}:approved:v1",
+        )
+        
+        logger.info(f"Published trakservice.quote.approved.v1 event for quote {quote.id}")
+
+
+class FinanceLockError(Exception):
+    """Raised when trying to create transaction in a locked month."""
+    pass

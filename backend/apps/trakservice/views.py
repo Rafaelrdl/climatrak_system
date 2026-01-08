@@ -20,6 +20,8 @@ from rest_framework.views import APIView
 
 from apps.tenants.permissions import TrakServiceFeatureRequired
 
+logger = logging.getLogger(__name__)
+
 from .models import DailyRoute, LocationPing, Quote, QuoteItem, RouteStop, ServiceAssignment, ServiceCatalogItem, TechnicianProfile
 from .serializers import (
     DailyRouteListSerializer,
@@ -1043,7 +1045,13 @@ class QuoteViewSet(viewsets.ModelViewSet):
         
         POST /api/trakservice/quotes/{id}/approve/
         Body: { "notes": "optional notes" }
+        
+        Side effects:
+        - Creates CostTransaction entries in TrakLedger (idempotent)
+        - Publishes trakservice.quote.approved.v1 event
         """
+        from .services import QuoteFinanceService, FinanceLockError
+        
         quote = self.get_object()
         
         serializer = self.get_serializer(data=request.data)
@@ -1057,8 +1065,29 @@ class QuoteViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Create finance entries (idempotent)
+        finance_result = {"success": False}
+        try:
+            finance_result = QuoteFinanceService.process_quote_approved(
+                quote=quote,
+                approved_by=request.user,
+                publish_event=True,
+            )
+        except FinanceLockError as e:
+            # Log but don't fail the approval - finance can be retried
+            logger.warning(f"Finance lock error for quote {quote.id}: {e}")
+        except Exception as e:
+            # Log but don't fail the approval - finance can be retried
+            logger.error(f"Finance processing error for quote {quote.id}: {e}")
+        
         output_serializer = QuoteSerializer(quote)
-        return Response(output_serializer.data)
+        response_data = output_serializer.data
+        response_data["finance_result"] = {
+            "success": finance_result.get("success", False),
+            "transactions_created": finance_result.get("transactions_created", 0),
+        }
+        
+        return Response(response_data)
     
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):

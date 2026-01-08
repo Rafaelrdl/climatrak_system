@@ -2,32 +2,25 @@
  * TrakService Pages
  * 
  * Page components for TrakService module.
- * DispatchPage is fully implemented, others are placeholders.
+ * All core pages are fully implemented.
  * 
  * Design System: Platform-first, seguindo docs/design/DESIGN_SYSTEM.md
  */
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
-import { Button } from '@/components/ui/button';
 import { 
-  Calendar, 
-  MapPin, 
-  Route, 
-  FileText, 
   Users, 
   Settings, 
-  Gauge,
-  ArrowRight,
-  Clock,
   Target,
-  DollarSign,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useTrakServiceFeature } from '@/store/useFeaturesStore';
 
-// Re-export the functional DispatchPage
+// Re-export the implemented pages
 export { DispatchPage } from './Dispatch';
+export { TrackingPage } from './Tracking';
+export { RoutesPage } from './Routes';
+export { MileagePage } from './Mileage';
+export { QuotesPage } from './Quotes';
 
 // =============================================================================
 // Shared Components
@@ -98,254 +91,8 @@ function QuickStatCard({ title, value, description, icon: Icon }: QuickStatCardP
 // =============================================================================
 // Page Components
 // =============================================================================
-
-/**
- * Tracking Page - Rastreamento de equipe em tempo real
- * Requires: trakservice.tracking feature
- */
-export function TrackingPage() {
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Rastreamento"
-        description="Acompanhe a localização da equipe em tempo real"
-      />
-      
-      {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <QuickStatCard
-          title="Técnicos Ativos"
-          value={0}
-          description="Em horário de trabalho"
-          icon={Users}
-        />
-        <QuickStatCard
-          title="Em Campo"
-          value={0}
-          description="Fora do escritório"
-          icon={MapPin}
-        />
-        <QuickStatCard
-          title="Em Atendimento"
-          value={0}
-          description="Em cliente"
-          icon={Target}
-        />
-        <QuickStatCard
-          title="Em Deslocamento"
-          value={0}
-          description="A caminho"
-          icon={Route}
-        />
-      </div>
-
-      <PlaceholderCard
-        icon={MapPin}
-        title="Sistema de Rastreamento"
-        description="O módulo de Rastreamento permitirá visualizar a localização dos técnicos em tempo real, respeitando regras de privacidade e janelas de trabalho."
-        features={[
-          "Mapa em tempo real com posição dos técnicos",
-          "Histórico de localização (com auditoria)",
-          "Geocercas e alertas de entrada/saída",
-          "Respeito à janela de trabalho (privacidade)",
-          "Integração com app mobile",
-        ]}
-      />
-    </div>
-  );
-}
-
-/**
- * Routes Page - Otimização de rotas
- * Requires: trakservice.routing feature
- */
-export function RoutesPage() {
-  const hasKm = useTrakServiceFeature('km');
-
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Roteirização"
-        description="Otimize rotas e reduza custos de deslocamento"
-      />
-      
-      {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <QuickStatCard
-          title="Rotas Ativas"
-          value={0}
-          description="Em execução"
-          icon={Route}
-        />
-        <QuickStatCard
-          title="KM Hoje"
-          value="0 km"
-          description="Total percorrido"
-          icon={Gauge}
-        />
-        <QuickStatCard
-          title="Economia"
-          value="0%"
-          description="vs. rota não otimizada"
-          icon={DollarSign}
-        />
-        <QuickStatCard
-          title="Tempo Médio"
-          value="0 min"
-          description="Por atendimento"
-          icon={Clock}
-        />
-      </div>
-
-      <PlaceholderCard
-        icon={Route}
-        title="Sistema de Roteirização"
-        description="O módulo de Roteirização permitirá otimizar rotas de atendimento, reduzindo tempo de deslocamento e custos com combustível."
-        features={[
-          "Otimização automática de rotas",
-          "Consideração de janelas de atendimento",
-          "Integração com Google Maps/Waze",
-          "Relatórios de economia",
-          "Replanejamento em tempo real",
-        ]}
-      />
-
-      {hasKm && (
-        <Card className="border-orange-200 bg-orange-50/50">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Gauge className="h-5 w-5 text-orange-500" />
-                Controle de Quilometragem
-              </span>
-              <Link to="/trakservice/mileage">
-                <Button variant="outline" size="sm" className="gap-1">
-                  Acessar <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </CardTitle>
-            <CardDescription>
-              Gerencie e audite a quilometragem da sua frota
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-/**
- * Mileage Page - Controle de quilometragem
- * Requires: trakservice.km feature
- */
-export function MileagePage() {
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Quilometragem"
-        description="Controle e auditoria de quilometragem"
-      />
-      
-      {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <QuickStatCard
-          title="KM Total Mês"
-          value="0 km"
-          description="Todos os veículos"
-          icon={Gauge}
-        />
-        <QuickStatCard
-          title="Custo Estimado"
-          value="R$ 0,00"
-          description="Combustível + desgaste"
-          icon={DollarSign}
-        />
-        <QuickStatCard
-          title="Média por Técnico"
-          value="0 km"
-          description="Este mês"
-          icon={Users}
-        />
-        <QuickStatCard
-          title="Registros Pendentes"
-          value={0}
-          description="Aguardando validação"
-          icon={Clock}
-        />
-      </div>
-
-      <PlaceholderCard
-        icon={Gauge}
-        title="Sistema de Quilometragem"
-        description="O módulo de Quilometragem permitirá registrar, validar e auditar a quilometragem dos veículos da equipe, com integração ao TrakLedger para controle de custos."
-        features={[
-          "Registro de KM inicial/final por viagem",
-          "Validação automática via GPS",
-          "Relatórios por técnico/veículo/período",
-          "Alertas de consumo anormal",
-          "Integração com TrakLedger (custos)",
-        ]}
-      />
-    </div>
-  );
-}
-
-/**
- * Quotes Page - Orçamentos em campo
- * Requires: trakservice.quotes feature
- */
-export function QuotesPage() {
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Orçamentos"
-        description="Crie e gerencie orçamentos em campo"
-      />
-      
-      {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <QuickStatCard
-          title="Orçamentos Abertos"
-          value={0}
-          description="Aguardando aprovação"
-          icon={FileText}
-        />
-        <QuickStatCard
-          title="Aprovados Este Mês"
-          value={0}
-          description="Convertidos em OS"
-          icon={Target}
-        />
-        <QuickStatCard
-          title="Valor Total"
-          value="R$ 0,00"
-          description="Orçamentos aprovados"
-          icon={DollarSign}
-        />
-        <QuickStatCard
-          title="Taxa de Conversão"
-          value="0%"
-          description="Aprovados / Total"
-          icon={Target}
-        />
-      </div>
-
-      <PlaceholderCard
-        icon={FileText}
-        title="Sistema de Orçamentos"
-        description="O módulo de Orçamentos permitirá criar, enviar e gerenciar orçamentos diretamente do campo, com integração ao TrakLedger."
-        features={[
-          "Criação rápida de orçamentos em campo",
-          "Catálogo de serviços e peças",
-          "Envio por e-mail/WhatsApp",
-          "Assinatura digital do cliente",
-          "Conversão automática em Work Order",
-          "Integração com TrakLedger (compromissos)",
-        ]}
-      />
-    </div>
-  );
-}
+// Page Components (Placeholders for Team and Settings)
+// =============================================================================
 
 /**
  * Team Page - Gestão de equipe de campo
