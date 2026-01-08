@@ -62,6 +62,7 @@ export async function logout() {
     localStorage.removeItem('auth:tenant_schema');
     localStorage.removeItem('auth:user');
     localStorage.removeItem('auth:role');
+    localStorage.removeItem('tenant:features'); // Clear tenant features
     window.dispatchEvent(new Event('authChange'));
   }
 }

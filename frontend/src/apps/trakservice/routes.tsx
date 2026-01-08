@@ -10,12 +10,14 @@ import { TrakServiceRouteGuard } from '@/components/auth/FeatureGate';
 
 // Placeholder pages (to be implemented)
 import { TrakServiceDashboard } from './pages/Dashboard';
-import { DispatchPage } from './pages/DispatchPage';
-import { TrackingPage } from './pages/TrackingPage';
-import { RoutesPage } from './pages/RoutesPage';
-import { QuotesPage } from './pages/QuotesPage';
-import { TeamPage } from './pages/TeamPage';
-import { SettingsPage } from './pages/SettingsPage';
+import { 
+  DispatchPage, 
+  TrackingPage, 
+  RoutesPage, 
+  QuotesPage, 
+  TeamPage, 
+  SettingsPage 
+} from './pages';
 
 export function TrakServiceRoutes() {
   return (
