@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -27,6 +27,10 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const { shouldShow, handleComplete, handleSkip } = useFirstTimeGuide();
   const { startWelcomeTour } = useTour();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [location.pathname]);
   
   // Detect current module based on URL
   const isMonitorModule = location.pathname.startsWith('/monitor');

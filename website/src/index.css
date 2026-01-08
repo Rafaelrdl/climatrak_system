@@ -138,6 +138,16 @@ html {
     padding-left: 1rem;
     padding-right: 1rem;
   }
+
+  @media (min-width: 1536px) {
+    .container-narrow {
+      max-width: 72rem;
+    }
+
+    .container-wide {
+      max-width: 96rem;
+    }
+  }
 }
 
 /* Hero background animation */
