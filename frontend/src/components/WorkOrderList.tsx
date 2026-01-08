@@ -24,9 +24,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Edit, ClipboardList, AlertTriangle, User, FileText, UserPlus, Eye, Trash2, Calendar, Loader2 } from 'lucide-react';
+import { Edit, ClipboardList, AlertTriangle, User, FileText, UserPlus, Eye, Trash2, Loader2 } from 'lucide-react';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
-import { useSectors, useCompanies } from '@/hooks/useLocationsQuery';
+import { useSectors, useCompanies, useUnits, useSubsections } from '@/hooks/useLocationsQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';
 import { useWorkOrderStore } from '@/store/useWorkOrderStore';
 import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
@@ -68,6 +68,8 @@ export function WorkOrderList({
   const { data: equipment = [] } = useEquipments();
   const { data: sectors = [] } = useSectors();
   const { data: companies = [] } = useCompanies();
+  const { data: units = [] } = useUnits();
+  const { data: subsections = [] } = useSubsections();
   const { data: technicians = [] } = useTechnicians();
   const { selectedWorkOrderId, setSelectedWorkOrder } = useWorkOrderStore();
   const { settings: workOrderSettings } = useWorkOrderSettingsStore();
@@ -396,14 +398,14 @@ export function WorkOrderList({
       <TableHeader>
         <TableRow>
           <TableHead>Número</TableHead>
-          <TableHead>Criado em</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Localização</TableHead>
           <TableHead>Equipamento</TableHead>
           <TableHead>Tipo</TableHead>
-          <TableHead>Origem</TableHead>
           <TableHead>Prioridade</TableHead>
+          <TableHead>Criado em</TableHead>
           <TableHead>Data Agendada</TableHead>
           <TableHead>Responsável</TableHead>
-          <TableHead>Status</TableHead>
           {slaSettings.enabled && (
             <>
               <TableHead className="text-center">SLA Atendimento</TableHead>
@@ -417,6 +419,19 @@ export function WorkOrderList({
         {workOrders.map((wo) => {
           const eq = equipment.find(e => e.id === wo.equipmentId);
           const sector = sectors.find(s => s.id === eq?.sectorId);
+          const unit = units.find(u => u.id === sector?.unitId);
+          const company = companies.find(c => c.id === unit?.companyId);
+          const subsection = eq?.subSectionId ? subsections.find(sub => sub.id === eq.subSectionId) : null;
+          
+          // Monta string de localização hierárquica: empresa > unidade > setor > subsetor
+          const locationParts = [
+            company?.name,
+            unit?.name,
+            sector?.name,
+            subsection?.name
+          ].filter(Boolean);
+          const locationString = locationParts.length > 0 ? locationParts.join(' > ') : '-';
+          
           const scheduledDate = wo.scheduledDate
             ? (wo.scheduledDate.includes('T') ? new Date(wo.scheduledDate) : parseLocalDate(wo.scheduledDate))
                 .toLocaleDateString('pt-BR')
@@ -438,21 +453,21 @@ export function WorkOrderList({
             <TableRow key={wo.id}>
               <TableCell className="font-medium">{wo.number}</TableCell>
               <TableCell>
-                {wo.createdAt
-                  ? new Date(wo.createdAt).toLocaleDateString('pt-BR', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })
-                  : '-'}
+                <StatusBadge status={wo.status} />
+              </TableCell>
+              <TableCell>
+                <div className="text-xs space-y-0.5">
+                  {company?.name && <div className="font-medium text-foreground">{company.name}</div>}
+                  {unit?.name && <div className="text-muted-foreground pl-2">↳ {unit.name}</div>}
+                  {sector?.name && <div className="text-muted-foreground pl-4">↳ {sector.name}</div>}
+                  {subsection?.name && <div className="text-muted-foreground pl-6">↳ {subsection.name}</div>}
+                  {!company?.name && !unit?.name && !sector?.name && <span className="text-muted-foreground">-</span>}
+                </div>
               </TableCell>
               <TableCell>
                 <div>
                   <div className="font-medium">{eq?.tag}</div>
                   <div className="text-sm text-muted-foreground">{eq?.brand} {eq?.model}</div>
-                  <div className="text-sm text-muted-foreground">{sector?.name}</div>
                 </div>
               </TableCell>
               <TableCell>
@@ -465,29 +480,21 @@ export function WorkOrderList({
                 </Badge>
               </TableCell>
               <TableCell>
-                {wo.maintenancePlanId ? (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    Plano
-                  </Badge>
-                ) : wo.requestId ? (
-                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                    Solicitação
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-                    Manual
-                  </Badge>
-                )}
+                <StatusBadge status={wo.priority} />
               </TableCell>
               <TableCell>
-                <StatusBadge status={wo.priority} />
+                {wo.createdAt
+                  ? new Date(wo.createdAt).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })
+                  : '-'}
               </TableCell>
               <TableCell>{scheduledDate}</TableCell>
               <TableCell>{wo.assignedToName || wo.assignedTo || '-'}</TableCell>
-              <TableCell>
-                <StatusBadge status={wo.status} />
-              </TableCell>
               {slaSettings.enabled && (
                 <>
                   <TableCell className="text-center">
