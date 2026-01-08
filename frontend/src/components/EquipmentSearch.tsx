@@ -42,7 +42,7 @@ import {
   Server,           // RTU
   type LucideIcon,
 } from 'lucide-react';
-import type { Equipment, EquipmentFilter } from '@/types';
+import type { Equipment, EquipmentFilter, Company, Unit, Sector, SubSection } from '@/types';
 
 interface EquipmentSearchProps {
   equipment: Equipment[];
@@ -57,6 +57,11 @@ interface EquipmentSearchProps {
   externalViewMode?: 'grid' | 'list';
   externalShowFilters?: boolean;
   onExternalShowFiltersChange?: (show: boolean) => void;
+  // Props de localização para hierarquia completa
+  companies?: Company[];
+  units?: Unit[];
+  sectors?: Sector[];
+  subsections?: SubSection[];
 }
 
 export function EquipmentSearch({ 
@@ -70,7 +75,11 @@ export function EquipmentSearch({
   externalSearchTerm,
   externalViewMode,
   externalShowFilters,
-  onExternalShowFiltersChange
+  onExternalShowFiltersChange,
+  companies = [],
+  units = [],
+  sectors = [],
+  subsections = [],
 }: EquipmentSearchProps) {
   const [internalSearchTerm, setInternalSearchTerm] = useState('');
   const [filters, setFilters] = useState<EquipmentFilter>({});
@@ -83,6 +92,30 @@ export function EquipmentSearch({
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
   const showFilters = externalShowFilters !== undefined ? externalShowFilters : internalShowFilters;
   const setShowFilters = onExternalShowFiltersChange !== undefined ? onExternalShowFiltersChange : setInternalShowFilters;
+
+  // Helper para construir localização hierárquica completa
+  const getFullLocation = (eq: Equipment): string => {
+    const parts: string[] = [];
+    
+    // Encontrar setor
+    const sector = sectors.find(s => s.id === eq.sectorId);
+    
+    // Encontrar unidade (via setor)
+    const unit = sector ? units.find(u => u.id === sector.unitId) : null;
+    
+    // Encontrar empresa (via unidade)
+    const company = unit ? companies.find(c => c.id === unit.companyId) : null;
+    
+    // Encontrar subsetor
+    const subsection = eq.subSectionId ? subsections.find(ss => ss.id === eq.subSectionId) : null;
+    
+    if (company) parts.push(company.name);
+    if (unit) parts.push(unit.name);
+    if (sector) parts.push(sector.name);
+    if (subsection) parts.push(subsection.name);
+    
+    return parts.length > 0 ? parts.join(' > ') : (eq.sectorName || eq.location || '');
+  };
 
   // Get unique values for filter dropdowns
   const uniqueTypes = [...new Set(equipment.map(e => e.type))];
@@ -715,13 +748,23 @@ export function EquipmentSearch({
                         <p className="text-xs text-muted-foreground truncate">{eq.brand} {eq.model}</p>
                       </div>
 
-                      {/* Location */}
-                      {(eq.sectorName || eq.location) && (
-                        <div className="hidden lg:flex items-center gap-1 text-xs text-muted-foreground max-w-[120px]">
-                          <MapPin className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{eq.sectorName || eq.location}</span>
-                        </div>
-                      )}
+                      {/* Location - Hierarquia completa */}
+                      {(() => {
+                        const fullLocation = getFullLocation(eq);
+                        return fullLocation && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="hidden lg:flex items-center gap-1 text-xs text-muted-foreground max-w-[200px]">
+                                <MapPin className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{fullLocation}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs">
+                              <p className="text-xs">{fullLocation}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })()}
 
                       {/* Status Badge */}
                       <Badge className={cn("shrink-0 text-[10px] h-5 px-1.5", getStatusColor(eq.status))}>
@@ -847,17 +890,23 @@ export function EquipmentSearch({
                       <TooltipContent>Data de Instalação</TooltipContent>
                     </Tooltip>
 
-                    {(eq.sectorName || eq.location) && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center gap-1 text-muted-foreground col-span-2">
-                            <MapPin className="h-3 w-3 shrink-0" />
-                            <span className="truncate">{eq.sectorName || eq.location}</span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>Localização</TooltipContent>
-                      </Tooltip>
-                    )}
+                    {/* Location - Hierarquia completa */}
+                    {(() => {
+                      const fullLocation = getFullLocation(eq);
+                      return fullLocation && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1 text-muted-foreground col-span-2">
+                              <MapPin className="h-3 w-3 shrink-0" />
+                              <span className="truncate">{fullLocation}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs">
+                            <p className="text-xs">{fullLocation}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })()}
                   </div>
                   
                   {/* Footer with Status and Criticidade */}

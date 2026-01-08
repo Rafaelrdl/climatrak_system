@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,11 +11,13 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavbarOverflow } from '@/hooks/useNavbarOverflow';
+import { useTrakService, useTrakServiceFeature } from '@/store/useFeaturesStore';
 
 // Importar navegação dos módulos
 import { cmmsNavigation, cmmsModuleName, cmmsTheme, type NavItem } from '@/apps/cmms/navigation';
 import { monitorNavigation, monitorModuleName, monitorTheme } from '@/apps/monitor/navigation';
 import { financeNavigation, financeModuleName, financeTheme } from '@/apps/finance/navigation';
+import { trakserviceNavigation, trakserviceModuleName, trakserviceTheme } from '@/apps/trakservice/navigation';
 
 // Hook para obter a navegação baseada no módulo ativo
 function useModuleNavigation(): { 
@@ -24,7 +26,35 @@ function useModuleNavigation(): {
   theme: typeof cmmsTheme;
 } {
   const location = useLocation();
+  const hasTrakService = useTrakService();
+  const hasDispatch = useTrakServiceFeature('dispatch');
+  const hasTracking = useTrakServiceFeature('tracking');
+  const hasRouting = useTrakServiceFeature('routing');
+  const hasQuotes = useTrakServiceFeature('quotes');
   
+  // Filter TrakService navigation based on enabled features
+  const filteredTrakServiceNav = useMemo(() => {
+    if (!hasTrakService) return [];
+    
+    return trakserviceNavigation.filter(item => {
+      if (!item.requiresFeature) return true;
+      switch (item.requiresFeature) {
+        case 'dispatch': return hasDispatch;
+        case 'tracking': return hasTracking;
+        case 'routing': return hasRouting;
+        case 'quotes': return hasQuotes;
+        default: return true;
+      }
+    });
+  }, [hasTrakService, hasDispatch, hasTracking, hasRouting, hasQuotes]);
+  
+  if (location.pathname.startsWith('/trakservice') && hasTrakService) {
+    return { 
+      navigation: filteredTrakServiceNav, 
+      moduleName: trakserviceModuleName, 
+      theme: trakserviceTheme 
+    };
+  }
   if (location.pathname.startsWith('/monitor')) {
     return { 
       navigation: monitorNavigation, 

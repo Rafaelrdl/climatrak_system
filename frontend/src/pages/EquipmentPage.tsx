@@ -1120,6 +1120,10 @@ function AssetsContent() {
               onDeleteAsset={handleDeleteEquipment}
               externalSearchTerm={equipmentSearchTerm}
               externalViewMode={equipmentViewMode}
+              companies={companies}
+              units={units}
+              sectors={sectors}
+              subsections={subSections}
             />
           </TabsContent>
 

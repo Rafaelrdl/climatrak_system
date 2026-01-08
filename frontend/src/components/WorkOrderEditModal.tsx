@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { SignaturePad, type SignaturePadRef } from '@/components/ui/signature-pad';
-import { useCompanies, useSectors } from '@/hooks/useLocationsQuery';
+import { useCompanies, useSectors, useUnits, useSubsections } from '@/hooks/useLocationsQuery';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useStockItems } from '@/hooks/useInventoryQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';
@@ -142,6 +142,12 @@ export function WorkOrderEditModal({
   const [checklistResponses, setChecklistResponses] = useState<ChecklistResponse[]>([]);
   const [executionDescription, setExecutionDescription] = useState('');
   
+  // Estados para filtros de localização
+  const [filterCompanyId, setFilterCompanyId] = useState<string>('');
+  const [filterUnitId, setFilterUnitId] = useState<string>('');
+  const [filterSectorId, setFilterSectorId] = useState<string>('');
+  const [filterSubsectionId, setFilterSubsectionId] = useState<string>('');
+  
   // Estados para assinatura
   const [signedBy, setSignedBy] = useState('');
   const [hasSignature, setHasSignature] = useState(false);
@@ -150,6 +156,8 @@ export function WorkOrderEditModal({
   const { data: equipment = [] } = useEquipments();
   const { data: sectors = [] } = useSectors();
   const { data: companies = [] } = useCompanies();
+  const { data: units = [] } = useUnits();
+  const { data: subsections = [] } = useSubsections();
   const { data: stockItemsData } = useStockItems();
   // Garantir que stockItemsData seja um array (pode vir como objeto paginado em alguns casos)
   const stockItemsArray = Array.isArray(stockItemsData) 
@@ -509,13 +517,50 @@ export function WorkOrderEditModal({
 
   if (!workOrder) return null;
 
+  // Filtrar unidades baseado na empresa selecionada
+  const filteredUnits = filterCompanyId 
+    ? units.filter(u => u.companyId === filterCompanyId)
+    : units;
+  
+  // Filtrar setores baseado na unidade selecionada
+  const filteredSectors = filterUnitId 
+    ? sectors.filter(s => s.unitId === filterUnitId)
+    : sectors;
+  
+  // Filtrar subsetores baseado no setor selecionado
+  const filteredSubsections = filterSectorId 
+    ? subsections.filter(ss => ss.sectorId === filterSectorId)
+    : subsections;
+  
+  // Filtrar equipamentos baseado na localização selecionada
+  const filteredEquipment = equipment.filter(eq => {
+    if (filterSubsectionId && eq.subSectionId !== filterSubsectionId) return false;
+    if (filterSectorId && eq.sectorId !== filterSectorId) return false;
+    if (filterUnitId) {
+      const eqSector = sectors.find(s => s.id === eq.sectorId);
+      if (!eqSector || eqSector.unitId !== filterUnitId) return false;
+    }
+    if (filterCompanyId) {
+      const eqSector = sectors.find(s => s.id === eq.sectorId);
+      const eqUnit = eqSector ? units.find(u => u.id === eqSector.unitId) : null;
+      if (!eqUnit || eqUnit.companyId !== filterCompanyId) return false;
+    }
+    return true;
+  });
+
   // Encontrar o equipamento selecionado para mostrar informações relacionadas
   const selectedEquipment = equipment.find(eq => eq.id === formData.equipmentId);
+  const selectedSubsection = selectedEquipment?.subSectionId 
+    ? subsections.find(ss => ss.id === selectedEquipment.subSectionId)
+    : null;
   const selectedSector = selectedEquipment 
     ? sectors.find(s => s.id === selectedEquipment.sectorId) 
     : null;
-  const selectedCompany = selectedSector 
-    ? companies.find(c => c.id === selectedSector.companyId) 
+  const selectedUnit = selectedSector 
+    ? units.find(u => u.id === selectedSector.unitId)
+    : null;
+  const selectedCompany = selectedUnit 
+    ? companies.find(c => c.id === selectedUnit.companyId) 
     : null;
 
   // Helper para obter cor da prioridade
@@ -876,11 +921,103 @@ export function WorkOrderEditModal({
                             </h3>
                           </div>
                           <div className="p-4 space-y-4">
+                            {/* Filtros de Localização */}
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">Empresa</Label>
+                                <Select 
+                                  value={filterCompanyId || "__all__"} 
+                                  onValueChange={(value) => {
+                                    setFilterCompanyId(value === "__all__" ? '' : value);
+                                    setFilterUnitId('');
+                                    setFilterSectorId('');
+                                    setFilterSubsectionId('');
+                                  }}
+                                >
+                                  <SelectTrigger className="h-9">
+                                    <SelectValue placeholder="Todas" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__all__">Todas</SelectItem>
+                                    {companies.map(c => (
+                                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">Unidade</Label>
+                                <Select 
+                                  value={filterUnitId || "__all__"} 
+                                  onValueChange={(value) => {
+                                    setFilterUnitId(value === "__all__" ? '' : value);
+                                    setFilterSectorId('');
+                                    setFilterSubsectionId('');
+                                  }}
+                                  disabled={!filterCompanyId}
+                                >
+                                  <SelectTrigger className="h-9">
+                                    <SelectValue placeholder={filterCompanyId ? "Todas" : "Selecione empresa"} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__all__">Todas</SelectItem>
+                                    {filteredUnits.map(u => (
+                                      <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">Setor</Label>
+                                <Select 
+                                  value={filterSectorId || "__all__"} 
+                                  onValueChange={(value) => {
+                                    setFilterSectorId(value === "__all__" ? '' : value);
+                                    setFilterSubsectionId('');
+                                  }}
+                                  disabled={!filterUnitId}
+                                >
+                                  <SelectTrigger className="h-9">
+                                    <SelectValue placeholder={filterUnitId ? "Todos" : "Selecione unidade"} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__all__">Todos</SelectItem>
+                                    {filteredSectors.map(s => (
+                                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">Subsetor</Label>
+                                <Select 
+                                  value={filterSubsectionId || "__all__"} 
+                                  onValueChange={(value) => setFilterSubsectionId(value === "__all__" ? '' : value)}
+                                  disabled={!filterSectorId}
+                                >
+                                  <SelectTrigger className="h-9">
+                                    <SelectValue placeholder={filterSectorId ? "Todos" : "Selecione setor"} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__all__">Todos</SelectItem>
+                                    {filteredSubsections.map(ss => (
+                                      <SelectItem key={ss.id} value={ss.id}>{ss.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+
                             {/* Seleção de Equipamento */}
                             <div className="space-y-2">
                               <Label htmlFor="equipmentId" className="text-xs font-medium flex items-center gap-1">
                                 <Tag className="h-3 w-3" />
                                 Equipamento <span className="text-destructive">*</span>
+                                {filteredEquipment.length > 0 && (
+                                  <span className="text-muted-foreground font-normal ml-1">
+                                    ({filteredEquipment.length} disponíveis)
+                                  </span>
+                                )}
                               </Label>
                               <Select 
                                 value={formData.equipmentId || ''} 
@@ -905,28 +1042,35 @@ export function WorkOrderEditModal({
                                   )}
                                 </SelectTrigger>
                                 <SelectContent className="w-[var(--radix-select-trigger-width)] max-w-[400px]">
-                                  {equipment.map(eq => {
-                                    const eqSector = sectors.find(s => s.id === eq.sectorId);
-                                    const eqCompany = eqSector ? companies.find(c => c.id === eqSector.companyId) : null;
-                                    
-                                    return (
-                                      <SelectItem key={eq.id} value={eq.id} className="py-3">
-                                        <div className="flex items-start gap-3 w-full min-w-0">
-                                          <div className="flex-1 min-w-0">
-                                            <div className="font-medium text-sm truncate">{eq.tag}</div>
-                                            <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                                              {eq.brand} {eq.model} • {eq.type}
-                                            </div>
-                                            {eqCompany && eqSector && (
+                                  {filteredEquipment.length === 0 ? (
+                                    <div className="p-3 text-center text-sm text-muted-foreground">
+                                      Nenhum equipamento encontrado
+                                    </div>
+                                  ) : (
+                                    filteredEquipment.map(eq => {
+                                      const eqSector = sectors.find(s => s.id === eq.sectorId);
+                                      const eqUnit = eqSector ? units.find(u => u.id === eqSector.unitId) : null;
+                                      const eqCompany = eqUnit ? companies.find(c => c.id === eqUnit.companyId) : null;
+                                      
+                                      return (
+                                        <SelectItem key={eq.id} value={eq.id} className="py-3">
+                                          <div className="flex items-start gap-3 w-full min-w-0">
+                                            <div className="flex-1 min-w-0">
+                                              <div className="font-medium text-sm truncate">{eq.tag}</div>
                                               <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                                                {eqCompany.name} → {eqSector.name}
+                                                {eq.brand} {eq.model} • {eq.type}
                                               </div>
-                                            )}
+                                              {eqCompany && eqSector && (
+                                                <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                                                  {eqCompany.name} → {eqUnit?.name} → {eqSector.name}
+                                                </div>
+                                              )}
+                                            </div>
                                           </div>
-                                        </div>
-                                      </SelectItem>
-                                    );
-                                  })}
+                                        </SelectItem>
+                                      );
+                                    })
+                                  )}
                                 </SelectContent>
                               </Select>
                               {errors.equipmentId && (
@@ -936,45 +1080,67 @@ export function WorkOrderEditModal({
                             
                             {/* Card de Informações do Equipamento - Visual Melhorado */}
                             {selectedEquipment && (
-                              <div className="rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 p-4">
-                                <div className="flex items-start gap-3">
-                                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                                    <Tag className="h-5 w-5 text-primary" />
-                                  </div>
-                                  <div className="flex-1 space-y-3">
+                              <div className="rounded-xl border bg-white dark:bg-card overflow-hidden">
+                                {/* Header com tag e tipo */}
+                                <div className="px-4 py-3 bg-muted/50 border-b flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                                      <Tag className="h-5 w-5 text-primary" />
+                                    </div>
                                     <div>
-                                      <h4 className="font-medium text-sm">{selectedEquipment.tag}</h4>
-                                      <p className="text-xs text-muted-foreground mt-0.5">
-                                        {selectedEquipment.type} • {selectedEquipment.capacity.toLocaleString()} BTUs
+                                      <h4 className="font-semibold text-sm">{selectedEquipment.tag}</h4>
+                                      <p className="text-xs text-muted-foreground">
+                                        {selectedEquipment.type} • {selectedEquipment.capacity?.toLocaleString() || 0} BTUs
                                       </p>
                                     </div>
-                                    
-                                    <div className="grid grid-cols-2 gap-3 text-xs">
-                                      <div>
-                                        <span className="text-muted-foreground">Marca/Modelo:</span>
-                                        <p className="font-medium mt-0.5">{selectedEquipment.brand} {selectedEquipment.model}</p>
-                                      </div>
-                                      <div>
-                                        <span className="text-muted-foreground">Localização:</span>
-                                        <p className="font-medium mt-0.5">
-                                          {selectedCompany?.name || 'N/A'}
-                                        </p>
-                                        <p className="text-muted-foreground">
-                                          {selectedSector?.name || 'N/A'}
-                                        </p>
-                                      </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Conteúdo principal */}
+                                <div className="p-4 space-y-4">
+                                  {/* Grid de informações */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Marca</p>
+                                      <p className="text-sm font-medium">{selectedEquipment.brand || 'N/A'}</p>
                                     </div>
-
-                                    {/* Tags visuais para informações importantes */}
-                                    <div className="flex flex-wrap gap-2 pt-2 border-t border-primary/10">
-                                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-background/80 text-xs">
-                                        <MapPin className="h-3 w-3 mr-1" />
-                                        {selectedSector?.name || 'Setor'}
-                                      </span>
-                                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-background/80 text-xs">
-                                        <Building className="h-3 w-3 mr-1" />
-                                        {selectedCompany?.name || 'Empresa'}
-                                      </span>
+                                    <div className="space-y-1">
+                                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Modelo</p>
+                                      <p className="text-sm font-medium">{selectedEquipment.model || 'N/A'}</p>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Localização hierárquica */}
+                                  <div className="space-y-2">
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                                      <MapPin className="h-3 w-3" />
+                                      Localização
+                                    </p>
+                                    <div className="flex flex-col gap-1 text-sm">
+                                      {selectedCompany && (
+                                        <div className="flex items-center gap-2">
+                                          <Building className="h-3.5 w-3.5 text-blue-500" />
+                                          <span className="font-medium">{selectedCompany.name}</span>
+                                        </div>
+                                      )}
+                                      {selectedUnit && (
+                                        <div className="flex items-center gap-2 ml-4">
+                                          <Building className="h-3.5 w-3.5 text-indigo-500" />
+                                          <span>{selectedUnit.name}</span>
+                                        </div>
+                                      )}
+                                      {selectedSector && (
+                                        <div className="flex items-center gap-2 ml-8">
+                                          <MapPin className="h-3.5 w-3.5 text-emerald-500" />
+                                          <span>{selectedSector.name}</span>
+                                        </div>
+                                      )}
+                                      {selectedSubsection && (
+                                        <div className="flex items-center gap-2 ml-12">
+                                          <MapPin className="h-3.5 w-3.5 text-amber-500" />
+                                          <span>{selectedSubsection.name}</span>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 </div>

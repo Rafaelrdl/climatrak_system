@@ -974,3 +974,104 @@ class DomainAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related("tenant")
+
+
+# =============================================================================
+# TenantFeature Admin
+# =============================================================================
+
+from .features import TenantFeature, DEFAULT_FEATURES
+
+
+@admin.register(TenantFeature)
+class TenantFeatureAdmin(admin.ModelAdmin):
+    """Admin interface for TenantFeature model."""
+
+    list_display = ["tenant_name", "feature_key", "enabled_badge", "updated_at"]
+    list_filter = ["enabled", "feature_key", "tenant"]
+    search_fields = ["tenant__name", "tenant__slug", "feature_key"]
+    list_editable = ["enabled_badge"]
+    raw_id_fields = ["tenant"]
+    list_per_page = 50
+    ordering = ["tenant__name", "feature_key"]
+
+    fieldsets = (
+        (
+            "Feature Configuration",
+            {
+                "fields": ("tenant", "feature_key", "enabled"),
+                "description": "Configure feature flags for the tenant.",
+            },
+        ),
+        (
+            "Metadata",
+            {
+                "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+    readonly_fields = ["created_at", "updated_at"]
+
+    # Remove list_editable and use custom action instead
+    list_editable = []
+
+    def tenant_name(self, obj):
+        """Display tenant name with link."""
+        return format_html(
+            '<a href="/admin/tenants/tenant/{}/change/" style="color: #0066cc;">'
+            "🏢 {}</a>",
+            obj.tenant.id,
+            obj.tenant.name,
+        )
+
+    tenant_name.short_description = "Tenant"
+    tenant_name.admin_order_field = "tenant__name"
+
+    def enabled_badge(self, obj):
+        """Display enabled status as badge."""
+        if obj.enabled:
+            return format_html(
+                '<span style="color: #28a745; font-weight: bold;">✓ Enabled</span>'
+            )
+        return format_html('<span style="color: #dc3545;">✗ Disabled</span>')
+
+    enabled_badge.short_description = "Status"
+    enabled_badge.admin_order_field = "enabled"
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related("tenant")
+
+    actions = ["enable_features", "disable_features", "initialize_defaults"]
+
+    @admin.action(description="Enable selected features")
+    def enable_features(self, request, queryset):
+        updated = queryset.update(enabled=True)
+        self.message_user(request, f"{updated} feature(s) enabled.", messages.SUCCESS)
+        # Invalidate cache for affected tenants
+        from .features import FeatureService
+        for tenant_id in queryset.values_list("tenant_id", flat=True).distinct():
+            FeatureService.invalidate_cache(tenant_id)
+
+    @admin.action(description="Disable selected features")
+    def disable_features(self, request, queryset):
+        updated = queryset.update(enabled=False)
+        self.message_user(request, f"{updated} feature(s) disabled.", messages.SUCCESS)
+        # Invalidate cache for affected tenants
+        from .features import FeatureService
+        for tenant_id in queryset.values_list("tenant_id", flat=True).distinct():
+            FeatureService.invalidate_cache(tenant_id)
+
+    @admin.action(description="Initialize default features for tenant")
+    def initialize_defaults(self, request, queryset):
+        from .features import FeatureService
+        tenant_ids = set(queryset.values_list("tenant_id", flat=True))
+        for tenant_id in tenant_ids:
+            FeatureService.initialize_tenant_features(tenant_id)
+        self.message_user(
+            request,
+            f"Default features initialized for {len(tenant_ids)} tenant(s).",
+            messages.SUCCESS,
+        )
+

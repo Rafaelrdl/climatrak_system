@@ -14,7 +14,7 @@ import { OnboardingManager } from '@/hooks/useOnboardingFlow';
 import { TourProvider } from '@/components/tour';
 
 // Módulos da plataforma
-import { CmmsRoutes, MonitorRoutes, FinanceRoutes } from '@/apps';
+import { CmmsRoutes, MonitorRoutes, FinanceRoutes, TrakServiceRoutes } from '@/apps';
 
 // Initialize PDF.js configuration BEFORE any PDF components load
 import { configurePDFWorker } from '@/utils/pdfConfig';
@@ -60,6 +60,9 @@ function App() {
                       
                       {/* Módulo Finance */}
                       <Route path="/finance/*" element={<FinanceRoutes />} />
+                      
+                      {/* Módulo TrakService (Feature-gated) */}
+                      <Route path="/trakservice/*" element={<TrakServiceRoutes />} />
                       
                       {/* Redirect raiz para CMMS */}
                       <Route path="/" element={<Navigate to="/cmms" replace />} />

@@ -395,7 +395,12 @@ class CurrentUserView(APIView):
                 "schema_name": "tenant_acme",
                 "name": "ACME Corp",
                 "slug": "acme",
-                "role": "admin"
+                "role": "admin",
+                "features": {
+                    "trakservice.enabled": false,
+                    "trakservice.dispatch": false,
+                    ...
+                }
             }
         }
     """
@@ -408,6 +413,8 @@ class CurrentUserView(APIView):
         # Get current tenant from connection
         from django.db import connection
 
+        from apps.tenants.features import get_tenant_features
+
         tenant = getattr(connection, "tenant", None)
 
         if not tenant or connection.schema_name == "public":
@@ -417,6 +424,9 @@ class CurrentUserView(APIView):
 
         # Get role from TenantMembership
         role = TenantAuthService._get_user_role(user.email, tenant)
+
+        # Get tenant features
+        features = get_tenant_features(tenant.id)
 
         response_data = {
             "user": {
@@ -432,6 +442,7 @@ class CurrentUserView(APIView):
                 "name": tenant.name,
                 "slug": getattr(tenant, "slug", tenant.schema_name.lower()),
                 "role": role,
+                "features": features,
             },
         }
 

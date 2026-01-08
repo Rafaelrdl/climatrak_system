@@ -38,6 +38,11 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
   const { data: technicians = [] } = useTechnicians();
   const { data: companies = [] } = useCompanies();
   
+  // Buscar todos os setores e unidades para lookup de hierarquia
+  const { data: allUnits = [] } = useUnits();
+  const { data: allSectors = [] } = useSectors();
+  const { data: allSubsections = [] } = useSubsections();
+  
   const [currentStep, setCurrentStep] = useState<Step>('basic');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -47,7 +52,7 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
   const [selectedSectorId, setSelectedSectorId] = useState<string>('');
   const [selectedSubsectionId, setSelectedSubsectionId] = useState<string>('');
 
-  // Fetch units, sectors and subsections based on selection
+  // Fetch units, sectors and subsections based on selection (filtrados para os dropdowns)
   const { data: units = [] } = useUnits(selectedCompanyId || undefined);
   const { data: sectors = [] } = useSectors(selectedUnitId || undefined);
   const { data: subsections = [] } = useSubsections(selectedSectorId || undefined);
@@ -175,6 +180,49 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
 
   const selectedEquipment = equipment.find(eq => eq.id === formData.equipmentId);
 
+  // Função para preencher automaticamente localização ao selecionar equipamento
+  const handleEquipmentSelect = (equipmentId: string) => {
+    setFormData(prev => ({ ...prev, equipmentId }));
+    
+    // Encontrar o equipamento selecionado
+    const selectedEq = equipment.find(eq => eq.id === equipmentId);
+    if (!selectedEq) return;
+    
+    // Encontrar o setor do equipamento usando a lista completa
+    const eqSector = allSectors.find(s => s.id === selectedEq.sectorId);
+    
+    // Encontrar a unidade via setor
+    const eqUnit = eqSector ? allUnits.find(u => u.id === eqSector.unitId) : null;
+    
+    // Encontrar a empresa via unidade
+    const eqCompany = eqUnit ? companies.find(c => c.id === eqUnit.companyId) : null;
+    
+    // Encontrar o subsetor do equipamento
+    const eqSubsection = selectedEq.subSectionId 
+      ? allSubsections.find(ss => ss.id === selectedEq.subSectionId) 
+      : null;
+    
+    // Preencher empresa se encontrada e não selecionada
+    if (eqCompany && !selectedCompanyId) {
+      setSelectedCompanyId(eqCompany.id);
+    }
+    
+    // Preencher unidade se encontrada
+    if (eqUnit) {
+      setSelectedUnitId(eqUnit.id);
+    }
+    
+    // Preencher setor se encontrado
+    if (eqSector) {
+      setSelectedSectorId(eqSector.id);
+    }
+    
+    // Preencher subsetor se encontrado
+    if (eqSubsection) {
+      setSelectedSubsectionId(eqSubsection.id);
+    }
+  };
+
   const isBasicStepValid = () => {
     return formData.equipmentId && formData.description;
   };
@@ -293,9 +341,7 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
           <Label htmlFor="equipmentId">Equipamento *</Label>
           <Select
             value={formData.equipmentId}
-            onValueChange={(value) => 
-              setFormData(prev => ({ ...prev, equipmentId: value }))
-            }
+            onValueChange={handleEquipmentSelect}
           >
             <SelectTrigger>
               <SelectValue placeholder="Selecione um equipamento" />

@@ -33,7 +33,7 @@ import {
   Printer
 } from 'lucide-react';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
-import { useSectors, useCompanies } from '@/hooks/useLocationsQuery';
+import { useSectors, useCompanies, useUnits, useSubsections } from '@/hooks/useLocationsQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';
 import { useWorkOrder } from '@/hooks/useWorkOrdersQuery';
 import { useWorkOrderCosts } from '@/hooks/finance/useWorkOrderCosts';
@@ -101,6 +101,8 @@ export function WorkOrderViewModal({
   const { data: equipment = [] } = useEquipments();
   const { data: sectors = [] } = useSectors();
   const { data: companies = [] } = useCompanies();
+  const { data: units = [] } = useUnits();
+  const { data: subsections = [] } = useSubsections();
   const { data: technicians = [] } = useTechnicians();
   
   // Buscar configurações de status do store (ANTES do early return)
@@ -145,8 +147,16 @@ export function WorkOrderViewModal({
   }
 
   const selectedEquipment = equipment.find(e => e.id === currentWorkOrder.equipmentId);
+  const selectedSubsection = selectedEquipment?.subSectionId 
+    ? subsections.find(ss => ss.id === selectedEquipment.subSectionId)
+    : null;
   const selectedSector = sectors.find(s => s.id === selectedEquipment?.sectorId);
-  const selectedCompany = companies.find(c => c.id === selectedSector?.companyId);
+  const selectedUnit = selectedSector 
+    ? units.find(u => u.id === selectedSector.unitId)
+    : null;
+  const selectedCompany = selectedUnit 
+    ? companies.find(c => c.id === selectedUnit.companyId)
+    : null;
   const assignedTechnician = technicians.find(t => String(t.user.id) === currentWorkOrder.assignedTo);
 
   // Mapear ícones para cada status
@@ -303,11 +313,29 @@ export function WorkOrderViewModal({
                         <Building2 className="h-3.5 w-3.5" />
                         <span>{selectedCompany?.name || '-'}</span>
                       </div>
+                      {selectedUnit && (
+                        <>
+                          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Building2 className="h-3.5 w-3.5" />
+                            <span>{selectedUnit.name}</span>
+                          </div>
+                        </>
+                      )}
                       <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
                       <div className="flex items-center gap-1.5 text-muted-foreground">
                         <Layers className="h-3.5 w-3.5" />
                         <span>{selectedSector?.name || '-'}</span>
                       </div>
+                      {selectedSubsection && (
+                        <>
+                          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Layers className="h-3.5 w-3.5" />
+                            <span>{selectedSubsection.name}</span>
+                          </div>
+                        </>
+                      )}
                       <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
                       <div className="flex items-center gap-1.5 font-medium text-foreground">
                         <Wrench className="h-3.5 w-3.5 text-primary" />

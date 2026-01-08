@@ -1,10 +1,11 @@
 /**
- * ProductSwitcher - Componente para alternar entre produtos (CMMS, Monitor e TrakLedger)
+ * ProductSwitcher - Componente para alternar entre produtos (CMMS, Monitor, TrakLedger, TrakService)
  * 
  * Dropdown no header que permite navegar rapidamente entre:
  * - TrakNor CMMS (Gestão de Manutenção)
  * - TrakSense Monitor (Monitoramento IoT)
  * - TrakLedger (Orçamento Vivo)
+ * - TrakService (Field Service) - quando habilitado
  */
 
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -22,10 +23,12 @@ import {
   Activity, 
   Wallet,
   ChevronDown,
-  Check
+  Check,
+  Truck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAbility } from '@/hooks/useAbility';
+import { useTrakService } from '@/store/useFeaturesStore';
 import TrakNorLogoUrl from '@/assets/images/traknor-logo.svg';
 
 interface Product {
@@ -38,6 +41,7 @@ interface Product {
   bgColor: string;
   borderColor: string;
   requiresPermission?: { action: 'view'; subject: 'finance' | '*' };
+  requiresFeature?: 'trakservice';
 }
 
 const products: Product[] = [
@@ -72,15 +76,32 @@ const products: Product[] = [
     borderColor: 'border-emerald-200',
     requiresPermission: { action: 'view', subject: 'finance' },
   },
+  {
+    id: 'trakservice',
+    name: 'TrakService',
+    description: 'Field Service',
+    icon: <Truck className="h-5 w-5" />,
+    path: '/trakservice',
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-50/50',
+    borderColor: 'border-orange-200',
+    requiresFeature: 'trakservice',
+  },
 ];
 
 export function ProductSwitcher() {
   const navigate = useNavigate();
   const location = useLocation();
   const { can } = useAbility();
+  const hasTrakService = useTrakService();
 
-  // Filtra produtos baseado em permissões
+  // Filtra produtos baseado em permissões e features
   const availableProducts = products.filter(product => {
+    // Check feature requirements
+    if (product.requiresFeature === 'trakservice' && !hasTrakService) {
+      return false;
+    }
+    // Check permission requirements
     if (product.requiresPermission) {
       return can(product.requiresPermission.action, product.requiresPermission.subject);
     }

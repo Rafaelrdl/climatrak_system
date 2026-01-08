@@ -1,0 +1,48 @@
+name: "[TrakService] Feature"
+description: Nova feature do módulo TrakService (Field Service)
+title: "[TrakService] "
+labels: ["trakservice"]
+body:
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: Por que isso é necessário? Qual público (terceirizada vs manutenção própria)?
+    validations:
+      required: true
+
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo
+      description: Resultado esperado (bullets)
+    validations:
+      required: true
+
+  - type: textarea
+    id: escopo
+    attributes:
+      label: Escopo / Fora de escopo
+    validations:
+      required: true
+
+  - type: textarea
+    id: contratos
+    attributes:
+      label: Contratos (API/Eventos)
+      description: Endpoints, payloads, erros, eventos Outbox, idempotência
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: dod
+    attributes:
+      label: Definition of Done
+      options:
+        - label: Feature gating por tenant (UI + Backend)
+          required: true
+        - label: Multi-tenant seguro (sem vazamento)
+          required: true
+        - label: Migrações (se necessário)
+        - label: Testes (unit/integration)
+        - label: Docs atualizadas (API/Eventos)

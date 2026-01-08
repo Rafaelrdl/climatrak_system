@@ -80,6 +80,17 @@ export interface TenantDiscoveryResult {
   message?: string;
 }
 
+// Tenant features type
+export interface TenantFeatures {
+  'trakservice.enabled': boolean;
+  'trakservice.dispatch': boolean;
+  'trakservice.tracking': boolean;
+  'trakservice.routing': boolean;
+  'trakservice.km': boolean;
+  'trakservice.quotes': boolean;
+  [key: string]: boolean;
+}
+
 export async function discoverTenant(email: string): Promise<TenantDiscoveryResult> {
   const { data } = await api.post<TenantDiscoveryResult>('/v2/auth/discover-tenant/', { email });
   return data;
@@ -92,6 +103,7 @@ export async function tenantLogin(email: string, password: string): Promise<{
     schema_name: string;
     name: string;
     slug: string;
+    features?: TenantFeatures;
   };
 }> {
   const { data } = await api.post('/auth/login/', {
@@ -111,6 +123,14 @@ export async function tenantLogin(email: string, password: string): Promise<{
   localStorage.setItem('auth:role', user.role);
   localStorage.setItem('auth:tenant_schema', data.tenant.schema_name);
   updateTenantSlugCache(data.tenant.schema_name);
+  
+  // Persist tenant features if available
+  if (data.tenant.features) {
+    localStorage.setItem('tenant:features', JSON.stringify({ 
+      state: { features: data.tenant.features },
+      version: 0,
+    }));
+  }
   
   window.dispatchEvent(new Event('authChange'));
 

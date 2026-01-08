@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, Plus, X, Building2, MapPin, Package } from 'lucide-react';
-import { useCompanies, useSectors } from '@/hooks/useLocationsQuery';
+import { useCompanies, useSectors, useUnits, useSubsections } from '@/hooks/useLocationsQuery';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import type { Equipment } from '@/types';
 
@@ -26,6 +26,8 @@ export interface SelectedEquipment {
   type?: string;
   sectorName?: string;
   companyName?: string;
+  unitName?: string;
+  subsectionName?: string;
 }
 
 interface AddEquipmentsModalProps {
@@ -42,7 +44,9 @@ export function AddEquipmentsModal({
   onConfirm 
 }: AddEquipmentsModalProps) {
   const { data: companies = [] } = useCompanies();
+  const { data: units = [] } = useUnits();
   const { data: sectors = [] } = useSectors();
+  const { data: subsections = [] } = useSubsections();
   const { data: equipments = [] } = useEquipments();
 
   // Local state
@@ -112,7 +116,9 @@ export function AddEquipmentsModal({
   // Toggle equipment selection
   const toggleEquipment = (equipment: Equipment) => {
     const sector = sectors.find(s => s.id === equipment.sectorId);
-    const company = sector ? companies.find(c => c.id === sector.companyId) : null;
+    const unit = sector ? units.find(u => u.id === sector.unitId) : null;
+    const company = unit ? companies.find(c => c.id === unit.companyId) : null;
+    const subsection = equipment.subSectionId ? subsections.find(ss => ss.id === equipment.subSectionId) : null;
 
     const equipmentData: SelectedEquipment = {
       id: equipment.id,
@@ -122,6 +128,8 @@ export function AddEquipmentsModal({
       type: equipment.type,
       sectorName: sector?.name,
       companyName: company?.name,
+      unitName: unit?.name,
+      subsectionName: subsection?.name,
     };
 
     if (isSelected(equipment.id)) {
@@ -138,7 +146,9 @@ export function AddEquipmentsModal({
     filteredEquipments.forEach(equipment => {
       if (!isSelected(equipment.id)) {
         const sector = sectors.find(s => s.id === equipment.sectorId);
-        const company = sector ? companies.find(c => c.id === sector.companyId) : null;
+        const unit = sector ? units.find(u => u.id === sector.unitId) : null;
+        const company = unit ? companies.find(c => c.id === unit.companyId) : null;
+        const subsection = equipment.subSectionId ? subsections.find(ss => ss.id === equipment.subSectionId) : null;
 
         newSelections.push({
           id: equipment.id,
@@ -148,6 +158,8 @@ export function AddEquipmentsModal({
           type: equipment.type,
           sectorName: sector?.name,
           companyName: company?.name,
+          unitName: unit?.name,
+          subsectionName: subsection?.name,
         });
       }
     });
@@ -321,8 +333,14 @@ export function AddEquipmentsModal({
                 <div className="space-y-2 pr-4">
                   {filteredEquipments.map((equipment) => {
                     const sector = sectors.find(s => s.id === equipment.sectorId);
-                    const company = sector ? companies.find(c => c.id === sector.companyId) : null;
+                    const unit = sector ? units.find(u => u.id === sector.unitId) : null;
+                    const company = unit ? companies.find(c => c.id === unit.companyId) : null;
+                    const subsection = equipment.subSectionId ? subsections.find(ss => ss.id === equipment.subSectionId) : null;
                     const selected = isSelected(equipment.id);
+                    
+                    // Construir localização hierárquica
+                    const locationParts = [company?.name, unit?.name, sector?.name, subsection?.name].filter(Boolean);
+                    const fullLocation = locationParts.join(' › ');
 
                   return (
                     <div
@@ -371,11 +389,10 @@ export function AddEquipmentsModal({
                             </>
                           )}
                         </div>
-                        {(sector || company) && (
+                        {fullLocation && (
                           <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                            <MapPin className="h-3 w-3" />
-                            {company?.name}
-                            {sector && ` › ${sector.name}`}
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span className="truncate" title={fullLocation}>{fullLocation}</span>
                           </div>
                         )}
                       </div>

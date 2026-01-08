@@ -448,33 +448,42 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
                     Equipamentos Selecionados ({formData.selectedEquipments.length})
                   </Label>
                   <div className="space-y-2 max-h-52 overflow-y-auto border border-border rounded-md p-4 bg-muted/20">
-                    {formData.selectedEquipments.map((eq) => (
-                      <div 
-                        key={eq.id} 
-                        className="flex items-center justify-between bg-background rounded-md px-4 py-3 border border-border"
-                      >
-                        <div className="flex-1 mr-3 min-w-0">
-                          <span className="text-sm font-medium truncate block">
-                            {eq.tag || eq.name}
-                          </span>
-                          <span className="text-xs text-muted-foreground truncate block">
-                            {[eq.brand, eq.type, eq.companyName || eq.sectorName]
-                              .filter(Boolean)
-                              .join(' • ')}
-                          </span>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeEquipment(eq.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0 h-8 w-8 p-0"
-                          aria-label={`Remover ${eq.tag || eq.name}`}
+                    {formData.selectedEquipments.map((eq) => {
+                      // Construir localização hierárquica completa
+                      const locationParts = [eq.companyName, eq.unitName, eq.sectorName, eq.subsectionName].filter(Boolean);
+                      const fullLocation = locationParts.join(' › ');
+                      
+                      return (
+                        <div 
+                          key={eq.id} 
+                          className="flex items-center justify-between bg-background rounded-md px-4 py-3 border border-border"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                          <div className="flex-1 mr-3 min-w-0">
+                            <span className="text-sm font-medium truncate block">
+                              {eq.tag || eq.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground truncate block">
+                              {[eq.brand, eq.type].filter(Boolean).join(' • ')}
+                            </span>
+                            {fullLocation && (
+                              <span className="text-xs text-muted-foreground truncate block mt-0.5" title={fullLocation}>
+                                 {fullLocation}
+                              </span>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeEquipment(eq.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0 h-8 w-8 p-0"
+                            aria-label={`Remover ${eq.tag || eq.name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ) : (
