@@ -35,11 +35,13 @@ const websiteContent = [
   toTsExport('marketingNavigation', config.nav),
   toTsExport('personaSections', config.personas),
   toTsExport('marketSegments', config.segments),
+  toTsExport('functionalities', config.functionalities),
   toTsExport('productModules', config.modules),
 ].join('\n');
 
 const frontendContent = [
   header,
+  toTsExport('functionalities', config.functionalities),
   toTsExport('productModules', config.modules),
   toTsExport('personaSections', config.personas),
   toTsExport('marketSegments', config.segments),
@@ -48,6 +50,7 @@ const frontendContent = [
 const mobileContent = [
   header,
   toTsExport('mobileTabs', config.mobile?.tabs ?? []),
+  toTsExport('functionalities', config.functionalities),
   toTsExport('productModules', config.modules),
 ].join('\n');
 

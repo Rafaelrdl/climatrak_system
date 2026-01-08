@@ -8,22 +8,22 @@
           {
             "name": "TrakNor CMMS",
             "href": "/produtos/traknor",
-            "description": "Gestao completa de manutencao e PMOC."
+            "description": "CMMS completo para ordens, planos e ativos."
           },
           {
             "name": "TrakSense IoT",
             "href": "/produtos/traksense",
-            "description": "Monitoramento em tempo real e alertas inteligentes."
+            "description": "Monitoramento IoT com alertas em tempo real."
           },
           {
             "name": "AirTrak Sensor",
             "href": "/produtos/airtrak",
-            "description": "Sensor inteligente para HVAC e utilidades."
+            "description": "Sensor HVAC plug and play para dados confiaveis."
           },
           {
             "name": "TrakLedger",
             "href": "/produtos/trakledger",
-            "description": "Controle de custos, orcamentos e economia."
+            "description": "Custos e orcamentos conectados a cada OS."
           }
         ]
       },
@@ -62,7 +62,7 @@
               {
                 "name": "Equipe e produtividade",
                 "href": "/funcionalidades/equipe-produtividade",
-                "description": "Gestao da equipe de campo e performance."
+                "description": "Gestao da equipe e desempenho."
               }
             ]
           },
@@ -100,17 +100,17 @@
           {
             "name": "Hospitais e Clinicas",
             "href": "/solucoes#hospitais",
-            "description": "Compliance e areas criticas."
+            "description": "Ambientes criticos e compliance."
           },
           {
             "name": "Industrias",
             "href": "/solucoes#industrias",
-            "description": "Continuidade operacional e previsao de falhas."
+            "description": "Disponibilidade e previsibilidade operacional."
           },
           {
             "name": "Shoppings e Facilities",
             "href": "/solucoes#facilities",
-            "description": "Gestao multi-site de ativos."
+            "description": "Operacao multi-site e padronizacao."
           }
         ]
       },
@@ -158,7 +158,7 @@
         {
           "name": "Equipe e produtividade",
           "href": "/funcionalidades/equipe-produtividade",
-          "description": "Gestao da equipe de campo e performance."
+          "description": "Gestao da equipe e desempenho."
         }
       ]
     },
@@ -216,18 +216,18 @@
       "slug": "ordens-planos",
       "group": "gestores",
       "name": "Ordens de servico e planos",
-      "tagline": "Fluxo completo da manutencao, do planejamento a execucao.",
-      "summary": "Centralize OS corretivas e preventivas, automatize planos e acompanhe o ciclo com rastreabilidade total.",
+      "tagline": "Planeje, execute e feche ordens com visibilidade total.",
+      "summary": "Centralize OS corretivas e preventivas, automatize planos e acompanhe cada etapa com rastreabilidade.",
       "highlights": [
-        { "title": "OS padronizadas", "description": "Modelos, checklists e aprovacao por etapa." },
+        { "title": "Fluxo padronizado", "description": "Modelos, checklists e aprovacao por etapa." },
         { "title": "Planos preventivos", "description": "Gatilhos por tempo, uso ou condicao." },
-        { "title": "SLA e prioridades", "description": "Regras claras por criticidade e prazos." },
+        { "title": "SLA e prioridades", "description": "Regras por criticidade e prazos." },
         { "title": "Historico por ativo", "description": "Registros completos e auditaveis." }
       ],
       "outcomes": [
-        "Reduza backlog e retrabalho",
-        "Aumente a taxa de preventivas no prazo",
-        "Visibilidade total do status da operacao"
+        "Menos backlog e retrabalho",
+        "Preventivas no prazo",
+        "Status claro por equipe e unidade"
       ],
       "modules": ["traknor"]
     },
@@ -236,18 +236,18 @@
       "slug": "monitoramento-iot",
       "group": "gestores",
       "name": "Monitoramento IoT",
-      "tagline": "Sensores e dashboards para agir antes da falha.",
+      "tagline": "Sensores e alertas para agir antes da falha.",
       "summary": "Monitore temperatura, vibracao, pressao e energia em tempo real com alertas configuraveis.",
       "highlights": [
         { "title": "Sensores AirTrak", "description": "Coleta continua com instalacao simples." },
         { "title": "Dashboards ao vivo", "description": "Visao por unidade, ativo e setor." },
-        { "title": "Alertas inteligentes", "description": "Limites, anomalias e tendencia." },
+        { "title": "Alertas inteligentes", "description": "Limites, anomalias e tendencias." },
         { "title": "Automacao com OS", "description": "Eventos podem abrir OS automaticamente." }
       ],
       "outcomes": [
         "Menos paradas inesperadas",
-        "Respostas mais rapidas a desvios",
-        "Dados confiaveis para decisao"
+        "Resposta rapida a desvios",
+        "Decisoes com dados confiaveis"
       ],
       "modules": ["traksense", "traknor"]
     },
@@ -261,7 +261,7 @@
       "highlights": [
         { "title": "Relatorios PMOC", "description": "Templates prontos para impressao e envio." },
         { "title": "Evidencias anexadas", "description": "Fotos, assinaturas e documentos." },
-        { "title": "Controle por periodicidade", "description": "Agenda de inspeccoes recorrentes." },
+        { "title": "Controle por periodicidade", "description": "Agenda de inspecoes recorrentes." },
         { "title": "Trilha de auditoria", "description": "Quem fez, quando e com quais dados." }
       ],
       "outcomes": [
@@ -277,7 +277,7 @@
       "group": "gestores",
       "name": "Relatorios e KPIs",
       "tagline": "Indicadores claros para liderar a manutencao.",
-      "summary": "Acompanhe MTTR, backlog, custos e produtividade com dashboards e relatórios executivos.",
+      "summary": "Acompanhe MTTR, backlog, custos e produtividade com dashboards e relatorios executivos.",
       "highlights": [
         { "title": "KPIs em tempo real", "description": "MTTR, MTBF, backlog e SLA." },
         { "title": "Relatorios executivos", "description": "Resumo por unidade e carteira." },
@@ -296,7 +296,7 @@
       "slug": "financeiro-custos",
       "group": "gestores",
       "name": "Financeiro e custos",
-      "tagline": "Controle de gastos e economia em cada OS.",
+      "tagline": "Custos e orcamentos conectados a cada OS.",
       "summary": "Planeje orcamentos, categorize custos e acompanhe economias por ativo e unidade.",
       "highlights": [
         { "title": "Orcamentos vivos", "description": "Visao de planejado x realizado." },
@@ -325,7 +325,7 @@
         { "title": "Equipe em campo", "description": "Atualizacoes em tempo real." }
       ],
       "outcomes": [
-        "Mais OS concluídas no prazo",
+        "Mais OS concluidas no prazo",
         "Menos deslocamentos desnecessarios",
         "Padronizacao do atendimento"
       ],
@@ -337,7 +337,7 @@
       "group": "clientes",
       "name": "Solicitacoes e acompanhamento",
       "tagline": "Um canal simples para abrir e acompanhar chamados.",
-      "summary": "Facilite a abertura de chamados e mantenha o cliente informado sobre cada etapa.",
+      "summary": "Facilite a abertura de chamados e mantenha o cliente informado em cada etapa.",
       "highlights": [
         { "title": "Portal de solicitacoes", "description": "Fluxo simples e orientado." },
         { "title": "Status em tempo real", "description": "Andamento transparente para o cliente." },
@@ -367,7 +367,7 @@
       "outcomes": [
         "Menos chamadas de follow-up",
         "Transparencia com o cliente",
-        "Resposta mais rapida a incidentes"
+        "Resposta rapida a incidentes"
       ],
       "modules": ["traksense", "traknor"]
     },
@@ -421,13 +421,13 @@
     },
     {
       "id": "traksense",
-      "name": "TrakSense Monitor",
+      "name": "TrakSense IoT",
       "websiteHref": "/produtos/traksense",
       "frontendRoute": "/monitor"
     },
     {
       "id": "trakledger",
-      "name": "TrakLedger Finance",
+      "name": "TrakLedger",
       "websiteHref": "/produtos/trakledger",
       "frontendRoute": "/finance"
     },

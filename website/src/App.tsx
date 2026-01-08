@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Layout } from './components/layout/Layout'
 import { HomePage } from './pages/HomePage'
 import { ProductsPage } from './pages/ProductsPage'
+import { FunctionalitiesPage } from './pages/FunctionalitiesPage'
+import { FunctionalityPage } from './pages/FunctionalityPage'
 import { TrakNorPage } from './pages/products/TrakNorPage'
 import { TrakSensePage } from './pages/products/TrakSensePage'
 import { AirTrakPage } from './pages/products/AirTrakPage'
@@ -12,7 +14,7 @@ import { AboutPage } from './pages/AboutPage'
 import { ContactPage } from './pages/ContactPage'
 import { BlogPage } from './pages/BlogPage'
 import { DemoPage } from './pages/DemoPage'
-import { TechnicianPage } from './pages/TechnicianPage'
+import { TerceirosPage } from './pages/TerceirosPage'
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/produtos" element={<ProductsPage />} />
+          <Route path="/funcionalidades" element={<FunctionalitiesPage />} />
+          <Route path="/funcionalidades/:slug" element={<FunctionalityPage />} />
           <Route path="/produtos/traknor" element={<TrakNorPage />} />
           <Route path="/produtos/traksense" element={<TrakSensePage />} />
           <Route path="/produtos/airtrak" element={<AirTrakPage />} />
@@ -31,7 +35,8 @@ function App() {
           <Route path="/contato" element={<ContactPage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/demo" element={<DemoPage />} />
-          <Route path="/tecnicos" element={<TechnicianPage />} />
+          <Route path="/terceiros" element={<TerceirosPage />} />
+          <Route path="/tecnicos" element={<TerceirosPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>

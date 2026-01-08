@@ -1,8 +1,8 @@
 /**
- * TrakService Placeholder Pages
+ * TrakService Pages
  * 
- * Placeholder implementations for TrakService pages.
- * These will be replaced with full implementations.
+ * Page components for TrakService module.
+ * DispatchPage is fully implemented, others are placeholders.
  * 
  * Design System: Platform-first, seguindo docs/design/DESIGN_SYSTEM.md
  */
@@ -25,6 +25,9 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTrakServiceFeature } from '@/store/useFeaturesStore';
+
+// Re-export the functional DispatchPage
+export { DispatchPage } from './Dispatch';
 
 // =============================================================================
 // Shared Components
@@ -95,62 +98,6 @@ function QuickStatCard({ title, value, description, icon: Icon }: QuickStatCardP
 // =============================================================================
 // Page Components
 // =============================================================================
-
-/**
- * Dispatch Page - Agenda e distribuição de trabalhos
- * Requires: trakservice.dispatch feature
- */
-export function DispatchPage() {
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Agenda & Dispatch"
-        description="Agende e distribua trabalhos para sua equipe"
-      />
-      
-      {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <QuickStatCard
-          title="Agendamentos Hoje"
-          value={0}
-          description="Nenhum agendamento"
-          icon={Calendar}
-        />
-        <QuickStatCard
-          title="Pendentes"
-          value={0}
-          description="Aguardando alocação"
-          icon={Clock}
-        />
-        <QuickStatCard
-          title="Em Andamento"
-          value={0}
-          description="Sendo executados"
-          icon={Target}
-        />
-        <QuickStatCard
-          title="Concluídos Hoje"
-          value={0}
-          description="Finalizados"
-          icon={Target}
-        />
-      </div>
-
-      <PlaceholderCard
-        icon={Calendar}
-        title="Sistema de Dispatch"
-        description="O módulo de Dispatch permitirá agendar e distribuir ordens de serviço para técnicos em campo, com visualização em calendário e mapa."
-        features={[
-          "Visualização de agenda em calendário (dia, semana, mês)",
-          "Arrastar e soltar para atribuir ordens de serviço",
-          "Visualização de disponibilidade dos técnicos",
-          "Notificações automáticas para equipe",
-          "Integração com CMMS (Work Orders)",
-        ]}
-      />
-    </div>
-  );
-}
 
 /**
  * Tracking Page - Rastreamento de equipe em tempo real

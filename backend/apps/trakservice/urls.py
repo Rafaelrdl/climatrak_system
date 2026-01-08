@@ -8,13 +8,21 @@ Base path: /api/trakservice/
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import TrakServiceHealthView, TrakServiceMetaView
+from .views import (
+    ServiceAssignmentViewSet,
+    TechnicianProfileViewSet,
+    TrakServiceHealthView,
+    TrakServiceMetaView,
+)
 
 # Router for ViewSet-based endpoints
 router = DefaultRouter()
 
-# Register ViewSets here as they are implemented
-# router.register(r'jobs', ServiceJobViewSet, basename='service-job')
+# Dispatch (trakservice.dispatch)
+router.register(r"technicians", TechnicianProfileViewSet, basename="technician")
+router.register(r"assignments", ServiceAssignmentViewSet, basename="assignment")
+
+# Future features
 # router.register(r'routes', ServiceRouteViewSet, basename='service-route')
 # router.register(r'tracking', TrackingViewSet, basename='tracking')
 # router.register(r'quotes', QuoteViewSet, basename='quote')
