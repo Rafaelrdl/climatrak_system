@@ -49,22 +49,22 @@ const moduleScreens = [
     id: 'painel',
     name: 'Painel',
     icon: BarChart3,
-    description: 'Dashboard TrakLedgeriro completo com visão de orçamento, realizado, comprometido e economias. Gráficos por período, categoria e localidade.',
-    features: ['Orçamento vs Realizado', 'Gastos por categoria', 'Tendências mensais', 'Top 10 ativos por custo', 'Alertas de orçamento'],
+    description: 'Dashboard completo com orcamento, realizado, comprometido e economias.',
+    features: ['Orcamento vs realizado', 'Gastos por categoria', 'Tendencias mensais', 'Top ativos por custo', 'Alertas de orcamento'],
   },
   {
     id: 'lancamentos',
-    name: 'Lançamentos',
+    name: 'Lancamentos',
     icon: FileText,
-    description: 'Ledger completo com todos os lançamentos TrakLedgeriros de manutenção. Filtros avançados, exportação e rastreabilidade por OS.',
-    features: ['Histórico completo', 'Filtros por período/categoria', 'Exportação Excel/PDF', 'Vínculo com OS', 'Compromissos futuros'],
+    description: 'Ledger com lancamentos de manutencao, filtros e rastreabilidade por OS.',
+    features: ['Historico completo', 'Filtros por periodo/categoria', 'Exportacao Excel/PDF', 'Vinculo com OS', 'Compromissos futuros'],
   },
   {
     id: 'economia',
     name: 'Economia',
     icon: PiggyBank,
-    description: 'Documente e comprove economias geradas pela manutenção preditiva. Falhas evitadas, downtime prevenido e ROI calculado.',
-    features: ['Registro de economias', 'Cálculo de ROI', 'Falhas evitadas', 'Downtime prevenido', 'Relatórios gerenciais'],
+    description: 'Documente economias da manutencao preditiva com ROI calculado.',
+    features: ['Registro de economias', 'Calculo de ROI', 'Falhas evitadas', 'Downtime prevenido', 'Relatorios gerenciais'],
   },
 ]
 
@@ -93,17 +93,12 @@ export function TrakLedgerPage() {
                 <Badge className="bg-teal-100 text-teal-700">Módulo TrakLedger</Badge>
               </div>
               <h1 className="text-4xl sm:text-5xl font-bold mb-6">TrakLedger</h1>
-              <p className="text-xl text-gray-600 mb-4">
-                Gestão TrakLedgerira de Manutenção
-              </p>
-              <p className="text-lg text-gray-500 mb-8">
-                Controle total dos custos de manutenção com orçamentos, lançamentos automáticos, 
-                compromissos e registro de economias. Integrado nativamente ao TrakNor CMMS.
-              </p>
+              <p className="text-xl text-gray-600 mb-4">Controle financeiro conectado a cada OS</p>
+              <p className="text-lg text-gray-500 mb-8">Custos, orcamentos e economias com rastreabilidade total e integracao nativa ao TrakNor.</p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link to="/demo">
                   <Button size="lg" className="bg-teal-600 hover:bg-teal-700">
-                    Agendar Demo <ArrowRight className="ml-2 h-4 w-4" />
+                    Agendar demo <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
                 <Link to="/precos">
@@ -286,7 +281,7 @@ export function TrakLedgerPage() {
       <section className="py-16 md:py-24 bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-teal-900 text-teal-300">Interface Moderna</Badge>
+            <Badge className="mb-4 bg-teal-900 text-teal-300">Interface moderna</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Ledger de Lançamentos</h2>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
               Todos os custos de manutenção em um só lugar, com rastreabilidade completa.
@@ -548,7 +543,7 @@ export function TrakLedgerPage() {
           <div className="flex flex-wrap justify-center gap-4">
             <Link to="/demo">
               <Button size="lg" className="bg-white text-teal-600 hover:bg-teal-50">
-                Agendar Demonstração <ArrowRight className="ml-2 h-4 w-4" />
+                Agendar demonstração <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
             <Link to="/precos">

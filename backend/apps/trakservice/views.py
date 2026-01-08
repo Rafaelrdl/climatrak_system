@@ -218,6 +218,26 @@ class ServiceAssignmentViewSet(viewsets.ModelViewSet):
             return ServiceAssignmentStatusSerializer
         return ServiceAssignmentSerializer
     
+    def create(self, request, *args, **kwargs):
+        """
+        Create a new assignment and return full serialized data.
+        
+        Uses ServiceAssignmentCreateSerializer for input validation
+        but returns ServiceAssignmentSerializer for full output.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        
+        # Return with full serializer
+        output_serializer = ServiceAssignmentSerializer(instance)
+        headers = self.get_success_headers(output_serializer.data)
+        return Response(
+            output_serializer.data, 
+            status=status.HTTP_201_CREATED, 
+            headers=headers
+        )
+    
     @action(detail=True, methods=["post"], url_path="status")
     def change_status(self, request, pk=None):
         """

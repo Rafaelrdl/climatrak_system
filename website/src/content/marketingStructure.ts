@@ -139,7 +139,7 @@ export const marketingNavigation = {
       "href": "/contato"
     },
     "primary": {
-      "name": "Agendar Demo",
+      "name": "Agendar demo",
       "href": "/demo"
     }
   }

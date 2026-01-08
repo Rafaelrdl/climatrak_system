@@ -54,74 +54,74 @@ const moduleScreens = [
     id: 'ativos',
     name: 'Ativos',
     icon: Box,
-    description: 'Cadastre e gerencie todos os equipamentos HVAC com hierarquia de localização, QR codes, histórico completo e documentação técnica.',
-    features: ['Árvore de localizações', 'QR Code para identificação', 'Histórico de manutenções', 'Documentos anexados', 'Fotos e especificações'],
+    description: 'Cadastre equipamentos com hierarquia, QR codes e historico completo.',
+    features: ['Arvore de localizacao', 'QR Code para identificacao', 'Historico de manutencoes', 'Documentos anexados', 'Fotos e especificacoes'],
   },
   {
     id: 'ordens',
-    name: 'Ordens de Serviço',
+    name: 'Ordens de Servico',
     icon: ClipboardList,
-    description: 'Crie, atribua e acompanhe ordens de serviço com workflow completo, checklist, custos e tempo de execução.',
-    features: ['Workflow automático', 'Atribuição de técnicos', 'Checklist de execução', 'Registro de custos', 'Fotos e assinaturas'],
+    description: 'Crie, atribua e acompanhe OS com workflow, checklist e custos.',
+    features: ['Workflow automatico', 'Atribuicao de tecnicos', 'Checklist de execucao', 'Registro de custos', 'Fotos e assinaturas'],
   },
   {
     id: 'programacao',
-    name: 'Programação',
+    name: 'Programacao',
     icon: Calendar,
-    description: 'Planeje manutenções preventivas com base em tempo, uso ou condição. Visualize em calendário ou timeline.',
-    features: ['Planos preventivos', 'Gatilhos por tempo/uso', 'Visualização calendário', 'Geração automática de OS', 'Templates reutilizáveis'],
+    description: 'Planeje preventivas por tempo, uso ou condicao com geracao automatica de OS.',
+    features: ['Planos preventivos', 'Gatilhos por tempo/uso', 'Visualizacao calendario', 'Geracao automatica de OS', 'Templates reutilizaveis'],
   },
   {
     id: 'agenda',
     name: 'Agenda',
     icon: CalendarDays,
-    description: 'Visualize todas as manutenções programadas e atribuições de técnicos em formato de calendário interativo.',
-    features: ['Visão diária/semanal/mensal', 'Drag & drop para reagendar', 'Cores por prioridade', 'Filtros por técnico', 'Integração com calendário'],
+    description: 'Calendario interativo com prioridades, filtros e replanejamento rapido.',
+    features: ['Visao diaria/semanal/mensal', 'Drag and drop para reagendar', 'Cores por prioridade', 'Filtros por tecnico', 'Integracao com calendario'],
   },
   {
     id: 'solicitacoes',
-    name: 'Solicitações',
+    name: 'Solicitacoes',
     icon: Inbox,
-    description: 'Receba e gerencie solicitações de manutenção dos usuários. Triagem e conversão em ordens de serviço.',
-    features: ['Portal de solicitações', 'Triagem automática', 'SLA por prioridade', 'Conversão em OS', 'Comunicação com solicitante'],
+    description: 'Portal de solicitacoes com triagem e SLA por prioridade.',
+    features: ['Portal de solicitacoes', 'Triagem automatica', 'SLA por prioridade', 'Conversao em OS', 'Comunicacao com solicitante'],
   },
   {
     id: 'metricas',
-    name: 'Métricas',
+    name: 'Metricas',
     icon: BarChart3,
-    description: 'Acompanhe KPIs de manutenção em tempo real: MTTR, MTBF, backlog, custos e performance da equipe.',
-    features: ['MTTR e MTBF', 'Backlog de OS', 'Custos por ativo/categoria', 'Performance técnicos', 'Tendências históricas'],
+    description: 'KPIs em tempo real para MTTR, MTBF, backlog e custos.',
+    features: ['MTTR e MTBF', 'Backlog de OS', 'Custos por ativo/categoria', 'Performance de tecnicos', 'Tendencias historicas'],
   },
   {
     id: 'estoque',
     name: 'Estoque',
     icon: Package,
-    description: 'Controle de peças, insumos e ferramentas com movimentações, alertas de mínimo e integração com OS.',
-    features: ['Movimentações entrada/saída', 'Estoque mínimo/máximo', 'Vinculação com OS', 'Inventário periódico', 'Fornecedores'],
+    description: 'Controle de pecas, insumos e ferramentas com alertas de minimo.',
+    features: ['Movimentacoes entrada/saida', 'Estoque minimo/maximo', 'Vinculo com OS', 'Inventario periodico', 'Fornecedores'],
   },
   {
     id: 'procedimentos',
     name: 'Procedimentos',
     icon: FileText,
-    description: 'Biblioteca de procedimentos técnicos com passo a passo, fotos, vídeos e checklists padronizados.',
-    features: ['Passo a passo detalhado', 'Fotos e vídeos', 'Checklists de verificação', 'Versionamento', 'Categorização'],
+    description: 'Biblioteca tecnica com passo a passo, fotos e checklists padronizados.',
+    features: ['Passo a passo detalhado', 'Fotos e videos', 'Checklists de verificacao', 'Versionamento', 'Categorizacao'],
   },
   {
     id: 'relatorios',
-    name: 'Relatórios',
+    name: 'Relatorios',
     icon: FileText,
-    description: 'Gere relatórios automáticos de PMOC, custos, KPIs e histórico. Exportação em PDF e Excel.',
-    features: ['Relatórios PMOC', 'Exportação PDF/Excel', 'Agendamento automático', 'Filtros avançados', 'Envio por e-mail'],
+    description: 'Relatorios de PMOC, custos e KPIs com exportacao facil.',
+    features: ['Relatorios PMOC', 'Exportacao PDF/Excel', 'Agendamento automatico', 'Filtros avancados', 'Envio por e-mail'],
   },
 ]
 
 const benefits = [
-  'Redução de até 40% nos custos de manutenção corretiva',
-  'Aumento da vida útil dos equipamentos',
-  'Conformidade automática com PMOC e ANVISA',
+  'Reducao de custos com corretivas',
+  'Mais preventivas no prazo',
+  'Conformidade PMOC automatizada',
   'Visibilidade total do parque de ativos',
-  'Histórico completo para auditorias',
-  'Integração com sensores IoT (TrakSense)',
+  'Historico completo para auditorias',
+  'Integracao com sensores IoT (TrakSense)',
 ]
 
 export function TrakNorPage() {
@@ -142,17 +142,12 @@ export function TrakNorPage() {
                 <Badge className="bg-teal-100 text-teal-700">CMMS</Badge>
               </div>
               <h1 className="text-4xl sm:text-5xl font-bold mb-6">TrakNor</h1>
-              <p className="text-xl text-gray-600 mb-4">
-                Sistema de Gestão de Manutenção Computadorizado
-              </p>
-              <p className="text-lg text-gray-500 mb-8">
-                Gerencie todo o ciclo de vida dos seus ativos HVAC em uma única plataforma. 
-                Desde o cadastro até ordens de serviço, inventário e relatórios de conformidade.
-              </p>
+              <p className="text-xl text-gray-600 mb-4">CMMS completo para gestao de manutencao</p>
+              <p className="text-lg text-gray-500 mb-8">Controle ordens, planos e ativos em uma unica plataforma com rastreabilidade total.</p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link to="/demo">
                   <Button size="lg" className="bg-teal-600 hover:bg-teal-700">
-                    Agendar Demo <ArrowRight className="ml-2 h-4 w-4" />
+                    Agendar demo <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
                 <Link to="/precos">
@@ -325,7 +320,7 @@ export function TrakNorPage() {
       <section className="py-16 md:py-24 bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-teal-900 text-teal-300">Interface Moderna</Badge>
+            <Badge className="mb-4 bg-teal-900 text-teal-300">Interface moderna</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Veja o TrakNor em Ação</h2>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
               Interface intuitiva projetada para produtividade.
@@ -488,7 +483,7 @@ export function TrakNorPage() {
           <div className="flex flex-wrap justify-center gap-4">
             <Link to="/demo">
               <Button size="lg" className="bg-white text-teal-600 hover:bg-teal-50">
-                Agendar Demonstração <ArrowRight className="ml-2 h-4 w-4" />
+                Agendar demonstração <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
             <Link to="/precos">

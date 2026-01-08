@@ -51,43 +51,43 @@ function ScreenMockup({ title, children, className }: { title: string; children:
 const moduleScreens = [
   {
     id: 'visao-geral',
-    name: 'Visão Geral',
+    name: 'Visao geral',
     icon: LayoutDashboard,
-    description: 'Dashboard principal com visão consolidada de todos os sensores, alertas ativos e métricas em tempo real.',
-    features: ['Status de todos os sensores', 'Alertas ativos', 'Métricas consolidadas', 'Mapa de localizações', 'Últimas leituras'],
+    description: 'Painel consolidado com sensores, alertas e metricas em tempo real.',
+    features: ['Status dos sensores', 'Alertas ativos', 'Metricas consolidadas', 'Mapa de locais', 'Ultimas leituras'],
   },
   {
     id: 'dashboards',
     name: 'Dashboards',
     icon: Gauge,
-    description: 'Crie dashboards personalizados com widgets de gráficos, gauges e indicadores para suas necessidades específicas.',
-    features: ['Drag & drop de widgets', 'Gráficos em tempo real', 'Gauges configuráveis', 'Múltiplos dashboards', 'Compartilhamento'],
+    description: 'Crie dashboards personalizados com widgets de graficos e indicadores.',
+    features: ['Drag and drop de widgets', 'Graficos em tempo real', 'Gauges configuraveis', 'Multiplos dashboards', 'Compartilhamento'],
   },
   {
     id: 'sensores',
     name: 'Sensores',
     icon: Radio,
-    description: 'Gerencie todos os sensores instalados com detalhes de status, bateria, sinal e última comunicação.',
-    features: ['Lista de sensores', 'Status em tempo real', 'Nível de bateria', 'Qualidade do sinal', 'Configurações'],
+    description: 'Gerencie sensores com status, bateria, sinal e ultima comunicacao.',
+    features: ['Lista de sensores', 'Status em tempo real', 'Nivel de bateria', 'Qualidade do sinal', 'Configuracoes'],
   },
   {
     id: 'alertas',
     name: 'Alertas',
     icon: Bell,
-    description: 'Central de alertas com histórico, notificações configuráveis e integração com TrakNor para criar OS.',
-    features: ['Alertas em tempo real', 'Histórico completo', 'Notificações multi-canal', 'Integração TrakNor', 'Escalonamento'],
+    description: 'Central de alertas com historico, notificacoes e integracao com TrakNor.',
+    features: ['Alertas em tempo real', 'Historico completo', 'Notificacoes multicanal', 'Integracao TrakNor', 'Escalonamento'],
   },
   {
     id: 'regras',
     name: 'Regras',
     icon: Settings,
-    description: 'Configure regras de alerta com condições compostas, janelas de tempo e ações automáticas.',
-    features: ['Condições lógicas', 'Múltiplos gatilhos', 'Janelas de tempo', 'Ações automáticas', 'Templates de regras'],
+    description: 'Configure regras com condicoes compostas, janelas de tempo e acoes automaticas.',
+    features: ['Condicoes logicas', 'Multiplos gatilhos', 'Janelas de tempo', 'Acoes automaticas', 'Templates de regras'],
   },
 ]
 
 const metrics = [
-  { icon: Clock, label: 'Latência média', value: '< 2s' },
+  { icon: Clock, label: 'Latencia media', value: '< 2s' },
   { icon: Radio, label: 'Sensores suportados', value: '100+' },
   { icon: Bell, label: 'Alertas em tempo real', value: '99.9%' },
   { icon: Wifi, label: 'Uptime garantido', value: '99.9%' },
@@ -111,17 +111,12 @@ export function TrakSensePage() {
                 <Badge className="bg-teal-100 text-teal-700">IoT Platform</Badge>
               </div>
               <h1 className="text-4xl sm:text-5xl font-bold mb-6">TrakSense</h1>
-              <p className="text-xl text-gray-600 mb-4">
-                Plataforma de Monitoramento IoT em Tempo Real
-              </p>
-              <p className="text-lg text-gray-500 mb-8">
-                Transforme dados de sensores em insights acionáveis. Dashboards interativos, 
-                alertas inteligentes e análise de tendências para seus equipamentos HVAC.
-              </p>
+              <p className="text-xl text-gray-600 mb-4">Plataforma de monitoramento IoT em tempo real</p>
+              <p className="text-lg text-gray-500 mb-8">Transforme dados em acao com dashboards, alertas inteligentes e analise de tendencias para HVAC.</p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link to="/demo">
                   <Button size="lg" className="bg-teal-600 hover:bg-teal-700">
-                    Agendar Demo <ArrowRight className="ml-2 h-4 w-4" />
+                    Agendar demo <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
                 <Link to="/precos">
@@ -337,7 +332,7 @@ export function TrakSensePage() {
       <section className="py-16 md:py-24 bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-teal-900 text-teal-300">Interface Moderna</Badge>
+            <Badge className="mb-4 bg-teal-900 text-teal-300">Interface moderna</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Dashboards Personalizáveis</h2>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
               Arraste e solte widgets para criar o painel perfeito para suas necessidades.
@@ -469,8 +464,8 @@ export function TrakSensePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <Badge className="mb-4 bg-teal-100 text-teal-700">Motor de Regras</Badge>
-              <h2 className="text-3xl sm:text-4xl font-bold mb-4">Alertas Inteligentes</h2>
+              <Badge className="mb-4 bg-teal-100 text-teal-700">Motor de regras</Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">Alertas inteligentes</h2>
               <p className="text-lg text-gray-500 mb-6">
                 Configure regras complexas com condições compostas, janelas de tempo e ações automáticas 
                 para receber notificações precisas e evitar alarmes falsos.
@@ -563,7 +558,7 @@ export function TrakSensePage() {
           <div className="flex flex-wrap justify-center gap-4">
             <Link to="/demo">
               <Button size="lg" className="bg-white text-teal-600 hover:bg-teal-50">
-                Agendar Demo Gratuita <ArrowRight className="ml-2 h-4 w-4" />
+                Agendar demo <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
             <Link to="/precos">

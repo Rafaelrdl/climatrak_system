@@ -172,7 +172,7 @@ export function PricingPage() {
           </div>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Usuario extra: R$ 30/mes • Locais extras: ilimitados
+            Usuario extra: R$ 30/mes - Locais extras: ilimitados
           </p>
         </div>
       </section>

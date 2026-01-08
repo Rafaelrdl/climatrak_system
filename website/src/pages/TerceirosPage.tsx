@@ -77,7 +77,7 @@ const aiFeatures = [
   },
   {
     question: 'Qual pressao ideal para R410A a 7C?',
-    answer: 'Para R410A com evaporacao a 7C, a pressao e cerca de 9.3 bar (135 psi). A condensaçao tambem influencia o ciclo.',
+    answer: 'Para R410A com evaporacao a 7C, a pressao e cerca de 9.3 bar (135 psi). A condensacao tambem influencia o ciclo.',
   },
   {
     question: 'Como dimensionar um split para sala de 40m2?',
@@ -162,7 +162,7 @@ const testimonials = [
     name: 'Ana Costa',
     role: 'Coordenadora tecnica - MG',
     avatar: 'AC',
-    text: 'O chat IA ajuda nos diagnósticos mais difíceis e economiza tempo em campo.',
+    text: 'O chat IA ajuda nos diagnosticos mais dificeis e economiza tempo em campo.',
   },
 ]
 

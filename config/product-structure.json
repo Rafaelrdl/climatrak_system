@@ -121,7 +121,7 @@
     ],
     "cta": {
       "secondary": { "name": "Contato", "href": "/contato" },
-      "primary": { "name": "Agendar Demo", "href": "/demo" }
+      "primary": { "name": "Agendar demo", "href": "/demo" }
     }
   },
   "personas": [
