@@ -691,3 +691,378 @@ class KMSummaryRequestSerializer(serializers.Serializer):
             raise serializers.ValidationError("Técnico não encontrado.")
         return value
 
+
+# =============================================================================
+# Service Catalog Serializers
+# =============================================================================
+
+
+class ServiceCatalogItemSerializer(serializers.ModelSerializer):
+    """Serializer for ServiceCatalogItem (read operations)."""
+    
+    calculated_price = serializers.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        read_only=True
+    )
+    created_by_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        from .models import ServiceCatalogItem
+        model = ServiceCatalogItem
+        fields = [
+            "id",
+            "code",
+            "name",
+            "description",
+            "estimated_duration_minutes",
+            "hourly_cost",
+            "base_price",
+            "margin_percent",
+            "calculated_price",
+            "category",
+            "is_active",
+            "created_by",
+            "created_by_name",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at", "created_by"]
+    
+    def get_created_by_name(self, obj):
+        if obj.created_by:
+            return obj.created_by.get_full_name() or obj.created_by.email
+        return None
+
+
+class ServiceCatalogItemCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating/updating ServiceCatalogItem."""
+    
+    class Meta:
+        from .models import ServiceCatalogItem
+        model = ServiceCatalogItem
+        fields = [
+            "code",
+            "name",
+            "description",
+            "estimated_duration_minutes",
+            "hourly_cost",
+            "base_price",
+            "margin_percent",
+            "category",
+            "is_active",
+        ]
+    
+    def validate_code(self, value):
+        """Ensure code is unique (case-insensitive)."""
+        from .models import ServiceCatalogItem
+        
+        qs = ServiceCatalogItem.objects.filter(code__iexact=value)
+        if self.instance:
+            qs = qs.exclude(id=self.instance.id)
+        
+        if qs.exists():
+            raise serializers.ValidationError("Já existe um item com este código.")
+        return value.upper()
+
+
+class ServiceCatalogItemListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for catalog item lists/dropdowns."""
+    
+    calculated_price = serializers.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        read_only=True
+    )
+    
+    class Meta:
+        from .models import ServiceCatalogItem
+        model = ServiceCatalogItem
+        fields = [
+            "id",
+            "code",
+            "name",
+            "category",
+            "base_price",
+            "calculated_price",
+            "estimated_duration_minutes",
+            "is_active",
+        ]
+
+
+# =============================================================================
+# Quote Serializers
+# =============================================================================
+
+
+class QuoteItemSerializer(serializers.ModelSerializer):
+    """Serializer for QuoteItem (read operations)."""
+    
+    item_type_display = serializers.CharField(source="get_item_type_display", read_only=True)
+    catalog_item_name = serializers.CharField(
+        source="catalog_item.name", 
+        read_only=True,
+        allow_null=True,
+    )
+    inventory_item_name = serializers.CharField(
+        source="inventory_item.name",
+        read_only=True,
+        allow_null=True,
+    )
+    
+    class Meta:
+        from .models import QuoteItem
+        model = QuoteItem
+        fields = [
+            "id",
+            "item_type",
+            "item_type_display",
+            "catalog_item",
+            "catalog_item_name",
+            "inventory_item",
+            "inventory_item_name",
+            "code",
+            "description",
+            "quantity",
+            "unit",
+            "unit_price",
+            "total_price",
+            "notes",
+            "sequence",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "total_price", "created_at", "updated_at"]
+
+
+class QuoteItemCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating QuoteItem."""
+    
+    class Meta:
+        from .models import QuoteItem
+        model = QuoteItem
+        fields = [
+            "item_type",
+            "catalog_item",
+            "inventory_item",
+            "code",
+            "description",
+            "quantity",
+            "unit",
+            "unit_price",
+            "notes",
+            "sequence",
+        ]
+    
+    def validate(self, data):
+        """Validate item references based on type."""
+        from .models import QuoteItem
+        
+        item_type = data.get("item_type")
+        catalog_item = data.get("catalog_item")
+        inventory_item = data.get("inventory_item")
+        
+        if item_type == QuoteItem.ItemType.SERVICE:
+            if inventory_item:
+                raise serializers.ValidationError({
+                    "inventory_item": "Itens de serviço não devem ter referência a estoque."
+                })
+        elif item_type == QuoteItem.ItemType.MATERIAL:
+            if catalog_item:
+                raise serializers.ValidationError({
+                    "catalog_item": "Itens de material não devem ter referência a catálogo de serviços."
+                })
+        
+        return data
+
+
+class QuoteSerializer(serializers.ModelSerializer):
+    """Serializer for Quote (read operations)."""
+    
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    items = QuoteItemSerializer(many=True, read_only=True)
+    item_count = serializers.IntegerField(read_only=True)
+    is_expired = serializers.BooleanField(read_only=True)
+    work_order_number = serializers.CharField(source="work_order.number", read_only=True)
+    work_order_description = serializers.CharField(source="work_order.description", read_only=True)
+    created_by_name = serializers.SerializerMethodField()
+    approved_by_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        from .models import Quote
+        model = Quote
+        fields = [
+            "id",
+            "number",
+            "work_order",
+            "work_order_number",
+            "work_order_description",
+            "status",
+            "status_display",
+            "valid_until",
+            "is_expired",
+            "subtotal_services",
+            "subtotal_materials",
+            "discount_percent",
+            "discount_amount",
+            "total",
+            "notes",
+            "customer_notes",
+            "sent_at",
+            "approved_at",
+            "rejected_at",
+            "rejection_reason",
+            "created_by",
+            "created_by_name",
+            "approved_by",
+            "approved_by_name",
+            "created_at",
+            "updated_at",
+            "items",
+            "item_count",
+        ]
+        read_only_fields = [
+            "id",
+            "number",
+            "subtotal_services",
+            "subtotal_materials",
+            "discount_amount",
+            "total",
+            "sent_at",
+            "approved_at",
+            "rejected_at",
+            "created_at",
+            "updated_at",
+        ]
+    
+    def get_created_by_name(self, obj):
+        if obj.created_by:
+            return obj.created_by.get_full_name() or obj.created_by.email
+        return None
+    
+    def get_approved_by_name(self, obj):
+        if obj.approved_by:
+            return obj.approved_by.get_full_name() or obj.approved_by.email
+        return None
+
+
+class QuoteListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for quote lists."""
+    
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    work_order_number = serializers.CharField(source="work_order.number", read_only=True)
+    item_count = serializers.IntegerField(read_only=True)
+    is_expired = serializers.BooleanField(read_only=True)
+    
+    class Meta:
+        from .models import Quote
+        model = Quote
+        fields = [
+            "id",
+            "number",
+            "work_order",
+            "work_order_number",
+            "status",
+            "status_display",
+            "valid_until",
+            "is_expired",
+            "total",
+            "item_count",
+            "created_at",
+        ]
+
+
+class QuoteCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating a Quote."""
+    
+    items = QuoteItemCreateSerializer(many=True, required=False)
+    
+    class Meta:
+        from .models import Quote
+        model = Quote
+        fields = [
+            "work_order",
+            "valid_until",
+            "discount_percent",
+            "notes",
+            "customer_notes",
+            "items",
+        ]
+    
+    def validate_work_order(self, value):
+        """Validate work order exists."""
+        if not value:
+            raise serializers.ValidationError("Ordem de serviço é obrigatória.")
+        return value
+    
+    def create(self, validated_data):
+        """Create quote with items."""
+        from .models import Quote, QuoteItem
+        
+        items_data = validated_data.pop("items", [])
+        
+        # Create quote
+        quote = Quote.objects.create(**validated_data)
+        
+        # Create items
+        for idx, item_data in enumerate(items_data):
+            item_data["sequence"] = item_data.get("sequence", idx + 1)
+            QuoteItem.objects.create(quote=quote, **item_data)
+        
+        # Recalculate totals
+        quote.recalculate_totals()
+        
+        return quote
+
+
+class QuoteUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating a Quote (draft only)."""
+    
+    class Meta:
+        from .models import Quote
+        model = Quote
+        fields = [
+            "valid_until",
+            "discount_percent",
+            "notes",
+            "customer_notes",
+        ]
+    
+    def validate(self, data):
+        """Only draft quotes can be updated."""
+        from .models import Quote
+        
+        if self.instance and self.instance.status != Quote.Status.DRAFT:
+            raise serializers.ValidationError(
+                "Apenas orçamentos em rascunho podem ser editados."
+            )
+        return data
+
+
+class QuoteSendSerializer(serializers.Serializer):
+    """Serializer for sending a quote."""
+    
+    notify_customer = serializers.BooleanField(
+        default=False,
+        help_text="Se deve enviar notificação por email ao cliente",
+    )
+
+
+class QuoteApproveSerializer(serializers.Serializer):
+    """Serializer for approving a quote."""
+    
+    notes = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Notas opcionais sobre a aprovação",
+    )
+
+
+class QuoteRejectSerializer(serializers.Serializer):
+    """Serializer for rejecting a quote."""
+    
+    reason = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Motivo da rejeição",
+    )

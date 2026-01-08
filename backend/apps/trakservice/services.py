@@ -356,14 +356,23 @@ class RoutingService(TrakServiceBaseService):
                 address = ""
                 
                 if asset:
-                    # Try to get coordinates from asset's location
-                    lat = getattr(asset, "latitude", None)
-                    lon = getattr(asset, "longitude", None)
+                    # Try to get coordinates from asset's site (primary source)
+                    site = getattr(asset, "site", None)
+                    if site:
+                        lat = getattr(site, "latitude", None)
+                        lon = getattr(site, "longitude", None)
+                        address = getattr(site, "address", "") or ""
                     
-                    # Build address from location hierarchy
-                    location = getattr(asset, "subsection", None)
-                    if location:
-                        address = str(location)
+                    # Fallback: try to get coordinates directly from asset (if added later)
+                    if lat is None or lon is None:
+                        lat = getattr(asset, "latitude", None)
+                        lon = getattr(asset, "longitude", None)
+                    
+                    # Build address from location hierarchy if no site address
+                    if not address:
+                        location = getattr(asset, "subsection", None)
+                        if location:
+                            address = str(location)
                 
                 # Skip if no coordinates (can't route)
                 if lat is None or lon is None:

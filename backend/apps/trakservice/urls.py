@@ -9,8 +9,13 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    DailyRouteViewSet,
+    KMSummaryView,
     LocationPingView,
+    NearestTechnicianView,
+    QuoteViewSet,
     ServiceAssignmentViewSet,
+    ServiceCatalogItemViewSet,
     TechnicianLocationView,
     TechnicianProfileViewSet,
     TrakServiceHealthView,
@@ -24,10 +29,12 @@ router = DefaultRouter()
 router.register(r"technicians", TechnicianProfileViewSet, basename="technician")
 router.register(r"assignments", ServiceAssignmentViewSet, basename="assignment")
 
-# Future features
-# router.register(r'routes', ServiceRouteViewSet, basename='service-route')
-# router.register(r'quotes', QuoteViewSet, basename='quote')
-# router.register(r'mileage', MileageViewSet, basename='mileage')
+# Routing (trakservice.routing)
+router.register(r"routes", DailyRouteViewSet, basename="route")
+
+# Quotes (trakservice.quotes)
+router.register(r"catalog", ServiceCatalogItemViewSet, basename="catalog")
+router.register(r"quotes", QuoteViewSet, basename="quote")
 
 urlpatterns = [
     # Module metadata and health endpoints
@@ -46,6 +53,16 @@ urlpatterns = [
         TechnicianLocationView.as_view(),
         name="technician-location-trail",
     ),
+    
+    # Routing endpoints (trakservice.routing)
+    path(
+        "routes/nearest-technician/",
+        NearestTechnicianView.as_view(),
+        name="nearest-technician",
+    ),
+    
+    # KM endpoints (trakservice.km)
+    path("km/", KMSummaryView.as_view(), name="km-summary"),
     
     # ViewSet routes
     path("", include(router.urls)),
