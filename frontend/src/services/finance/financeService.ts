@@ -1,8 +1,8 @@
 /**
- * Finance Service
+ * TrakLedger Service
  * 
- * Serviço centralizado para todas as operações da API Finance.
- * Baseado em: docs/backend/api/finance.md
+ * Serviço centralizado para todas as operações da API TrakLedger (Orçamento Vivo).
+ * Baseado em: docs/backend/api/trakledger.md
  */
 
 import { api } from '@/lib';
@@ -25,7 +25,7 @@ import type {
   ApiResponse,
 } from '@/types/finance';
 
-const BASE_URL = '/finance';
+const BASE_URL = '/trakledger';
 
 // ==================== Helper para extrair dados ====================
 
