@@ -2013,3 +2013,104 @@ class WorkOrderCostSummaryViewSet(viewsets.ViewSet):
                 "grand_total": grand_total,
             }
         )
+
+
+class ReportsViewSet(viewsets.ViewSet):
+    """
+    ViewSet para geração de relatórios PMOC e outros relatórios do CMMS.
+    
+    Endpoints:
+    - GET /cmms/reports/pmoc-monthly/ - Relatório PMOC mensal
+    - GET /cmms/reports/pmoc-annual/ - Relatório PMOC anual
+    """
+    
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
+    required_roles = ["owner", "admin", "operator", "technician"]
+    
+    @action(detail=False, methods=["get"], url_path="pmoc-monthly")
+    def pmoc_monthly(self, request):
+        """
+        Gera relatório PMOC mensal.
+        
+        Query params:
+        - month: Mês (1-12), default: mês atual
+        - year: Ano, default: ano atual
+        - site_id: ID do site (opcional)
+        - company: Nome da empresa (opcional)
+        """
+        from .services import PMOCReportService
+        
+        # Parâmetros
+        now = timezone.now()
+        month = int(request.query_params.get("month", now.month))
+        year = int(request.query_params.get("year", now.year))
+        site_id = request.query_params.get("site_id")
+        company = request.query_params.get("company")
+        
+        # Validação
+        if not 1 <= month <= 12:
+            return Response(
+                {"error": "Mês deve estar entre 1 e 12"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if year < 2000 or year > 2100:
+            return Response(
+                {"error": "Ano inválido"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            report = PMOCReportService.generate_monthly_report(
+                month=month,
+                year=year,
+                site_id=site_id,
+                company=company,
+            )
+            return Response(report)
+        except Exception as e:
+            logger.exception("Erro ao gerar relatório PMOC mensal")
+            return Response(
+                {"error": f"Erro ao gerar relatório: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=["get"], url_path="pmoc-annual")
+    def pmoc_annual(self, request):
+        """
+        Gera relatório PMOC anual.
+        
+        Query params:
+        - year: Ano, default: ano atual
+        - site_id: ID do site (opcional)
+        - company: Nome da empresa (opcional)
+        """
+        from .services import PMOCReportService
+        
+        # Parâmetros
+        now = timezone.now()
+        year = int(request.query_params.get("year", now.year))
+        site_id = request.query_params.get("site_id")
+        company = request.query_params.get("company")
+        
+        # Validação
+        if year < 2000 or year > 2100:
+            return Response(
+                {"error": "Ano inválido"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            report = PMOCReportService.generate_annual_report(
+                year=year,
+                site_id=site_id,
+                company=company,
+            )
+            return Response(report)
+        except Exception as e:
+            logger.exception("Erro ao gerar relatório PMOC anual")
+            return Response(
+                {"error": f"Erro ao gerar relatório: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+

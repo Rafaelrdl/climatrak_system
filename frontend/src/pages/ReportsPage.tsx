@@ -18,6 +18,19 @@ import {
   Zap,
   AlertCircle,
   Clock,
+  Wrench,
+  Activity,
+  TrendingUp,
+  Shield,
+  Users,
+  Settings,
+  Gauge,
+  Timer,
+  Target,
+  Bell,
+  ChevronDown,
+  ChevronRight,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +41,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCompanies, useSectors } from '@/hooks/useLocationsQuery';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useGeneratePMOCMonthly, useGeneratePMOCAnnual } from '@/hooks/useReportsQuery';
+import { PMOCMonthlyPreview, PMOCAnnualPreview } from '@/components/reports/PMOCReportPreview';
+import { PMOCMonthlyReport, PMOCAnnualReport } from '@/services/reportsService';
 
 // Tipos de relatório disponíveis
 interface ReportTemplate {
@@ -35,70 +52,263 @@ interface ReportTemplate {
   name: string;
   description: string;
   icon: any;
-  category: 'pmoc' | 'operacional' | 'qualidade';
-  categoryLabel: string;
+  topic: 'conformidade' | 'equipamentos' | 'monitoramento' | 'desempenho';
+  topicLabel: string;
 }
 
+// Estrutura para organização por tópicos
+interface ReportTopic {
+  id: 'conformidade' | 'equipamentos' | 'monitoramento' | 'desempenho';
+  name: string;
+  description: string;
+  icon: any;
+  color: string;
+  bgColor: string;
+}
+
+const reportTopics: ReportTopic[] = [
+  {
+    id: 'conformidade',
+    name: 'Conformidade',
+    description: 'Relatórios de conformidade regulatória e auditorias',
+    icon: Shield,
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-500/10',
+  },
+  {
+    id: 'equipamentos',
+    name: 'Equipamentos',
+    description: 'Análise e desempenho de equipamentos',
+    icon: Settings,
+    color: 'text-amber-600',
+    bgColor: 'bg-amber-500/10',
+  },
+  {
+    id: 'monitoramento',
+    name: 'Monitoramento',
+    description: 'Tendências, consumo e alertas do sistema',
+    icon: Activity,
+    color: 'text-green-600',
+    bgColor: 'bg-green-500/10',
+  },
+  {
+    id: 'desempenho',
+    name: 'Desempenho Técnico',
+    description: 'Métricas de equipe técnica e SLA',
+    icon: Users,
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-500/10',
+  },
+];
+
 const reportTemplates: ReportTemplate[] = [
-  // Relatórios PMOC / Conformidade
+  // ============================================
+  // CONFORMIDADE - Relatórios regulatórios
+  // ============================================
   {
     id: 'pmoc-mensal',
     name: 'Relatório PMOC Mensal',
-    description: 'Plano de Manutenção, Operação e Controle para conformidade regulatória',
+    description: 'Plano de Manutenção, Operação e Controle para conformidade regulatória mensal',
     icon: ClipboardCheck,
-    category: 'pmoc',
-    categoryLabel: 'Conformidade'
+    topic: 'conformidade',
+    topicLabel: 'Conformidade',
   },
   {
     id: 'pmoc-anual',
     name: 'Relatório PMOC Anual',
-    description: 'Consolidado anual de manutenções para auditorias',
+    description: 'Consolidado anual de manutenções para auditorias e fiscalização',
     icon: FileText,
-    category: 'pmoc',
-    categoryLabel: 'Conformidade'
+    topic: 'conformidade',
+    topicLabel: 'Conformidade',
   },
-  // Relatórios Operacionais
+  {
+    id: 'conformidade-anvisa',
+    name: 'Conformidade ANVISA',
+    description: 'Relatório de conformidade com normas da ANVISA para ambientes climatizados',
+    icon: Shield,
+    topic: 'conformidade',
+    topicLabel: 'Conformidade',
+  },
+  {
+    id: 'qualidade-ar',
+    name: 'Qualidade do Ar Interior (QAI)',
+    description: 'Análise de parâmetros de qualidade do ar conforme ABNT NBR 16401',
+    icon: Activity,
+    topic: 'conformidade',
+    topicLabel: 'Conformidade',
+  },
+  {
+    id: 'laudo-tecnico',
+    name: 'Laudo Técnico de Inspeção',
+    description: 'Laudo técnico para vistorias e inspeções obrigatórias',
+    icon: FileText,
+    topic: 'conformidade',
+    topicLabel: 'Conformidade',
+  },
+
+  // ============================================
+  // EQUIPAMENTOS - Análise de ativos
+  // ============================================
+  {
+    id: 'equipment-performance',
+    name: 'Desempenho de Equipamentos',
+    description: 'Métricas de eficiência, disponibilidade e MTBF/MTTR por equipamento',
+    icon: BarChart3,
+    topic: 'equipamentos',
+    topicLabel: 'Equipamentos',
+  },
+  {
+    id: 'equipment-lifecycle',
+    name: 'Ciclo de Vida de Ativos',
+    description: 'Análise de depreciação, vida útil restante e histórico de manutenções',
+    icon: TrendingUp,
+    topic: 'equipamentos',
+    topicLabel: 'Equipamentos',
+  },
+  {
+    id: 'equipment-availability',
+    name: 'Disponibilidade de Equipamentos',
+    description: 'Taxa de disponibilidade e uptime por equipamento e período',
+    icon: Gauge,
+    topic: 'equipamentos',
+    topicLabel: 'Equipamentos',
+  },
+  {
+    id: 'equipment-failures',
+    name: 'Análise de Falhas',
+    description: 'Histórico de falhas, causas raiz e padrões recorrentes',
+    icon: AlertCircle,
+    topic: 'equipamentos',
+    topicLabel: 'Equipamentos',
+  },
+  {
+    id: 'equipment-maintenance-cost',
+    name: 'Custo de Manutenção por Ativo',
+    description: 'Análise de custos de manutenção preventiva e corretiva por equipamento',
+    icon: Wrench,
+    topic: 'equipamentos',
+    topicLabel: 'Equipamentos',
+  },
+  {
+    id: 'equipment-inventory',
+    name: 'Inventário de Equipamentos',
+    description: 'Listagem completa de ativos com especificações e status',
+    icon: Settings,
+    topic: 'equipamentos',
+    topicLabel: 'Equipamentos',
+  },
+
+  // ============================================
+  // MONITORAMENTO - IoT e Telemetria
+  // ============================================
+  {
+    id: 'temperature-trends',
+    name: 'Tendência de Temperatura',
+    description: 'Análise de variações de temperatura ao longo do tempo por zona',
+    icon: Thermometer,
+    topic: 'monitoramento',
+    topicLabel: 'Monitoramento',
+  },
   {
     id: 'energy-consumption',
     name: 'Consumo Energético',
     description: 'Análise detalhada do consumo de energia dos equipamentos',
     icon: Zap,
-    category: 'operacional',
-    categoryLabel: 'Operacional'
+    topic: 'monitoramento',
+    topicLabel: 'Monitoramento',
   },
-  {
-    id: 'equipment-performance',
-    name: 'Desempenho de Equipamentos',
-    description: 'Métricas de eficiência, disponibilidade e MTBF/MTTR',
-    icon: BarChart3,
-    category: 'operacional',
-    categoryLabel: 'Operacional'
-  },
-  {
-    id: 'temperature-trends',
-    name: 'Tendências de Temperatura',
-    description: 'Análise de variações de temperatura ao longo do tempo',
-    icon: Thermometer,
-    category: 'operacional',
-    categoryLabel: 'Operacional'
-  },
-  // Relatórios de Qualidade
   {
     id: 'alerts-summary',
     name: 'Resumo de Alertas',
-    description: 'Histórico de alertas gerados e tempo médio de resposta',
-    icon: AlertCircle,
-    category: 'qualidade',
-    categoryLabel: 'Qualidade'
+    description: 'Histórico de alertas gerados, severidade e tempo médio de resposta',
+    icon: Bell,
+    topic: 'monitoramento',
+    topicLabel: 'Monitoramento',
   },
+  {
+    id: 'humidity-analysis',
+    name: 'Análise de Umidade',
+    description: 'Relatório de variações de umidade relativa por ambiente',
+    icon: Activity,
+    topic: 'monitoramento',
+    topicLabel: 'Monitoramento',
+  },
+  {
+    id: 'sensor-health',
+    name: 'Saúde dos Sensores',
+    description: 'Status de conectividade, bateria e precisão dos sensores IoT',
+    icon: Gauge,
+    topic: 'monitoramento',
+    topicLabel: 'Monitoramento',
+  },
+  {
+    id: 'anomaly-detection',
+    name: 'Detecção de Anomalias',
+    description: 'Relatório de comportamentos anômalos detectados pelo sistema',
+    icon: Target,
+    topic: 'monitoramento',
+    topicLabel: 'Monitoramento',
+  },
+  {
+    id: 'environmental-conditions',
+    name: 'Condições Ambientais',
+    description: 'Visão consolidada de temperatura, umidade e CO2 por área',
+    icon: Activity,
+    topic: 'monitoramento',
+    topicLabel: 'Monitoramento',
+  },
+
+  // ============================================
+  // DESEMPENHO TÉCNICO - Equipe e SLA
+  // ============================================
   {
     id: 'sla-compliance',
     name: 'Conformidade SLA',
     description: 'Análise de cumprimento dos acordos de nível de serviço',
     icon: Clock,
-    category: 'qualidade',
-    categoryLabel: 'Qualidade'
-  }
+    topic: 'desempenho',
+    topicLabel: 'Desempenho Técnico',
+  },
+  {
+    id: 'technician-productivity',
+    name: 'Produtividade de Técnicos',
+    description: 'Métricas de produtividade individual e por equipe',
+    icon: Users,
+    topic: 'desempenho',
+    topicLabel: 'Desempenho Técnico',
+  },
+  {
+    id: 'response-time',
+    name: 'Tempo de Resposta',
+    description: 'Análise de tempo médio de resposta e resolução por prioridade',
+    icon: Timer,
+    topic: 'desempenho',
+    topicLabel: 'Desempenho Técnico',
+  },
+  {
+    id: 'work-orders-analysis',
+    name: 'Análise de Ordens de Serviço',
+    description: 'Estatísticas de OS abertas, fechadas, pendentes e backlog',
+    icon: FileText,
+    topic: 'desempenho',
+    topicLabel: 'Desempenho Técnico',
+  },
+  {
+    id: 'first-time-fix',
+    name: 'Taxa de Resolução na Primeira Visita',
+    description: 'Percentual de problemas resolvidos na primeira intervenção',
+    icon: Target,
+    topic: 'desempenho',
+    topicLabel: 'Desempenho Técnico',
+  },
+  {
+    id: 'maintenance-backlog',
+    name: 'Backlog de Manutenção',
+    description: 'Análise de manutenções pendentes e aging de OS',
+    icon: Clock,
+    topic: 'desempenho',
+    topicLabel: 'Desempenho Técnico',
+  },
 ];
 
 // Relatórios gerados (mock)
@@ -140,26 +350,96 @@ const myReports = [
 export function ReportsPage() {
   const [activeTab, setActiveTab] = useState('templates');
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [topicFilter, setTopicFilter] = useState<string>('all');
+  const [expandedTopics, setExpandedTopics] = useState<string[]>(['conformidade', 'equipamentos', 'monitoramento', 'desempenho']);
+  
+  // Form state para geração de relatório
+  const [reportPeriod, setReportPeriod] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [reportYear, setReportYear] = useState(() => String(new Date().getFullYear()));
+  const [selectedCompany, setSelectedCompany] = useState<string>('ALL');
+  const [selectedSector, setSelectedSector] = useState<string>('ALL');
+  const [reportFormat, setReportFormat] = useState<string>('pdf');
+  
+  // Generated report state
+  const [generatedMonthlyReport, setGeneratedMonthlyReport] = useState<PMOCMonthlyReport | null>(null);
+  const [generatedAnnualReport, setGeneratedAnnualReport] = useState<PMOCAnnualReport | null>(null);
   
   const { data: companies = [] } = useCompanies();
   const { data: sectors = [] } = useSectors();
+  
+  // Mutations para geração de relatórios
+  const generateMonthlyMutation = useGeneratePMOCMonthly();
+  const generateAnnualMutation = useGeneratePMOCAnnual();
 
-  const filteredTemplates = categoryFilter === 'all' 
-    ? reportTemplates 
-    : reportTemplates.filter(t => t.category === categoryFilter);
+  // Agrupar relatórios por tópico
+  const getReportsByTopic = (topicId: string) => {
+    return reportTemplates.filter(t => t.topic === topicId);
+  };
+
+  const filteredTopics = topicFilter === 'all' 
+    ? reportTopics 
+    : reportTopics.filter(t => t.id === topicFilter);
+
+  const toggleTopic = (topicId: string) => {
+    setExpandedTopics(prev => 
+      prev.includes(topicId) 
+        ? prev.filter(id => id !== topicId)
+        : [...prev, topicId]
+    );
+  };
 
   const handleSelectTemplate = (template: ReportTemplate) => {
     setSelectedTemplate(template);
+    setGeneratedMonthlyReport(null);
+    setGeneratedAnnualReport(null);
   };
 
   const handleDownload = (reportId: number) => {
     console.log('Download report:', reportId);
   };
 
-  const handleGenerateReport = () => {
-    console.log('Generate report for template:', selectedTemplate?.id);
+  const handleGenerateReport = async () => {
+    if (!selectedTemplate) return;
+    
+    // Parse período
+    const [year, month] = reportPeriod.split('-').map(Number);
+    const yearOnly = parseInt(reportYear);
+    
+    // Filtros
+    const filters = {
+      company: selectedCompany !== 'ALL' ? selectedCompany : undefined,
+    };
+    
+    try {
+      if (selectedTemplate.id === 'pmoc-mensal') {
+        const report = await generateMonthlyMutation.mutateAsync({
+          month,
+          year,
+          ...filters,
+        });
+        setGeneratedMonthlyReport(report);
+        setGeneratedAnnualReport(null);
+      } else if (selectedTemplate.id === 'pmoc-anual') {
+        const report = await generateAnnualMutation.mutateAsync({
+          year: yearOnly,
+          ...filters,
+        });
+        setGeneratedAnnualReport(report);
+        setGeneratedMonthlyReport(null);
+      } else {
+        // Para outros relatórios, mostrar mensagem
+        console.log('Relatório ainda não implementado:', selectedTemplate.id);
+      }
+    } catch (error) {
+      console.error('Erro ao gerar relatório:', error);
+    }
   };
+
+  const isGenerating = generateMonthlyMutation.isPending || generateAnnualMutation.isPending;
+  const isPMOCTemplate = selectedTemplate?.id === 'pmoc-mensal' || selectedTemplate?.id === 'pmoc-anual';
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
@@ -185,7 +465,7 @@ export function ReportsPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
           <div className="flex-shrink-0 px-6 pt-4">
             <TabsList className="grid w-full grid-cols-3 lg:w-fit">
@@ -204,100 +484,126 @@ export function ReportsPage() {
             </TabsList>
           </div>
 
-          <ScrollArea className="flex-1">
-            <div className="p-6">
+          <div className="flex-1 min-h-0 overflow-auto p-6">
               {/* Modelos Tab */}
-              <TabsContent value="templates" className="mt-0 space-y-6">
+              <TabsContent value="templates" className="mt-0 space-y-6 pb-6">
                 {/* Filtros */}
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-semibold">Modelos de Relatório</h2>
                     <p className="text-sm text-muted-foreground">
-                      Selecione um modelo para personalizar e gerar
+                      Selecione um modelo para personalizar e gerar ({reportTemplates.length} modelos disponíveis)
                     </p>
                   </div>
-                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger className="w-[180px]">
+                  <Select value={topicFilter} onValueChange={setTopicFilter}>
+                    <SelectTrigger className="w-[220px]">
                       <Filter className="w-4 h-4 mr-2" />
-                      <SelectValue placeholder="Filtrar por tipo" />
+                      <SelectValue placeholder="Filtrar por tópico" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos os tipos</SelectItem>
-                      <SelectItem value="pmoc">Conformidade (PMOC)</SelectItem>
-                      <SelectItem value="operacional">Operacional</SelectItem>
-                      <SelectItem value="qualidade">Qualidade</SelectItem>
+                      <SelectItem value="all">Todos os tópicos</SelectItem>
+                      <SelectItem value="conformidade">Conformidade</SelectItem>
+                      <SelectItem value="equipamentos">Equipamentos</SelectItem>
+                      <SelectItem value="monitoramento">Monitoramento</SelectItem>
+                      <SelectItem value="desempenho">Desempenho Técnico</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Grid de modelos */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {filteredTemplates.map((template) => {
-                    const Icon = template.icon;
-                    const isSelected = selectedTemplate?.id === template.id;
-                    
+                {/* Relatórios organizados por tópico */}
+                <div className="space-y-4">
+                  {filteredTopics.map((topic) => {
+                    const TopicIcon = topic.icon;
+                    const topicReports = getReportsByTopic(topic.id);
+                    const isExpanded = expandedTopics.includes(topic.id);
+
                     return (
-                      <Card 
-                        key={template.id} 
-                        className={`cursor-pointer transition-all hover:shadow-md ${
-                          isSelected ? 'ring-2 ring-primary border-primary' : ''
-                        }`}
-                        onClick={() => handleSelectTemplate(template)}
+                      <Collapsible 
+                        key={topic.id} 
+                        open={isExpanded}
+                        onOpenChange={() => toggleTopic(topic.id)}
                       >
-                        <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className={`p-2 rounded-lg ${
-                                template.category === 'pmoc' 
-                                  ? 'bg-blue-500/10' 
-                                  : template.category === 'operacional'
-                                  ? 'bg-amber-500/10'
-                                  : 'bg-green-500/10'
-                              }`}>
-                                <Icon className={`w-5 h-5 ${
-                                  template.category === 'pmoc' 
-                                    ? 'text-blue-600' 
-                                    : template.category === 'operacional'
-                                    ? 'text-amber-600'
-                                    : 'text-green-600'
-                                }`} />
+                        <Card>
+                          <CollapsibleTrigger asChild>
+                            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className={`p-2 rounded-lg ${topic.bgColor}`}>
+                                    <TopicIcon className={`w-5 h-5 ${topic.color}`} />
+                                  </div>
+                                  <div>
+                                    <CardTitle className="text-base flex items-center gap-2">
+                                      {topic.name}
+                                      <Badge variant="secondary" className="ml-2">
+                                        {topicReports.length} relatórios
+                                      </Badge>
+                                    </CardTitle>
+                                    <CardDescription>{topic.description}</CardDescription>
+                                  </div>
+                                </div>
+                                {isExpanded ? (
+                                  <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                                )}
                               </div>
-                              <div className="space-y-1">
-                                <CardTitle className="text-base">{template.name}</CardTitle>
-                                <Badge 
-                                  variant="secondary" 
-                                  className={`text-xs ${
-                                    template.category === 'pmoc' 
-                                      ? 'bg-blue-100 text-blue-700' 
-                                      : template.category === 'operacional'
-                                      ? 'bg-amber-100 text-amber-700'
-                                      : 'bg-green-100 text-green-700'
-                                  }`}
-                                >
-                                  {template.categoryLabel}
-                                </Badge>
+                            </CardHeader>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <CardContent className="pt-0">
+                              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                {topicReports.map((template) => {
+                                  const Icon = template.icon;
+                                  const isSelected = selectedTemplate?.id === template.id;
+                                  
+                                  return (
+                                    <Card 
+                                      key={template.id} 
+                                      className={`cursor-pointer transition-all hover:shadow-md border-l-4 ${
+                                        isSelected 
+                                          ? 'ring-2 ring-primary border-l-primary' 
+                                          : `border-l-transparent hover:border-l-${topic.color.replace('text-', '')}`
+                                      }`}
+                                      onClick={() => handleSelectTemplate(template)}
+                                    >
+                                      <CardHeader className="pb-3">
+                                        <div className="flex items-start gap-3">
+                                          <div className={`p-2 rounded-lg ${topic.bgColor}`}>
+                                            <Icon className={`w-4 h-4 ${topic.color}`} />
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <CardTitle className="text-sm font-medium leading-tight">
+                                              {template.name}
+                                            </CardTitle>
+                                          </div>
+                                        </div>
+                                      </CardHeader>
+                                      <CardContent className="pt-0">
+                                        <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+                                          {template.description}
+                                        </p>
+                                        <Button 
+                                          variant={isSelected ? "default" : "outline"} 
+                                          size="sm"
+                                          className="w-full gap-2"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSelectTemplate(template);
+                                            setActiveTab('generate');
+                                          }}
+                                        >
+                                          <Calendar className="w-3 h-3" />
+                                          Gerar
+                                        </Button>
+                                      </CardContent>
+                                    </Card>
+                                  );
+                                })}
                               </div>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            {template.description}
-                          </p>
-                          <Button 
-                            variant={isSelected ? "default" : "outline"} 
-                            className="w-full gap-2"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSelectTemplate(template);
-                              setActiveTab('generate');
-                            }}
-                          >
-                            <Calendar className="w-4 h-4" />
-                            Configurar e Gerar
-                          </Button>
-                        </CardContent>
-                      </Card>
+                            </CardContent>
+                          </CollapsibleContent>
+                        </Card>
+                      </Collapsible>
                     );
                   })}
                 </div>
@@ -345,26 +651,22 @@ export function ReportsPage() {
                     <Card className="border-primary/50 bg-primary/5">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
-                          <div className={`p-3 rounded-lg ${
-                            selectedTemplate.category === 'pmoc' 
-                              ? 'bg-blue-500/10' 
-                              : selectedTemplate.category === 'operacional'
-                              ? 'bg-amber-500/10'
-                              : 'bg-green-500/10'
-                          }`}>
-                            {(() => {
-                              const Icon = selectedTemplate.icon;
-                              return <Icon className={`w-6 h-6 ${
-                                selectedTemplate.category === 'pmoc' 
-                                  ? 'text-blue-600' 
-                                  : selectedTemplate.category === 'operacional'
-                                  ? 'text-amber-600'
-                                  : 'text-green-600'
-                              }`} />;
-                            })()}
-                          </div>
+                          {(() => {
+                            const topic = reportTopics.find(t => t.id === selectedTemplate.topic);
+                            return (
+                              <div className={`p-3 rounded-lg ${topic?.bgColor || 'bg-primary/10'}`}>
+                                {(() => {
+                                  const Icon = selectedTemplate.icon;
+                                  return <Icon className={`w-6 h-6 ${topic?.color || 'text-primary'}`} />;
+                                })()}
+                              </div>
+                            );
+                          })()}
                           <div className="flex-1">
-                            <h3 className="font-semibold">{selectedTemplate.name}</h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold">{selectedTemplate.name}</h3>
+                              <Badge variant="secondary">{selectedTemplate.topicLabel}</Badge>
+                            </div>
                             <p className="text-sm text-muted-foreground">{selectedTemplate.description}</p>
                           </div>
                           <Button variant="ghost" size="sm" onClick={() => setSelectedTemplate(null)}>
@@ -387,17 +689,39 @@ export function ReportsPage() {
                       </CardHeader>
                       <CardContent className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="period">Período</Label>
-                            <Input 
-                              id="period"
-                              type="month" 
-                              defaultValue="2024-12"
-                            />
-                          </div>
+                          {selectedTemplate?.id === 'pmoc-anual' ? (
+                            <div className="space-y-2">
+                              <Label htmlFor="year">Ano</Label>
+                              <Select value={reportYear} onValueChange={setReportYear}>
+                                <SelectTrigger id="year">
+                                  <SelectValue placeholder="Selecionar ano" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Array.from({ length: 5 }, (_, i) => {
+                                    const year = new Date().getFullYear() - i;
+                                    return (
+                                      <SelectItem key={year} value={String(year)}>
+                                        {year}
+                                      </SelectItem>
+                                    );
+                                  })}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <Label htmlFor="period">Período</Label>
+                              <Input 
+                                id="period"
+                                type="month" 
+                                value={reportPeriod}
+                                onChange={(e) => setReportPeriod(e.target.value)}
+                              />
+                            </div>
+                          )}
                           <div className="space-y-2">
                             <Label htmlFor="company">Empresa</Label>
-                            <Select>
+                            <Select value={selectedCompany} onValueChange={setSelectedCompany}>
                               <SelectTrigger>
                                 <SelectValue placeholder="Selecionar empresa" />
                               </SelectTrigger>
@@ -413,7 +737,7 @@ export function ReportsPage() {
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="sector">Setor</Label>
-                            <Select>
+                            <Select value={selectedSector} onValueChange={setSelectedSector}>
                               <SelectTrigger>
                                 <SelectValue placeholder="Selecionar setor" />
                               </SelectTrigger>
@@ -429,7 +753,7 @@ export function ReportsPage() {
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="format">Formato</Label>
-                            <Select defaultValue="pdf">
+                            <Select value={reportFormat} onValueChange={setReportFormat}>
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
@@ -443,62 +767,55 @@ export function ReportsPage() {
                         </div>
 
                         <div className="flex items-center gap-4 pt-4 border-t">
-                          <Button onClick={handleGenerateReport} className="gap-2">
-                            <FileText className="h-4 w-4" />
-                            Gerar Relatório
+                          <Button 
+                            onClick={handleGenerateReport} 
+                            className="gap-2"
+                            disabled={isGenerating || !isPMOCTemplate}
+                          >
+                            {isGenerating ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <FileText className="h-4 w-4" />
+                            )}
+                            {isGenerating ? 'Gerando...' : 'Gerar Relatório'}
                           </Button>
-                          <Button variant="outline" className="gap-2">
-                            <Eye className="h-4 w-4" />
-                            Visualizar Preview
-                          </Button>
+                          {!isPMOCTemplate && (
+                            <span className="text-sm text-muted-foreground">
+                              Este modelo ainda não está disponível para geração automática
+                            </span>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
 
-                    {/* Preview PMOC (se for template PMOC) */}
-                    {selectedTemplate.category === 'pmoc' && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-base flex items-center gap-2">
-                            <Eye className="w-4 h-4" />
-                            Preview do Relatório
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="border rounded-lg p-6 bg-muted/30">
-                            <div className="text-center mb-6">
-                              <h2 className="text-xl font-bold">RELATÓRIO PMOC</h2>
-                              <p className="text-muted-foreground">Plano de Manutenção, Operação e Controle</p>
-                              <p className="text-sm">Período: Dezembro 2024</p>
-                            </div>
-                            
-                            <div className="space-y-4 text-sm">
-                              <div>
-                                <h3 className="font-semibold">1. IDENTIFICAÇÃO DA EMPRESA</h3>
-                                <p>Razão Social: UMC - Universidade de Mogi das Cruzes</p>
-                                <p>CNPJ: 52.562.758/0001-00</p>
-                              </div>
-                              
-                              <div>
-                                <h3 className="font-semibold">2. SISTEMAS DE CLIMATIZAÇÃO</h3>
-                                <p>Total de equipamentos: 45</p>
-                                <p>Capacidade total instalada: 2.500.000 BTUs</p>
-                              </div>
-                              
-                              <div>
-                                <h3 className="font-semibold">3. MANUTENÇÕES REALIZADAS</h3>
-                                <p>Manutenções preventivas: 38</p>
-                                <p>Manutenções corretivas: 7</p>
-                                <p>Taxa de conformidade: 98.5%</p>
-                              </div>
+                    {/* Preview do Relatório Gerado */}
+                    {generatedMonthlyReport && (
+                      <PMOCMonthlyPreview 
+                        report={generatedMonthlyReport}
+                        onExportPDF={() => console.log('Export PDF')}
+                        isExporting={false}
+                      />
+                    )}
+                    
+                    {generatedAnnualReport && (
+                      <PMOCAnnualPreview 
+                        report={generatedAnnualReport}
+                        onExportPDF={() => console.log('Export PDF')}
+                        isExporting={false}
+                      />
+                    )}
 
-                              <div>
-                                <h3 className="font-semibold">4. RESPONSÁVEL TÉCNICO</h3>
-                                <p>Nome: João da Silva</p>
-                                <p>CREA: SP-123456/D</p>
-                              </div>
-                            </div>
-                          </div>
+                    {/* Mensagem quando nenhum relatório foi gerado */}
+                    {isPMOCTemplate && !generatedMonthlyReport && !generatedAnnualReport && !isGenerating && (
+                      <Card className="border-dashed">
+                        <CardContent className="flex flex-col items-center justify-center py-12">
+                          <FileText className="w-12 h-12 text-muted-foreground/50 mb-4" />
+                          <p className="text-muted-foreground font-medium mb-2">
+                            Nenhum relatório gerado
+                          </p>
+                          <p className="text-sm text-muted-foreground text-center max-w-md">
+                            Configure os parâmetros acima e clique em "Gerar Relatório" para visualizar o PMOC
+                          </p>
                         </CardContent>
                       </Card>
                     )}
@@ -596,8 +913,7 @@ export function ReportsPage() {
                   </div>
                 )}
               </TabsContent>
-            </div>
-          </ScrollArea>
+          </div>
         </Tabs>
       </div>
     </div>

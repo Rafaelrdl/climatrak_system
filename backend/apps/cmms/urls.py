@@ -14,6 +14,7 @@ from .views import (
     PartUsageViewSet,
     ProcedureCategoryViewSet,
     ProcedureViewSet,
+    ReportsViewSet,
     RequestViewSet,
     TimeEntryViewSet,
     WorkOrderCostSummaryViewSet,
@@ -47,6 +48,9 @@ router.register(
 router.register(
     r"work-order-costs", WorkOrderCostSummaryViewSet, basename="work-order-cost"
 )
+
+# Reports (PMOC e outros)
+router.register(r"reports", ReportsViewSet, basename="reports")
 
 
 urlpatterns = [
