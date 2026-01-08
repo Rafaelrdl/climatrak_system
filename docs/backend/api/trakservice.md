@@ -347,6 +347,172 @@ HTTP/1.1 200 OK
 }
 ```
 
+---
+
+## Tracking Module
+
+GPS location tracking for technicians with privacy controls.
+
+### Endpoints
+
+| Endpoint | Method | Description | Feature Required |
+|----------|--------|-------------|------------------|
+| `/location/pings/` | POST | Submit GPS location ping | `trakservice.tracking` |
+| `/technicians/{id}/location/latest/` | GET | Get technician's latest location | `trakservice.tracking` |
+| `/technicians/{id}/location/` | GET | Get technician's location trail | `trakservice.tracking` |
+
+### Model: LocationPing
+
+```python
+{
+    "id": "uuid",                    # Primary key (UUID)
+    "technician": "uuid",            # FK to TechnicianProfile
+    "latitude": -23.5505199,         # Decimal (9,6)
+    "longitude": -46.6333094,        # Decimal (9,6)
+    "accuracy": 10.5,                # Float - GPS accuracy in meters
+    "altitude": 750.0,               # Float - Altitude in meters (optional)
+    "speed": 45.0,                   # Float - Speed in km/h (optional)
+    "heading": 180.0,                # Float - Direction 0-360 (optional)
+    "source": "gps",                 # Enum: gps, network, fused, manual
+    "device_id": "device-abc123",    # Device identifier for audit
+    "recorded_at": "datetime",       # When location was recorded
+    "created_at": "datetime",        # When ping was saved
+    "assignment": "uuid|null"        # Optional FK to ServiceAssignment
+}
+```
+
+### Privacy Constraints
+
+Location tracking respects **privacy controls**:
+
+1. **allow_tracking**: Technician must have `allow_tracking=True` in their profile
+2. **Work Window**: Pings are only accepted within the technician's work hours (`work_start_time` to `work_end_time`)
+3. **Audit Trail**: All pings include `device_id` and `recorded_at` for LGPD compliance
+
+If either constraint is violated, the ping is **rejected with 400 Bad Request**.
+
+### Example: Submit Location Ping
+
+```http
+POST /api/trakservice/location/pings/
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+    "latitude": "-23.5505199",
+    "longitude": "-46.6333094",
+    "accuracy": 10.5,
+    "altitude": 750.0,
+    "speed": 45.0,
+    "heading": 180.0,
+    "source": "gps",
+    "device_id": "device-abc123",
+    "recorded_at": "2026-01-08T10:30:00Z"
+}
+
+HTTP/1.1 201 Created
+{
+    "id": "770e8400-e29b-41d4-a716-446655440000",
+    "technician_id": "550e8400-e29b-41d4-a716-446655440000",
+    "technician_name": "João Silva",
+    "latitude": "-23.5505199",
+    "longitude": "-46.6333094",
+    "accuracy": 10.5,
+    "source": "gps",
+    "source_display": "GPS",
+    "device_id": "device-abc123",
+    "recorded_at": "2026-01-08T10:30:00Z",
+    "created_at": "2026-01-08T10:30:05Z"
+}
+```
+
+### Error Responses
+
+```http
+# Tracking disabled for technician
+HTTP/1.1 400 Bad Request
+{
+    "non_field_errors": ["Rastreamento não permitido. Verifique suas preferências."]
+}
+
+# Outside work window
+HTTP/1.1 400 Bad Request
+{
+    "non_field_errors": ["Rastreamento fora da janela de trabalho não é permitido."]
+}
+
+# User has no technician profile
+HTTP/1.1 400 Bad Request
+{
+    "non_field_errors": ["Usuário não possui perfil de técnico."]
+}
+```
+
+### Example: Get Latest Location
+
+```http
+GET /api/trakservice/technicians/550e8400-e29b-41d4-a716-446655440000/location/latest/
+Authorization: Bearer <token>
+
+HTTP/1.1 200 OK
+{
+    "id": "770e8400-e29b-41d4-a716-446655440000",
+    "technician_id": "550e8400-e29b-41d4-a716-446655440000",
+    "technician_name": "João Silva",
+    "latitude": "-23.5505199",
+    "longitude": "-46.6333094",
+    "accuracy": 10.5,
+    "source": "gps",
+    "recorded_at": "2026-01-08T10:30:00Z",
+    "is_stale": false,
+    "minutes_ago": 2
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `is_stale` | `true` if location is older than 5 minutes |
+| `minutes_ago` | Minutes since last update |
+
+### Example: Get Location Trail
+
+```http
+GET /api/trakservice/technicians/550e8400-e29b-41d4-a716-446655440000/location/?from=2026-01-08T08:00:00Z&to=2026-01-08T18:00:00Z
+Authorization: Bearer <token>
+
+HTTP/1.1 200 OK
+{
+    "technician_id": "550e8400-e29b-41d4-a716-446655440000",
+    "technician_name": "João Silva",
+    "from_date": "2026-01-08T08:00:00Z",
+    "to_date": "2026-01-08T18:00:00Z",
+    "total_pings": 45,
+    "pings": [
+        {
+            "id": "...",
+            "latitude": "-23.5505199",
+            "longitude": "-46.6333094",
+            "accuracy": 10.5,
+            "source": "gps",
+            "recorded_at": "2026-01-08T08:15:00Z"
+        },
+        ...
+    ]
+}
+```
+
+**Constraint**: Maximum 24-hour range per request to prevent heavy queries.
+
+```http
+# Range > 24 hours
+HTTP/1.1 400 Bad Request
+{
+    "detail": "Intervalo máximo de 24 horas permitido."
+}
+```
+
+---
+
 ## Feature Flags
 
 TrakService uses hierarchical feature flags stored per tenant:

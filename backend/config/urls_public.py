@@ -38,6 +38,8 @@ urlpatterns = [
     # Authentication happens INSIDE tenant schemas
     # TenantUserIndex provides discovery, TenantMembership provides roles
     path("api/v2/auth/", include("apps.public_identity.urls")),
+    # Marketing site APIs (blog/news)
+    path("api/marketing/", include("apps.marketing.urls")),
     # Password Reset (accessible without tenant - user may not know their tenant)
     path(
         "api/auth/password-reset/request/",

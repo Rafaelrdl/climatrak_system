@@ -73,6 +73,7 @@ SHARED_APPS = [
     "apps.tenants",
     "apps.ops",  # Ops panel (staff-only, public schema)
     "apps.public_identity",  # Public identity management (TenantUserIndex, TenantMembership)
+    "apps.marketing",  # Marketing site content (blog, news)
 ]
 
 TENANT_APPS = [
@@ -162,6 +163,9 @@ PUBLIC_SCHEMA_NAME = os.getenv("PUBLIC_SCHEMA_NAME", "public")
 # URLConf settings for multi-tenant
 PUBLIC_SCHEMA_URLCONF = "config.urls_public"  # Used when schema == 'public'
 ROOT_URLCONF = "config.urls"  # Default URLConf for tenants
+
+# Marketing/editor access
+MARKETING_EDITOR_KEY = os.getenv("MARKETING_EDITOR_KEY", "")
 
 # Authentication backends
 AUTHENTICATION_BACKENDS = [

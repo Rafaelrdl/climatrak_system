@@ -45,6 +45,11 @@ export function FunctionalitiesPage() {
                 {section.items.map((feature) => (
                   <Card key={feature.id} className="card-hover">
                     <CardContent className="pt-6">
+                      <div className="mb-4 rounded-xl border border-dashed border-primary/20 bg-muted/40 p-2">
+                        <div className="aspect-video w-full rounded-lg bg-gradient-to-br from-primary/5 via-white to-primary/10 flex items-center justify-center text-xs text-muted-foreground">
+                          Espaco para print ou gif
+                        </div>
+                      </div>
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <h3 className="text-xl font-semibold mb-1">{feature.name}</h3>

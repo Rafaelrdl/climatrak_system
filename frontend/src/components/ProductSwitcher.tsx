@@ -94,17 +94,12 @@ export function ProductSwitcher() {
   const location = useLocation();
   const { can } = useAbility();
   const hasTrakService = useTrakService();
-  
-  // Debug: Log feature status
-  console.log('🚚 [ProductSwitcher] hasTrakService:', hasTrakService);
 
   // Filtra produtos baseado em permissões e features
   const availableProducts = products.filter(product => {
     // Check feature requirements
     if (product.requiresFeature === 'trakservice') {
-      console.log('🚚 [ProductSwitcher] Checking TrakService:', { requiresFeature: product.requiresFeature, hasTrakService });
       if (!hasTrakService) {
-        console.log('🚚 [ProductSwitcher] TrakService FILTRADO (feature desabilitada)');
         return false;
       }
     }

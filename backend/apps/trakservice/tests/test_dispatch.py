@@ -370,7 +370,9 @@ class AssignmentAPITests(BaseDispatchTestCase):
         response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        for item in response.data:
+        # Response may be paginated (dict with 'results') or a list
+        results = response.data.get("results", response.data) if isinstance(response.data, dict) else response.data
+        for item in results:
             self.assertEqual(item["scheduled_date"], str(today))
     
     def test_filter_assignments_by_technician(self):
@@ -392,8 +394,11 @@ class AssignmentAPITests(BaseDispatchTestCase):
         response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        for item in response.data:
-            self.assertEqual(item["technician"], str(self.technician.id))
+        # Response may be paginated (dict with 'results') or a list
+        results = response.data.get("results", response.data) if isinstance(response.data, dict) else response.data
+        for item in results:
+            # technician is a nested object with id
+            self.assertEqual(item["technician"]["id"], str(self.technician.id))
     
     def test_filter_assignments_by_status(self):
         """Filtrar atribuições por status."""
@@ -414,7 +419,9 @@ class AssignmentAPITests(BaseDispatchTestCase):
         response = view(request)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        for item in response.data:
+        # Response may be paginated (dict with 'results') or a list
+        results = response.data.get("results", response.data) if isinstance(response.data, dict) else response.data
+        for item in results:
             self.assertEqual(item["status"], "scheduled")
     
     def test_change_assignment_status(self):

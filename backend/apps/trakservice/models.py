@@ -9,6 +9,7 @@ Models are tenant-specific (stored in tenant schemas).
 """
 
 import uuid
+from datetime import time as dt_time
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -50,12 +51,12 @@ class TechnicianProfile(models.Model):
     
     # Work schedule preferences
     work_start_time = models.TimeField(
-        default="08:00",
+        default=dt_time(8, 0),
         verbose_name="Horário de Início",
         help_text="Início da janela de trabalho",
     )
     work_end_time = models.TimeField(
-        default="18:00",
+        default=dt_time(18, 0),
         verbose_name="Horário de Término",
         help_text="Fim da janela de trabalho",
     )
@@ -242,4 +243,116 @@ class ServiceAssignment(models.Model):
             self.save(update_fields=["status", "canceled_at", "cancellation_reason", "updated_at"])
 
 
-__all__ = ["TechnicianProfile", "ServiceAssignment"]
+class LocationPing(models.Model):
+    """
+    GPS location ping from a field technician's mobile device.
+    
+    Stores location data with audit trail for tracking purposes.
+    Respects privacy constraints (work window, allow_tracking).
+    
+    Note: Only pings within the technician's work window and with
+    allow_tracking=True should be stored.
+    """
+    
+    class Source(models.TextChoices):
+        GPS = "gps", "GPS"
+        NETWORK = "network", "Rede"
+        FUSED = "fused", "Fusão GPS+Rede"
+        MANUAL = "manual", "Manual"
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Link to technician
+    technician = models.ForeignKey(
+        TechnicianProfile,
+        on_delete=models.CASCADE,
+        related_name="location_pings",
+        verbose_name="Técnico",
+    )
+    
+    # Location data
+    latitude = models.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        verbose_name="Latitude",
+        help_text="Latitude em graus decimais (-90 a 90)",
+    )
+    longitude = models.DecimalField(
+        max_digits=10,
+        decimal_places=7,
+        verbose_name="Longitude",
+        help_text="Longitude em graus decimais (-180 a 180)",
+    )
+    
+    # Accuracy/precision metadata
+    accuracy = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name="Precisão (metros)",
+        help_text="Raio de precisão em metros",
+    )
+    altitude = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name="Altitude (metros)",
+    )
+    speed = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name="Velocidade (m/s)",
+    )
+    heading = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name="Direção (graus)",
+        help_text="Direção em graus (0-360, 0=Norte)",
+    )
+    
+    # Source of location data
+    source = models.CharField(
+        max_length=20,
+        choices=Source.choices,
+        default=Source.GPS,
+        verbose_name="Fonte",
+    )
+    
+    # Audit trail (required by spec)
+    device_id = models.CharField(
+        max_length=100,
+        verbose_name="ID do Dispositivo",
+        help_text="Identificador único do dispositivo móvel",
+    )
+    recorded_at = models.DateTimeField(
+        verbose_name="Registrado em",
+        help_text="Timestamp quando a localização foi capturada no dispositivo",
+    )
+    
+    # Server-side metadata
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Recebido em")
+    
+    # Optional: link to active assignment (for context)
+    assignment = models.ForeignKey(
+        ServiceAssignment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="location_pings",
+        verbose_name="Atribuição",
+        help_text="Atribuição ativa quando o ping foi registrado",
+    )
+    
+    class Meta:
+        verbose_name = "Ping de Localização"
+        verbose_name_plural = "Pings de Localização"
+        ordering = ["-recorded_at"]
+        indexes = [
+            models.Index(fields=["technician", "-recorded_at"]),
+            models.Index(fields=["recorded_at"]),
+            models.Index(fields=["device_id"]),
+        ]
+    
+    def __str__(self):
+        return f"{self.technician} @ ({self.latitude}, {self.longitude}) - {self.recorded_at}"
+
+
+__all__ = ["TechnicianProfile", "ServiceAssignment", "LocationPing"]

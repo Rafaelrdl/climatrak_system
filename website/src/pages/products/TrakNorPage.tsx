@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { 
   ArrowRight, 
   Check, 
@@ -21,6 +21,7 @@ import {
   MapPin,
   CalendarDays,
   Inbox,
+  ChevronLeft,
   ChevronRight,
   Activity,
   Search,
@@ -125,8 +126,26 @@ const benefits = [
 ]
 
 export function TrakNorPage() {
-  const [activeModule, setActiveModule] = useState('ativos')
-  const activeScreen = moduleScreens.find(m => m.id === activeModule)!
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+  const activeModule = moduleScreens[activeIndex]
+  const nextModule = moduleScreens[(activeIndex + 1) % moduleScreens.length]
+
+  useEffect(() => {
+    if (isPaused) return
+    const timer = setInterval(() => {
+      setActiveIndex((current) => (current + 1) % moduleScreens.length)
+    }, 5500)
+    return () => clearInterval(timer)
+  }, [isPaused])
+
+  const handlePrev = () => {
+    setActiveIndex((current) => (current - 1 + moduleScreens.length) % moduleScreens.length)
+  }
+
+  const handleNext = () => {
+    setActiveIndex((current) => (current + 1) % moduleScreens.length)
+  }
 
   return (
     <div className="flex flex-col">
@@ -255,62 +274,120 @@ export function TrakNorPage() {
           <div className="text-center mb-12">
             <Badge className="mb-4 bg-teal-100 text-teal-700">Funcionalidades</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Explore os Módulos do TrakNor
+              Explore os modulos do TrakNor
             </h2>
             <p className="text-lg text-gray-500 max-w-2xl mx-auto">
-              Clique em cada módulo para ver detalhes e preview da interface.
+              Os modulos giram automaticamente. Pare o cursor para explorar no seu ritmo.
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            <div className="space-y-2">
-              {moduleScreens.map((module) => (
-                <button
-                  key={module.id}
-                  onClick={() => setActiveModule(module.id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all",
-                    activeModule === module.id 
-                      ? 'bg-teal-500 text-white shadow-lg'
-                      : 'bg-white border hover:border-teal-300 hover:bg-teal-50'
-                  )}
+          <div
+            className="relative rounded-3xl border border-teal-100 bg-white/80 p-6 lg:p-8 shadow-xl"
+            onPointerEnter={() => setIsPaused(true)}
+            onPointerLeave={() => setIsPaused(false)}
+          >
+            <div className="absolute -top-16 right-10 h-32 w-32 rounded-full bg-teal-200/50 blur-3xl" />
+            <div className="absolute -bottom-10 left-12 h-40 w-40 rounded-full bg-teal-100/70 blur-3xl" />
+            <div className="relative space-y-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-wrap gap-2">
+                  {moduleScreens.map((module, index) => (
+                    <button
+                      key={module.id}
+                      type="button"
+                      onClick={() => setActiveIndex(index)}
+                      className={cn(
+                        "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition",
+                        index === activeIndex
+                          ? 'border-teal-600 bg-teal-600 text-white shadow-md'
+                          : 'border-teal-100 bg-white text-gray-600 hover:border-teal-300 hover:text-teal-700'
+                      )}
+                    >
+                      <module.icon className={cn("h-4 w-4", index === activeIndex ? 'text-white' : 'text-teal-500')} />
+                      {module.name}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <span className="flex items-center gap-2">
+                    <span className={cn("h-2 w-2 rounded-full", isPaused ? 'bg-gray-300' : 'bg-teal-500 animate-pulse')} />
+                    {isPaused ? 'Pausado' : 'Transicao automatica'}
+                  </span>
+                  <span className="hidden sm:inline">Proximo: {nextModule.name}</span>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={handlePrev}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleNext}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative overflow-hidden rounded-2xl border border-teal-100 bg-white shadow-lg">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(20,184,166,0.12),_transparent_55%)]" />
+                <div
+                  className="relative flex transition-transform duration-700 ease-out"
+                  style={{ transform: `translateX(-${activeIndex * 100}%)` }}
                 >
-                  <module.icon className={cn("w-5 h-5", activeModule === module.id ? 'text-white' : 'text-teal-600')} />
-                  <span className="font-medium">{module.name}</span>
-                  <ChevronRight className={cn("w-4 h-4 ml-auto transition-transform", activeModule === module.id ? 'text-white rotate-90' : 'text-gray-400')} />
-                </button>
-              ))}
-            </div>
-
-            <div className="lg:col-span-2">
-              <Card className="overflow-hidden border-teal-200">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center">
-                      <activeScreen.icon className="w-6 h-6 text-teal-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">{activeScreen.name}</h3>
-                      <p className="text-sm text-gray-500">Módulo do TrakNor CMMS</p>
-                    </div>
-                  </div>
-                  
-                  <p className="text-gray-600 mb-6">{activeScreen.description}</p>
-                  
-                  <div className="grid sm:grid-cols-2 gap-3 mb-6">
-                    {activeScreen.features.map((feature) => (
-                      <div key={feature} className="flex items-center gap-2">
-                        <Check className="w-4 h-4 text-teal-500" />
-                        <span className="text-sm">{feature}</span>
+                  {moduleScreens.map((module) => (
+                    <div key={module.id} className="min-w-full p-6 lg:p-8">
+                      <div className="grid lg:grid-cols-[1.1fr_1fr] gap-6 items-start">
+                        <div>
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-11 h-11 rounded-xl bg-teal-100 flex items-center justify-center">
+                              <module.icon className="w-5 h-5 text-teal-600" />
+                            </div>
+                            <div>
+                              <h3 className="text-2xl font-bold">{module.name}</h3>
+                              <p className="text-sm text-gray-500">Modulo do TrakNor CMMS</p>
+                            </div>
+                          </div>
+                          <p className="text-gray-600 mb-6">{module.description}</p>
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            {module.features.map((feature) => (
+                              <div key={feature} className="flex items-center gap-2">
+                                <Check className="w-4 h-4 text-teal-500" />
+                                <span className="text-sm">{feature}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="bg-gray-100 rounded-2xl p-4">
+                          <ModulePreview moduleId={module.id} />
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-                  <div className="bg-gray-100 rounded-xl p-4">
-                    <ModulePreview moduleId={activeModule} />
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-gray-500">
+                <span className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
+                  {activeModule.name} em foco
+                </span>
+                <div className="flex items-center gap-2">
+                  {moduleScreens.map((module, index) => (
+                    <button
+                      key={module.id}
+                      type="button"
+                      onClick={() => setActiveIndex(index)}
+                      className="group"
+                      aria-label={`Ir para ${module.name}`}
+                    >
+                      <span
+                        className={cn(
+                          "block h-1.5 rounded-full transition-all",
+                          index === activeIndex ? 'w-8 bg-teal-500' : 'w-3 bg-teal-200 group-hover:bg-teal-300'
+                        )}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>

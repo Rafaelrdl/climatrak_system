@@ -7,7 +7,7 @@ Serializers for TrakService API endpoints.
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import ServiceAssignment, TechnicianProfile
+from .models import LocationPing, ServiceAssignment, TechnicianProfile
 
 User = get_user_model()
 
@@ -307,3 +307,158 @@ class ServiceAssignmentStatusSerializer(serializers.Serializer):
             })
         
         return data
+
+
+# =============================================================================
+# Location Tracking Serializers
+# =============================================================================
+
+
+class LocationPingSerializer(serializers.ModelSerializer):
+    """Serializer for reading LocationPing data."""
+    
+    technician_id = serializers.UUIDField(source="technician.id", read_only=True)
+    technician_name = serializers.CharField(source="technician.full_name", read_only=True)
+    source_display = serializers.CharField(source="get_source_display", read_only=True)
+    
+    class Meta:
+        model = LocationPing
+        fields = [
+            "id",
+            "technician_id",
+            "technician_name",
+            "latitude",
+            "longitude",
+            "accuracy",
+            "altitude",
+            "speed",
+            "heading",
+            "source",
+            "source_display",
+            "device_id",
+            "recorded_at",
+            "created_at",
+            "assignment",
+        ]
+        read_only_fields = ["id", "created_at"]
+
+
+class LocationPingCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating LocationPing from mobile device.
+    
+    Used by POST /api/trakservice/location/pings
+    The technician is inferred from the authenticated user.
+    """
+    
+    class Meta:
+        model = LocationPing
+        fields = [
+            "latitude",
+            "longitude",
+            "accuracy",
+            "altitude",
+            "speed",
+            "heading",
+            "source",
+            "device_id",
+            "recorded_at",
+            "assignment",
+        ]
+    
+    def validate_latitude(self, value):
+        """Validate latitude is within valid range."""
+        if value < -90 or value > 90:
+            raise serializers.ValidationError(
+                "Latitude deve estar entre -90 e 90 graus."
+            )
+        return value
+    
+    def validate_longitude(self, value):
+        """Validate longitude is within valid range."""
+        if value < -180 or value > 180:
+            raise serializers.ValidationError(
+                "Longitude deve estar entre -180 e 180 graus."
+            )
+        return value
+    
+    def validate(self, data):
+        """Cross-field validation and privacy checks."""
+        request = self.context.get("request")
+        if not request or not request.user:
+            raise serializers.ValidationError("Usuário não autenticado.")
+        
+        # Get technician profile for the user
+        try:
+            technician = TechnicianProfile.objects.get(user=request.user)
+        except TechnicianProfile.DoesNotExist:
+            raise serializers.ValidationError(
+                "Usuário não possui perfil de técnico."
+            )
+        
+        # Check allow_tracking preference
+        if not technician.allow_tracking:
+            raise serializers.ValidationError(
+                "Rastreamento não permitido. Verifique suas preferências."
+            )
+        
+        # Check work window (privacy)
+        # Compare in UTC to avoid timezone issues
+        from datetime import timezone as dt_timezone
+        from django.utils import timezone
+        recorded_at = data.get("recorded_at", timezone.now())
+        
+        # Convert to UTC if timezone-aware, then extract time
+        if timezone.is_aware(recorded_at):
+            recorded_at_utc = recorded_at.astimezone(dt_timezone.utc)
+        else:
+            recorded_at_utc = recorded_at
+        recorded_time = recorded_at_utc.time()
+        
+        if not (technician.work_start_time <= recorded_time <= technician.work_end_time):
+            raise serializers.ValidationError(
+                "Rastreamento fora da janela de trabalho não é permitido."
+            )
+        
+        # Store technician for create
+        data["_technician"] = technician
+        return data
+    
+    def create(self, validated_data):
+        """Create LocationPing with technician from context."""
+        technician = validated_data.pop("_technician")
+        return LocationPing.objects.create(technician=technician, **validated_data)
+
+
+class LatestLocationSerializer(serializers.Serializer):
+    """
+    Serializer for technician's latest location.
+    
+    Used by GET /api/trakservice/technicians/{id}/location/latest
+    """
+    
+    technician_id = serializers.UUIDField()
+    technician_name = serializers.CharField()
+    latitude = serializers.DecimalField(max_digits=10, decimal_places=7)
+    longitude = serializers.DecimalField(max_digits=10, decimal_places=7)
+    accuracy = serializers.FloatField(allow_null=True)
+    source = serializers.CharField()
+    recorded_at = serializers.DateTimeField()
+    is_stale = serializers.BooleanField(help_text="True if location is older than 5 minutes")
+    minutes_ago = serializers.IntegerField(help_text="Minutes since last ping")
+
+
+class LocationTrailSerializer(serializers.Serializer):
+    """
+    Serializer for location trail response.
+    
+    Used by GET /api/trakservice/technicians/{id}/location?from=...&to=...
+    """
+    
+    technician_id = serializers.UUIDField()
+    technician_name = serializers.CharField()
+    from_date = serializers.DateTimeField()
+    to_date = serializers.DateTimeField()
+    total_pings = serializers.IntegerField()
+    pings = LocationPingSerializer(many=True)
+

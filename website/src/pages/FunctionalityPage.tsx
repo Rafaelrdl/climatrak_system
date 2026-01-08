@@ -66,6 +66,33 @@ export function FunctionalityPage() {
 
       <section className="section-padding">
         <div className="container-wide">
+          <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-8 items-center">
+            <div className="rounded-2xl border border-dashed border-primary/30 bg-muted/40 p-3">
+              <div className="aspect-video w-full rounded-xl bg-gradient-to-br from-primary/10 via-white to-primary/5 flex items-center justify-center text-sm text-muted-foreground">
+                Espaco para print ou gif da tela
+              </div>
+            </div>
+            <div>
+              <Badge variant="secondary" className="mb-3">Visual</Badge>
+              <h2 className="text-2xl font-bold mb-3">Como aparece na plataforma</h2>
+              <p className="text-muted-foreground mb-4">
+                Use este espaco para demonstrar o fluxo real. Substitua o placeholder por um print ou gif da funcionalidade.
+              </p>
+              <div className="space-y-2">
+                {functionality.outcomes.slice(0, 2).map((outcome) => (
+                  <div key={outcome} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <CheckCircle2 className="w-4 h-4 text-primary mt-0.5" />
+                    <span>{outcome}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section-padding">
+        <div className="container-wide">
           <div className="grid lg:grid-cols-2 gap-8">
             <Card className="card-hover">
               <CardContent className="pt-6">

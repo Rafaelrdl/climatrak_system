@@ -1,8 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 import { 
   ArrowRight, 
   Check, 
@@ -13,6 +12,7 @@ import {
   BarChart3,
   Wallet,
   Sparkles,
+  ChevronLeft,
   ChevronRight,
   Plus,
   Download,
@@ -53,6 +53,13 @@ const moduleScreens = [
     features: ['Orcamento vs realizado', 'Gastos por categoria', 'Tendencias mensais', 'Top ativos por custo', 'Alertas de orcamento'],
   },
   {
+    id: 'orcamentos',
+    name: 'Orcamentos',
+    icon: Target,
+    description: 'Planos anuais e envelopes por categoria com metas mensais.',
+    features: ['Planos anuais', 'Envelopes por centro de custo', 'Grade mensal planejada', 'Contingencia e revisoes', 'Aprovacoes por etapa'],
+  },
+  {
     id: 'lancamentos',
     name: 'Lancamentos',
     icon: FileText,
@@ -60,11 +67,25 @@ const moduleScreens = [
     features: ['Historico completo', 'Filtros por periodo/categoria', 'Exportacao Excel/PDF', 'Vinculo com OS', 'Compromissos futuros'],
   },
   {
+    id: 'compromissos',
+    name: 'Compromissos',
+    icon: Wallet,
+    description: 'Fluxo de compromissos com anexos e impacto direto no budget.',
+    features: ['Criacao com anexos', 'Submit, approve e cancel', 'Impacto no budget do mes', 'Status por etapa', 'Alertas de estouro'],
+  },
+  {
     id: 'economia',
     name: 'Economia',
     icon: PiggyBank,
     description: 'Documente economias da manutencao preditiva com ROI calculado.',
     features: ['Registro de economias', 'Calculo de ROI', 'Falhas evitadas', 'Downtime prevenido', 'Relatorios gerenciais'],
+  },
+  {
+    id: 'configuracoes',
+    name: 'Configuracoes',
+    icon: Wrench,
+    description: 'Cadastre centros de custo, categorias e regras financeiras.',
+    features: ['Centros de custo', 'Categorias e rate cards', 'Regras simples de alocacao', 'Permissoes por perfil', 'Parametros de integracao'],
   },
 ]
 
@@ -76,8 +97,26 @@ const kpis = [
 ]
 
 export function TrakLedgerPage() {
-  const [activeModule, setActiveModule] = useState('painel')
-  const activeScreen = moduleScreens.find(m => m.id === activeModule)!
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+  const activeModule = moduleScreens[activeIndex]
+  const nextModule = moduleScreens[(activeIndex + 1) % moduleScreens.length]
+
+  useEffect(() => {
+    if (isPaused) return
+    const timer = setInterval(() => {
+      setActiveIndex((current) => (current + 1) % moduleScreens.length)
+    }, 5500)
+    return () => clearInterval(timer)
+  }, [isPaused])
+
+  const handlePrev = () => {
+    setActiveIndex((current) => (current - 1 + moduleScreens.length) % moduleScreens.length)
+  }
+
+  const handleNext = () => {
+    setActiveIndex((current) => (current + 1) % moduleScreens.length)
+  }
 
   return (
     <div className="flex flex-col">
@@ -216,62 +255,120 @@ export function TrakLedgerPage() {
           <div className="text-center mb-12">
             <Badge className="mb-4 bg-teal-100 text-teal-700">Funcionalidades</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Explore os Módulos do TrakLedger
+              Explore os modulos do TrakLedger
             </h2>
             <p className="text-lg text-gray-500 max-w-2xl mx-auto">
-              Clique em cada módulo para ver detalhes e preview da interface.
+              Uma trilha automatica mostra como o budget se conecta ao ledger, compromissos e economia.
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            <div className="space-y-2">
-              {moduleScreens.map((module) => (
-                <button
-                  key={module.id}
-                  onClick={() => setActiveModule(module.id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all",
-                    activeModule === module.id 
-                      ? 'bg-teal-500 text-white shadow-lg'
-                      : 'bg-white border hover:border-teal-300 hover:bg-teal-50'
-                  )}
+          <div
+            className="relative rounded-3xl border border-teal-100 bg-white/80 p-6 lg:p-8 shadow-xl"
+            onPointerEnter={() => setIsPaused(true)}
+            onPointerLeave={() => setIsPaused(false)}
+          >
+            <div className="absolute -top-16 right-10 h-32 w-32 rounded-full bg-emerald-200/40 blur-3xl" />
+            <div className="absolute -bottom-10 left-12 h-40 w-40 rounded-full bg-teal-100/70 blur-3xl" />
+            <div className="relative space-y-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-wrap gap-2">
+                  {moduleScreens.map((module, index) => (
+                    <button
+                      key={module.id}
+                      type="button"
+                      onClick={() => setActiveIndex(index)}
+                      className={cn(
+                        "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition",
+                        index === activeIndex
+                          ? 'border-teal-600 bg-teal-600 text-white shadow-md'
+                          : 'border-teal-100 bg-white text-gray-600 hover:border-teal-300 hover:text-teal-700'
+                      )}
+                    >
+                      <module.icon className={cn("h-4 w-4", index === activeIndex ? 'text-white' : 'text-teal-500')} />
+                      {module.name}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <span className="flex items-center gap-2">
+                    <span className={cn("h-2 w-2 rounded-full", isPaused ? 'bg-gray-300' : 'bg-teal-500 animate-pulse')} />
+                    {isPaused ? 'Pausado' : 'Transicao automatica'}
+                  </span>
+                  <span className="hidden sm:inline">Proximo: {nextModule.name}</span>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={handlePrev}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleNext}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative overflow-hidden rounded-2xl border border-teal-100 bg-white shadow-lg">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(20,184,166,0.12),_transparent_55%)]" />
+                <div
+                  className="relative flex transition-transform duration-700 ease-out"
+                  style={{ transform: `translateX(-${activeIndex * 100}%)` }}
                 >
-                  <module.icon className={cn("w-5 h-5", activeModule === module.id ? 'text-white' : 'text-teal-600')} />
-                  <span className="font-medium">{module.name}</span>
-                  <ChevronRight className={cn("w-4 h-4 ml-auto transition-transform", activeModule === module.id ? 'text-white rotate-90' : 'text-gray-400')} />
-                </button>
-              ))}
-            </div>
-
-            <div className="lg:col-span-2">
-              <Card className="overflow-hidden border-teal-200">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center">
-                      <activeScreen.icon className="w-6 h-6 text-teal-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">{activeScreen.name}</h3>
-                      <p className="text-sm text-gray-500">Módulo TrakLedger</p>
-                    </div>
-                  </div>
-                  
-                  <p className="text-gray-600 mb-6">{activeScreen.description}</p>
-                  
-                  <div className="grid sm:grid-cols-2 gap-3 mb-6">
-                    {activeScreen.features.map((feature) => (
-                      <div key={feature} className="flex items-center gap-2">
-                        <Check className="w-4 h-4 text-teal-500" />
-                        <span className="text-sm">{feature}</span>
+                  {moduleScreens.map((module) => (
+                    <div key={module.id} className="min-w-full p-6 lg:p-8">
+                      <div className="grid lg:grid-cols-[1.1fr_1fr] gap-6 items-start">
+                        <div>
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-11 h-11 rounded-xl bg-teal-100 flex items-center justify-center">
+                              <module.icon className="w-5 h-5 text-teal-600" />
+                            </div>
+                            <div>
+                              <h3 className="text-2xl font-bold">{module.name}</h3>
+                              <p className="text-sm text-gray-500">Modulo TrakLedger</p>
+                            </div>
+                          </div>
+                          <p className="text-gray-600 mb-6">{module.description}</p>
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            {module.features.map((feature) => (
+                              <div key={feature} className="flex items-center gap-2">
+                                <Check className="w-4 h-4 text-teal-500" />
+                                <span className="text-sm">{feature}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="bg-gray-100 rounded-2xl p-4">
+                          <ModulePreview moduleId={module.id} />
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-                  <div className="bg-gray-100 rounded-xl p-4">
-                    <ModulePreview moduleId={activeModule} />
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-gray-500">
+                <span className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
+                  {activeModule.name} em foco
+                </span>
+                <div className="flex items-center gap-2">
+                  {moduleScreens.map((module, index) => (
+                    <button
+                      key={module.id}
+                      type="button"
+                      onClick={() => setActiveIndex(index)}
+                      className="group"
+                      aria-label={`Ir para ${module.name}`}
+                    >
+                      <span
+                        className={cn(
+                          "block h-1.5 rounded-full transition-all",
+                          index === activeIndex ? 'w-8 bg-teal-500' : 'w-3 bg-teal-200 group-hover:bg-teal-300'
+                        )}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -564,7 +661,7 @@ function ModulePreview({ moduleId }: { moduleId: string }) {
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="p-2 bg-teal-50 rounded text-center">
             <div className="text-lg font-bold text-teal-600">57%</div>
-            <div className="text-xs text-gray-500">Orçamento usado</div>
+            <div className="text-xs text-gray-500">Orcamento usado</div>
           </div>
           <div className="p-2 bg-emerald-50 rounded text-center">
             <div className="text-lg font-bold text-emerald-600">R$ 124k</div>
@@ -578,11 +675,33 @@ function ModulePreview({ moduleId }: { moduleId: string }) {
         </div>
       </div>
     ),
+    orcamentos: (
+      <div className="bg-white rounded-lg p-4 shadow-sm">
+        <div className="text-sm font-medium mb-3">Envelopes do ano</div>
+        <div className="space-y-2">
+          {[
+            { name: 'Manutencao HVAC', pct: 62, value: 'R$ 180k' },
+            { name: 'Pecas e insumos', pct: 48, value: 'R$ 95k' },
+            { name: 'Terceiros', pct: 35, value: 'R$ 70k' },
+          ].map((item) => (
+            <div key={item.name} className="rounded-lg border border-gray-100 p-2 text-xs">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-medium">{item.name}</span>
+                <span className="text-teal-600">{item.value}</span>
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-teal-500 rounded-full" style={{ width: `${item.pct}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
     lancamentos: (
       <div className="bg-white rounded-lg p-4 shadow-sm">
         <div className="space-y-2">
           {[
-            { desc: 'Manutenção Chiller 01', cat: 'Preventiva', value: 'R$ 1.730' },
+            { desc: 'Manutencao Chiller 01', cat: 'Preventiva', value: 'R$ 1.730' },
             { desc: 'Reparo Split Sala 12', cat: 'Corretiva', value: 'R$ 890' },
             { desc: 'Troca filtros Bloco A', cat: 'Preventiva', value: 'R$ 320' },
           ].map((t, i) => (
@@ -598,14 +717,35 @@ function ModulePreview({ moduleId }: { moduleId: string }) {
         </div>
       </div>
     ),
+    compromissos: (
+      <div className="bg-white rounded-lg p-4 shadow-sm">
+        <div className="text-sm font-medium mb-3">Compromissos em fluxo</div>
+        <div className="space-y-2 text-xs">
+          {[
+            { desc: 'Contrato filtros', status: 'Em aprovacao', value: 'R$ 18.200' },
+            { desc: 'Manutencao corretiva', status: 'Submetido', value: 'R$ 6.450' },
+            { desc: 'Servico eletrico', status: 'Aprovado', value: 'R$ 9.700' },
+          ].map((item) => (
+            <div key={item.desc} className="flex items-center gap-2 rounded bg-gray-50 p-2">
+              <Wallet className="w-4 h-4 text-teal-500" />
+              <div className="flex-1">
+                <div className="font-medium">{item.desc}</div>
+                <div className="text-gray-500">{item.status}</div>
+              </div>
+              <span className="font-medium">{item.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
     economia: (
       <div className="bg-white rounded-lg p-4 shadow-sm">
-        <div className="text-sm font-medium mb-3">Economias Recentes</div>
+        <div className="text-sm font-medium mb-3">Economias recentes</div>
         <div className="space-y-2">
           {[
             { desc: 'Falha evitada - Chiller 01', value: 'R$ 12.500' },
             { desc: 'Downtime prevenido - CPD', value: 'R$ 8.200' },
-            { desc: 'Otimização energia', value: 'R$ 3.800' },
+            { desc: 'Otimizacao energia', value: 'R$ 3.800' },
           ].map((e, i) => (
             <div key={i} className="flex items-center gap-2 p-2 bg-emerald-50 rounded text-xs">
               <PiggyBank className="w-4 h-4 text-emerald-500" />
@@ -615,12 +755,33 @@ function ModulePreview({ moduleId }: { moduleId: string }) {
           ))}
         </div>
         <div className="mt-3 p-2 bg-teal-50 rounded text-center">
-          <div className="text-xs text-teal-600">ROI Acumulado</div>
+          <div className="text-xs text-teal-600">ROI acumulado</div>
           <div className="text-lg font-bold text-teal-700">3.2x</div>
         </div>
       </div>
     ),
+    configuracoes: (
+      <div className="bg-white rounded-lg p-4 shadow-sm">
+        <div className="text-sm font-medium mb-3">Parametros principais</div>
+        <div className="space-y-2 text-xs">
+          {[
+            { label: 'Centros de custo', value: '12 ativos' },
+            { label: 'Categorias', value: '8 padroes' },
+            { label: 'Regras de alocacao', value: 'Ativas' },
+            { label: 'Rate cards', value: '3 contratos' },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center justify-between rounded bg-gray-50 p-2">
+              <span className="text-gray-600">{item.label}</span>
+              <span className="font-medium text-teal-600">{item.value}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex items-center gap-2 rounded bg-teal-50 px-2 py-1 text-xs text-teal-700">
+          <Wrench className="h-3 w-3" />
+          Regras simples habilitadas
+        </div>
+      </div>
+    ),
   }
-  return previews[moduleId] || <div className="text-center py-8 text-gray-500">Preview não disponível</div>
+  return previews[moduleId] || <div className="text-center py-8 text-gray-500">Preview nao disponivel</div>
 }
-

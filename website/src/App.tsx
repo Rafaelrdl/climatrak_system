@@ -13,6 +13,8 @@ import { PricingPage } from './pages/PricingPage'
 import { AboutPage } from './pages/AboutPage'
 import { ContactPage } from './pages/ContactPage'
 import { BlogPage } from './pages/BlogPage'
+import { BlogPostPage } from './pages/BlogPostPage'
+import { BlogEditorPage } from './pages/BlogEditorPage'
 import { DemoPage } from './pages/DemoPage'
 import { TerceirosPage } from './pages/TerceirosPage'
 
@@ -34,6 +36,8 @@ function App() {
           <Route path="/sobre" element={<AboutPage />} />
           <Route path="/contato" element={<ContactPage />} />
           <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/novo" element={<BlogEditorPage />} />
+          <Route path="/blog/:slug" element={<BlogPostPage />} />
           <Route path="/demo" element={<DemoPage />} />
           <Route path="/terceiros" element={<TerceirosPage />} />
           <Route path="/tecnicos" element={<TerceirosPage />} />

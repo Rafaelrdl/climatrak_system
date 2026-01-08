@@ -19,8 +19,12 @@ from rest_framework.views import APIView
 
 from apps.tenants.permissions import TrakServiceFeatureRequired
 
-from .models import ServiceAssignment, TechnicianProfile
+from .models import LocationPing, ServiceAssignment, TechnicianProfile
 from .serializers import (
+    LatestLocationSerializer,
+    LocationPingCreateSerializer,
+    LocationPingSerializer,
+    LocationTrailSerializer,
     ServiceAssignmentCreateSerializer,
     ServiceAssignmentSerializer,
     ServiceAssignmentStatusSerializer,
@@ -301,19 +305,176 @@ class ServiceAssignmentViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(queryset)
         serializer = ServiceAssignmentSerializer(queryset, many=True)
         return Response(serializer.data)
-# Each is gated by its respective feature flag
 
-# class ServiceJobViewSet(BaseFeatureViewSet):
-#     """ViewSet for service job management (requires trakservice.dispatch)."""
-#     trakservice_features = ['dispatch']
+
+# =============================================================================
+# Tracking Views
+# =============================================================================
+
+
+class LocationPingView(APIView):
+    """
+    Endpoint for submitting GPS location pings from mobile devices.
+    
+    Requires: trakservice.enabled + trakservice.tracking
+    
+    POST /api/trakservice/location/pings
+    
+    Privacy constraints enforced:
+    - Technician must have allow_tracking=True
+    - Ping must be within technician's work window
+    """
+    
+    permission_classes = [IsAuthenticated, TrakServiceFeatureRequired]
+    trakservice_features = ["tracking"]
+    
+    def post(self, request):
+        """
+        Submit a location ping.
+        
+        Body:
+        {
+            "latitude": -23.5505,
+            "longitude": -46.6333,
+            "accuracy": 10.5,
+            "altitude": 760.0,       // optional
+            "speed": 0.0,            // optional, m/s
+            "heading": 180.0,        // optional, degrees
+            "source": "gps",         // gps|network|fused|manual
+            "device_id": "abc123",
+            "recorded_at": "2026-01-08T10:30:00Z",
+            "assignment": "uuid"     // optional, active assignment
+        }
+        """
+        serializer = LocationPingCreateSerializer(
+            data=request.data,
+            context={"request": request}
+        )
+        
+        if serializer.is_valid():
+            ping = serializer.save()
+            output = LocationPingSerializer(ping)
+            return Response(output.data, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TechnicianLocationView(APIView):
+    """
+    Endpoints for retrieving technician location data.
+    
+    Requires: trakservice.enabled + trakservice.tracking
+    
+    GET /api/trakservice/technicians/{id}/location/latest - Latest location
+    GET /api/trakservice/technicians/{id}/location?from=...&to=... - Trail
+    """
+    
+    permission_classes = [IsAuthenticated, TrakServiceFeatureRequired]
+    trakservice_features = ["tracking"]
+    
+    def get(self, request, technician_id):
+        """
+        Get technician location data.
+        
+        If 'from' and 'to' params provided: returns trail
+        Otherwise: returns latest location
+        """
+        # Verify technician exists
+        try:
+            technician = TechnicianProfile.objects.get(id=technician_id)
+        except TechnicianProfile.DoesNotExist:
+            return Response(
+                {"detail": "Técnico não encontrado."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if requesting trail or latest
+        from_date = request.query_params.get("from")
+        to_date = request.query_params.get("to")
+        
+        if from_date and to_date:
+            return self._get_trail(technician, from_date, to_date)
+        else:
+            return self._get_latest(technician)
+    
+    def _get_latest(self, technician):
+        """Get latest location for technician."""
+        latest_ping = LocationPing.objects.filter(
+            technician=technician
+        ).order_by("-recorded_at").first()
+        
+        if not latest_ping:
+            return Response(
+                {"detail": "Nenhuma localização encontrada para este técnico."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Calculate staleness
+        now = timezone.now()
+        time_diff = now - latest_ping.recorded_at
+        minutes_ago = int(time_diff.total_seconds() / 60)
+        is_stale = minutes_ago > 5  # Stale if older than 5 minutes
+        
+        data = {
+            "technician_id": technician.id,
+            "technician_name": technician.full_name,
+            "latitude": latest_ping.latitude,
+            "longitude": latest_ping.longitude,
+            "accuracy": latest_ping.accuracy,
+            "source": latest_ping.source,
+            "recorded_at": latest_ping.recorded_at,
+            "is_stale": is_stale,
+            "minutes_ago": minutes_ago,
+        }
+        
+        serializer = LatestLocationSerializer(data)
+        return Response(serializer.data)
+    
+    def _get_trail(self, technician, from_date_str, to_date_str):
+        """Get location trail for technician within date range."""
+        from dateutil.parser import parse as parse_date
+        
+        try:
+            from_date = parse_date(from_date_str)
+            to_date = parse_date(to_date_str)
+        except (ValueError, TypeError):
+            return Response(
+                {"detail": "Formato de data inválido. Use ISO 8601 (ex: 2026-01-08T00:00:00Z)"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Limit range to 24 hours max for performance
+        if (to_date - from_date).total_seconds() > 86400:
+            return Response(
+                {"detail": "Intervalo máximo permitido é 24 horas."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        pings = LocationPing.objects.filter(
+            technician=technician,
+            recorded_at__gte=from_date,
+            recorded_at__lte=to_date,
+        ).order_by("recorded_at")
+        
+        data = {
+            "technician_id": technician.id,
+            "technician_name": technician.full_name,
+            "from_date": from_date,
+            "to_date": to_date,
+            "total_pings": pings.count(),
+            "pings": LocationPingSerializer(pings, many=True).data,
+        }
+        
+        serializer = LocationTrailSerializer(data)
+        return Response(serializer.data)
+
+
+# Placeholder ViewSets for future features
+# Each is gated by its respective feature flag
 
 # class ServiceRouteViewSet(BaseFeatureViewSet):
 #     """ViewSet for route management (requires trakservice.routing)."""
 #     trakservice_features = ['routing']
-
-# class TrackingViewSet(BaseFeatureViewSet):
-#     """ViewSet for GPS tracking (requires trakservice.tracking)."""
-#     trakservice_features = ['tracking']
 
 # class QuoteViewSet(BaseFeatureViewSet):
 #     """ViewSet for quote management (requires trakservice.quotes)."""
