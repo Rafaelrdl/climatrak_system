@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { MapPin, Search, Activity, Info, Package, LayoutGrid, List, Filter, Plus } from 'lucide-react';
@@ -358,6 +359,7 @@ function AssetsContent() {
     
     // Localização
     companyId: '',     // ID da empresa
+    unitId: '',        // ID da unidade
     sectorId: '',      // ID do setor onde o equipamento está localizado
     subSectionId: '',  // ID do subsetor (opcional)
     location: '',      // Localização específica (ex: Sala 101, Teto - Posição A)
@@ -368,7 +370,7 @@ function AssetsContent() {
     
     // Especificações Elétricas
     nominalVoltage: undefined as number | undefined,    // Tensão nominal (V)
-    phases: 3 as 1 | 2 | 3,                             // Fases (1, 2 ou 3)
+    phases: undefined as 1 | 2 | 3 | undefined,         // Fases (1, 2 ou 3)
     nominalCurrent: undefined as number | undefined,    // Corrente nominal (A)
     powerFactor: undefined as number | undefined,       // Fator de potência (0-1)
     refrigerant: '',                                    // Fluido refrigerante
@@ -1192,23 +1194,20 @@ function AssetsContent() {
                 <div>
                   <Label htmlFor="type" className="mb-2 block">Tipo do Ativo *</Label>
                   <div className="flex gap-2">
-                    <Select 
-                      value={newEquipment.type} 
+                    <SearchableSelect
+                      options={assetTypes.map((type) => ({
+                        value: type.value,
+                        label: type.label
+                      }))}
+                      value={newEquipment.type}
                       onValueChange={(value) => {
                         setNewEquipment(prev => ({ ...prev, type: value as Equipment['type'] }));
                       }}
-                    >
-                      <SelectTrigger className="h-10 flex-1">
-                        <SelectValue placeholder="Selecione o tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {assetTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Selecione o tipo"
+                      searchPlaceholder="Buscar tipo de ativo..."
+                      emptyMessage="Nenhum tipo encontrado."
+                      className="flex-1"
+                    />
                     <Button
                       type="button"
                       variant="outline"
@@ -1373,82 +1372,95 @@ function AssetsContent() {
                 {/* Seletor de Empresa */}
                 <div>
                   <Label htmlFor="company" className="mb-2 block">Empresa *</Label>
-                  <Select 
-                    value={newEquipment.companyId} 
+                  <SearchableSelect
+                    options={companies.map(company => ({
+                      value: company.id,
+                      label: company.name
+                    }))}
+                    value={newEquipment.companyId}
                     onValueChange={(value) => setNewEquipment(prev => ({
                       ...prev,
                       companyId: value,
+                      unitId: '',
                       sectorId: '',
                       subSectionId: ''
                     }))}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Selecione a empresa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {companies.map(company => (
-                        <SelectItem key={company.id} value={company.id}>
-                          {company.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Selecione a empresa"
+                    searchPlaceholder="Buscar empresa..."
+                    emptyMessage="Nenhuma empresa encontrada."
+                  />
+                </div>
+                
+                {/* Seletor de Unidade */}
+                <div>
+                  <Label htmlFor="unit" className="mb-2 block">Unidade *</Label>
+                  <SearchableSelect
+                    options={units
+                      .filter(u => u.companyId === newEquipment.companyId)
+                      .map(unit => ({
+                        value: unit.id,
+                        label: unit.name
+                      }))}
+                    value={newEquipment.unitId}
+                    onValueChange={(value) => setNewEquipment(prev => ({
+                      ...prev,
+                      unitId: value,
+                      sectorId: '',
+                      subSectionId: ''
+                    }))}
+                    placeholder="Selecione a unidade"
+                    searchPlaceholder="Buscar unidade..."
+                    emptyMessage="Nenhuma unidade encontrada."
+                    disabled={!newEquipment.companyId}
+                  />
                 </div>
                 
                 {/* Seletor de Setor */}
                 <div>
                   <Label htmlFor="sector" className="mb-2 block">Setor *</Label>
-                  <Select 
-                    value={newEquipment.sectorId} 
+                  <SearchableSelect
+                    options={sectors
+                      .filter(s => s.unitId === newEquipment.unitId)
+                      .map(sector => ({
+                        value: sector.id,
+                        label: sector.name
+                      }))}
+                    value={newEquipment.sectorId}
                     onValueChange={(value) => setNewEquipment(prev => ({
                       ...prev,
                       sectorId: value,
                       subSectionId: ''
                     }))}
-                    disabled={!newEquipment.companyId}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Selecione o setor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sectors
-                        .filter(s => s.companyId === newEquipment.companyId)
-                        .map(sector => (
-                          <SelectItem key={sector.id} value={sector.id}>
-                            {sector.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Selecione o setor"
+                    searchPlaceholder="Buscar setor..."
+                    emptyMessage="Nenhum setor encontrado."
+                    disabled={!newEquipment.unitId}
+                  />
                 </div>
                 
                 {/* Seletor de Subsetor */}
-                <div className="md:col-span-2">
+                <div>
                   <Label htmlFor="subsection" className="mb-2 block">
                     Subsetor
                     <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
                   </Label>
-                  <Select 
-                    value={newEquipment.subSectionId} 
+                  <SearchableSelect
+                    options={subSections
+                      .filter(ss => ss.sectorId === newEquipment.sectorId)
+                      .map(subSection => ({
+                        value: subSection.id,
+                        label: subSection.name
+                      }))}
+                    value={newEquipment.subSectionId}
                     onValueChange={(value) => setNewEquipment(prev => ({
                       ...prev,
                       subSectionId: value
                     }))}
+                    placeholder="Selecione o subsetor"
+                    searchPlaceholder="Buscar subsetor..."
+                    emptyMessage="Nenhum subsetor encontrado."
                     disabled={!newEquipment.sectorId}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Selecione o subsetor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subSections
-                        .filter(ss => ss.sectorId === newEquipment.sectorId)
-                        .map(subSection => (
-                          <SelectItem key={subSection.id} value={subSection.id}>
-                            {subSection.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
                 
                 {/* Localização específica */}
@@ -1587,48 +1599,47 @@ function AssetsContent() {
                   <Label htmlFor="refrigerant" className="mb-2 block">
                     Fluido Refrigerante
                   </Label>
-                  <Select 
-                    value={newEquipment.refrigerant} 
+                  <SearchableSelect
+                    options={[
+                      { value: 'R-11', label: 'R-11' },
+                      { value: 'R-12', label: 'R-12' },
+                      { value: 'R-22', label: 'R-22' },
+                      { value: 'R-23', label: 'R-23' },
+                      { value: 'R-32', label: 'R-32' },
+                      { value: 'R-113', label: 'R-113' },
+                      { value: 'R-114', label: 'R-114' },
+                      { value: 'R-115', label: 'R-115' },
+                      { value: 'R-123', label: 'R-123' },
+                      { value: 'R-1234yf', label: 'R-1234yf' },
+                      { value: 'R-1234ze', label: 'R-1234ze' },
+                      { value: 'R-1233zd', label: 'R-1233zd' },
+                      { value: 'R-134a', label: 'R-134a' },
+                      { value: 'R-141b', label: 'R-141b' },
+                      { value: 'R-142b', label: 'R-142b' },
+                      { value: 'R-143a', label: 'R-143a' },
+                      { value: 'R-152a', label: 'R-152a' },
+                      { value: 'R-404A', label: 'R-404A' },
+                      { value: 'R-407C', label: 'R-407C' },
+                      { value: 'R-407F', label: 'R-407F' },
+                      { value: 'R-410A', label: 'R-410A' },
+                      { value: 'R-448A', label: 'R-448A' },
+                      { value: 'R-449A', label: 'R-449A' },
+                      { value: 'R-452A', label: 'R-452A' },
+                      { value: 'R-454B', label: 'R-454B' },
+                      { value: 'R-507A', label: 'R-507A' },
+                      { value: 'R-513A', label: 'R-513A' },
+                      { value: 'R-717', label: 'R-717 (Amônia)' },
+                      { value: 'R-744', label: 'R-744 (CO₂)' },
+                      { value: 'R-290', label: 'R-290 (Propano)' },
+                      { value: 'R-600a', label: 'R-600a (Isobutano)' },
+                      { value: 'R-1270', label: 'R-1270 (Propileno)' },
+                    ]}
+                    value={newEquipment.refrigerant}
                     onValueChange={(value) => setNewEquipment(prev => ({ ...prev, refrigerant: value }))}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Selecione o refrigerante" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="R-11">R-11</SelectItem>
-                      <SelectItem value="R-12">R-12</SelectItem>
-                      <SelectItem value="R-22">R-22</SelectItem>
-                      <SelectItem value="R-23">R-23</SelectItem>
-                      <SelectItem value="R-32">R-32</SelectItem>
-                      <SelectItem value="R-113">R-113</SelectItem>
-                      <SelectItem value="R-114">R-114</SelectItem>
-                      <SelectItem value="R-115">R-115</SelectItem>
-                      <SelectItem value="R-123">R-123</SelectItem>
-                      <SelectItem value="R-1234yf">R-1234yf</SelectItem>
-                      <SelectItem value="R-1234ze">R-1234ze</SelectItem>
-                      <SelectItem value="R-1233zd">R-1233zd</SelectItem>
-                      <SelectItem value="R-134a">R-134a</SelectItem>
-                      <SelectItem value="R-141b">R-141b</SelectItem>
-                      <SelectItem value="R-142b">R-142b</SelectItem>
-                      <SelectItem value="R-143a">R-143a</SelectItem>
-                      <SelectItem value="R-152a">R-152a</SelectItem>
-                      <SelectItem value="R-404A">R-404A</SelectItem>
-                      <SelectItem value="R-407C">R-407C</SelectItem>
-                      <SelectItem value="R-407F">R-407F</SelectItem>
-                      <SelectItem value="R-410A">R-410A</SelectItem>
-                      <SelectItem value="R-448A">R-448A</SelectItem>
-                      <SelectItem value="R-449A">R-449A</SelectItem>
-                      <SelectItem value="R-452A">R-452A</SelectItem>
-                      <SelectItem value="R-454B">R-454B</SelectItem>
-                      <SelectItem value="R-507A">R-507A</SelectItem>
-                      <SelectItem value="R-513A">R-513A</SelectItem>
-                      <SelectItem value="R-717">R-717 (Amônia)</SelectItem>
-                      <SelectItem value="R-744">R-744 (CO₂)</SelectItem>
-                      <SelectItem value="R-290">R-290 (Propano)</SelectItem>
-                      <SelectItem value="R-600a">R-600a (Isobutano)</SelectItem>
-                      <SelectItem value="R-1270">R-1270 (Propileno)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    placeholder="Selecione o refrigerante"
+                    searchPlaceholder="Buscar refrigerante..."
+                    emptyMessage="Nenhum refrigerante encontrado."
+                  />
                 </div>
 
                 {/* Separador visual */}

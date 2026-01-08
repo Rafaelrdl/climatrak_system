@@ -15,7 +15,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';
-import { useCompanies, useSectors, useSubsections } from '@/hooks/useLocationsQuery';
+import { useCompanies, useUnits, useSectors, useSubsections } from '@/hooks/useLocationsQuery';
 import type { WorkOrder } from '@/types';
 
 interface WorkOrderModalProps {
@@ -43,33 +43,44 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
 
   // Location filters state
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+  const [selectedUnitId, setSelectedUnitId] = useState<string>('');
   const [selectedSectorId, setSelectedSectorId] = useState<string>('');
   const [selectedSubsectionId, setSelectedSubsectionId] = useState<string>('');
 
-  // Fetch sectors and subsections based on selection
-  const { data: sectors = [] } = useSectors(selectedCompanyId || undefined);
+  // Fetch units, sectors and subsections based on selection
+  const { data: units = [] } = useUnits(selectedCompanyId || undefined);
+  const { data: sectors = [] } = useSectors(selectedUnitId || undefined);
   const { data: subsections = [] } = useSubsections(selectedSectorId || undefined);
 
   // Filter equipment based on selected location
   const filteredEquipment = useMemo(() => {
     let filtered = equipment;
 
-    // Equipamentos podem ter companyId, sectorId ou subSectionId
+    // Equipamentos podem ter companyId, unitId, sectorId ou subSectionId
     if (selectedSubsectionId) {
       filtered = filtered.filter(eq => eq.subSectionId === selectedSubsectionId);
     } else if (selectedSectorId) {
       filtered = filtered.filter(eq => eq.sectorId === selectedSectorId);
+    } else if (selectedUnitId) {
+      // Filtrar por unidade - usando unitId direto ou via setores
+      const sectorIds = sectors.map(s => s.id);
+      filtered = filtered.filter(eq => 
+        eq.unitId === selectedUnitId || 
+        (eq.sectorId && sectorIds.includes(eq.sectorId))
+      );
     } else if (selectedCompanyId) {
-      // Filtrar por empresa - usando companyId direto ou via setores
+      // Filtrar por empresa - usando companyId direto ou via unidades/setores
+      const unitIds = units.map(u => u.id);
       const sectorIds = sectors.map(s => s.id);
       filtered = filtered.filter(eq => 
         eq.companyId === selectedCompanyId || 
+        (eq.unitId && unitIds.includes(eq.unitId)) ||
         (eq.sectorId && sectorIds.includes(eq.sectorId))
       );
     }
 
     return filtered;
-  }, [equipment, selectedCompanyId, selectedSectorId, selectedSubsectionId, sectors]);
+  }, [equipment, selectedCompanyId, selectedUnitId, selectedSectorId, selectedSubsectionId, units, sectors]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -96,6 +107,7 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
       status: 'OPEN'
     });
     setSelectedCompanyId('');
+    setSelectedUnitId('');
     setSelectedSectorId('');
     setSelectedSubsectionId('');
     setCurrentStep('basic');
@@ -176,28 +188,56 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
     <div className="space-y-6">
       <div className="space-y-4">
         {/* Location filters */}
-        <div className="space-y-2">
-          <Label htmlFor="company">Empresa</Label>
-          <Select
-            value={selectedCompanyId}
-            onValueChange={(value) => {
-              setSelectedCompanyId(value);
-              setSelectedSectorId('');
-              setSelectedSubsectionId('');
-              setFormData(prev => ({ ...prev, equipmentId: '' }));
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione..." />
-            </SelectTrigger>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="company">Empresa</Label>
+            <Select
+              value={selectedCompanyId}
+              onValueChange={(value) => {
+                setSelectedCompanyId(value);
+                setSelectedUnitId('');
+                setSelectedSectorId('');
+                setSelectedSubsectionId('');
+                setFormData(prev => ({ ...prev, equipmentId: '' }));
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                {companies.map(company => (
+                  <SelectItem key={company.id} value={company.id}>
+                    {company.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="unit">Unidade</Label>
+            <Select
+              value={selectedUnitId}
+              onValueChange={(value) => {
+                setSelectedUnitId(value);
+                setSelectedSectorId('');
+                setSelectedSubsectionId('');
+                setFormData(prev => ({ ...prev, equipmentId: '' }));
+              }}
+              disabled={!selectedCompanyId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={selectedCompanyId ? "Selecione..." : "Selecione empresa"} />
+              </SelectTrigger>
             <SelectContent>
-              {companies.map(company => (
-                <SelectItem key={company.id} value={company.id}>
-                  {company.name}
+              {units.map(unit => (
+                <SelectItem key={unit.id} value={unit.id}>
+                  {unit.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -210,10 +250,10 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
                 setSelectedSubsectionId('');
                 setFormData(prev => ({ ...prev, equipmentId: '' }));
               }}
-              disabled={!selectedCompanyId}
+              disabled={!selectedUnitId}
             >
               <SelectTrigger>
-                <SelectValue placeholder={selectedCompanyId ? "Selecione..." : "Selecione empresa"} />
+                <SelectValue placeholder={selectedUnitId ? "Selecione..." : "Selecione unidade"} />
               </SelectTrigger>
               <SelectContent>
                 {sectors.map(sector => (
