@@ -44,6 +44,8 @@ urlpatterns = [
     path("api/cmms/", include("apps.cmms.urls")),
     # TrakLedger API (Cost Centers, Rate Cards, Budget Plans)
     path("api/trakledger/", include("apps.trakledger.urls")),
+    # TrakService API (Field Service Management - feature gated)
+    path("api/trakservice/", include("apps.trakservice.urls")),
 ]
 
 # Serve media files in development

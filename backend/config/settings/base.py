@@ -94,6 +94,7 @@ TENANT_APPS = [
     "apps.inventory",  # Gestão de Estoque (Categorias, Itens, Movimentações)
     "apps.cmms",  # CMMS - Ordens de Serviço, Solicitações, Planos de Manutenção
     "apps.trakledger",  # TrakLedger - Orçamento Vivo (Centros de Custo, RateCard, Budget)
+    "apps.trakservice",  # TrakService - Field Service Management (Dispatch, Routing, Tracking)
     "apps.core_events",  # Domain Events Outbox (processamento assíncrono de eventos)
 ]
 

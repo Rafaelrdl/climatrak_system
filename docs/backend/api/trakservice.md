@@ -5,6 +5,58 @@
 TrakService is a feature-gated module for Field Service management. 
 It requires tenant feature flags to be enabled before access is granted.
 
+## Namespace & Base Path
+
+| Property | Value |
+|----------|-------|
+| **App** | `apps.trakservice` |
+| **Base URL** | `/api/trakservice/` |
+| **Router** | Included in `config/urls.py` |
+
+### Available Endpoints
+
+| Endpoint | Method | Description | Feature Required |
+|----------|--------|-------------|------------------|
+| `/_meta/` | GET | Module metadata and version | `trakservice.enabled` |
+| `/_health/` | GET | Health check status | `trakservice.enabled` |
+
+### Example Requests
+
+**Get Module Metadata**
+```http
+GET /api/trakservice/_meta/
+Authorization: Bearer <token>
+
+HTTP/1.1 200 OK
+{
+    "module": "trakservice",
+    "version": "1.0.0",
+    "features": {
+        "trakservice.enabled": true,
+        "trakservice.dispatch": true,
+        "trakservice.tracking": false,
+        "trakservice.routing": false,
+        "trakservice.km": false,
+        "trakservice.quotes": false
+    },
+    "status": "operational"
+}
+```
+
+**Get Health Status**
+```http
+GET /api/trakservice/_health/
+Authorization: Bearer <token>
+
+HTTP/1.1 200 OK
+{
+    "status": "healthy",
+    "timestamp": "2026-01-08T10:30:00Z",
+    "tenant_id": 1,
+    "features_enabled": ["trakservice.enabled", "trakservice.dispatch"]
+}
+```
+
 ## Feature Flags
 
 TrakService uses hierarchical feature flags stored per tenant:
