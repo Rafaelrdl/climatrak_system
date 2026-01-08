@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -28,11 +28,10 @@ export function ContactPage() {
         <div className="container-wide text-center">
           <Badge className="mb-4">Contato</Badge>
           <h1 className="text-4xl sm:text-5xl font-bold mb-6">
-            Fale conosco
+            Fale com nosso time
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Tem alguma dúvida ou quer saber mais sobre nossos produtos? 
-            Nossa equipe está pronta para ajudar.
+            Tem alguma duvida ou quer saber mais? Nossa equipe esta pronta para ajudar.
           </p>
         </div>
       </section>
@@ -43,8 +42,8 @@ export function ContactPage() {
           <div className="grid lg:grid-cols-2 gap-12">
             {/* Contact Info */}
             <div>
-              <h2 className="text-2xl font-bold mb-6">Informações de Contato</h2>
-              
+              <h2 className="text-2xl font-bold mb-6">Informacoes de contato</h2>
+
               <div className="space-y-6">
                 <Card>
                   <CardContent className="pt-6">
@@ -85,9 +84,9 @@ export function ContactPage() {
                         <MapPin className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-semibold mb-1">Endereço</h3>
+                        <h3 className="font-semibold mb-1">Endereco</h3>
                         <p className="text-muted-foreground">
-                          São Paulo, SP - Brasil
+                          Sao Paulo, SP - Brasil
                         </p>
                       </div>
                     </div>
@@ -101,9 +100,9 @@ export function ContactPage() {
                         <Clock className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-semibold mb-1">Horário de Atendimento</h3>
+                        <h3 className="font-semibold mb-1">Horario de atendimento</h3>
                         <p className="text-muted-foreground">
-                          Segunda a Sexta: 8h às 18h
+                          Segunda a sexta: 8h as 18h
                         </p>
                       </div>
                     </div>
@@ -117,7 +116,7 @@ export function ContactPage() {
                   <h3 className="font-semibold">Prefere WhatsApp?</h3>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Entre em contato direto pelo WhatsApp para um atendimento mais rápido.
+                  Fale direto com nosso time para um atendimento mais rapido.
                 </p>
                 <Button variant="outline" asChild>
                   <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer">
@@ -132,7 +131,7 @@ export function ContactPage() {
               <Card>
                 <CardContent className="pt-6">
                   <h2 className="text-2xl font-bold mb-6">Envie uma mensagem</h2>
-                  
+
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div>
@@ -155,7 +154,7 @@ export function ContactPage() {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium mb-2 block">Telefone</label>
@@ -174,7 +173,7 @@ export function ContactPage() {
                         />
                       </div>
                     </div>
-                    
+
                     <div>
                       <label className="text-sm font-medium mb-2 block">Mensagem *</label>
                       <textarea
@@ -186,9 +185,9 @@ export function ContactPage() {
                         onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                       />
                     </div>
-                    
+
                     <Button type="submit" size="lg" className="w-full">
-                      Enviar Mensagem
+                      Enviar mensagem
                       <Send className="ml-2 h-4 w-4" />
                     </Button>
                   </form>

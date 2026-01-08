@@ -1,13 +1,13 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { 
-  Calendar, 
-  Clock, 
-  Monitor, 
-  CheckCircle2, 
+import {
+  Calendar,
+  Clock,
+  Monitor,
+  CheckCircle2,
   ArrowRight,
   Building2,
   Users,
@@ -18,26 +18,26 @@ const demoSteps = [
   {
     icon: Calendar,
     title: 'Agende',
-    description: 'Escolha o melhor horário para você e sua equipe.',
+    description: 'Escolha o melhor horario para sua equipe.',
   },
   {
     icon: Monitor,
     title: 'Assista',
-    description: 'Demonstração personalizada de 30-45 minutos.',
+    description: 'Demo personalizada de 30 a 45 minutos.',
   },
   {
     icon: CheckCircle2,
     title: 'Decida',
-    description: 'Tire todas as dúvidas e avalie sem compromisso.',
+    description: 'Tire duvidas e avalie sem compromisso.',
   },
 ]
 
 const demoIncludes = [
-  'Visão geral da plataforma TrakNor',
-  'Demonstração do TrakSense IoT',
-  'Apresentação do sensor AirTrak',
-  'Simulação de alertas e dashboards',
-  'Análise das necessidades da sua empresa',
+  'Visao geral da plataforma TrakNor',
+  'Demonstracao do TrakSense IoT',
+  'Apresentacao do sensor AirTrak',
+  'Simulacao de alertas e dashboards',
+  'Analise das necessidades da sua empresa',
   'Proposta personalizada',
 ]
 
@@ -57,7 +57,7 @@ export function DemoPage() {
     e.preventDefault()
     // TODO: Implement form submission
     console.log('Demo request:', formData)
-    alert('Solicitação enviada! Entraremos em contato para agendar sua demo.')
+    alert('Solicitacao enviada! Entraremos em contato para agendar sua demo.')
   }
 
   return (
@@ -67,15 +67,14 @@ export function DemoPage() {
         <div className="container-wide">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <Badge className="mb-4">Demo Gratuita</Badge>
+              <Badge className="mb-4">Demo gratuita</Badge>
               <h1 className="text-4xl sm:text-5xl font-bold mb-6">
-                Veja a ClimaTrak em ação
+                Veja a ClimaTrak em acao
               </h1>
               <p className="text-lg text-muted-foreground mb-8">
-                Agende uma demonstração personalizada e descubra como podemos 
-                transformar a gestão dos seus ativos HVAC. Sem compromisso.
+                Agende uma demo personalizada e descubra como transformar a gestao dos seus ativos HVAC.
               </p>
-              
+
               <div className="flex items-center gap-6 mb-8">
                 <div className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-primary" />
@@ -90,7 +89,7 @@ export function DemoPage() {
                   <span className="text-sm">Gratuita</span>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-4">
                 {demoSteps.map((step) => (
                   <div key={step.title} className="text-center">
@@ -103,12 +102,12 @@ export function DemoPage() {
                 ))}
               </div>
             </div>
-            
+
             {/* Demo Form */}
             <Card className="shadow-xl">
               <CardContent className="pt-6">
-                <h2 className="text-xl font-bold mb-6">Solicitar Demonstração</h2>
-                
+                <h2 className="text-xl font-bold mb-6">Solicitar demo</h2>
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
@@ -131,7 +130,7 @@ export function DemoPage() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium mb-2 block">Telefone *</label>
@@ -152,10 +151,10 @@ export function DemoPage() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Nº de Funcionários</label>
+                      <label className="text-sm font-medium mb-2 block">Numero de funcionarios</label>
                       <select
                         className="flex h-11 w-full rounded-lg border border-input bg-background px-4 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         value={formData.employees}
@@ -169,7 +168,7 @@ export function DemoPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Nº de Ativos HVAC</label>
+                      <label className="text-sm font-medium mb-2 block">Numero de ativos HVAC</label>
                       <select
                         className="flex h-11 w-full rounded-lg border border-input bg-background px-4 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         value={formData.assets}
@@ -183,7 +182,7 @@ export function DemoPage() {
                       </select>
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="text-sm font-medium mb-2 block">Segmento</label>
                     <select
@@ -192,16 +191,16 @@ export function DemoPage() {
                       onChange={(e) => setFormData({ ...formData, segment: e.target.value })}
                     >
                       <option value="">Selecione</option>
-                      <option value="hospital">Hospital / Clínica</option>
-                      <option value="industria">Indústria</option>
+                      <option value="hospital">Hospital / Clinica</option>
+                      <option value="industria">Industria</option>
                       <option value="facilities">Facilities / Shopping</option>
-                      <option value="manutencao">Empresa de Manutenção</option>
+                      <option value="manutencao">Empresa de manutencao</option>
                       <option value="outro">Outro</option>
                     </select>
                   </div>
-                  
+
                   <div>
-                    <label className="text-sm font-medium mb-2 block">O que você gostaria de ver na demo?</label>
+                    <label className="text-sm font-medium mb-2 block">O que voce gostaria de ver na demo?</label>
                     <textarea
                       rows={3}
                       placeholder="Conte-nos sobre suas necessidades..."
@@ -210,14 +209,14 @@ export function DemoPage() {
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     />
                   </div>
-                  
+
                   <Button type="submit" size="lg" className="w-full">
-                    Solicitar Demo Gratuita
+                    Solicitar demo
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  
+
                   <p className="text-xs text-center text-muted-foreground">
-                    Ao enviar, você concorda com nossa política de privacidade.
+                    Ao enviar, voce concorda com nossa politica de privacidade.
                   </p>
                 </form>
               </CardContent>
@@ -230,10 +229,10 @@ export function DemoPage() {
       <section className="section-padding bg-muted/30">
         <div className="container-wide">
           <div className="text-center mb-12">
-            <Badge className="mb-4">O que você vai ver</Badge>
-            <h2 className="text-3xl font-bold mb-4">Na sua demonstração</h2>
+            <Badge className="mb-4">O que voce vai ver</Badge>
+            <h2 className="text-3xl font-bold mb-4">Na sua demo</h2>
           </div>
-          
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {demoIncludes.map((item) => (
               <div key={item} className="flex items-center gap-3">
@@ -267,7 +266,7 @@ export function DemoPage() {
               <CardContent className="pt-6">
                 <Users className="w-10 h-10 text-primary mx-auto mb-4" />
                 <div className="text-2xl font-bold mb-1">99%</div>
-                <p className="text-sm text-muted-foreground">Satisfação dos clientes</p>
+                <p className="text-sm text-muted-foreground">Satisfacao dos clientes</p>
               </CardContent>
             </Card>
           </div>

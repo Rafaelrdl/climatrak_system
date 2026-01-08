@@ -1,4 +1,4 @@
-import { Badge } from '@/components/ui/badge'
+﻿import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Calendar, Clock } from 'lucide-react'
@@ -6,8 +6,8 @@ import { ArrowRight, Calendar, Clock } from 'lucide-react'
 const blogPosts = [
   {
     id: 1,
-    title: 'Como evitar multas com o PMOC: Guia completo 2025',
-    excerpt: 'Entenda as exigências do PMOC e como manter sua empresa em conformidade com a legislação de climatização.',
+    title: 'PMOC sem dor de cabeca: checklist 2025',
+    excerpt: 'Entenda as exigencias do PMOC e como manter sua empresa em conformidade.',
     category: 'Compliance',
     author: 'Equipe ClimaTrak',
     date: '15 Jan 2025',
@@ -16,9 +16,9 @@ const blogPosts = [
   },
   {
     id: 2,
-    title: 'Manutenção Preditiva vs Preventiva: Qual a melhor estratégia?',
-    excerpt: 'Descubra as diferenças entre os tipos de manutenção e quando usar cada abordagem para maximizar a vida útil dos seus equipamentos.',
-    category: 'Manutenção',
+    title: 'Manutencao preditiva vs preventiva: quando usar cada uma',
+    excerpt: 'Veja as diferencas entre as abordagens e como combinar as duas para reduzir downtime.',
+    category: 'Manutencao',
     author: 'Equipe ClimaTrak',
     date: '10 Jan 2025',
     readTime: '6 min',
@@ -26,8 +26,8 @@ const blogPosts = [
   },
   {
     id: 3,
-    title: 'IoT na Gestão de Ativos HVAC: O futuro é agora',
-    excerpt: 'Como sensores inteligentes e plataformas IoT estão revolucionando a forma de gerenciar equipamentos de climatização.',
+    title: 'IoT na gestao de ativos HVAC: o futuro e agora',
+    excerpt: 'Sensores inteligentes e dashboards ao vivo mudam a forma de operar ativos criticos.',
     category: 'Tecnologia',
     author: 'Equipe ClimaTrak',
     date: '05 Jan 2025',
@@ -36,9 +36,9 @@ const blogPosts = [
   },
   {
     id: 4,
-    title: 'KPIs essenciais para gestão de manutenção',
-    excerpt: 'Conheça os indicadores-chave que toda empresa deve acompanhar para otimizar a gestão de manutenção.',
-    category: 'Gestão',
+    title: 'KPIs essenciais para manutencao de alta performance',
+    excerpt: 'MTTR, MTBF, backlog e custo por ativo: o que acompanhar de verdade.',
+    category: 'Gestao',
     author: 'Equipe ClimaTrak',
     date: '28 Dez 2024',
     readTime: '5 min',
@@ -46,8 +46,8 @@ const blogPosts = [
   },
   {
     id: 5,
-    title: 'Redução de custos: Cases de sucesso com CMMS',
-    excerpt: 'Histórias reais de empresas que reduziram até 40% dos custos de manutenção com a implementação de um CMMS.',
+    title: 'Reducao de custos com CMMS: casos reais',
+    excerpt: 'Como empresas reduziram custos e aumentaram a disponibilidade com CMMS.',
     category: 'Cases',
     author: 'Equipe ClimaTrak',
     date: '20 Dez 2024',
@@ -56,8 +56,8 @@ const blogPosts = [
   },
   {
     id: 6,
-    title: 'ANVISA e climatização hospitalar: O que você precisa saber',
-    excerpt: 'Requisitos e boas práticas para manter a conformidade dos sistemas HVAC em ambientes hospitalares.',
+    title: 'ANVISA e climatizacao hospitalar: o que voce precisa saber',
+    excerpt: 'Requisitos e boas praticas para manter conformidade em ambientes criticos.',
     category: 'Compliance',
     author: 'Equipe ClimaTrak',
     date: '15 Dez 2024',
@@ -66,7 +66,7 @@ const blogPosts = [
   },
 ]
 
-const categories = ['Todos', 'Compliance', 'Manutenção', 'Tecnologia', 'Gestão', 'Cases']
+const categories = ['Todos', 'Compliance', 'Manutencao', 'Tecnologia', 'Gestao', 'Cases']
 
 export function BlogPage() {
   return (
@@ -76,11 +76,10 @@ export function BlogPage() {
         <div className="container-wide text-center">
           <Badge className="mb-4">Blog ClimaTrak</Badge>
           <h1 className="text-4xl sm:text-5xl font-bold mb-6">
-            Insights e Conhecimento
+            Insights e conhecimento
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Artigos, guias e novidades sobre gestão de ativos, manutenção HVAC, 
-            IoT e compliance. Conhecimento para transformar sua operação.
+            Artigos, guias e novidades sobre gestao de ativos, manutencao HVAC e IoT.
           </p>
         </div>
       </section>
@@ -137,7 +136,7 @@ export function BlogPage() {
               </Card>
             ))}
           </div>
-          
+
           <div className="text-center mt-12">
             <Button variant="outline" size="lg">
               Ver mais artigos
@@ -153,11 +152,10 @@ export function BlogPage() {
           <Card className="max-w-2xl mx-auto">
             <CardContent className="pt-8 pb-8 text-center">
               <h2 className="text-2xl font-bold mb-4">
-                Receba nossos conteúdos
+                Receba nossos conteudos
               </h2>
               <p className="text-muted-foreground mb-6">
-                Assine nossa newsletter e receba artigos, dicas e novidades sobre 
-                gestão de ativos e manutenção diretamente no seu e-mail.
+                Assine a newsletter e receba artigos, dicas e novidades no seu e-mail.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
                 <input

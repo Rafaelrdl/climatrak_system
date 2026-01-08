@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -8,8 +8,8 @@ const products = [
   {
     id: 'traknor',
     name: 'TrakNor',
-    subtitle: 'CMMS - Sistema de Gestão de Manutenção',
-    description: 'Plataforma completa para gerenciar todo o ciclo de vida dos seus ativos, desde cadastro até ordens de serviço, inventário e relatórios.',
+    subtitle: 'CMMS - Gestao de Manutencao',
+    description: 'Controle ordens, planos e ativos com fluxos padronizados e rastreaveis.',
     icon: Wrench,
     color: 'teal',
     gradient: 'from-teal-600 to-teal-400',
@@ -17,22 +17,22 @@ const products = [
     textColor: 'text-teal-700',
     checkColor: 'text-teal-500',
     features: [
-      'Gestão de Ordens de Serviço',
-      'Manutenção Preventiva e Corretiva',
-      'Inventário de Peças e Insumos',
-      'Gestão de Equipes e Técnicos',
-      'Relatórios PMOC Automatizados',
-      'Dashboard com KPIs em Tempo Real',
-      'Histórico Completo dos Ativos',
-      'Aplicativo Mobile para Técnicos',
+      'Ordens de servico e planos',
+      'Manutencao preventiva e corretiva',
+      'Cadastro de ativos e hierarquias',
+      'Checklist e evidencias',
+      'Gestao de equipes e SLAs',
+      'Relatorios PMOC e auditoria',
+      'KPIs com MTTR e backlog',
+      'App mobile para campo',
     ],
     href: '/produtos/traknor',
   },
   {
     id: 'traksense',
     name: 'TrakSense',
-    subtitle: 'Plataforma IoT de Monitoramento',
-    description: 'Monitoramento em tempo real dos seus equipamentos HVAC com dashboards interativos, alertas inteligentes e análise de dados.',
+    subtitle: 'IoT Platform',
+    description: 'Dashboards e alertas IoT para monitorar desempenho em tempo real.',
     icon: Activity,
     color: 'cyan',
     gradient: 'from-teal-600 to-teal-400',
@@ -40,22 +40,22 @@ const products = [
     textColor: 'text-teal-700',
     checkColor: 'text-teal-500',
     features: [
-      'Dashboards Customizáveis',
-      'Alertas em Tempo Real',
-      'Análise de Tendências',
-      'Integração com TrakNor',
-      'Múltiplos Protocolos IoT',
-      'API para Integrações',
-      'Relatórios Automatizados',
-      'Suporte Multi-site',
+      'Dashboards em tempo real',
+      'Alertas inteligentes',
+      'Tendencias e anomalias',
+      'Integracao com TrakNor',
+      'Sensores AirTrak',
+      'Suporte multi-site',
+      'API e webhooks',
+      'Historico de leituras',
     ],
     href: '/produtos/traksense',
   },
   {
     id: 'airtrak',
     name: 'AirTrak',
-    subtitle: 'Sensor Inteligente para HVAC',
-    description: 'Sensor plug & play para monitoramento de temperatura, umidade e pressão em equipamentos de climatização.',
+    subtitle: 'Smart Sensor',
+    description: 'Sensor HVAC plug and play para dados confiaveis e auditaveis.',
     icon: Cpu,
     color: 'emerald',
     gradient: 'from-teal-600 to-teal-400',
@@ -63,22 +63,22 @@ const products = [
     textColor: 'text-teal-700',
     checkColor: 'text-teal-500',
     features: [
-      'Temperatura e Umidade',
-      'Pressão Diferencial',
+      'Temperatura e umidade',
+      'Pressao diferencial',
       'Conectividade WiFi/LoRa',
-      'Bateria de Longa Duração',
-      'Instalação Simplificada',
-      'Calibração Automática',
-      'Design Industrial',
-      'Certificação IP65',
+      'Bateria de longa duracao',
+      'Instalacao simplificada',
+      'Calibracao automatica',
+      'Design industrial',
+      'Certificacao IP65',
     ],
     href: '/produtos/airtrak',
   },
   {
-    id: 'TrakLedger',
+    id: 'trakledger',
     name: 'TrakLedger',
-    subtitle: 'Módulo de Gestão TrakLedgerira',
-    description: 'Controle total dos custos de manutenção com orçamentos, lançamentos automáticos, compromissos e registro de economias.',
+    subtitle: 'Cost Control',
+    description: 'Custos, orcamentos e ROI de manutencao conectados a cada OS.',
     icon: DollarSign,
     color: 'violet',
     gradient: 'from-teal-600 to-teal-400',
@@ -86,16 +86,16 @@ const products = [
     textColor: 'text-teal-700',
     checkColor: 'text-teal-500',
     features: [
-      'Orçamentos por Centro de Custo',
-      'Lançamentos Automáticos',
-      'Compromissos de Manutenção',
-      'Registro de Economias',
-      'Dashboards TrakLedgeriros',
-      'Alertas de Orçamento',
-      'Relatórios por Período',
-      'Integração com TrakNor',
+      'Orcamentos por centro de custo',
+      'Lancamentos automaticos',
+      'Compromissos e provisoes',
+      'Registro de economias',
+      'Dashboards financeiros',
+      'Alertas de orcamento',
+      'Relatorios por periodo',
+      'Integracao com TrakNor',
     ],
-    href: '/produtos/TrakLedger',
+    href: '/produtos/trakledger',
   },
 ]
 
@@ -107,11 +107,11 @@ export function ProductsPage() {
         <div className="container-wide text-center">
           <Badge className="mb-4">Ecossistema ClimaTrak</Badge>
           <h1 className="text-4xl sm:text-5xl font-bold mb-6">
-            Nossos Produtos
+            Nossos produtos
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Um ecossistema completo de soluções integradas para transformar a gestão 
-            dos seus ativos HVAC. Software + IoT + Hardware trabalhando juntos.
+            Um ecossistema completo para manter ativos HVAC disponiveis, reduzir custos
+            e entregar transparencia para o cliente.
           </p>
         </div>
       </section>
@@ -120,7 +120,7 @@ export function ProductsPage() {
       <section className="section-padding">
         <div className="container-wide space-y-24">
           {products.map((product, index) => (
-            <div 
+            <div
               key={product.id}
               className={`grid lg:grid-cols-2 gap-12 items-center ${index % 2 === 1 ? 'lg:flex-row-reverse' : ''}`}
             >
@@ -131,7 +131,7 @@ export function ProductsPage() {
                 </div>
                 <h2 className="text-3xl sm:text-4xl font-bold mb-4">{product.name}</h2>
                 <p className="text-lg text-muted-foreground mb-6">{product.description}</p>
-                
+
                 <div className="grid sm:grid-cols-2 gap-3 mb-8">
                   {product.features.map((feature) => (
                     <div key={feature} className="flex items-center gap-2">
@@ -140,7 +140,7 @@ export function ProductsPage() {
                     </div>
                   ))}
                 </div>
-                
+
                 <Link to={product.href}>
                   <Button size="lg">
                     Conhecer {product.name}
@@ -148,7 +148,7 @@ export function ProductsPage() {
                   </Button>
                 </Link>
               </div>
-              
+
               <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
                 <Card className="overflow-hidden">
                   <div className={`h-80 bg-gradient-to-br ${product.gradient} flex items-center justify-center`}>
@@ -167,17 +167,16 @@ export function ProductsPage() {
       <section className="section-padding bg-muted/30">
         <div className="container-wide">
           <div className="text-center mb-12">
-            <Badge className="mb-4">Integração Total</Badge>
+            <Badge className="mb-4">Integracao total</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
               Produtos que trabalham juntos
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Nosso ecossistema foi projetado para integração perfeita. 
-              Os sensores AirTrak alimentam o TrakSense, que cria alertas e OS automáticas no TrakNor, 
+              Sensores AirTrak alimentam o TrakSense, que dispara alertas e cria OS no TrakNor,
               com custos registrados automaticamente no TrakLedger.
             </p>
           </div>
-          
+
           <div className="relative">
             <div className="grid md:grid-cols-4 gap-6">
               {products.map((product, index) => (
@@ -205,22 +204,21 @@ export function ProductsPage() {
       <section className="section-padding bg-gradient-brand text-white">
         <div className="container-wide text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Qual produto é ideal para você?
+            Qual produto e ideal para voce?
           </h2>
           <p className="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
-            Nossos especialistas podem ajudar você a escolher a melhor combinação 
-            de produtos para as necessidades da sua empresa.
+            Nossa equipe pode ajudar voce a escolher a melhor combinacao para sua operacao.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/demo">
               <Button size="xl" variant="secondary" className="bg-white text-primary hover:bg-white/90">
-                Agendar Demo
+                Agendar demo
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link to="/precos">
               <Button size="xl" variant="outline" className="border-white text-white hover:bg-white/10">
-                Ver Preços
+                Ver precos
               </Button>
             </Link>
           </div>
@@ -229,4 +227,3 @@ export function ProductsPage() {
     </div>
   )
 }
-

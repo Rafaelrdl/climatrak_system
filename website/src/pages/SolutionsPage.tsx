@@ -1,12 +1,12 @@
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { 
-  ArrowRight, 
-  Hospital, 
-  Factory, 
-  Building2, 
+import {
+  ArrowRight,
+  Hospital,
+  Factory,
+  Building2,
   ShieldCheck,
   Clock,
   FileText,
@@ -19,60 +19,60 @@ const solutions = [
   {
     id: 'hospitais',
     icon: Hospital,
-    title: 'Hospitais & Clínicas',
-    subtitle: 'Engenharia Clínica e Compliance',
-    description: 'Garantia de conformidade com ANVISA, gestão de áreas críticas e laudos acessíveis para auditorias.',
+    title: 'Hospitais e Clinicas',
+    subtitle: 'Ambientes criticos e compliance',
+    description: 'Controle PMOC, evidencias e rastreabilidade para auditorias frequentes.',
     challenges: [
-      'Risco regulatório (ANVISA)',
-      'Equipamentos críticos em áreas sensíveis',
-      'Necessidade de documentação para auditorias',
-      'Alta criticidade de falhas',
+      'Risco regulatorio e exigencias legais',
+      'Equipamentos criticos sem margem para falha',
+      'Documentacao obrigatoria por ativo',
+      'Historico disperso entre equipes',
     ],
     benefits: [
-      'Laudos PMOC automáticos para auditorias',
-      'Monitoramento 24/7 de áreas críticas',
-      'Alertas imediatos em caso de falhas',
-      'Histórico completo para compliance',
+      'Laudos PMOC automaticos e padronizados',
+      'Alertas imediatos em caso de desvio',
+      'Historico completo por area critica',
+      'Relatorios prontos para auditoria',
     ],
     color: 'red',
   },
   {
     id: 'industrias',
     icon: Factory,
-    title: 'Indústrias',
-    subtitle: 'Prevenção de Downtime',
-    description: 'Controle preditivo para evitar paradas não programadas e manter a linha de produção funcionando.',
+    title: 'Industrias',
+    subtitle: 'Disponibilidade e previsibilidade',
+    description: 'Evite paradas nao planejadas com monitoramento e manutencao preditiva.',
     challenges: [
-      'Downtime custa milhares por hora',
-      'Manutenção reativa é cara',
-      'Falta de visibilidade dos equipamentos',
-      'Dificuldade em prever falhas',
+      'Downtime com alto impacto financeiro',
+      'Manutencao reativa e custos elevados',
+      'Baixa visibilidade da saude dos ativos',
+      'Dificuldade em priorizar investimentos',
     ],
     benefits: [
-      'Manutenção preditiva baseada em dados',
-      'Redução de até 40% em custos de manutenção',
-      'Alertas antes das falhas acontecerem',
-      'KPIs de performance em tempo real',
+      'Alertas antes da falha acontecer',
+      'KPIs claros de desempenho e custo',
+      'Menos corretivas e mais preventivas',
+      'Decisoes com dados em tempo real',
     ],
     color: 'amber',
   },
   {
     id: 'facilities',
     icon: Building2,
-    title: 'Shoppings & Facilities',
-    subtitle: 'Gestão Multi-site',
-    description: 'Gestão distribuída de ativos em múltiplos pavimentos e localidades com visualização centralizada.',
+    title: 'Shoppings e Facilities',
+    subtitle: 'Operacao multi-site',
+    description: 'Gestao centralizada de ativos e equipes em multiplas unidades.',
     challenges: [
-      'Múltiplos locais para gerenciar',
-      'Dificuldade de padronização',
-      'Equipes descentralizadas',
-      'Relatórios consolidados complexos',
+      'Muitos locais para gerenciar',
+      'Padronizacao dificil entre unidades',
+      'Equipes terceiras e internas misturadas',
+      'Relatorios consolidados complexos',
     ],
     benefits: [
-      'Visão unificada de todos os sites',
-      'Padronização de processos',
-      'Relatórios consolidados automáticos',
-      'Gestão remota eficiente',
+      'Visao unificada de todos os sites',
+      'Fluxos padronizados e auditaveis',
+      'Relatorios consolidados automaticos',
+      'Gestao remota com SLA claro',
     ],
     color: 'blue',
   },
@@ -81,33 +81,33 @@ const solutions = [
 const features = [
   {
     icon: ShieldCheck,
-    title: 'Conformidade Automática',
-    description: 'Relatórios PMOC e documentação gerados automaticamente, prontos para auditorias e fiscalizações.',
+    title: 'Conformidade automatizada',
+    description: 'Relatorios PMOC e documentacao gerados automaticamente.',
   },
   {
     icon: Activity,
-    title: 'Monitoramento Real-time',
-    description: 'Acompanhe temperatura, umidade e pressão dos seus equipamentos HVAC em tempo real.',
+    title: 'Monitoramento em tempo real',
+    description: 'Temperatura, umidade e pressao com dashboards ao vivo.',
   },
   {
     icon: Bell,
-    title: 'Alertas Inteligentes',
-    description: 'Seja notificado imediatamente quando parâmetros saírem dos limites aceitáveis.',
+    title: 'Alertas inteligentes',
+    description: 'Notificacoes proativas quando algo sai do limite.',
   },
   {
     icon: Clock,
-    title: 'Manutenção Preventiva',
-    description: 'Ordens de serviço automáticas baseadas em tempo, uso ou condição do equipamento.',
+    title: 'Manutencao preventiva',
+    description: 'Ordens automaticas por tempo, uso ou condicao.',
   },
   {
     icon: FileText,
-    title: 'Histórico Completo',
-    description: 'Todo o histórico de manutenções, leituras e eventos em um só lugar.',
+    title: 'Historico completo',
+    description: 'Tudo registrado por ativo, unidade e equipe.',
   },
   {
     icon: TrendingDown,
-    title: 'Redução de Custos',
-    description: 'Reduza custos com manutenção corretiva e aumente a vida útil dos equipamentos.',
+    title: 'Reducao de custos',
+    description: 'Menos corretivas e mais controle financeiro.',
   },
 ]
 
@@ -117,13 +117,13 @@ export function SolutionsPage() {
       {/* Hero Section */}
       <section className="section-padding bg-gradient-hero">
         <div className="container-wide text-center">
-          <Badge className="mb-4">Soluções por Segmento</Badge>
+          <Badge className="mb-4">Solucoes por segmento</Badge>
           <h1 className="text-4xl sm:text-5xl font-bold mb-6">
-            Soluções adaptadas ao seu negócio
+            Solucoes adaptadas ao seu negocio
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Cada setor tem desafios únicos. Nossa plataforma se adapta às necessidades 
-            específicas de hospitais, indústrias e facilities.
+            Cada setor tem desafios proprios. A ClimaTrak se adapta para entregar resultados
+            em hospitais, industrias e operacoes multi-site.
           </p>
         </div>
       </section>
@@ -132,10 +132,10 @@ export function SolutionsPage() {
       <section className="section-padding">
         <div className="container-wide space-y-24">
           {solutions.map((solution, index) => (
-            <div 
-              key={solution.id} 
+            <div
+              key={solution.id}
               id={solution.id}
-              className={`grid lg:grid-cols-2 gap-12 items-center scroll-mt-24`}
+              className="grid lg:grid-cols-2 gap-12 items-center scroll-mt-24"
             >
               <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
                 <div className="flex items-center gap-3 mb-4">
@@ -147,42 +147,42 @@ export function SolutionsPage() {
                     <p className="text-sm text-muted-foreground">{solution.subtitle}</p>
                   </div>
                 </div>
-                
+
                 <p className="text-lg text-muted-foreground mb-8">{solution.description}</p>
-                
+
                 <div className="grid sm:grid-cols-2 gap-6 mb-8">
                   <div>
-                    <h3 className="font-semibold mb-3 text-red-600">Desafios do Setor</h3>
+                    <h3 className="font-semibold mb-3 text-red-600">Desafios do setor</h3>
                     <ul className="space-y-2">
                       {solution.challenges.map((challenge) => (
                         <li key={challenge} className="text-sm text-muted-foreground flex items-start gap-2">
-                          <span className="text-red-500">•</span>
+                          <span className="text-red-500">-</span>
                           {challenge}
                         </li>
                       ))}
                     </ul>
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-3 text-green-600">Como Ajudamos</h3>
+                    <h3 className="font-semibold mb-3 text-green-600">Como ajudamos</h3>
                     <ul className="space-y-2">
                       {solution.benefits.map((benefit) => (
                         <li key={benefit} className="text-sm text-muted-foreground flex items-start gap-2">
-                          <span className="text-green-500">✓</span>
+                          <span className="text-green-500">+</span>
                           {benefit}
                         </li>
                       ))}
                     </ul>
                   </div>
                 </div>
-                
+
                 <Link to="/demo">
                   <Button size="lg">
-                    Solicitar Demo para {solution.title.split(' ')[0]}
+                    Solicitar demo para {solution.title.split(' ')[0]}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
               </div>
-              
+
               <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
                 <Card className="overflow-hidden">
                   <div className={`h-80 bg-gradient-to-br from-${solution.color}-100 to-${solution.color}-50 flex items-center justify-center`}>
@@ -204,10 +204,10 @@ export function SolutionsPage() {
               O que todos os setores ganham
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Independente do seu segmento, essas funcionalidades estão disponíveis para transformar sua operação.
+              Independente do segmento, essas funcionalidades elevam sua operacao.
             </p>
           </div>
-          
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature) => (
               <Card key={feature.title} className="card-hover">
@@ -228,21 +228,21 @@ export function SolutionsPage() {
       <section className="section-padding bg-gradient-brand text-white">
         <div className="container-wide text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Pronto para transformar sua operação?
+            Pronto para transformar sua operacao?
           </h2>
           <p className="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
-            Agende uma demonstração personalizada e veja como podemos ajudar seu segmento específico.
+            Agende uma demo personalizada e veja como podemos ajudar seu segmento.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/demo">
               <Button size="xl" variant="secondary" className="bg-white text-primary hover:bg-white/90">
-                Agendar Demo Gratuita
+                Agendar demo
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link to="/contato">
               <Button size="xl" variant="outline" className="border-white text-white hover:bg-white/10">
-                Falar com Especialista
+                Falar com especialista
               </Button>
             </Link>
           </div>

@@ -495,19 +495,18 @@ export function DispatchPage() {
       <PageHeader
         title="Agenda & Dispatch"
         description="Agende e distribua ordens de serviço para sua equipe"
-        actions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleRefresh}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Atualizar
-            </Button>
-            <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Atribuição
-            </Button>
-          </div>
-        }
-      />
+      >
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
+          <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Atribuição
+          </Button>
+        </div>
+      </PageHeader>
       
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -642,7 +641,7 @@ export function DispatchPage() {
             isLoading={isLoadingAssignments}
             getRowId={(row) => row.id}
             emptyState={{
-              icon: CalendarIcon,
+              icon: <CalendarIcon className="h-12 w-12" />,
               title: 'Nenhuma atribuição encontrada',
               description: hasActiveFilters 
                 ? 'Tente ajustar os filtros para ver mais resultados.'

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
 import { Mail, Phone, MapPin, Linkedin, Instagram, Youtube } from 'lucide-react'
 import logoClimatrak from '@/assets/logo_climatrak.svg'
 
@@ -7,21 +7,22 @@ const footerLinks = {
     { name: 'TrakNor CMMS', href: '/produtos/traknor' },
     { name: 'TrakSense IoT', href: '/produtos/traksense' },
     { name: 'AirTrak Sensor', href: '/produtos/airtrak' },
+    { name: 'TrakLedger', href: '/produtos/trakledger' },
   ],
   solucoes: [
     { name: 'Hospitais', href: '/solucoes#hospitais' },
-    { name: 'Indústrias', href: '/solucoes#industrias' },
-    { name: 'Shoppings & Facilities', href: '/solucoes#facilities' },
+    { name: 'Industrias', href: '/solucoes#industrias' },
+    { name: 'Shoppings e Facilities', href: '/solucoes#facilities' },
   ],
   empresa: [
-    { name: 'Sobre nós', href: '/sobre' },
+    { name: 'Sobre nos', href: '/sobre' },
+    { name: 'Funcionalidades', href: '/funcionalidades' },
     { name: 'Blog', href: '/blog' },
-    { name: 'Carreiras', href: '/carreiras' },
     { name: 'Contato', href: '/contato' },
   ],
   legal: [
     { name: 'Termos de uso', href: '/termos' },
-    { name: 'Política de privacidade', href: '/privacidade' },
+    { name: 'Politica de privacidade', href: '/privacidade' },
     { name: 'LGPD', href: '/lgpd' },
   ],
 }
@@ -37,7 +38,8 @@ export function Footer() {
               <img src={logoClimatrak} alt="ClimaTrak" className="h-8 w-auto" />
             </Link>
             <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-              Transformamos ativos em inteligência operacional com IoT + Software para gestão de manutenção e conformidade.
+              Transformamos ativos em inteligencia operacional com IoT + software para manutencao,
+              conformidade e controle de custos.
             </p>
             <div className="space-y-2 text-sm text-muted-foreground">
               <a href="mailto:contato@climatrak.com.br" className="flex items-center gap-2 hover:text-foreground">
@@ -50,7 +52,7 @@ export function Footer() {
               </a>
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
-                São Paulo, SP - Brasil
+                Sao Paulo, SP - Brasil
               </div>
             </div>
           </div>
@@ -71,7 +73,7 @@ export function Footer() {
 
           {/* Solutions */}
           <div>
-            <h3 className="font-semibold mb-4">Soluções</h3>
+            <h3 className="font-semibold mb-4">Solucoes</h3>
             <ul className="space-y-3">
               {footerLinks.solucoes.map((link) => (
                 <li key={link.name}>
@@ -115,7 +117,7 @@ export function Footer() {
         {/* Bottom Section */}
         <div className="mt-12 pt-8 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} ClimaTrak Tecnologia Ltda. Todos os direitos reservados.
+            (c) {new Date().getFullYear()} ClimaTrak Tecnologia Ltda. Todos os direitos reservados.
           </p>
           <div className="flex items-center gap-4">
             <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">

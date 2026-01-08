@@ -1,13 +1,13 @@
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { personaSections } from '@/content/marketingStructure'
-import { 
-  ArrowRight, 
-  Activity, 
-  Shield, 
-  Clock, 
+import {
+  ArrowRight,
+  Activity,
+  Shield,
+  Clock,
   TrendingDown,
   Building2,
   Factory,
@@ -22,23 +22,23 @@ import {
 const features = [
   {
     icon: Activity,
-    title: 'Monitoramento em Tempo Real',
-    description: 'Acompanhe a saúde dos seus equipamentos HVAC com sensores IoT e dashboards interativos.',
+    title: 'Monitoramento em tempo real',
+    description: 'Sensores IoT e dashboards para agir antes do desvio virar falha.',
   },
   {
     icon: Shield,
     title: 'Conformidade PMOC',
-    description: 'Gere automaticamente os relatórios exigidos pela legislação, evitando multas e problemas.',
+    description: 'Relatorios e evidencias prontos para auditorias e contratos.',
   },
   {
     icon: Clock,
-    title: 'Manutenção Preditiva',
-    description: 'Antecipe falhas antes que aconteçam com alertas inteligentes baseados em dados reais.',
+    title: 'Manutencao preditiva',
+    description: 'Alertas inteligentes para antecipar falhas e reduzir downtime.',
   },
   {
     icon: TrendingDown,
-    title: 'Redução de Custos',
-    description: 'Reduza até 40% dos custos com manutenção corretiva através de prevenção inteligente.',
+    title: 'Reducao de custos',
+    description: 'Menos corretivas e mais previsibilidade financeira por ativo.',
   },
 ]
 
@@ -46,65 +46,65 @@ const products = [
   {
     name: 'TrakNor',
     subtitle: 'CMMS',
-    description: 'Sistema completo de gestão de manutenção com ordens de serviço, inventário e relatórios.',
+    description: 'CMMS completo para ordens de servico, planos, equipes e ativos.',
     color: 'from-teal-600 to-teal-400',
     href: '/produtos/traknor',
   },
   {
     name: 'TrakSense',
     subtitle: 'IoT Platform',
-    description: 'Plataforma de monitoramento IoT com dashboards, alertas e análise de dados em tempo real.',
+    description: 'Monitoramento IoT com alertas, dashboards e automacoes inteligentes.',
     color: 'from-cyan-600 to-cyan-400',
     href: '/produtos/traksense',
   },
   {
     name: 'AirTrak',
     subtitle: 'Smart Sensor',
-    description: 'Sensor inteligente para equipamentos HVAC com temperatura, umidade e pressão.',
+    description: 'Sensor HVAC plug and play para dados confiaveis.',
     color: 'from-emerald-600 to-emerald-400',
     href: '/produtos/airtrak',
   },
   {
     name: 'TrakLedger',
     subtitle: 'Cost Control',
-    description: 'Módulo de gestão TrakLedgerira com orçamentos, lançamentos automáticos e economias.',
+    description: 'Custos, orcamentos e economias conectados a cada OS.',
     color: 'from-violet-600 to-violet-400',
-    href: '/produtos/TrakLedger',
+    href: '/produtos/trakledger',
   },
 ]
 
 const segments = [
   {
     icon: Hospital,
-    name: 'Hospitais & Clínicas',
-    description: 'Compliance ANVISA, gestão de engenharia clínica e áreas críticas.',
+    name: 'Hospitais e Clinicas',
+    description: 'Ambientes criticos, compliance e rastreabilidade.',
   },
   {
     icon: Factory,
-    name: 'Indústrias',
-    description: 'Prevenção de downtime e controle preditivo para linhas de produção.',
+    name: 'Industrias',
+    description: 'Disponibilidade e previsibilidade para producao.',
   },
   {
     icon: Building2,
-    name: 'Shoppings & Facilities',
-    description: 'Gestão distribuída de ativos em múltiplos pavimentos e sites.',
+    name: 'Shoppings e Facilities',
+    description: 'Operacao multi-site com padronizacao.',
   },
 ]
 
 const stats = [
-  { value: '40%', label: 'Redução em custos de manutenção' },
-  { value: '99.9%', label: 'Uptime da plataforma' },
+  { value: '40%', label: 'Reducao em custos corretivos' },
+  { value: '99.9%', label: 'Disponibilidade da plataforma' },
   { value: '+500', label: 'Ativos monitorados' },
-  { value: '24/7', label: 'Monitoramento contínuo' },
+  { value: '24/7', label: 'Alertas e monitoramento' },
 ]
 
 const benefits = [
-  'Evite falhas em equipamentos críticos',
-  'Acompanhe indicadores técnicos em tempo real',
-  'Gere automaticamente os relatórios do PMOC',
-  'Dashboard com KPIs: MTTR, OS em aberto, ativos críticos',
+  'Reduza falhas em equipamentos criticos',
+  'KPIs claros com dados em tempo real',
+  'Relatorios PMOC prontos para auditoria',
+  'Dashboard com MTTR, backlog e disponibilidade',
   'Alertas inteligentes baseados em sensores',
-  'Laudos prontos para impressão em PDF/Excel',
+  'Laudos prontos para PDF e Excel',
 ]
 
 export function HomePage() {
@@ -117,26 +117,26 @@ export function HomePage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="animate-fade-in-up">
               <Badge className="mb-4" variant="secondary">
-                🚀 Plataforma completa de gestão HVAC
+                Plataforma completa para operacoes HVAC
               </Badge>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
                 Transforme seus ativos em{' '}
-                <span className="text-gradient">inteligência operacional</span>
+                <span className="text-gradient">inteligencia operacional</span>
               </h1>
               <p className="text-lg text-muted-foreground mb-8 max-w-xl">
-                A ClimaTrak integra software (TrakNor), monitoramento IoT (TrakSense) e sensores (AirTrak) 
-                para gestão de manutenção, redução de custos e conformidade automática com PMOC.
+                A ClimaTrak integra software (TrakNor), monitoramento IoT (TrakSense) e sensores
+                (AirTrak) para reduzir falhas, custos e garantir conformidade com PMOC.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link to="/demo">
                   <Button size="xl">
-                    Agendar Demo Gratuita
+                    Agendar demo
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
                 <Link to="/produtos">
                   <Button size="xl" variant="outline">
-                    Conhecer Produtos
+                    Conhecer produtos
                   </Button>
                 </Link>
               </div>
@@ -156,13 +156,13 @@ export function HomePage() {
               <div className="absolute -top-4 -right-4 bg-white rounded-xl shadow-lg p-4 animate-float">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-green-500" />
-                  <span className="text-sm font-medium">Sistema Online</span>
+                  <span className="text-sm font-medium">Sistema online</span>
                 </div>
               </div>
               <div className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-lg p-4 animate-float" style={{ animationDelay: '1s' }}>
                 <div className="flex items-center gap-2">
                   <Bell className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm font-medium">0 Alertas Críticos</span>
+                  <span className="text-sm font-medium">0 alertas criticos</span>
                 </div>
               </div>
             </div>
@@ -190,10 +190,10 @@ export function HomePage() {
           <div className="text-center mb-12">
             <Badge className="mb-4">Funcionalidades</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Tudo que você precisa para gestão de ativos HVAC
+              Tudo o que voce precisa para gerir ativos HVAC
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Uma plataforma completa que integra gestão de manutenção, monitoramento IoT e relatórios de conformidade.
+              Uma plataforma unica para manutencao, IoT e conformidade.
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -218,10 +218,10 @@ export function HomePage() {
           <div className="text-center mb-12">
             <Badge className="mb-4">Ecossistema</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Conheça nossos produtos
+              Conheca nossos produtos
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Um ecossistema completo de soluções integradas para transformar a gestão dos seus ativos.
+              Solucoes integradas para transformar a gestao dos seus ativos.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
@@ -257,7 +257,7 @@ export function HomePage() {
               Funcionalidades por perfil
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Uma organizaÇõÇœo clara das capacidades da plataforma para gestores e clientes.
+              Organizacao clara das capacidades para gestores e clientes.
             </p>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
@@ -291,7 +291,7 @@ export function HomePage() {
         <div className="container-wide">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <Badge className="mb-4">Benefícios</Badge>
+              <Badge className="mb-4">Beneficios</Badge>
               <h2 className="text-3xl sm:text-4xl font-bold mb-6">
                 Por que empresas escolhem a ClimaTrak?
               </h2>
@@ -306,7 +306,7 @@ export function HomePage() {
               <div className="mt-8">
                 <Link to="/demo">
                   <Button size="lg">
-                    Começar agora
+                    Comecar agora
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -316,12 +316,12 @@ export function HomePage() {
               <Card className="p-6">
                 <Zap className="w-8 h-8 text-amber-500 mb-3" />
                 <div className="text-2xl font-bold mb-1">7 dias</div>
-                <p className="text-sm text-muted-foreground">para começar a ter insights e relatórios prontos</p>
+                <p className="text-sm text-muted-foreground">para ter insights e relatorios prontos</p>
               </Card>
               <Card className="p-6">
                 <BarChart3 className="w-8 h-8 text-blue-500 mb-3" />
                 <div className="text-2xl font-bold mb-1">KPIs</div>
-                <p className="text-sm text-muted-foreground">MTTR, tempo fora de operação, ativos críticos</p>
+                <p className="text-sm text-muted-foreground">MTTR, downtime, ativos criticos</p>
               </Card>
               <Card className="p-6">
                 <Bell className="w-8 h-8 text-red-500 mb-3" />
@@ -331,7 +331,7 @@ export function HomePage() {
               <Card className="p-6">
                 <FileText className="w-8 h-8 text-green-500 mb-3" />
                 <div className="text-2xl font-bold mb-1">PMOC</div>
-                <p className="text-sm text-muted-foreground">Laudos prontos para auditoria e impressão</p>
+                <p className="text-sm text-muted-foreground">Laudos prontos para auditoria</p>
               </Card>
             </div>
           </div>
@@ -344,10 +344,10 @@ export function HomePage() {
           <div className="text-center mb-12">
             <Badge className="mb-4">Segmentos</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Soluções para cada setor
+              Solucoes para cada setor
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Adaptamos nossa plataforma às necessidades específicas de cada segmento.
+              Adaptamos a plataforma as necessidades de cada segmento.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
@@ -370,22 +370,22 @@ export function HomePage() {
       <section className="section-padding bg-gradient-brand text-white">
         <div className="container-wide text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Pronto para transformar sua gestão de ativos?
+            Pronto para transformar sua gestao de ativos?
           </h2>
           <p className="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
-            Agende uma demonstração gratuita e veja como a ClimaTrak pode ajudar sua empresa 
-            a evitar falhas, reduzir custos e garantir conformidade.
+            Agende uma demo e veja como a ClimaTrak ajuda sua empresa a evitar falhas,
+            reduzir custos e garantir conformidade.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/demo">
               <Button size="xl" variant="secondary" className="bg-white text-primary hover:bg-white/90">
-                Agendar Demo Gratuita
+                Agendar demo
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link to="/contato">
               <Button size="xl" variant="outline" className="border-white text-white hover:bg-white/10">
-                Falar com Especialista
+                Falar com especialista
               </Button>
             </Link>
           </div>

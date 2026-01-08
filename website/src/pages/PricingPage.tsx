@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -6,101 +6,101 @@ import { Check, ArrowRight, HelpCircle } from 'lucide-react'
 
 const traknorPlans = [
   {
-    name: 'Começar',
-    description: 'Para técnicos autônomos e pequenas empresas',
+    name: 'Essencial',
+    description: 'Para equipes pequenas e operacoes iniciais',
     price: 'R$ 149',
-    period: '/mês',
-    assets: 'Até 50 ativos',
-    users: '2 usuários',
+    period: '/mes',
+    assets: 'Ate 50 ativos',
+    users: '2 usuarios',
     features: [
-      'Gestão de Ordens de Serviço',
-      'Cadastro de Ativos',
-      'Relatórios Básicos',
-      'App Mobile',
-      'Suporte por E-mail',
+      'Ordens de servico e ativos',
+      'Planos preventivos basicos',
+      'Relatorios essenciais',
+      'App mobile',
+      'Suporte por email',
     ],
     highlighted: false,
   },
   {
     name: 'Crescimento',
-    description: 'Para empresas em expansão',
+    description: 'Para operacoes em expansao',
     price: 'R$ 399',
-    period: '/mês',
-    assets: 'Até 200 ativos',
-    users: '5 usuários',
+    period: '/mes',
+    assets: 'Ate 200 ativos',
+    users: '5 usuarios',
     features: [
-      'Tudo do plano Começar',
-      'Manutenção Preventiva Automática',
-      'Relatórios PMOC',
-      'Gestão de Inventário',
-      'Dashboard Avançado',
-      'Suporte Prioritário',
+      'Tudo do plano Essencial',
+      'Planos preventivos automaticos',
+      'Relatorios PMOC',
+      'Gestao de inventario',
+      'Dashboard avancado',
+      'Suporte prioritario',
     ],
     highlighted: true,
   },
   {
     name: 'Profissional',
-    description: 'Para operações de médio porte',
+    description: 'Para operacoes em escala',
     price: 'R$ 799',
-    period: '/mês',
-    assets: 'Até 500 ativos',
-    users: '15 usuários',
+    period: '/mes',
+    assets: 'Ate 500 ativos',
+    users: '15 usuarios',
     features: [
       'Tudo do plano Crescimento',
-      'Múltiplos Locais',
-      'API de Integração',
-      'Relatórios Customizados',
-      'Gestão de SLA',
-      'Treinamento Online',
+      'Multiplos locais',
+      'API de integracao',
+      'Relatorios customizados',
+      'Gestao de SLA',
+      'Treinamento online',
     ],
     highlighted: false,
   },
   {
     name: 'Enterprise',
-    description: 'Para grandes operações',
+    description: 'Para grandes operacoes',
     price: 'Sob consulta',
     period: '',
     assets: 'Ativos ilimitados',
-    users: 'Usuários ilimitados',
+    users: 'Usuarios ilimitados',
     features: [
       'Tudo do plano Profissional',
       'SSO/SAML',
-      'Ambiente Dedicado',
-      'SLA Premium',
-      'Integrações Customizadas',
-      'Gerente de Sucesso Dedicado',
+      'Ambiente dedicado',
+      'SLA premium',
+      'Integracoes customizadas',
+      'Gerente de sucesso dedicado',
     ],
     highlighted: false,
   },
 ]
 
 const traksensePricing = [
-  { range: '1-19 sensores', price: 'R$ 220', unit: '/sensor/mês' },
-  { range: '20-99 sensores', price: 'R$ 180', unit: '/sensor/mês' },
-  { range: '100-299 sensores', price: 'R$ 150', unit: '/sensor/mês' },
-  { range: '300+ sensores', price: 'R$ 130', unit: '/sensor/mês' },
+  { range: '1-19 sensores', price: 'R$ 220', unit: '/sensor/mes' },
+  { range: '20-99 sensores', price: 'R$ 180', unit: '/sensor/mes' },
+  { range: '100-299 sensores', price: 'R$ 150', unit: '/sensor/mes' },
+  { range: '300+ sensores', price: 'R$ 130', unit: '/sensor/mes' },
 ]
 
 const faqs = [
   {
     question: 'Posso contratar TrakSense separadamente?',
-    answer: 'Sim! O TrakSense pode ser contratado independente do TrakNor, mas o sensor AirTrak sempre vem atrelado à plataforma TrakSense.',
+    answer: 'Sim. O TrakSense pode ser contratado sem o TrakNor, mas o AirTrak opera com a plataforma TrakSense.',
   },
   {
-    question: 'O que está incluso no sensor AirTrak?',
-    answer: 'Cada sensor inclui o hardware AirTrak, conectividade, cloud, manutenção remota, dashboards e alertas inteligentes.',
+    question: 'O que esta incluso no sensor AirTrak?',
+    answer: 'Cada sensor inclui hardware, conectividade, cloud, dashboards e alertas inteligentes.',
   },
   {
     question: 'Existe fidelidade contratual?',
-    answer: 'Não há fidelidade. Contratos anuais têm desconto de 15%, mas você pode cancelar a qualquer momento.',
+    answer: 'Nao ha fidelidade. Planos anuais tem desconto, e o cancelamento pode ser feito a qualquer momento.',
   },
   {
     question: 'Como funciona o onboarding?',
-    answer: 'Oferecemos onboarding gratuito com treinamento da equipe, configuração inicial e migração de dados quando aplicável.',
+    answer: 'Inclui treinamento da equipe, configuracao inicial e migracao quando aplicavel.',
   },
   {
-    question: 'Locais extras são cobrados?',
-    answer: 'Não! Você pode cadastrar locais ilimitados em qualquer plano do TrakNor.',
+    question: 'Locais extras sao cobrados?',
+    answer: 'Nao. Voce pode cadastrar locais ilimitados em qualquer plano do TrakNor.',
   },
 ]
 
@@ -110,13 +110,12 @@ export function PricingPage() {
       {/* Hero Section */}
       <section className="section-padding bg-gradient-hero">
         <div className="container-wide text-center">
-          <Badge className="mb-4">Preços transparentes</Badge>
+          <Badge className="mb-4">Precos transparentes</Badge>
           <h1 className="text-4xl sm:text-5xl font-bold mb-6">
             Planos para cada necessidade
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Escolha o plano ideal para sua operação. Sem surpresas, sem taxas escondidas.
-            Todos os planos incluem suporte e atualizações.
+            Escolha o plano ideal para sua operacao. Sem surpresas e sem taxas escondidas.
           </p>
         </div>
       </section>
@@ -126,19 +125,19 @@ export function PricingPage() {
         <div className="container-wide">
           <div className="text-center mb-12">
             <Badge variant="secondary" className="mb-4">TrakNor CMMS</Badge>
-            <h2 className="text-3xl font-bold mb-4">Sistema de Gestão de Manutenção</h2>
-            <p className="text-muted-foreground">Licenciamento SaaS por número de ativos</p>
+            <h2 className="text-3xl font-bold mb-4">Sistema de gestao de manutencao</h2>
+            <p className="text-muted-foreground">Licenciamento SaaS por numero de ativos</p>
           </div>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {traknorPlans.map((plan) => (
-              <Card 
-                key={plan.name} 
+              <Card
+                key={plan.name}
                 className={`relative ${plan.highlighted ? 'border-primary shadow-lg scale-105' : ''}`}
               >
                 {plan.highlighted && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge>Mais Popular</Badge>
+                    <Badge>Mais popular</Badge>
                   </div>
                 )}
                 <CardHeader>
@@ -164,16 +163,16 @@ export function PricingPage() {
                   </ul>
                   <Link to="/demo">
                     <Button className="w-full" variant={plan.highlighted ? 'default' : 'outline'}>
-                      {plan.price === 'Sob consulta' ? 'Falar com Vendas' : 'Começar Agora'}
+                      {plan.price === 'Sob consulta' ? 'Falar com vendas' : 'Comecar agora'}
                     </Button>
                   </Link>
                 </CardContent>
               </Card>
             ))}
           </div>
-          
+
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Usuário extra: R$ 30/mês • Locais extras: Ilimitados (grátis)
+            Usuario extra: R$ 30/mes • Locais extras: ilimitados
           </p>
         </div>
       </section>
@@ -184,9 +183,9 @@ export function PricingPage() {
           <div className="text-center mb-12">
             <Badge variant="secondary" className="mb-4">TrakSense + AirTrak</Badge>
             <h2 className="text-3xl font-bold mb-4">Monitoramento IoT</h2>
-            <p className="text-muted-foreground">Preço por sensor/mês com escala de volume</p>
+            <p className="text-muted-foreground">Preco por sensor com escala de volume</p>
           </div>
-          
+
           <div className="max-w-3xl mx-auto">
             <Card>
               <CardContent className="pt-6">
@@ -199,9 +198,9 @@ export function PricingPage() {
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="mt-6 p-4 rounded-lg bg-primary/5 border border-primary/20">
-                  <h4 className="font-medium mb-2">O que está incluso:</h4>
+                  <h4 className="font-medium mb-2">O que esta incluso:</h4>
                   <ul className="grid sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
@@ -213,7 +212,7 @@ export function PricingPage() {
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
-                      Cloud & Storage
+                      Cloud e storage
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
@@ -221,11 +220,11 @@ export function PricingPage() {
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
-                      Alertas Inteligentes
+                      Alertas inteligentes
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
-                      Manutenção Remota
+                      Manutencao remota
                     </li>
                   </ul>
                 </div>
@@ -240,9 +239,9 @@ export function PricingPage() {
         <div className="container-wide">
           <div className="text-center mb-12">
             <Badge className="mb-4">FAQ</Badge>
-            <h2 className="text-3xl font-bold mb-4">Perguntas Frequentes</h2>
+            <h2 className="text-3xl font-bold mb-4">Perguntas frequentes</h2>
           </div>
-          
+
           <div className="max-w-3xl mx-auto space-y-4">
             {faqs.map((faq) => (
               <Card key={faq.question}>
@@ -265,22 +264,21 @@ export function PricingPage() {
       <section className="section-padding bg-gradient-brand text-white">
         <div className="container-wide text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Ainda tem dúvidas?
+            Ainda tem duvidas?
           </h2>
           <p className="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
-            Nossa equipe está pronta para ajudar você a encontrar o plano ideal 
-            e criar uma proposta personalizada para sua empresa.
+            Nossa equipe esta pronta para ajudar voce a encontrar o plano ideal.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/demo">
               <Button size="xl" variant="secondary" className="bg-white text-primary hover:bg-white/90">
-                Agendar Demo Gratuita
+                Agendar demo
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link to="/contato">
               <Button size="xl" variant="outline" className="border-white text-white hover:bg-white/10">
-                Falar com Vendas
+                Falar com vendas
               </Button>
             </Link>
           </div>

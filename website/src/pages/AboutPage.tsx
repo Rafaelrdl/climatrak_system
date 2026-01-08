@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -7,46 +7,46 @@ import { Target, Eye, Rocket, Users, Lightbulb, Heart } from 'lucide-react'
 const values = [
   {
     icon: Target,
-    title: 'Foco no Cliente',
-    description: 'Cada decisão que tomamos começa com a pergunta: isso vai ajudar nossos clientes a serem mais eficientes?',
+    title: 'Foco no cliente',
+    description: 'Cada decisao parte de uma pergunta simples: isso melhora a operacao do cliente?',
   },
   {
     icon: Lightbulb,
-    title: 'Inovação Contínua',
-    description: 'Estamos sempre buscando novas formas de usar tecnologia para resolver problemas reais de manutenção.',
+    title: 'Inovacao aplicada',
+    description: 'Tecnologia com impacto real em custo, confiabilidade e compliance.',
   },
   {
     icon: Users,
     title: 'Parceria',
-    description: 'Não somos apenas fornecedores, somos parceiros no sucesso operacional dos nossos clientes.',
+    description: 'Nao somos apenas fornecedores. Somos parceiros no resultado.',
   },
   {
     icon: Heart,
-    title: 'Excelência',
-    description: 'Comprometidos com a qualidade em tudo que fazemos, do código ao atendimento.',
+    title: 'Excelencia',
+    description: 'Qualidade no produto, no suporte e na evolucao continua.',
   },
 ]
 
 const timeline = [
   {
     year: '2023',
-    title: 'Fundação',
-    description: 'ClimaTrak nasce com a missão de transformar a gestão de ativos HVAC no Brasil.',
+    title: 'Fundacao',
+    description: 'A ClimaTrak nasce para modernizar a gestao de ativos HVAC no Brasil.',
   },
   {
     year: '2024',
-    title: 'Lançamento TrakNor',
-    description: 'Primeira versão do CMMS vai ao ar, focado em empresas de manutenção.',
+    title: 'Lancamento TrakNor',
+    description: 'Primeira versao do CMMS focada em empresas de manutencao.',
   },
   {
     year: '2024',
     title: 'TrakSense + AirTrak',
-    description: 'Lançamento da plataforma IoT e do sensor inteligente AirTrak.',
+    description: 'Plataforma IoT e sensor inteligente entram em operacao.',
   },
   {
     year: '2025',
-    title: 'Expansão',
-    description: 'Novos mercados, novas funcionalidades e crescimento acelerado.',
+    title: 'Expansao',
+    description: 'Novos segmentos, novas funcionalidades e crescimento acelerado.',
   },
 ]
 
@@ -54,17 +54,17 @@ const team = [
   {
     name: 'Rafael Ribeiro',
     role: 'CEO & Co-founder',
-    bio: 'Engenheiro com 10+ anos de experiência em automação industrial e IoT.',
+    bio: 'Engenheiro com experiencia em automacao industrial e IoT.',
   },
   {
     name: 'Time de Desenvolvimento',
     role: 'Engenharia',
-    bio: 'Equipe especializada em React, Django, IoT e sistemas distribuídos.',
+    bio: 'Equipe especializada em React, Django, IoT e sistemas distribuidos.',
   },
   {
     name: 'Time Comercial',
     role: 'Vendas & CS',
-    bio: 'Especialistas em HVAC e manutenção predial, focados no sucesso do cliente.',
+    bio: 'Especialistas em HVAC e manutencao predial, focados no sucesso do cliente.',
   },
 ]
 
@@ -76,15 +76,14 @@ export function AboutPage() {
         <div className="container-wide">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <Badge className="mb-4">Sobre nós</Badge>
+              <Badge className="mb-4">Sobre nos</Badge>
               <h1 className="text-4xl sm:text-5xl font-bold mb-6">
                 Transformando ativos em{' '}
-                <span className="text-gradient">inteligência operacional</span>
+                <span className="text-gradient">inteligencia operacional</span>
               </h1>
               <p className="text-lg text-muted-foreground">
-                A ClimaTrak nasceu da necessidade de modernizar a gestão de ativos HVAC no Brasil. 
-                Combinamos software, IoT e expertise para ajudar empresas a evitar falhas, 
-                reduzir custos e garantir conformidade.
+                A ClimaTrak combina software, IoT e experiencia de campo para ajudar empresas
+                a reduzir falhas, custos e riscos regulatorio em operacoes HVAC.
               </p>
             </div>
             <div className="relative">
@@ -111,11 +110,9 @@ export function AboutPage() {
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                   <Target className="w-6 h-6 text-primary" />
                 </div>
-                <h2 className="text-2xl font-bold mb-4">Nossa Missão</h2>
+                <h2 className="text-2xl font-bold mb-4">Nossa missao</h2>
                 <p className="text-muted-foreground">
-                  Democratizar o acesso à tecnologia de gestão de ativos, permitindo que empresas 
-                  de todos os portes tenham visibilidade, controle e inteligência sobre seus 
-                  equipamentos HVAC.
+                  Democratizar o acesso a gestao de ativos com visibilidade, controle e decisao baseada em dados.
                 </p>
               </CardContent>
             </Card>
@@ -124,10 +121,9 @@ export function AboutPage() {
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                   <Eye className="w-6 h-6 text-primary" />
                 </div>
-                <h2 className="text-2xl font-bold mb-4">Nossa Visão</h2>
+                <h2 className="text-2xl font-bold mb-4">Nossa visao</h2>
                 <p className="text-muted-foreground">
-                  Ser a plataforma de referência em gestão de ativos HVAC na América Latina, 
-                  reconhecida pela inovação, qualidade e impacto positivo nos resultados dos clientes.
+                  Ser a plataforma de referencia em gestao HVAC na America Latina, reconhecida pela inovacao e impacto real.
                 </p>
               </CardContent>
             </Card>
@@ -162,7 +158,7 @@ export function AboutPage() {
       <section className="section-padding">
         <div className="container-wide">
           <div className="text-center mb-12">
-            <Badge className="mb-4">Nossa História</Badge>
+            <Badge className="mb-4">Nossa historia</Badge>
             <h2 className="text-3xl font-bold mb-4">Linha do tempo</h2>
           </div>
           <div className="max-w-3xl mx-auto">
@@ -219,15 +215,15 @@ export function AboutPage() {
       <section className="section-padding bg-gradient-brand text-white">
         <div className="container-wide text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Quer fazer parte dessa história?
+            Quer fazer parte dessa historia?
           </h2>
           <p className="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
-            Estamos sempre em busca de talentos e parceiros que compartilhem nossa visão.
+            Estamos sempre em busca de talentos e parceiros que compartilhem nossa visao.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/contato">
               <Button size="xl" variant="secondary" className="bg-white text-primary hover:bg-white/90">
-                Entre em Contato
+                Entre em contato
               </Button>
             </Link>
           </div>
