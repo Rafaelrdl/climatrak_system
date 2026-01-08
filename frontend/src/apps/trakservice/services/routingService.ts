@@ -165,40 +165,91 @@ export async function updateStopStatus(
 
 /**
  * Get KM summary for a technician on a specific date
+ * Backend: GET /api/trakservice/km/?date=YYYY-MM-DD&technician_id=uuid
  */
 export async function getKmSummary(
   technicianId: string,
   date: string
 ): Promise<KmSummary> {
-  const response = await api.get<KmSummary>(
-    `/trakservice/km/summary/${technicianId}/`,
-    { params: { date } }
+  const response = await api.get<{
+    date: string;
+    technician_id: string;
+    technician_name: string;
+    estimated_km: number;
+    actual_km: number;
+    variance_km: number;
+    variance_percent: number;
+    routes_count: number;
+  }>(
+    '/trakservice/km/',
+    { params: { date, technician_id: technicianId } }
   );
-  return response.data;
+  
+  const data = response.data;
+  return {
+    total_km_reported: data.estimated_km,
+    total_km_tracked: data.actual_km,
+    total_cost: data.estimated_km * 1.2, // R$ 1.20/km default
+    average_per_technician: data.estimated_km,
+    total_routes: data.routes_count,
+    variance_percent: data.variance_percent,
+  };
 }
 
 /**
  * Get KM report for a period
+ * Uses routes data since there's no dedicated report endpoint
  */
-export async function getKmReport(filters: KmFilters): Promise<KmReport> {
-  const params = new URLSearchParams();
+export async function getKmReport(filters: KmFilters): Promise<KmReport[]> {
+  // Use routes endpoint to get KM data
+  const params: Record<string, string> = {};
   
   if (filters.date_from) {
-    params.append('date_from', filters.date_from);
+    params.date_from = filters.date_from;
   }
   if (filters.date_to) {
-    params.append('date_to', filters.date_to);
+    params.date_to = filters.date_to;
   }
-  
   if (filters.technician_id) {
-    params.append('technician_id', filters.technician_id);
+    params.technician_id = filters.technician_id;
   }
   
-  const response = await api.get<KmReport>(
-    '/trakservice/km/report/',
+  const response = await api.get<{ results: DailyRoute[] } | DailyRoute[]>(
+    '/trakservice/routes/',
     { params }
   );
-  return response.data;
+  
+  const routes = Array.isArray(response.data) 
+    ? response.data 
+    : response.data.results || [];
+  
+  // Aggregate by technician
+  const technicianMap = new Map<string, {
+    technician_id: string;
+    technician_name: string;
+    total_routes: number;
+    km_reported: number;
+    km_tracked: number;
+  }>();
+  
+  for (const route of routes) {
+    const existing = technicianMap.get(route.technician_id);
+    if (existing) {
+      existing.total_routes += 1;
+      existing.km_reported += route.estimated_km || route.total_distance || 0;
+      existing.km_tracked += route.actual_km || route.estimated_km || route.total_distance || 0;
+    } else {
+      technicianMap.set(route.technician_id, {
+        technician_id: route.technician_id,
+        technician_name: route.technician_name || 'Técnico',
+        total_routes: 1,
+        km_reported: route.estimated_km || route.total_distance || 0,
+        km_tracked: route.actual_km || route.estimated_km || route.total_distance || 0,
+      });
+    }
+  }
+  
+  return Array.from(technicianMap.values());
 }
 
 // =============================================================================

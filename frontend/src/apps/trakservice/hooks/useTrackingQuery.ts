@@ -45,14 +45,14 @@ export function useLocationHistory(
   startDate?: string,
   endDate?: string
 ) {
-  const filters: TrackingFilters | undefined = startDate && endDate 
+  const filters: TrackingFilters | undefined = startDate || endDate 
     ? { date_from: startDate, date_to: endDate }
     : undefined;
     
   return useQuery({
     queryKey: trackingKeys.historyByTechnician(technicianId, filters),
-    queryFn: () => getLocationHistory(technicianId, filters),
-    enabled: !!technicianId && !!startDate && !!endDate,
+    queryFn: () => getLocationHistory(technicianId, startDate, endDate),
+    enabled: !!technicianId,
   });
 }
 

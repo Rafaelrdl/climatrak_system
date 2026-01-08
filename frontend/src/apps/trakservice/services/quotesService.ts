@@ -233,13 +233,42 @@ export async function removeQuoteItem(
 // =============================================================================
 
 /**
- * Get quotes summary
+ * Get quotes summary (calculated from quotes list)
  */
 export async function getQuotesSummary(): Promise<QuoteSummary> {
-  const response = await api.get<QuoteSummary>(
-    '/trakservice/quotes/summary/'
+  // Fetch all quotes to calculate summary
+  const response = await api.get<{ results: Quote[] } | Quote[]>(
+    '/trakservice/quotes/'
   );
-  return response.data;
+  
+  const quotes = Array.isArray(response.data)
+    ? response.data
+    : response.data.results || [];
+  
+  // Calculate summary
+  const draft = quotes.filter(q => q.status === 'draft');
+  const sent = quotes.filter(q => q.status === 'sent');
+  const approved = quotes.filter(q => q.status === 'approved');
+  const rejected = quotes.filter(q => q.status === 'rejected');
+  const expired = quotes.filter(q => q.status === 'expired');
+  
+  const totalValue = quotes.reduce((sum, q) => sum + (q.total || 0), 0);
+  const approvedValue = approved.reduce((sum, q) => sum + (q.total || 0), 0);
+  const sentAndApproved = sent.length + approved.length + rejected.length;
+  const conversionRate = sentAndApproved > 0 ? (approved.length / sentAndApproved) * 100 : 0;
+  
+  return {
+    total: quotes.length,
+    draft: draft.length,
+    sent: sent.length,
+    approved: approved.length,
+    rejected: rejected.length,
+    expired: expired.length,
+    total_value: totalValue,
+    total_value_approved: approvedValue,
+    approved_value: approvedValue,
+    conversion_rate: conversionRate,
+  };
 }
 
 /**

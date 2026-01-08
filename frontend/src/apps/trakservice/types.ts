@@ -140,11 +140,11 @@ export interface TechnicianLocation {
   technician_name: string;
   latitude: number;
   longitude: number;
-  accuracy: number;
+  accuracy?: number;
   last_seen_at: string;
   last_known_address?: string;
   status: TechnicianStatus;
-  is_within_work_window: boolean;
+  is_within_work_window?: boolean;
   vehicle_plate?: string;
   battery_level?: number;
 }
@@ -173,15 +173,16 @@ export interface TrackingFilters {
 
 export interface TrackingSummary {
   total_technicians: number;
-  active_technicians: number;
+  active_technicians?: number;
   online: number;
   offline: number;
   in_field: number;
-  on_site: number;
-  en_route: number;
-  moving: number;
-  at_site: number;
+  on_site?: number;
+  en_route?: number;
+  moving?: number;
+  at_site?: number;
   average_accuracy?: number;
+  last_updated?: string;
 }
 
 // =============================================================================

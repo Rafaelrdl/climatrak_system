@@ -3,11 +3,11 @@
  * 
  * Service for GPS tracking operations.
  * 
- * Endpoints:
- * - GET /api/trakservice/tracking/locations/ - Current locations
- * - GET /api/trakservice/tracking/locations/{technician_id}/ - Technician location
- * - GET /api/trakservice/tracking/history/{technician_id}/ - Location history
- * - GET /api/trakservice/tracking/summary/ - Tracking summary
+ * Backend Endpoints:
+ * - GET /api/trakservice/technicians/ - List technicians with location info
+ * - GET /api/trakservice/technicians/{id}/location/latest/ - Last known location
+ * - GET /api/trakservice/technicians/{id}/location/ - Location trail/history
+ * - POST /api/trakservice/location/pings/ - Register location ping
  */
 
 import { api } from '@/lib/api';
@@ -15,6 +15,7 @@ import type {
   TechnicianLocation,
   TechnicianStatus,
   LocationHistory,
+  LocationPing,
   TrackingFilters,
   TrackingSummary,
 } from '../types';
@@ -39,17 +40,71 @@ export const trackingKeys = {
 };
 
 // =============================================================================
+// Types for API responses
+// =============================================================================
+
+interface TechnicianWithLocation {
+  id: string;
+  full_name: string;
+  phone?: string;
+  specialties?: string[];
+  is_active: boolean;
+  current_latitude?: number;
+  current_longitude?: number;
+  last_location_update?: string;
+  current_assignment_id?: string;
+}
+
+// =============================================================================
 // API Functions
 // =============================================================================
 
 /**
  * Get current locations of all active technicians
+ * Uses the technicians endpoint with location data
  */
 export async function getCurrentLocations(): Promise<TechnicianLocation[]> {
-  const response = await api.get<TechnicianLocation[]>(
-    '/trakservice/tracking/locations/'
+  const response = await api.get<{ results: TechnicianWithLocation[] } | TechnicianWithLocation[]>(
+    '/trakservice/technicians/',
+    { params: { is_active: true } }
   );
-  return response.data;
+  
+  // Handle both paginated and non-paginated responses
+  const technicians = Array.isArray(response.data) 
+    ? response.data 
+    : response.data.results || [];
+  
+  // Transform to TechnicianLocation format
+  return technicians
+    .filter(t => t.current_latitude && t.current_longitude)
+    .map(t => ({
+      technician_id: t.id,
+      technician_name: t.full_name,
+      status: determineStatus(t),
+      latitude: t.current_latitude!,
+      longitude: t.current_longitude!,
+      last_seen_at: t.last_location_update || new Date().toISOString(),
+      last_known_address: undefined,
+      vehicle_plate: undefined,
+      battery_level: undefined,
+      accuracy: undefined,
+    }));
+}
+
+/**
+ * Determine technician status based on data
+ */
+function determineStatus(tech: TechnicianWithLocation): TechnicianStatus {
+  if (!tech.is_active) return 'inactive';
+  if (!tech.last_location_update) return 'offline';
+  
+  const lastUpdate = new Date(tech.last_location_update);
+  const now = new Date();
+  const minutesAgo = (now.getTime() - lastUpdate.getTime()) / (1000 * 60);
+  
+  if (minutesAgo > 15) return 'offline';
+  if (tech.current_assignment_id) return 'at_site';
+  return 'online';
 }
 
 /**
@@ -58,10 +113,25 @@ export async function getCurrentLocations(): Promise<TechnicianLocation[]> {
 export async function getTechnicianLocation(
   technicianId: string
 ): Promise<TechnicianLocation> {
-  const response = await api.get<TechnicianLocation>(
-    `/trakservice/tracking/locations/${technicianId}/`
+  const response = await api.get<{
+    latitude: number;
+    longitude: number;
+    recorded_at: string;
+    accuracy?: number;
+  }>(
+    `/trakservice/technicians/${technicianId}/location/latest/`
   );
-  return response.data;
+  
+  const data = response.data;
+  return {
+    technician_id: technicianId,
+    technician_name: '', // Will be filled by caller if needed
+    status: 'online',
+    latitude: data.latitude,
+    longitude: data.longitude,
+    last_seen_at: data.recorded_at,
+    accuracy: data.accuracy,
+  };
 }
 
 /**
@@ -69,35 +139,77 @@ export async function getTechnicianLocation(
  */
 export async function getLocationHistory(
   technicianId: string,
-  filters?: TrackingFilters
+  startDate?: string,
+  endDate?: string
 ): Promise<LocationHistory> {
   const params = new URLSearchParams();
   
-  if (filters?.date) {
-    params.append('date', filters.date);
+  if (startDate) {
+    params.append('start_date', startDate);
   }
-  if (filters?.date_from) {
-    params.append('date_from', filters.date_from);
-  }
-  if (filters?.date_to) {
-    params.append('date_to', filters.date_to);
+  if (endDate) {
+    params.append('end_date', endDate);
   }
   
-  const response = await api.get<LocationHistory>(
-    `/trakservice/tracking/history/${technicianId}/`,
+  const response = await api.get<LocationPing[] | { results: LocationPing[] }>(
+    `/trakservice/technicians/${technicianId}/location/`,
     { params }
   );
-  return response.data;
+  
+  const pings = Array.isArray(response.data)
+    ? response.data
+    : response.data.results || [];
+  
+  // Calculate total distance from pings
+  let totalDistance = 0;
+  for (let i = 1; i < pings.length; i++) {
+    totalDistance += haversineDistance(
+      pings[i-1].latitude, pings[i-1].longitude,
+      pings[i].latitude, pings[i].longitude
+    );
+  }
+  
+  return {
+    technician_id: technicianId,
+    technician_name: '',
+    date: startDate || new Date().toISOString().split('T')[0],
+    pings,
+    total_distance_km: totalDistance,
+  };
 }
 
 /**
- * Get tracking summary (active technicians, in field, etc.)
+ * Calculate distance between two points using Haversine formula
+ */
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+/**
+ * Get tracking summary (computed from technicians list)
  */
 export async function getTrackingSummary(): Promise<TrackingSummary> {
-  const response = await api.get<TrackingSummary>(
-    '/trakservice/tracking/summary/'
-  );
-  return response.data;
+  const locations = await getCurrentLocations();
+  
+  const onlineCount = locations.filter(l => l.status === 'online' || l.status === 'moving').length;
+  const atSiteCount = locations.filter(l => l.status === 'at_site').length;
+  const offlineCount = locations.filter(l => l.status === 'offline' || l.status === 'inactive').length;
+  
+  return {
+    total_technicians: locations.length + offlineCount,
+    online: onlineCount,
+    in_field: atSiteCount,
+    offline: offlineCount,
+    last_updated: new Date().toISOString(),
+  };
 }
 
 // =============================================================================
