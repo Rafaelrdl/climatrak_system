@@ -26,7 +26,7 @@ export function TrakServiceDashboard() {
     <div className="space-y-6">
       <PageHeader
         title="TrakService"
-        subtitle="Gestão de Field Service"
+        description="Gestão de Field Service"
       />
 
       {/* Quick Stats */}

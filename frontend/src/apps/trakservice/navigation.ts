@@ -13,6 +13,7 @@ import {
   FileText,
   Users,
   Settings,
+  Gauge,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
@@ -49,6 +50,12 @@ export const trakserviceNavigation: NavItem[] = [
     requiresFeature: 'routing',
   },
   { 
+    name: 'Quilometragem', 
+    href: '/trakservice/mileage', 
+    icon: Gauge,
+    requiresFeature: 'km',
+  },
+  { 
     name: 'Orçamentos', 
     href: '/trakservice/quotes', 
     icon: FileText,
@@ -56,6 +63,19 @@ export const trakserviceNavigation: NavItem[] = [
   },
   { name: 'Equipe', href: '/trakservice/team', icon: Users },
   { name: 'Configurações', href: '/trakservice/settings', icon: Settings },
+];
+
+/**
+ * Navigation items for KM/Mileage (shown inside Routes when km feature is enabled)
+ * @deprecated Use main navigation with requiresFeature: 'km'
+ */
+export const kmSubNavigation: NavItem[] = [
+  { 
+    name: 'Quilometragem', 
+    href: '/trakservice/mileage', 
+    icon: Gauge,
+    requiresFeature: 'km',
+  },
 ];
 
 /**

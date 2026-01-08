@@ -14,6 +14,7 @@ import {
   DispatchPage, 
   TrackingPage, 
   RoutesPage, 
+  MileagePage,
   QuotesPage, 
   TeamPage, 
   SettingsPage 
@@ -44,6 +45,13 @@ export function TrakServiceRoutes() {
         <Route path="routes/*" element={
           <TrakServiceRouteGuard features={['routing']}>
             <RoutesPage />
+          </TrakServiceRouteGuard>
+        } />
+        
+        {/* Mileage/KM - requires km feature */}
+        <Route path="mileage/*" element={
+          <TrakServiceRouteGuard features={['km']}>
+            <MileagePage />
           </TrakServiceRouteGuard>
         } />
         
