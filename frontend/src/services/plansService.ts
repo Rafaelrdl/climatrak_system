@@ -99,7 +99,7 @@ export const plansService = {
     const params: Record<string, string | number | boolean | undefined> = {};
     
     if (filters?.is_active !== undefined) params.is_active = filters.is_active;
-    if (filters?.frequency?.length) params.frequency = filters.frequency.join(',');
+    if (filters?.frequency?.length) params.frequency__in = filters.frequency.join(',');
     if (filters?.asset) params.asset = filters.asset;
     if (filters?.search) params.search = filters.search;
     if (filters?.ordering) params.ordering = filters.ordering;

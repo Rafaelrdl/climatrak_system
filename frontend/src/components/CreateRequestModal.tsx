@@ -1,15 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertCircle, Loader2, Plus, MapPin, Package, FileText } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
-import { useCompanies, useSectors, useSubsections } from '@/hooks/useLocationsQuery';
+import { useCompanies, useUnits, useSectors, useSubsections } from '@/hooks/useLocationsQuery';
 import { useCreateRequest } from '@/hooks/useRequestsQuery';
 import type { CreateRequestData } from '@/services/requestsService';
 
@@ -27,11 +27,13 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
 
   // Location filters state
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+  const [selectedUnitId, setSelectedUnitId] = useState<string>('');
   const [selectedSectorId, setSelectedSectorId] = useState<string>('');
   const [selectedSubsectionId, setSelectedSubsectionId] = useState<string>('');
 
-  // Fetch sectors and subsections based on selection
-  const { data: sectors = [] } = useSectors(selectedCompanyId || undefined);
+  // Fetch units, sectors and subsections based on selection
+  const { data: units = [] } = useUnits(selectedCompanyId || undefined);
+  const { data: sectors = [] } = useSectors(selectedUnitId || undefined);
   const { data: subsections = [] } = useSubsections(selectedSectorId || undefined);
 
   // Form state
@@ -49,16 +51,53 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
       filtered = filtered.filter(eq => eq.subSectionId === selectedSubsectionId);
     } else if (selectedSectorId) {
       filtered = filtered.filter(eq => eq.sectorId === selectedSectorId);
-    } else if (selectedCompanyId) {
+    } else if (selectedUnitId) {
       const sectorIds = sectors.map(s => s.id);
       filtered = filtered.filter(eq => 
-        eq.companyId === selectedCompanyId || 
+        eq.unitId === selectedUnitId || 
         (eq.sectorId && sectorIds.includes(eq.sectorId))
+      );
+    } else if (selectedCompanyId) {
+      const unitIds = units.map(u => u.id);
+      filtered = filtered.filter(eq => 
+        eq.companyId === selectedCompanyId || 
+        (eq.unitId && unitIds.includes(eq.unitId))
       );
     }
 
     return filtered;
-  }, [equipment, selectedCompanyId, selectedSectorId, selectedSubsectionId, sectors]);
+  }, [equipment, selectedCompanyId, selectedUnitId, selectedSectorId, selectedSubsectionId, units, sectors]);
+
+  // Auto-fill location fields when equipment is selected
+  const handleEquipmentSelect = useCallback((equipmentId: string) => {
+    if (equipmentId === "none" || !equipmentId) {
+      setFormData(prev => ({ ...prev, equipmentId: '' }));
+      return;
+    }
+
+    const selectedEquipment = equipment.find(eq => eq.id === equipmentId);
+    if (!selectedEquipment) {
+      setFormData(prev => ({ ...prev, equipmentId }));
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, equipmentId }));
+
+    // Auto-fill all location fields from equipment (always update to ensure full hierarchy)
+    if (selectedEquipment.companyId) {
+      setSelectedCompanyId(selectedEquipment.companyId);
+    }
+    if (selectedEquipment.unitId) {
+      setSelectedUnitId(selectedEquipment.unitId);
+    }
+    if (selectedEquipment.sectorId) {
+      setSelectedSectorId(selectedEquipment.sectorId);
+      setErrors(prev => ({ ...prev, location: '' }));
+    }
+    if (selectedEquipment.subSectionId) {
+      setSelectedSubsectionId(selectedEquipment.subSectionId);
+    }
+  }, [equipment]);
 
   const resetForm = () => {
     setFormData({
@@ -66,6 +105,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
       note: ''
     });
     setSelectedCompanyId('');
+    setSelectedUnitId('');
     setSelectedSectorId('');
     setSelectedSubsectionId('');
     setErrors({});
@@ -124,7 +164,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5" />
@@ -144,30 +184,45 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                 Localização
               </div>
 
-              {/* Company */}
-              <div className="space-y-2">
-                <Label htmlFor="company">Empresa</Label>
-                <Select
-                  value={selectedCompanyId}
-                  onValueChange={(value) => {
-                    setSelectedCompanyId(value);
-                    setSelectedSectorId('');
-                    setSelectedSubsectionId('');
-                    setFormData(prev => ({ ...prev, equipmentId: '' }));
-                    setErrors(prev => ({ ...prev, location: '' }));
-                  }}
-                >
-                  <SelectTrigger id="company">
-                    <SelectValue placeholder="Selecione a empresa..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {companies.map(company => (
-                      <SelectItem key={company.id} value={company.id}>
-                        {company.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {/* Company and Unit */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 min-w-0">
+                  <Label htmlFor="company">Empresa</Label>
+                  <SearchableSelect
+                    options={companies.map(company => ({ value: company.id, label: company.name }))}
+                    value={selectedCompanyId}
+                    onValueChange={(value) => {
+                      setSelectedCompanyId(value);
+                      setSelectedUnitId('');
+                      setSelectedSectorId('');
+                      setSelectedSubsectionId('');
+                      setFormData(prev => ({ ...prev, equipmentId: '' }));
+                      setErrors(prev => ({ ...prev, location: '' }));
+                    }}
+                    placeholder="Selecione..."
+                    searchPlaceholder="Buscar empresa..."
+                    emptyMessage="Nenhuma empresa encontrada."
+                  />
+                </div>
+
+                <div className="space-y-2 min-w-0">
+                  <Label htmlFor="unit">Unidade</Label>
+                  <SearchableSelect
+                    options={units.map(unit => ({ value: unit.id, label: unit.name }))}
+                    value={selectedUnitId}
+                    onValueChange={(value) => {
+                      setSelectedUnitId(value);
+                      setSelectedSectorId('');
+                      setSelectedSubsectionId('');
+                      setFormData(prev => ({ ...prev, equipmentId: '' }));
+                      setErrors(prev => ({ ...prev, location: '' }));
+                    }}
+                    placeholder={selectedCompanyId ? "Selecione..." : "Selecione empresa"}
+                    searchPlaceholder="Buscar unidade..."
+                    emptyMessage="Nenhuma unidade encontrada."
+                    disabled={!selectedCompanyId}
+                  />
+                </div>
               </div>
 
               {/* Sector and Subsection */}
@@ -176,7 +231,8 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                   <Label htmlFor="sector">
                     Setor <span className="text-destructive">*</span>
                   </Label>
-                  <Select
+                  <SearchableSelect
+                    options={sectors.map(sector => ({ value: sector.id, label: sector.name }))}
                     value={selectedSectorId}
                     onValueChange={(value) => {
                       setSelectedSectorId(value);
@@ -184,46 +240,27 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                       setFormData(prev => ({ ...prev, equipmentId: '' }));
                       setErrors(prev => ({ ...prev, location: '' }));
                     }}
-                    disabled={!selectedCompanyId}
-                  >
-                    <SelectTrigger id="sector">
-                      <SelectValue 
-                        placeholder={selectedCompanyId ? "Selecione..." : "Selecione empresa"} 
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sectors.map(sector => (
-                        <SelectItem key={sector.id} value={sector.id}>
-                          {sector.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder={selectedUnitId ? "Selecione..." : "Selecione unidade"}
+                    searchPlaceholder="Buscar setor..."
+                    emptyMessage="Nenhum setor encontrado."
+                    disabled={!selectedUnitId}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="subsection">Subsetor</Label>
-                  <Select
+                  <SearchableSelect
+                    options={subsections.map(sub => ({ value: sub.id, label: sub.name }))}
                     value={selectedSubsectionId}
                     onValueChange={(value) => {
                       setSelectedSubsectionId(value);
                       setFormData(prev => ({ ...prev, equipmentId: '' }));
                     }}
+                    placeholder={selectedSectorId ? "Selecione..." : "Selecione setor"}
+                    searchPlaceholder="Buscar subsetor..."
+                    emptyMessage="Nenhum subsetor encontrado."
                     disabled={!selectedSectorId}
-                  >
-                    <SelectTrigger id="subsection">
-                      <SelectValue 
-                        placeholder={selectedSectorId ? "Selecione..." : "Selecione setor"} 
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subsections.map(sub => (
-                        <SelectItem key={sub.id} value={sub.id}>
-                          {sub.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
               </div>
 
@@ -241,28 +278,21 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
 
               <div className="space-y-2">
                 <Label htmlFor="equipment">Equipamento relacionado</Label>
-                <Select
-                  value={formData.equipmentId || "none"}
-                  onValueChange={(value) => 
-                    setFormData(prev => ({ ...prev, equipmentId: value === "none" ? "" : value }))
-                  }
-                  disabled={!selectedSectorId}
-                >
-                  <SelectTrigger id="equipment">
-                    <SelectValue 
-                      placeholder={selectedSectorId ? "Selecione se aplicável..." : "Selecione um local primeiro"} 
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhum equipamento específico</SelectItem>
-                    {filteredEquipment.map(eq => (
-                      <SelectItem key={eq.id} value={eq.id}>
-                        {eq.tag} - {eq.brand} {eq.model}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {filteredEquipment.length === 0 && selectedSectorId && (
+                <SearchableSelect
+                  options={[
+                    { value: 'none', label: 'Nenhum equipamento específico' },
+                    ...filteredEquipment.map(eq => ({ 
+                      value: eq.id, 
+                      label: `${eq.tag} - ${eq.brand} ${eq.model}` 
+                    }))
+                  ]}
+                  value={formData.equipmentId || 'none'}
+                  onValueChange={handleEquipmentSelect}
+                  placeholder="Selecione se aplicável..."
+                  searchPlaceholder="Buscar equipamento..."
+                  emptyMessage="Nenhum equipamento encontrado."
+                />
+                {filteredEquipment.length === 0 && (selectedCompanyId || selectedUnitId || selectedSectorId) && (
                   <p className="text-sm text-muted-foreground">
                     Nenhum equipamento encontrado nesta localização
                   </p>

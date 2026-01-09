@@ -111,7 +111,7 @@ export const requestsService = {
   async getAll(filters?: RequestFilters): Promise<Solicitation[]> {
     const params: Record<string, string | number | undefined> = {};
     
-    if (filters?.status?.length) params.status = filters.status.join(',');
+    if (filters?.status?.length) params.status__in = filters.status.join(',');
     if (filters?.location) params.location = filters.location;
     if (filters?.asset) params.asset = filters.asset;
     if (filters?.requester) params.requester = filters.requester;

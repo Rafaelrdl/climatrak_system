@@ -6,6 +6,7 @@ import logging
 from decimal import Decimal
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import Count, Q
@@ -465,7 +466,19 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        work_order.start()
+        assigned_to_id = request.data.get("assigned_to")
+        assigned_to = None
+        if assigned_to_id:
+            User = get_user_model()
+            try:
+                assigned_to = User.objects.get(pk=assigned_to_id)
+            except User.DoesNotExist:
+                return Response(
+                    {"error": "Tecnico nao encontrado"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        work_order.start(assigned_to=assigned_to)
         serializer = self.get_serializer(work_order)
         return Response(serializer.data)
 
@@ -544,9 +557,15 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                         f"✅ {items_converted} PartUsage auto-criados de WorkOrderItem"
                     )
 
+            from .services import WorkOrderService
+
+            # Refresh para evitar cache de prefetch antes de montar payload
+            work_order.refresh_from_db()
+            event_data = WorkOrderService._build_work_order_closed_payload(work_order)
+
             # Processar custos
             result = CostEngineService.process_work_order_closed(
-                work_order_id=work_order.id,
+                event_data=event_data,
                 tenant_id=connection.schema_name,
             )
 
@@ -1078,8 +1097,31 @@ class RequestViewSet(ActionRolePermissionMixin, viewsets.ModelViewSet):
             return RequestListSerializer
         return RequestSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(requester=self.request.user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        items_data = request.data.get("items") or []
+        if items_data and not isinstance(items_data, list):
+            return Response(
+                {"items": "Formato invalido. Deve ser uma lista."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            req = serializer.save(requester=request.user)
+            for item in items_data:
+                item_serializer = RequestItemSerializer(data=item)
+                item_serializer.is_valid(raise_exception=True)
+                item_serializer.save(request=req)
+
+        output_serializer = self.get_serializer(req)
+        headers = self.get_success_headers(output_serializer.data)
+        return Response(
+            output_serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=headers,
+        )
 
     def update(self, request, *args, **kwargs):
         """Override update para registrar histÓrico de status."""
@@ -1174,6 +1216,22 @@ class RequestViewSet(ActionRolePermissionMixin, viewsets.ModelViewSet):
         serializer.save(request=req)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["delete"], url_path="items/(?P<item_id>[^/.]+)")
+    def delete_item(self, request, pk=None, item_id=None):
+        """Remove item de uma solicitação."""
+        req = self.get_object()
+
+        try:
+            item = RequestItem.objects.get(id=item_id, request=req)
+        except RequestItem.DoesNotExist:
+            return Response(
+                {"error": "Item nao encontrado"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        item.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=["get"])
     def counts(self, request):

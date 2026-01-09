@@ -399,11 +399,15 @@ class WorkOrder(models.Model):
 
         super().save(*args, **kwargs)
 
-    def start(self):
+    def start(self, assigned_to=None):
         """Inicia a execução da OS."""
         self.status = self.Status.IN_PROGRESS
         self.started_at = timezone.now()
-        self.save(update_fields=["status", "started_at", "updated_at"])
+        update_fields = ["status", "started_at", "updated_at"]
+        if assigned_to is not None:
+            self.assigned_to = assigned_to
+            update_fields.append("assigned_to")
+        self.save(update_fields=update_fields)
 
     def complete(
         self,
@@ -1230,7 +1234,7 @@ class PartUsage(models.Model):
         verbose_name="Baixa Realizada",
         help_text="Se a baixa no inventário já foi realizada",
     )
-    inventory_movement_id = models.UUIDField(
+    inventory_movement_id = models.PositiveBigIntegerField(
         null=True,
         blank=True,
         verbose_name="ID da Movimentação",

@@ -237,13 +237,13 @@ export const workOrdersService = {
   async getAll(filters?: WorkOrderFilters): Promise<WorkOrder[]> {
     const params: Record<string, string | number | undefined> = {};
     
-    if (filters?.status?.length) params.status = filters.status.join(',');
-    if (filters?.type?.length) params.type = filters.type.join(',');
-    if (filters?.priority?.length) params.priority = filters.priority.join(',');
+    if (filters?.status?.length) params.status__in = filters.status.join(',');
+    if (filters?.type?.length) params.type__in = filters.type.join(',');
+    if (filters?.priority?.length) params.priority__in = filters.priority.join(',');
     if (filters?.asset) params.asset = filters.asset;
     if (filters?.assigned_to) params.assigned_to = filters.assigned_to;
-    if (filters?.scheduled_from) params.scheduled_from = filters.scheduled_from;
-    if (filters?.scheduled_to) params.scheduled_to = filters.scheduled_to;
+    if (filters?.scheduled_from) params.scheduled_date__gte = filters.scheduled_from;
+    if (filters?.scheduled_to) params.scheduled_date__lte = filters.scheduled_to;
     if (filters?.search) params.search = filters.search;
     if (filters?.ordering) params.ordering = filters.ordering;
     if (filters?.page) params.page = filters.page;
@@ -264,13 +264,13 @@ export const workOrdersService = {
   }> {
     const params: Record<string, string | number | undefined> = {};
     
-    if (filters?.status?.length) params.status = filters.status.join(',');
-    if (filters?.type?.length) params.type = filters.type.join(',');
-    if (filters?.priority?.length) params.priority = filters.priority.join(',');
+    if (filters?.status?.length) params.status__in = filters.status.join(',');
+    if (filters?.type?.length) params.type__in = filters.type.join(',');
+    if (filters?.priority?.length) params.priority__in = filters.priority.join(',');
     if (filters?.asset) params.asset = filters.asset;
     if (filters?.assigned_to) params.assigned_to = filters.assigned_to;
-    if (filters?.scheduled_from) params.scheduled_from = filters.scheduled_from;
-    if (filters?.scheduled_to) params.scheduled_to = filters.scheduled_to;
+    if (filters?.scheduled_from) params.scheduled_date__gte = filters.scheduled_from;
+    if (filters?.scheduled_to) params.scheduled_date__lte = filters.scheduled_to;
     if (filters?.search) params.search = filters.search;
     if (filters?.ordering) params.ordering = filters.ordering;
     if (filters?.page) params.page = filters.page;
