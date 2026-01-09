@@ -31,6 +31,7 @@ import {
   ChevronDown,
   ChevronRight,
   Loader2,
+  Edit,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +46,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useGeneratePMOCMonthly, useGeneratePMOCAnnual } from '@/hooks/useReportsQuery';
 import { PMOCMonthlyPreview, PMOCAnnualPreview } from '@/components/reports/PMOCReportPreview';
 import { PMOCMonthlyReport, PMOCAnnualReport } from '@/services/reportsService';
+import { PMOCDataModal, PMOCManualData, defaultPMOCManualData } from '@/components/reports/PMOCDataModal';
 
 // Tipos de relatório disponíveis
 interface ReportTemplate {
@@ -366,6 +368,11 @@ export function ReportsPage() {
   // Generated report state
   const [generatedMonthlyReport, setGeneratedMonthlyReport] = useState<PMOCMonthlyReport | null>(null);
   const [generatedAnnualReport, setGeneratedAnnualReport] = useState<PMOCAnnualReport | null>(null);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
+  
+  // Manual data modal state
+  const [isDataModalOpen, setIsDataModalOpen] = useState(false);
+  const [pmocManualData, setPmocManualData] = useState<PMOCManualData>(defaultPMOCManualData);
   
   const { data: companies = [] } = useCompanies();
   const { data: sectors = [] } = useSectors();
@@ -399,6 +406,61 @@ export function ReportsPage() {
 
   const handleDownload = (reportId: number) => {
     console.log('Download report:', reportId);
+  };
+
+  /**
+   * Exporta os dados do relatório gerado em formato JSON
+   */
+  const handleExportData = () => {
+    const reportData = generatedMonthlyReport || generatedAnnualReport;
+    
+    if (!reportData) {
+      alert('Nenhum relatório gerado para exportar. Gere um relatório primeiro.');
+      return;
+    }
+    
+    // Criar blob com os dados JSON
+    const jsonString = JSON.stringify(reportData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    
+    // Criar nome do arquivo
+    const reportType = reportData.report_type === 'PMOC_MENSAL' ? 'pmoc-mensal' : 'pmoc-anual';
+    const period = reportData.report_type === 'PMOC_MENSAL' 
+      ? `${reportData.period.year}-${String(reportData.period.month).padStart(2, '0')}`
+      : String(reportData.period.year);
+    const fileName = `${reportType}_${period}_${new Date().toISOString().split('T')[0]}.json`;
+    
+    // Criar link de download e clicar
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  /**
+   * Exporta o relatório para PDF usando window.print()
+   * O CSS @media print cuida do layout de impressão
+   */
+  const handleExportPDF = () => {
+    setIsExportingPDF(true);
+    
+    // Adiciona classe para estilo de impressão focando apenas no preview
+    document.body.classList.add('printing-report');
+    
+    // Aguarda um momento para aplicar estilos e então abre o diálogo de impressão
+    setTimeout(() => {
+      window.print();
+      
+      // Remove classe após impressão (com delay para o diálogo fechar)
+      setTimeout(() => {
+        document.body.classList.remove('printing-report');
+        setIsExportingPDF(false);
+      }, 1000);
+    }, 100);
   };
 
   const handleGenerateReport = async () => {
@@ -457,7 +519,11 @@ export function ReportsPage() {
               </p>
             </div>
           </div>
-          <Button className="gap-2">
+          <Button 
+            className="gap-2" 
+            onClick={handleExportData}
+            disabled={!generatedMonthlyReport && !generatedAnnualReport}
+          >
             <Download className="w-4 h-4" />
             Exportar Dados
           </Button>
@@ -790,19 +856,45 @@ export function ReportsPage() {
 
                     {/* Preview do Relatório Gerado */}
                     {generatedMonthlyReport && (
-                      <PMOCMonthlyPreview 
-                        report={generatedMonthlyReport}
-                        onExportPDF={() => console.log('Export PDF')}
-                        isExporting={false}
-                      />
+                      <div id="pmoc-report-preview" className="print:block">
+                        <div className="flex items-center justify-end gap-2 mb-4 print:hidden">
+                          <Button 
+                            variant="outline" 
+                            className="gap-2"
+                            onClick={() => setIsDataModalOpen(true)}
+                          >
+                            <Edit className="w-4 h-4" />
+                            Inserir Dados
+                          </Button>
+                        </div>
+                        <PMOCMonthlyPreview 
+                          report={generatedMonthlyReport}
+                          onExportPDF={handleExportPDF}
+                          isExporting={isExportingPDF}
+                          manualData={pmocManualData}
+                        />
+                      </div>
                     )}
                     
                     {generatedAnnualReport && (
-                      <PMOCAnnualPreview 
-                        report={generatedAnnualReport}
-                        onExportPDF={() => console.log('Export PDF')}
-                        isExporting={false}
-                      />
+                      <div id="pmoc-report-preview" className="print:block">
+                        <div className="flex items-center justify-end gap-2 mb-4 print:hidden">
+                          <Button 
+                            variant="outline" 
+                            className="gap-2"
+                            onClick={() => setIsDataModalOpen(true)}
+                          >
+                            <Edit className="w-4 h-4" />
+                            Inserir Dados
+                          </Button>
+                        </div>
+                        <PMOCAnnualPreview 
+                          report={generatedAnnualReport}
+                          onExportPDF={handleExportPDF}
+                          isExporting={isExportingPDF}
+                          manualData={pmocManualData}
+                        />
+                      </div>
                     )}
 
                     {/* Mensagem quando nenhum relatório foi gerado */}
@@ -916,6 +1008,14 @@ export function ReportsPage() {
           </div>
         </Tabs>
       </div>
+      
+      {/* Modal para inserir dados manuais do PMOC */}
+      <PMOCDataModal
+        open={isDataModalOpen}
+        onOpenChange={setIsDataModalOpen}
+        data={pmocManualData}
+        onSave={setPmocManualData}
+      />
     </div>
   );
 }
