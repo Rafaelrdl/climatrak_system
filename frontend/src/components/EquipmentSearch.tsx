@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/shared/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -239,36 +240,6 @@ export function EquipmentSearch({
     filters.capacity?.max ||
     filters.installDate?.from ||
     filters.installDate?.to;
-
-  const getStatusIcon = (status: Equipment['status']) => {
-    switch (status) {
-      case 'OK': return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
-      case 'MAINTENANCE': return <Wrench className="h-4 w-4 text-amber-500" />;
-      case 'ALERT': return <AlertTriangle className="h-4 w-4 text-orange-500" />;
-      case 'STOPPED': return <XCircle className="h-4 w-4 text-red-500" />;
-      default: return null;
-    }
-  };
-
-  const getStatusLabel = (status: Equipment['status']) => {
-    switch (status) {
-      case 'OK': return 'Operacional';
-      case 'MAINTENANCE': return 'Em Manutenção';
-      case 'ALERT': return 'Alerta';
-      case 'STOPPED': return 'Parado';
-      default: return status;
-    }
-  };
-
-  const getStatusColor = (status: Equipment['status']) => {
-    switch (status) {
-      case 'OK': return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20';
-      case 'MAINTENANCE': return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20';
-      case 'ALERT': return 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20';
-      case 'STOPPED': return 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20';
-      default: return 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20';
-    }
-  };
 
   const getCriticidadeColor = (criticidade: Equipment['criticidade']) => {
     switch (criticidade) {
@@ -534,9 +505,14 @@ export function EquipmentSearch({
                             }));
                           }}
                         />
-                        <Label htmlFor={`status-${status}`} className="text-[11px] flex items-center gap-1">
-                          {getStatusIcon(status)}
-                          {getStatusLabel(status)}
+                        <Label htmlFor={`status-${status}`} className="text-[11px] flex items-center">
+                          <StatusBadge
+                            status={status}
+                            type="equipment"
+                            size="sm"
+                            showIcon
+                            className="h-4 text-[10px] px-1.5"
+                          />
                         </Label>
                       </div>
                     ))}
@@ -690,10 +666,15 @@ export function EquipmentSearch({
                 </Badge>
               ))}
               {filters.status?.map(status => (
-                <Badge key={status} variant="secondary" className="h-4 text-[10px] gap-0.5 pr-0.5">
-                  {getStatusLabel(status)}
+                <div key={status} className="relative inline-flex items-center">
+                  <StatusBadge
+                    status={status}
+                    type="equipment"
+                    size="sm"
+                    className="h-4 text-[10px] pr-5"
+                  />
                   <button
-                    className="ml-0.5 rounded-full hover:bg-muted-foreground/20 p-0.5"
+                    className="absolute right-1 rounded-full hover:bg-muted-foreground/20 p-0.5"
                     onClick={() => setFilters(prev => ({
                       ...prev,
                       status: prev.status?.filter(s => s !== status)
@@ -701,7 +682,7 @@ export function EquipmentSearch({
                   >
                     <X className="h-2 w-2" />
                   </button>
-                </Badge>
+                </div>
               ))}
             </div>
           </>
@@ -767,10 +748,13 @@ export function EquipmentSearch({
                       })()}
 
                       {/* Status Badge */}
-                      <Badge className={cn("shrink-0 text-[10px] h-5 px-1.5", getStatusColor(eq.status))}>
-                        {getStatusIcon(eq.status)}
-                        <span className="ml-1">{getStatusLabel(eq.status)}</span>
-                      </Badge>
+                      <StatusBadge
+                        status={eq.status}
+                        type="equipment"
+                        size="sm"
+                        showIcon
+                        className="shrink-0 text-[10px] h-5 px-1.5"
+                      />
 
                       {/* Actions */}
                       {onEditAsset && (
@@ -862,7 +846,6 @@ export function EquipmentSearch({
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       )}
-                      {getStatusIcon(eq.status)}
                     </div>
                   </div>
                 </CardHeader>
@@ -911,9 +894,12 @@ export function EquipmentSearch({
                   
                   {/* Footer with Status and Criticidade */}
                   <div className="flex items-center justify-between pt-2 border-t gap-2">
-                    <Badge className={cn("text-[10px] h-5 px-1.5", getStatusColor(eq.status))}>
-                      {getStatusLabel(eq.status)}
-                    </Badge>
+                    <StatusBadge
+                      status={eq.status}
+                      type="equipment"
+                      size="sm"
+                      className="text-[10px] h-5 px-1.5"
+                    />
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="flex items-center gap-1">

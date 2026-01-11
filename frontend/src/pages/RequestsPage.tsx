@@ -325,7 +325,7 @@ export function RequestsPage() {
                       </td>
                       
                       <td className="p-4">
-                        <StatusBadge status={solicitation.status} />
+                        <StatusBadge status={solicitation.status} type="request" />
                       </td>
                       
                       <td className="p-4">

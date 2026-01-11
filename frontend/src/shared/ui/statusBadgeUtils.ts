@@ -4,9 +4,9 @@ type PriorityVariant = 'default' | 'selected';
 
 const PRIORITY_LABELS: Record<string, string> = {
   LOW: 'Baixa',
-  MEDIUM: 'Media',
+  MEDIUM: 'Média',
   HIGH: 'Alta',
-  CRITICAL: 'Critica',
+  CRITICAL: 'Crítica',
 };
 
 const PRIORITY_DOT_CLASSES: Record<PriorityVariant, Record<string, string>> = {

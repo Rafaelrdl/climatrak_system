@@ -6,6 +6,9 @@
  * Endpoints:
  * - GET /api/cmms/reports/pmoc-monthly/ - Relatório PMOC mensal
  * - GET /api/cmms/reports/pmoc-annual/ - Relatório PMOC anual
+ * - GET /api/cmms/reports/history/ - Histórico de relatórios gerados
+ * - GET /api/cmms/reports/history/{id}/ - Detalhes de um relatório
+ * - DELETE /api/cmms/reports/history/{id}/delete/ - Remove um relatório
  */
 
 import { api } from '@/lib/api';
@@ -19,6 +22,63 @@ export interface PMOCReportFilters {
   year?: number;
   site_id?: string;
   company?: string;
+}
+
+// ============================================
+// Generated Report (Histórico)
+// ============================================
+
+export type GeneratedReportType =
+  | 'PMOC_MENSAL'
+  | 'PMOC_ANUAL'
+  | 'CONFORMIDADE_ANVISA'
+  | 'QUALIDADE_AR'
+  | 'LAUDO_TECNICO'
+  | 'DESEMPENHO_EQUIPAMENTOS'
+  | 'CONSUMO_ENERGETICO'
+  | 'ALERTAS'
+  | 'SLA'
+  | 'OUTROS';
+
+export type GeneratedReportStatus = 'processing' | 'completed' | 'failed';
+
+export interface GeneratedReport {
+  id: string;
+  name: string;
+  report_type: GeneratedReportType;
+  type_display: string;
+  status: GeneratedReportStatus;
+  status_display: string;
+  period_month: number | null;
+  period_year: number;
+  filters: Record<string, string | null>;
+  size: string;
+  generated_by: string | null;
+  generated_by_name: string | null;
+  generated_at: string;
+  completed_at: string | null;
+}
+
+export interface GeneratedReportDetail extends GeneratedReport {
+  content: PMOCMonthlyReport | PMOCAnnualReport | Record<string, unknown>;
+  pdf_file: string | null;
+  error_message: string;
+}
+
+export interface ReportHistoryFilters {
+  report_type?: GeneratedReportType;
+  status?: GeneratedReportStatus;
+  year?: number;
+  page?: number;
+  page_size?: number;
+}
+
+export interface ReportHistoryResponse {
+  results: GeneratedReport[];
+  count: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 }
 
 export interface PMOCPeriod {
@@ -559,6 +619,40 @@ export const reportsService = {
     
     const response = await api.get<PMOCAnnualReport>(url);
     return response.data;
+  },
+
+  /**
+   * Lista histórico de relatórios gerados
+   */
+  async getReportHistory(filters: ReportHistoryFilters = {}): Promise<ReportHistoryResponse> {
+    const params = new URLSearchParams();
+    
+    if (filters.report_type) params.append('report_type', filters.report_type);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.year) params.append('year', String(filters.year));
+    if (filters.page) params.append('page', String(filters.page));
+    if (filters.page_size) params.append('page_size', String(filters.page_size));
+    
+    const queryString = params.toString();
+    const url = `/cmms/reports/history/${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await api.get<ReportHistoryResponse>(url);
+    return response.data;
+  },
+
+  /**
+   * Busca detalhes de um relatório gerado
+   */
+  async getReportDetail(reportId: string): Promise<GeneratedReportDetail> {
+    const response = await api.get<GeneratedReportDetail>(`/cmms/reports/history/${reportId}/`);
+    return response.data;
+  },
+
+  /**
+   * Remove um relatório gerado
+   */
+  async deleteReport(reportId: string): Promise<void> {
+    await api.delete(`/cmms/reports/history/${reportId}/delete/`);
   },
 };
 

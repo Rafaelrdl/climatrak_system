@@ -3,12 +3,13 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { DashboardWidget } from '@/types/dashboard';
 import { useDashboardStore } from '@/store/useDashboardStore';
+import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
 import { WidgetConfig } from './WidgetConfig';
 import { ConfirmDialog } from '@/shared/ui/components/ConfirmDialog';
+import { StatusBadge } from '@/shared/ui';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import type { ECharts, EChartsOption } from 'echarts';
 import { 
@@ -74,6 +75,7 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
   // Dados reais do sistema
   const { data: workOrders = [] } = useWorkOrders();
   const { data: equipment = [] } = useEquipments();
+  const { settings: workOrderSettings } = useWorkOrderSettingsStore();
 
   // Dados do sensor configurado
   const sensorTag = widget.config?.sensorTag;
@@ -2186,23 +2188,19 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
               <TableRow key={wo.id}>
                 <TableCell className="font-medium">{wo.number}</TableCell>
                 <TableCell>
-                  <Badge variant={
-                    wo.status === 'COMPLETED' ? 'default' :
-                    wo.status === 'IN_PROGRESS' ? 'secondary' : 'outline'
-                  }>
-                    {wo.status === 'COMPLETED' ? 'Concluída' :
-                     wo.status === 'IN_PROGRESS' ? 'Em Andamento' : 'Aberta'}
-                  </Badge>
+                  <StatusBadge
+                    status={wo.status}
+                    type="workOrder"
+                    cmmsSettings={workOrderSettings}
+                    size="sm"
+                  />
                 </TableCell>
                 <TableCell>
-                  <Badge variant={
-                    wo.priority === 'CRITICAL' ? 'destructive' :
-                    wo.priority === 'HIGH' ? 'outline' : 'secondary'
-                  }>
-                    {wo.priority === 'CRITICAL' ? 'Crítica' :
-                     wo.priority === 'HIGH' ? 'Alta' :
-                     wo.priority === 'MEDIUM' ? 'Média' : 'Baixa'}
-                  </Badge>
+                  <StatusBadge
+                    status={wo.priority}
+                    type="priority"
+                    size="sm"
+                  />
                 </TableCell>
               </TableRow>
             ))}
@@ -2237,15 +2235,11 @@ export function DraggableWidget({ widget, layoutId }: DraggableWidgetProps) {
                 <TableCell className="font-medium">{eq.tag}</TableCell>
                 <TableCell>{eq.type}</TableCell>
                 <TableCell>
-                  <Badge variant={
-                    eq.status === 'OK' ? 'default' :
-                    eq.status === 'MAINTENANCE' ? 'secondary' :
-                    eq.status === 'ALERT' ? 'outline' : 'destructive'
-                  }>
-                    {eq.status === 'OK' ? 'Operacional' :
-                     eq.status === 'MAINTENANCE' ? 'Manuten??o' :
-                     eq.status === 'ALERT' ? 'Alerta' : 'Parado'}
-                  </Badge>
+                  <StatusBadge
+                    status={eq.status}
+                    type="equipment"
+                    size="sm"
+                  />
                 </TableCell>
               </TableRow>
             ))}

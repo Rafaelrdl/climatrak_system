@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';
 import { useCompanies, useUnits, useSectors, useSubsections } from '@/hooks/useLocationsQuery';
+import { getPriorityLabel } from '@/shared/ui/statusBadgeUtils';
 import type { WorkOrder } from '@/types';
 
 interface WorkOrderModalProps {
@@ -521,9 +522,7 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
               <div>
                 <span className="text-sm font-medium">Prioridade:</span>
                 <p className="text-sm text-muted-foreground">
-                  {formData.priority === 'LOW' ? 'Baixa' : 
-                   formData.priority === 'MEDIUM' ? 'Média' : 
-                   formData.priority === 'HIGH' ? 'Alta' : 'Crítica'}
+                  {getPriorityLabel(formData.priority)}
                 </p>
               </div>
             </div>

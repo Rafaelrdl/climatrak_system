@@ -1466,3 +1466,145 @@ class ExternalCostAttachment(models.Model):
 
     def __str__(self):
         return f"{self.file_name} ({self.get_file_type_display()})"
+
+
+class GeneratedReport(models.Model):
+    """
+    Relatórios gerados pelo sistema.
+
+    Armazena metadados e conteúdo (JSON) de relatórios PMOC e outros.
+    Permite consultar histórico de relatórios gerados.
+    """
+
+    class ReportType(models.TextChoices):
+        PMOC_MENSAL = "PMOC_MENSAL", "PMOC Mensal"
+        PMOC_ANUAL = "PMOC_ANUAL", "PMOC Anual"
+        CONFORMIDADE_ANVISA = "CONFORMIDADE_ANVISA", "Conformidade ANVISA"
+        QUALIDADE_AR = "QUALIDADE_AR", "Qualidade do Ar Interior"
+        LAUDO_TECNICO = "LAUDO_TECNICO", "Laudo Técnico"
+        DESEMPENHO_EQUIPAMENTOS = "DESEMPENHO_EQUIPAMENTOS", "Desempenho de Equipamentos"
+        CONSUMO_ENERGETICO = "CONSUMO_ENERGETICO", "Consumo Energético"
+        ALERTAS = "ALERTAS", "Resumo de Alertas"
+        SLA = "SLA", "Conformidade SLA"
+        OUTROS = "OUTROS", "Outros"
+
+    class Status(models.TextChoices):
+        PROCESSING = "processing", "Processando"
+        COMPLETED = "completed", "Concluído"
+        FAILED = "failed", "Falhou"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    name = models.CharField(
+        max_length=255,
+        verbose_name="Nome do Relatório",
+        help_text="Nome descritivo do relatório gerado",
+    )
+    report_type = models.CharField(
+        max_length=50,
+        choices=ReportType.choices,
+        verbose_name="Tipo de Relatório",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PROCESSING,
+        verbose_name="Status",
+    )
+
+    # Período do relatório
+    period_month = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Mês",
+        help_text="Mês do período (1-12), null para relatórios anuais",
+    )
+    period_year = models.PositiveSmallIntegerField(
+        verbose_name="Ano",
+        help_text="Ano do período",
+    )
+
+    # Filtros aplicados
+    filters = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Filtros",
+        help_text="Filtros aplicados na geração (company, site_id, etc)",
+    )
+
+    # Conteúdo do relatório (JSON completo)
+    content = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Conteúdo",
+        help_text="Dados completos do relatório em JSON",
+    )
+
+    # Tamanho aproximado em bytes (para exibição)
+    size_bytes = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Tamanho (bytes)",
+    )
+
+    # Arquivo PDF gerado (opcional, para futuro)
+    pdf_file = models.FileField(
+        upload_to="cmms/reports/%Y/%m/",
+        null=True,
+        blank=True,
+        verbose_name="Arquivo PDF",
+    )
+
+    # Auditoria
+    generated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="generated_reports",
+        verbose_name="Gerado por",
+    )
+    generated_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Gerado em",
+    )
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Concluído em",
+    )
+
+    # Erro (se falhou)
+    error_message = models.TextField(
+        blank=True,
+        verbose_name="Mensagem de Erro",
+    )
+
+    class Meta:
+        verbose_name = "Relatório Gerado"
+        verbose_name_plural = "Relatórios Gerados"
+        ordering = ["-generated_at"]
+        indexes = [
+            models.Index(fields=["report_type", "-generated_at"]),
+            models.Index(fields=["status", "-generated_at"]),
+            models.Index(fields=["period_year", "period_month"]),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.get_status_display()})"
+
+    @property
+    def size_display(self) -> str:
+        """Retorna tamanho formatado para exibição."""
+        if self.size_bytes < 1024:
+            return f"{self.size_bytes} B"
+        elif self.size_bytes < 1024 * 1024:
+            return f"{self.size_bytes / 1024:.1f} KB"
+        else:
+            return f"{self.size_bytes / (1024 * 1024):.1f} MB"
+
+    def save(self, *args, **kwargs):
+        # Calcula tamanho do conteúdo JSON
+        if self.content:
+            import json
+
+            self.size_bytes = len(json.dumps(self.content).encode("utf-8"))
+        super().save(*args, **kwargs)

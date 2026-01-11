@@ -135,13 +135,13 @@ const statusConfigs = {
       className: statusTokenClasses.neutral
     },
     WARNING: {
-      label: 'Atencao',
+      label: 'Atenção',
       variant: 'outline' as const,
       icon: AlertTriangle,
       className: statusTokenClasses.warning
     },
     CRITICAL: {
-      label: 'Critico',
+      label: 'Crítico',
       variant: 'destructive' as const,
       icon: AlertCircle,
       className: statusTokenClasses.danger
@@ -180,7 +180,7 @@ const statusConfigs = {
       className: statusTokenClasses.neutralMuted
     },
     MEDIUM: { 
-      label: 'Media', 
+      label: 'Média', 
       variant: 'secondary' as const, 
       icon: AlertCircle,
       className: statusTokenClasses.info
@@ -192,7 +192,7 @@ const statusConfigs = {
       className: statusTokenClasses.warning
     },
     CRITICAL: { 
-      label: 'Critica', 
+      label: 'Crítica', 
       variant: 'destructive' as const, 
       icon: AlertCircle,
       className: statusTokenClasses.danger
@@ -213,13 +213,13 @@ const statusConfigs = {
       className: statusTokenClasses.warning
     },
     EMERGENCY: {
-      label: 'Emergencia',
+      label: 'Emergência',
       variant: 'destructive' as const,
       icon: AlertTriangle,
       className: statusTokenClasses.danger
     },
     REQUEST: {
-      label: 'Solicitacao',
+      label: 'Solicitação',
       variant: 'outline' as const,
       icon: AlertCircle,
       className: statusTokenClasses.accent

@@ -10,6 +10,7 @@ from .models import (
     ChecklistTemplate,
     ExternalCost,
     ExternalCostAttachment,
+    GeneratedReport,
     MaintenancePlan,
     PartUsage,
     Procedure,
@@ -1253,3 +1254,73 @@ class WorkOrderCostSummarySerializer(serializers.Serializer):
     grand_total = serializers.DecimalField(
         max_digits=14, decimal_places=2, allow_null=True
     )
+
+
+# ============================================
+# GENERATED REPORT SERIALIZERS
+# ============================================
+
+
+class GeneratedReportListSerializer(serializers.ModelSerializer):
+    """Serializer para listagem de relatórios gerados."""
+
+    type_display = serializers.CharField(source="get_report_type_display", read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    generated_by_name = serializers.CharField(
+        source="generated_by.get_full_name", read_only=True, allow_null=True
+    )
+    size = serializers.CharField(source="size_display", read_only=True)
+
+    class Meta:
+        model = GeneratedReport
+        fields = [
+            "id",
+            "name",
+            "report_type",
+            "type_display",
+            "status",
+            "status_display",
+            "period_month",
+            "period_year",
+            "filters",
+            "size",
+            "generated_by",
+            "generated_by_name",
+            "generated_at",
+            "completed_at",
+        ]
+        read_only_fields = fields
+
+
+class GeneratedReportDetailSerializer(serializers.ModelSerializer):
+    """Serializer para detalhes de um relatório gerado (inclui conteúdo)."""
+
+    type_display = serializers.CharField(source="get_report_type_display", read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    generated_by_name = serializers.CharField(
+        source="generated_by.get_full_name", read_only=True, allow_null=True
+    )
+    size = serializers.CharField(source="size_display", read_only=True)
+
+    class Meta:
+        model = GeneratedReport
+        fields = [
+            "id",
+            "name",
+            "report_type",
+            "type_display",
+            "status",
+            "status_display",
+            "period_month",
+            "period_year",
+            "filters",
+            "content",
+            "size",
+            "pdf_file",
+            "generated_by",
+            "generated_by_name",
+            "generated_at",
+            "completed_at",
+            "error_message",
+        ]
+        read_only_fields = fields

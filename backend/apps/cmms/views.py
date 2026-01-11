@@ -2080,10 +2080,52 @@ class ReportsViewSet(viewsets.ViewSet):
     Endpoints:
     - GET /cmms/reports/pmoc-monthly/ - Relatório PMOC mensal
     - GET /cmms/reports/pmoc-annual/ - Relatório PMOC anual
+    - GET /cmms/reports/history/ - Histórico de relatórios gerados
+    - GET /cmms/reports/history/{id}/ - Detalhes de um relatório gerado
+    - DELETE /cmms/reports/history/{id}/ - Remove um relatório gerado
     """
     
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     required_roles = ["owner", "admin", "operator", "technician"]
+    
+    def _save_generated_report(
+        self,
+        request,
+        report_type: str,
+        report_data: dict,
+        month: int | None = None,
+        year: int = None,
+        filters: dict = None,
+    ):
+        """Salva um relatório gerado no banco de dados."""
+        from .models import GeneratedReport
+        
+        # Monta nome do relatório
+        month_names = [
+            "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ]
+        
+        if report_type == "PMOC_MENSAL":
+            name = f"Relatório PMOC - {month_names[month]} {year}"
+        elif report_type == "PMOC_ANUAL":
+            name = f"Relatório PMOC Anual - {year}"
+        else:
+            name = f"Relatório {report_type} - {year}"
+        
+        generated_report = GeneratedReport.objects.create(
+            name=name,
+            report_type=report_type,
+            status=GeneratedReport.Status.COMPLETED,
+            period_month=month,
+            period_year=year,
+            filters=filters or {},
+            content=report_data,
+            generated_by=request.user,
+            completed_at=timezone.now(),
+        )
+        
+        return generated_report
     
     @action(detail=False, methods=["get"], url_path="pmoc-monthly")
     def pmoc_monthly(self, request):
@@ -2125,6 +2167,17 @@ class ReportsViewSet(viewsets.ViewSet):
                 site_id=site_id,
                 company=company,
             )
+            
+            # Salva o relatório gerado
+            self._save_generated_report(
+                request=request,
+                report_type="PMOC_MENSAL",
+                report_data=report,
+                month=month,
+                year=year,
+                filters={"site_id": site_id, "company": company},
+            )
+            
             return Response(report)
         except Exception as e:
             logger.exception("Erro ao gerar relatório PMOC mensal")
@@ -2164,6 +2217,17 @@ class ReportsViewSet(viewsets.ViewSet):
                 site_id=site_id,
                 company=company,
             )
+            
+            # Salva o relatório gerado
+            self._save_generated_report(
+                request=request,
+                report_type="PMOC_ANUAL",
+                report_data=report,
+                month=None,
+                year=year,
+                filters={"site_id": site_id, "company": company},
+            )
+            
             return Response(report)
         except Exception as e:
             logger.exception("Erro ao gerar relatório PMOC anual")
@@ -2171,4 +2235,89 @@ class ReportsViewSet(viewsets.ViewSet):
                 {"error": f"Erro ao gerar relatório: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @action(detail=False, methods=["get"], url_path="history")
+    def history(self, request):
+        """
+        Lista histórico de relatórios gerados.
+        
+        Query params:
+        - report_type: Filtrar por tipo (PMOC_MENSAL, PMOC_ANUAL, etc)
+        - status: Filtrar por status (processing, completed, failed)
+        - year: Filtrar por ano
+        - page: Página (default: 1)
+        - page_size: Tamanho da página (default: 20, max: 100)
+        """
+        from .models import GeneratedReport
+        from .serializers import GeneratedReportListSerializer
+        
+        queryset = GeneratedReport.objects.all()
+        
+        # Filtros
+        report_type = request.query_params.get("report_type")
+        if report_type:
+            queryset = queryset.filter(report_type=report_type)
+        
+        status_filter = request.query_params.get("status")
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        year = request.query_params.get("year")
+        if year:
+            queryset = queryset.filter(period_year=int(year))
+        
+        # Paginação simples
+        page = int(request.query_params.get("page", 1))
+        page_size = min(int(request.query_params.get("page_size", 20)), 100)
+        offset = (page - 1) * page_size
+        
+        total_count = queryset.count()
+        reports = queryset[offset:offset + page_size]
+        
+        serializer = GeneratedReportListSerializer(reports, many=True)
+        
+        return Response({
+            "results": serializer.data,
+            "count": total_count,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": (total_count + page_size - 1) // page_size,
+        })
+
+    @action(detail=False, methods=["get"], url_path=r"history/(?P<report_id>[^/.]+)")
+    def history_detail(self, request, report_id=None):
+        """
+        Retorna detalhes de um relatório gerado (inclui conteúdo completo).
+        """
+        from .models import GeneratedReport
+        from .serializers import GeneratedReportDetailSerializer
+        
+        try:
+            report = GeneratedReport.objects.get(id=report_id)
+        except GeneratedReport.DoesNotExist:
+            return Response(
+                {"error": "Relatório não encontrado"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        serializer = GeneratedReportDetailSerializer(report)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["delete"], url_path=r"history/(?P<report_id>[^/.]+)/delete")
+    def history_delete(self, request, report_id=None):
+        """
+        Remove um relatório gerado.
+        """
+        from .models import GeneratedReport
+        
+        try:
+            report = GeneratedReport.objects.get(id=report_id)
+        except GeneratedReport.DoesNotExist:
+            return Response(
+                {"error": "Relatório não encontrado"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        report.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 

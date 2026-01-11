@@ -1,7 +1,6 @@
-import { PageHeader } from '@/shared/ui';
+import { PageHeader, StatusBadge } from '@/shared/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TechnicianPerformanceChart } from '@/components/charts/TechnicianPerformanceChart';
 import { DataFilterInfo } from '@/components/data/FilteredDataProvider';
@@ -29,6 +28,7 @@ import { useDashboardFiltering } from '@/hooks/useDashboardFiltering';
 import { useAbility } from '@/hooks/useAbility';
 import { useCurrentUser } from '@/data/usersStore';
 import { useSLAStore, calculateSLAStatus } from '@/store/useSLAStore';
+import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
 import { 
   useAverageMaintenanceMetrics,
   formatAverageMTTR,
@@ -52,6 +52,7 @@ export function Dashboard() {
   const { data: equipment = [] } = useEquipments();
   const { data: sectors = [] } = useSectors();
   const slaSettings = useSLAStore((state) => state.settings);
+  const { settings: workOrderSettings } = useWorkOrderSettingsStore();
   
   // Hook para cálculo de MTTR e MTBF médios de todos os ativos
   const { 
@@ -310,20 +311,12 @@ export function Dashboard() {
         const sector = sectors.find(s => s.id === eq?.sectorId);
         const workOrderNumber = wo.number || wo.id;
         const equipmentLabel = eq?.tag || eq?.model || wo.equipmentId || 'Equipamento';
-        
-        const getTypeLabel = (type: string) => {
-          switch(type) {
-            case 'PREVENTIVE': return 'Manutenção Preventiva';
-            case 'REQUEST': return 'Solicitação';
-            default: return 'Manutenção Corretiva';
-          }
-        };
-        
+
         return {
           id: wo.id,
           workOrderNumber,
           equipmentName: equipmentLabel,
-          type: getTypeLabel(wo.type),
+          type: wo.type,
           scheduledDate: wo.scheduledDate,
           responsible: wo.assignedTo || 'Não atribuído',
           priority: wo.priority,
@@ -635,16 +628,16 @@ export function Dashboard() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={maintenance.type === 'Manutenção Preventiva' ? 'default' : maintenance.type === 'Solicitação' ? 'outline' : 'secondary'}
-                      className={maintenance.type === 'Solicitação' ? 'bg-violet-100 text-violet-700 border-violet-200' : ''}>
-                      {maintenance.type}
-                    </Badge>
+                    <StatusBadge
+                      status={maintenance.type}
+                      type="maintenanceType"
+                      cmmsSettings={workOrderSettings}
+                      size="sm"
+                    />
                   </TableCell>
                   <TableCell>{new Date(maintenance.scheduledDate).toLocaleDateString('pt-BR')}</TableCell>
                   <TableCell>
-                    <Badge variant={maintenance.priority === 'CRITICAL' ? 'destructive' : maintenance.priority === 'HIGH' ? 'outline' : 'secondary'}>
-                      {maintenance.priority === 'CRITICAL' ? 'Crítica' : maintenance.priority === 'HIGH' ? 'Alta' : maintenance.priority === 'MEDIUM' ? 'Média' : 'Baixa'}
-                    </Badge>
+                    <StatusBadge status={maintenance.priority} type="priority" size="sm" />
                   </TableCell>
                 </TableRow>
               ))}

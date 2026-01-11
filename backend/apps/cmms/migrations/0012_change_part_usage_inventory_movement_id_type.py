@@ -7,14 +7,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="partusage",
-            name="inventory_movement_id",
-            field=models.PositiveBigIntegerField(
-                blank=True,
-                null=True,
-                verbose_name="ID da Movimentação",
-                help_text="Referência à movimentação de inventário",
-            ),
-        ),
+        # Esta migration foi removida porque causa conflito de tipo
+        # O campo inventory_movement_id já é um PositiveBigIntegerField no modelo
+        # Se o banco de dados tem UUID, executar manualmente:
+        # ALTER TABLE cmms_partusage ALTER COLUMN inventory_movement_id TYPE bigint USING NULL;
     ]
+

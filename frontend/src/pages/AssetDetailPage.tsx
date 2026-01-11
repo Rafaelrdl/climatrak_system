@@ -1430,47 +1430,10 @@ export function AssetDetailPage() {
                   ) : (
                     <div className="space-y-3">
                       {workOrders.filter((wo: any) => wo.status !== 'COMPLETED' && wo.status !== 'CANCELLED').map((wo: any) => {
-                        const statusConfig: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
-                          'OPEN': { 
-                            label: 'Aberta', 
-                            className: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800',
-                            icon: <FileText className="w-3 h-3" /> 
-                          },
-                          'IN_PROGRESS': { 
-                            label: 'Em Execução', 
-                            className: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800',
-                            icon: <Play className="w-3 h-3" /> 
-                          },
-                          'COMPLETED': { 
-                            label: 'Concluída', 
-                            className: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800',
-                            icon: <CheckCircle2 className="w-3 h-3" /> 
-                          },
-                          'CANCELLED': { 
-                            label: 'Cancelada', 
-                            className: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-900/50 dark:text-slate-400 dark:border-slate-700',
-                            icon: <XCircle className="w-3 h-3" /> 
-                          },
-                        };
-                        const priorityConfig: Record<string, { label: string; className: string }> = {
-                          'CRITICAL': { label: 'Crítica', className: 'text-red-700 bg-red-100 dark:bg-red-900/30 dark:text-red-400' },
-                          'HIGH': { label: 'Alta', className: 'text-orange-700 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400' },
-                          'MEDIUM': { label: 'Média', className: 'text-amber-700 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400' },
-                          'LOW': { label: 'Baixa', className: 'text-emerald-700 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' },
-                        };
-                        const typeConfig: Record<string, { label: string; className: string }> = {
-                          'CORRECTIVE': { label: 'Corretiva', className: 'text-red-600' },
-                          'PREVENTIVE': { label: 'Preventiva', className: 'text-blue-600' },
-                          'PREDICTIVE': { label: 'Preditiva', className: 'text-purple-600' },
-                          'REQUEST': { label: 'Solicitação', className: 'text-violet-600' },
-                        };
-
-                        const status = statusConfig[wo.status] || statusConfig['OPEN'];
-                        const priority = priorityConfig[wo.priority] || priorityConfig['MEDIUM'];
-                        const type = typeConfig[wo.type] || typeConfig['CORRECTIVE'];
-
-                        // Determinar cor da barra lateral baseada no status
-                        const statusBarColor = wo.status === 'IN_PROGRESS' ? 'bg-amber-500' : 'bg-blue-500';
+                        const statusSetting = workOrderSettings.statuses.find(
+                          (status) => status.id === wo.status
+                        );
+                        const statusBarColor = statusSetting?.color || (wo.status === 'IN_PROGRESS' ? '#f59e0b' : '#3b82f6');
 
                         return (
                           <div 
@@ -1482,7 +1445,7 @@ export function AssetDetailPage() {
                             className="block cursor-pointer"
                           >
                             <Card className="relative overflow-hidden hover:border-primary/40 hover:shadow-sm transition-all group cursor-pointer">
-                              <div className={cn("absolute left-0 top-0 bottom-0 w-1", statusBarColor)} />
+                              <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: statusBarColor }} />
                               <CardContent className="p-4 pl-5">
                                 <div className="flex items-start justify-between gap-4">
                                   <div className="flex-1 min-w-0">
@@ -1491,30 +1454,23 @@ export function AssetDetailPage() {
                                       <span className="font-semibold text-foreground flex items-center gap-1.5">
                                         OS #{wo.order_number || wo.id}
                                       </span>
-                                      <div className="flex items-center gap-1.5">
-                                        <span className={cn(
-                                          "w-2 h-2 rounded-full",
-                                          wo.status === 'OPEN' && "bg-blue-500",
-                                          wo.status === 'IN_PROGRESS' && "bg-amber-500"
-                                        )} />
-                                        <span className="text-sm font-medium">
-                                          {status.label}
-                                        </span>
-                                      </div>
-                                      <span className="text-xs text-muted-foreground">•</span>
-                                      <span className={cn("text-xs font-medium", type.className)}>
-                                        {type.label}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground">•</span>
-                                      <span className={cn(
-                                        "text-xs font-medium",
-                                        wo.priority === 'CRITICAL' && "text-red-600",
-                                        wo.priority === 'HIGH' && "text-orange-600",
-                                        wo.priority === 'MEDIUM' && "text-amber-600",
-                                        wo.priority === 'LOW' && "text-emerald-600"
-                                      )}>
-                                        Prioridade {priority.label}
-                                      </span>
+                                      <StatusBadge
+                                        status={wo.status}
+                                        type="workOrder"
+                                        cmmsSettings={workOrderSettings}
+                                        size="sm"
+                                      />
+                                      <StatusBadge
+                                        status={wo.type}
+                                        type="maintenanceType"
+                                        cmmsSettings={workOrderSettings}
+                                        size="sm"
+                                      />
+                                      <StatusBadge
+                                        status={wo.priority}
+                                        type="priority"
+                                        size="sm"
+                                      />
                                     </div>
                                     
                                     {/* Descrição */}
@@ -1604,19 +1560,12 @@ export function AssetDetailPage() {
               ) : (
                 <div className="space-y-3">
                   {completedWorkOrders.map((wo: any) => {
-                    const typeConfig: Record<string, { label: string; className: string }> = {
-                      'CORRECTIVE': { label: 'Corretiva', className: 'text-orange-600' },
-                      'PREVENTIVE': { label: 'Preventiva', className: 'text-blue-600' },
-                      'PREDICTIVE': { label: 'Preditiva', className: 'text-purple-600' },
-                      'REQUEST': { label: 'Solicitação', className: 'text-violet-600' },
-                      'EMERGENCY': { label: 'Emergencial', className: 'text-red-600' },
-                    };
-                    const type = typeConfig[wo.type] || typeConfig['CORRECTIVE'];
                     const completionDate = wo.completed_at || wo.updated_at;
                     const items = wo.items || [];
-
-                    // Cor da barra lateral baseada no status
-                    const statusBarColor = wo.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-slate-400';
+                    const statusSetting = workOrderSettings.statuses.find(
+                      (status) => status.id === wo.status
+                    );
+                    const statusBarColor = statusSetting?.color || (wo.status === 'COMPLETED' ? '#10b981' : '#94a3b8');
 
                     return (
                       <div 
@@ -1628,7 +1577,7 @@ export function AssetDetailPage() {
                         className="cursor-pointer"
                       >
                         <Card className="relative overflow-hidden hover:border-primary/40 hover:shadow-sm transition-all group">
-                          <div className={cn("absolute left-0 top-0 bottom-0 w-1", statusBarColor)} />
+                          <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: statusBarColor }} />
                           <CardContent className="p-4 pl-5">
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0">
@@ -1637,20 +1586,18 @@ export function AssetDetailPage() {
                                   <span className="font-semibold text-foreground">
                                     OS #{wo.order_number || wo.number || wo.id}
                                   </span>
-                                  <div className="flex items-center gap-1.5">
-                                    <span className={cn(
-                                      "w-2 h-2 rounded-full",
-                                      wo.status === 'COMPLETED' && "bg-emerald-500",
-                                      wo.status === 'CANCELLED' && "bg-slate-400"
-                                    )} />
-                                    <span className="text-sm font-medium">
-                                      {wo.status === 'COMPLETED' ? 'Concluída' : 'Cancelada'}
-                                    </span>
-                                  </div>
-                                  <span className="text-xs text-muted-foreground">•</span>
-                                  <span className={cn("text-xs font-medium", type.className)}>
-                                    {type.label}
-                                  </span>
+                                  <StatusBadge
+                                    status={wo.status}
+                                    type="workOrder"
+                                    cmmsSettings={workOrderSettings}
+                                    size="sm"
+                                  />
+                                  <StatusBadge
+                                    status={wo.type}
+                                    type="maintenanceType"
+                                    cmmsSettings={workOrderSettings}
+                                    size="sm"
+                                  />
                                 </div>
                                 
                                 {/* Descrição */}

@@ -32,6 +32,8 @@ import {
   ChevronRight,
   Loader2,
   Edit,
+  Trash2,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,9 +45,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCompanies, useSectors } from '@/hooks/useLocationsQuery';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useGeneratePMOCMonthly, useGeneratePMOCAnnual } from '@/hooks/useReportsQuery';
+import { useGeneratePMOCMonthly, useGeneratePMOCAnnual, useReportHistory, useDeleteReport } from '@/hooks/useReportsQuery';
 import { PMOCMonthlyPreview, PMOCAnnualPreview } from '@/components/reports/PMOCReportPreview';
-import { PMOCMonthlyReport, PMOCAnnualReport } from '@/services/reportsService';
+import { PMOCMonthlyReport, PMOCAnnualReport, GeneratedReport, ReportHistoryFilters } from '@/services/reportsService';
 import { PMOCDataModal, PMOCManualData, defaultPMOCManualData } from '@/components/reports/PMOCDataModal';
 
 // Tipos de relatório disponíveis
@@ -313,42 +315,6 @@ const reportTemplates: ReportTemplate[] = [
   },
 ];
 
-// Relatórios gerados (mock)
-const myReports = [
-  {
-    id: 1,
-    name: 'Relatório PMOC - Novembro 2024',
-    type: 'PMOC Mensal',
-    date: '2024-11-30',
-    status: 'completed',
-    size: '2.4 MB'
-  },
-  {
-    id: 2,
-    name: 'Consumo Energético - Q4 2024',
-    type: 'Consumo Energético',
-    date: '2024-12-15',
-    status: 'completed',
-    size: '3.1 MB'
-  },
-  {
-    id: 3,
-    name: 'Alertas - Dezembro 2024',
-    type: 'Resumo de Alertas',
-    date: '2024-12-01',
-    status: 'completed',
-    size: '1.8 MB'
-  },
-  {
-    id: 4,
-    name: 'Desempenho Equipamentos - Dezembro 2024',
-    type: 'Desempenho',
-    date: '2024-12-20',
-    status: 'processing',
-    size: '-'
-  }
-];
-
 export function ReportsPage() {
   const [activeTab, setActiveTab] = useState('templates');
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
@@ -380,6 +346,18 @@ export function ReportsPage() {
   // Mutations para geração de relatórios
   const generateMonthlyMutation = useGeneratePMOCMonthly();
   const generateAnnualMutation = useGeneratePMOCAnnual();
+  
+  // Estado e hooks para histórico de relatórios
+  const [historyFilters, setHistoryFilters] = useState<ReportHistoryFilters>({
+    page: 1,
+    page_size: 20,
+  });
+  const { 
+    data: reportHistory, 
+    isLoading: isLoadingHistory, 
+    refetch: refetchHistory 
+  } = useReportHistory(historyFilters);
+  const deleteReportMutation = useDeleteReport();
 
   // Agrupar relatórios por tópico
   const getReportsByTopic = (topicId: string) => {
@@ -404,8 +382,23 @@ export function ReportsPage() {
     setGeneratedAnnualReport(null);
   };
 
-  const handleDownload = (reportId: number) => {
-    console.log('Download report:', reportId);
+  const handleDownload = (reportId: string) => {
+    // Download do relatório do histórico em JSON
+    const report = reportHistory?.results.find(r => r.id === reportId);
+    if (report) {
+      // TODO: Implementar download via endpoint de detalhes
+      console.log('Download report:', reportId);
+    }
+  };
+
+  const handleDeleteReport = async (reportId: string) => {
+    if (confirm('Tem certeza que deseja excluir este relatório?')) {
+      try {
+        await deleteReportMutation.mutateAsync(reportId);
+      } catch (error) {
+        console.error('Erro ao excluir relatório:', error);
+      }
+    }
   };
 
   /**
@@ -937,15 +930,30 @@ export function ReportsPage() {
                     <h2 className="text-lg font-semibold">Relatórios Gerados</h2>
                     <p className="text-sm text-muted-foreground">
                       Acesse e baixe seus relatórios anteriores
+                      {reportHistory && ` (${reportHistory.count} relatório${reportHistory.count !== 1 ? 's' : ''})`}
                     </p>
                   </div>
-                  <Button variant="outline" className="gap-2">
-                    <Filter className="w-4 h-4" />
-                    Filtrar
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => refetchHistory()}
+                      disabled={isLoadingHistory}
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingHistory ? 'animate-spin' : ''}`} />
+                      Atualizar
+                    </Button>
+                  </div>
                 </div>
 
-                {myReports.length === 0 ? (
+                {isLoadingHistory ? (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                      <Loader2 className="w-8 h-8 text-muted-foreground animate-spin mb-4" />
+                      <p className="text-muted-foreground">Carregando relatórios...</p>
+                    </CardContent>
+                  </Card>
+                ) : !reportHistory || reportHistory.results.length === 0 ? (
                   <Card>
                     <CardContent className="flex flex-col items-center justify-center py-12">
                       <FileText className="w-12 h-12 text-muted-foreground mb-4" />
@@ -962,7 +970,7 @@ export function ReportsPage() {
                   </Card>
                 ) : (
                   <div className="space-y-3">
-                    {myReports.map((report) => (
+                    {reportHistory.results.map((report) => (
                       <Card key={report.id}>
                         <CardContent className="flex items-center justify-between p-4">
                           <div className="flex items-center gap-4">
@@ -972,36 +980,81 @@ export function ReportsPage() {
                             <div>
                               <h4 className="font-medium">{report.name}</h4>
                               <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-                                <span>{report.type}</span>
+                                <span>{report.type_display}</span>
                                 <span>•</span>
-                                <span>{new Date(report.date).toLocaleDateString('pt-BR')}</span>
+                                <span>{new Date(report.generated_at).toLocaleDateString('pt-BR')}</span>
                                 <span>•</span>
                                 <span>{report.size}</span>
+                                {report.generated_by_name && (
+                                  <>
+                                    <span>•</span>
+                                    <span>por {report.generated_by_name}</span>
+                                  </>
+                                )}
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
                             <Badge 
-                              variant={report.status === 'completed' ? 'default' : 'secondary'}
-                              className={report.status === 'completed' 
-                                ? 'bg-green-100 text-green-700 hover:bg-green-100' 
-                                : 'bg-amber-100 text-amber-700'
+                              variant={report.status === 'completed' ? 'default' : report.status === 'failed' ? 'destructive' : 'secondary'}
+                              className={
+                                report.status === 'completed' 
+                                  ? 'bg-green-100 text-green-700 hover:bg-green-100' 
+                                  : report.status === 'failed'
+                                  ? 'bg-red-100 text-red-700 hover:bg-red-100'
+                                  : 'bg-amber-100 text-amber-700'
                               }
                             >
-                              {report.status === 'completed' ? 'Concluído' : 'Processando'}
+                              {report.status_display}
                             </Badge>
                             <Button 
                               variant="ghost" 
                               size="sm"
                               disabled={report.status !== 'completed'}
                               onClick={() => handleDownload(report.id)}
+                              title="Baixar relatório"
                             >
                               <Download className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDeleteReport(report.id)}
+                              disabled={deleteReportMutation.isPending}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              title="Excluir relatório"
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         </CardContent>
                       </Card>
                     ))}
+                    
+                    {/* Paginação */}
+                    {reportHistory.total_pages > 1 && (
+                      <div className="flex items-center justify-center gap-2 pt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={reportHistory.page <= 1}
+                          onClick={() => setHistoryFilters(prev => ({ ...prev, page: (prev.page || 1) - 1 }))}
+                        >
+                          Anterior
+                        </Button>
+                        <span className="text-sm text-muted-foreground">
+                          Página {reportHistory.page} de {reportHistory.total_pages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={reportHistory.page >= reportHistory.total_pages}
+                          onClick={() => setHistoryFilters(prev => ({ ...prev, page: (prev.page || 1) + 1 }))}
+                        >
+                          Próxima
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </TabsContent>
