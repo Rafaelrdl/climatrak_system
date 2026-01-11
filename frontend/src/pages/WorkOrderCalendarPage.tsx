@@ -45,15 +45,10 @@ import {
 } from 'lucide-react';
 import { useWorkOrders, useUpdateWorkOrder } from '@/hooks/useWorkOrdersQuery';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
+import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
 import { cn } from '@/lib/utils';
 import type { WorkOrder } from '@/types';
-
-const priorityColors = {
-  CRITICAL: 'bg-red-500',
-  HIGH: 'bg-orange-500',
-  MEDIUM: 'bg-yellow-500',
-  LOW: 'bg-blue-500',
-};
+import { getPriorityDotClass } from '@/shared/ui/statusBadgeUtils';
 
 const statusColors = {
   OPEN: 'border-l-blue-500',
@@ -72,6 +67,7 @@ export function WorkOrderCalendarPage() {
   
   const { data: workOrders = [] } = useWorkOrders();
   const { data: equipment = [] } = useEquipments();
+  const { settings: workOrderSettings } = useWorkOrderSettingsStore();
   const updateMutation = useUpdateWorkOrder();
 
   // Filtra as OS baseado nos filtros selecionados
@@ -293,7 +289,7 @@ export function WorkOrderCalendarPage() {
                             <div className="flex items-center gap-1">
                               <div className={cn(
                                 "h-1.5 w-1.5 rounded-full flex-shrink-0",
-                                priorityColors[wo.priority as keyof typeof priorityColors]
+                                getPriorityDotClass(wo.priority)
                               )} />
                               <span className="truncate">{wo.number}</span>
                             </div>
@@ -401,7 +397,7 @@ export function WorkOrderCalendarPage() {
                         </div>
                         <div className={cn(
                           "h-3 w-3 rounded-full",
-                          priorityColors[wo.priority as keyof typeof priorityColors]
+                          getPriorityDotClass(wo.priority)
                         )} />
                       </div>
                       
@@ -410,8 +406,8 @@ export function WorkOrderCalendarPage() {
                       </p>
                       
                       <div className="flex flex-wrap gap-2">
-                        <StatusBadge status={wo.status} className="text-xs" />
-                        <StatusBadge status={wo.type} className="text-xs" />
+                        <StatusBadge status={wo.status} type="workOrder" cmmsSettings={workOrderSettings} className="text-xs" />
+                        <StatusBadge status={wo.type} type="maintenanceType" cmmsSettings={workOrderSettings} className="text-xs" />
                       </div>
                       
                       {wo.assignedToName && (

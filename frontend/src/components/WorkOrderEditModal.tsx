@@ -531,28 +531,6 @@ export function WorkOrderEditModal({
     ? companies.find(c => c.id === selectedUnit.companyId) 
     : null;
 
-  // Helper para obter cor da prioridade
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'LOW': return 'bg-blue-500';
-      case 'MEDIUM': return 'bg-yellow-500';
-      case 'HIGH': return 'bg-orange-500';
-      case 'CRITICAL': return 'bg-red-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  // Helper para obter label da prioridade
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case 'LOW': return 'Baixa';
-      case 'MEDIUM': return 'Média';
-      case 'HIGH': return 'Alta';
-      case 'CRITICAL': return 'Crítica';
-      default: return priority;
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 gap-0">
@@ -566,19 +544,12 @@ export function WorkOrderEditModal({
                   Editar Ordem de Serviço
                 </DialogTitle>
                 {formData.status && (
-                  <div 
-                    className="px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5"
-                    style={{
-                      backgroundColor: getStatusBadgeStyle(formData.status).backgroundColor,
-                      color: getStatusBadgeStyle(formData.status).color
-                    }}
-                  >
-                    <div 
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: getStatusBadgeStyle(formData.status).dotColor }}
-                    />
-                    {getStatusConfig(formData.status).label}
-                  </div>
+                  <StatusBadge
+                    status={formData.status}
+                    type="workOrder"
+                    cmmsSettings={settings}
+                    className="text-xs px-2.5 py-1"
+                  />
                 )}
               </div>
               
@@ -743,7 +714,7 @@ export function WorkOrderEditModal({
                                         <div className="flex items-center gap-2">
                                           <div className={cn(
                                             "w-2 h-2 rounded-full",
-                                            getPriorityColor(priority)
+                                            getPriorityDotClass(priority)
                                           )} />
                                           <span className="text-sm">{getPriorityLabel(priority)}</span>
                                         </div>

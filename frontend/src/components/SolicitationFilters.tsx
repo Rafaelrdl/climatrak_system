@@ -10,7 +10,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { FilterBar } from '@/shared/ui';
+import { FilterBar, StatusBadge } from '@/shared/ui';
 import type { SolicitationStatus } from '@/types';
 
 export interface SolicitationFilters {
@@ -43,10 +43,11 @@ export function SolicitationFilters({
   const [dateFrom, setDateFrom] = useState<Date | undefined>(filters.dateRange?.from);
   const [dateTo, setDateTo] = useState<Date | undefined>(filters.dateRange?.to);
 
-  const statusOptions: { value: SolicitationStatus; label: string; color: string }[] = [
-    { value: 'Nova', label: 'Nova', color: 'bg-blue-100 text-blue-800' },
-    { value: 'Convertida em OS', label: 'Convertida em OS', color: 'bg-green-100 text-green-800' },
-    { value: 'Rejeitada', label: 'Rejeitada', color: 'bg-red-100 text-red-800' }
+  const statusOptions: SolicitationStatus[] = [
+    'Nova',
+    'Em triagem',
+    'Convertida em OS',
+    'Rejeitada',
   ];
 
   const handleStatusToggle = (status: SolicitationStatus) => {
@@ -117,18 +118,18 @@ export function SolicitationFilters({
                   <div>
                     <Label className="text-sm font-medium">Status</Label>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {statusOptions.map((option) => (
+                      {statusOptions.map((status) => (
                         <button
-                          key={option.value}
-                          onClick={() => handleStatusToggle(option.value)}
+                          key={status}
+                          onClick={() => handleStatusToggle(status)}
                           className={cn(
-                            'px-3 py-1.5 rounded-full text-xs font-medium transition-all',
-                            filters.status?.includes(option.value)
-                              ? option.color
-                              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                            'rounded-full p-0.5 transition-all',
+                            filters.status?.includes(status)
+                              ? 'ring-2 ring-primary/30'
+                              : 'opacity-70 hover:opacity-100'
                           )}
                         >
-                          {option.label}
+                          <StatusBadge status={status} type="request" className="text-xs" />
                         </button>
                       ))}
                     </div>

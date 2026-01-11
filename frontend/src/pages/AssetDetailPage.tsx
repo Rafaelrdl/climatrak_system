@@ -55,6 +55,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/shared/ui';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -79,6 +80,7 @@ import { useAlertsQuery } from '@/apps/monitor/hooks/useAlertsQuery';
 import { useWorkOrdersByAsset } from '@/hooks/useWorkOrdersQuery';
 import { useEquipment } from '@/hooks/useEquipmentQuery';
 import { useMaintenanceMetrics } from '@/hooks/useMaintenanceMetrics';
+import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
 import { telemetryService } from '@/apps/monitor/services';
 import { MultiSeriesTelemetryChart } from '@/apps/monitor/components/charts/MultiSeriesTelemetryChart';
 import { WorkOrderViewModal } from '@/components/WorkOrderViewModal';
@@ -311,6 +313,7 @@ export function AssetDetailPage() {
   const { data: sensors = [] } = useAssetSensorsQuery(assetId);
   const { data: allAlerts = [] } = useAlertsQuery();
   const { data: workOrders = [], isLoading: isLoadingWorkOrders } = useWorkOrdersByAsset(assetId?.toString());
+  const { settings: workOrderSettings } = useWorkOrderSettingsStore();
   
   // Buscar equipamento do CMMS (para o modal de edição)
   const { data: equipment } = useEquipment(assetId?.toString());
@@ -523,38 +526,6 @@ export function AssetDetailPage() {
     );
   }
 
-  // Helper para cor do status - consistente com Design System
-  const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { 
-      label: string; 
-      variant: 'default' | 'secondary' | 'destructive' | 'outline';
-      className?: string;
-    }> = {
-      'OK': { label: 'Operacional', variant: 'default', className: 'bg-primary text-primary-foreground hover:bg-primary/90 border-transparent' },
-      'ACTIVE': { label: 'Operacional', variant: 'default', className: 'bg-primary text-primary-foreground hover:bg-primary/90 border-transparent' },
-      'OPERATIONAL': { label: 'Operacional', variant: 'default', className: 'bg-primary text-primary-foreground hover:bg-primary/90 border-transparent' },
-      'MAINTENANCE': { label: 'Em Manutenção', variant: 'secondary', className: 'bg-amber-500 text-white hover:bg-amber-600 border-transparent' },
-      'Maintenance': { label: 'Em Manutenção', variant: 'secondary', className: 'bg-amber-500 text-white hover:bg-amber-600 border-transparent' },
-      'STOPPED': { label: 'Parado', variant: 'destructive', className: 'bg-red-500 text-white hover:bg-red-600 border-transparent' },
-      'INACTIVE': { label: 'Inativo', variant: 'destructive', className: 'bg-slate-500 text-white hover:bg-slate-600 border-transparent' },
-      'Stopped': { label: 'Parado', variant: 'destructive', className: 'bg-red-500 text-white hover:bg-red-600 border-transparent' },
-      'ALERT': { label: 'Alerta', variant: 'outline', className: 'bg-orange-500 text-white hover:bg-orange-600 border-transparent' },
-      'Alert': { label: 'Alerta', variant: 'outline', className: 'bg-orange-500 text-white hover:bg-orange-600 border-transparent' },
-      'WARNING': { label: 'Atenção', variant: 'outline', className: 'bg-amber-500 text-white hover:bg-amber-600 border-transparent' },
-      'CRITICAL': { label: 'Crítico', variant: 'destructive', className: 'bg-red-600 text-white hover:bg-red-700 border-transparent' },
-      'ERROR': { label: 'Erro', variant: 'destructive', className: 'bg-red-600 text-white hover:bg-red-700 border-transparent' },
-    };
-    const config = statusMap[status] || { label: status, variant: 'outline' as const };
-    return (
-      <Badge 
-        variant={config.variant} 
-        className={cn("font-medium", config.className)}
-      >
-        {config.label}
-      </Badge>
-    );
-  };
-
   // Helper para status do ativo (para KPIs)
   const getHealthStatus = (score: number): StatusType => {
     if (score >= 80) return 'online';
@@ -597,7 +568,7 @@ export function AssetDetailPage() {
                   <h1 className="text-2xl font-bold text-foreground truncate">
                     {asset.tag}
                   </h1>
-                  {getStatusBadge(asset.status)}
+                  <StatusBadge status={asset.status} type="equipment" />
                   {hasIoTMonitoring && (
                     <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200">
                       <Wifi className="h-3 w-3 mr-1" />

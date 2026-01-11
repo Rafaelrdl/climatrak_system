@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, ArrowRight, PlayCircle, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Trash2, ArrowRight } from 'lucide-react';
 import { StatusBadge } from '@/shared/ui';
 import { toast } from 'sonner';
 import { IfCan } from '@/components/auth/IfCan';
@@ -135,21 +135,6 @@ export function SolicitationsDrawer({
   const nextStatus = getNextStatus(solicitation.status);
   const canAdvance = canAdvanceStatus(solicitation.status);
 
-  const getStatusIcon = (status: Solicitation['status']) => {
-    switch (status) {
-      case 'Nova':
-        return <PlayCircle className="h-4 w-4" />;
-      case 'Em triagem':
-        return <ArrowRight className="h-4 w-4" />;
-      case 'Convertida em OS':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'Rejeitada':
-        return <XCircle className="h-4 w-4" />;
-      default:
-        return null;
-    }
-  };
-
   const getActionButtonText = () => {
     switch (solicitation.status) {
       case 'Nova':
@@ -188,8 +173,7 @@ export function SolicitationsDrawer({
             <CardContent className="pt-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  {getStatusIcon(solicitation.status)}
-                  <StatusBadge status={solicitation.status} />
+                  <StatusBadge status={solicitation.status} type="request" showIcon />
                 </div>
                 {canAdvance && (
                   <IfCan action="convert" subject="solicitation">
@@ -199,7 +183,6 @@ export function SolicitationsDrawer({
                       className="flex items-center gap-2"
                       data-testid="solicitation-advance"
                     >
-                      {getStatusIcon(nextStatus!)}
                       {getActionButtonText()}
                     </Button>
                   </IfCan>

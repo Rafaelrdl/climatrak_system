@@ -54,11 +54,13 @@ import {
 import { useWorkOrders, useUpdateWorkOrder } from '@/hooks/useWorkOrdersQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
+import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
 import { WorkOrderViewModal } from '@/components/WorkOrderViewModal';
 import { WorkOrderEditModal } from '@/components/WorkOrderEditModal';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { WorkOrder } from '@/types';
+import { getPriorityDotClass } from '@/shared/ui/statusBadgeUtils';
 
 // ============================================
 // Cores de prioridade
@@ -68,13 +70,6 @@ const priorityColors = {
   HIGH: 'bg-orange-100 border-orange-300 text-orange-800',
   MEDIUM: 'bg-yellow-100 border-yellow-300 text-yellow-800',
   LOW: 'bg-blue-100 border-blue-300 text-blue-800',
-};
-
-const priorityDotColors = {
-  CRITICAL: 'bg-red-500',
-  HIGH: 'bg-orange-500',
-  MEDIUM: 'bg-yellow-500',
-  LOW: 'bg-blue-500',
 };
 
 /**
@@ -98,6 +93,7 @@ interface DraggableWorkOrderProps {
 }
 
 function DraggableWorkOrder({ workOrder, equipmentName, isCompact = false, onView, onEdit }: DraggableWorkOrderProps) {
+  const { settings } = useWorkOrderSettingsStore();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: workOrder.id,
     data: { workOrder },
@@ -195,15 +191,22 @@ function DraggableWorkOrder({ workOrder, equipmentName, isCompact = false, onVie
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <span className="font-semibold text-sm">{workOrder.number}</span>
-            <div className={cn(
-              "h-2 w-2 rounded-full flex-shrink-0",
-              priorityDotColors[workOrder.priority as keyof typeof priorityDotColors]
-            )} />
+            <div
+              className={cn(
+                "h-2 w-2 rounded-full flex-shrink-0",
+                getPriorityDotClass(workOrder.priority)
+              )}
+            />
           </div>
           <p className="text-xs opacity-75 truncate mt-0.5">{equipmentName}</p>
           <p className="text-xs opacity-60 line-clamp-1 mt-1">{workOrder.description}</p>
           <div className="flex items-center gap-1 mt-2">
-            <StatusBadge status={workOrder.type} className="text-[10px] h-5" />
+            <StatusBadge
+              status={workOrder.type}
+              type="maintenanceType"
+              cmmsSettings={settings}
+              className="text-[10px] h-5"
+            />
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import type { WorkOrder } from '@/types';
+import { hexToRgba } from '@/shared/ui/statusBadgeUtils';
 
 export interface WorkOrderSettings {
   statuses: Array<{ id: string; label: string; color: string }>;
@@ -32,16 +33,6 @@ export function generateWorkOrderPrintContent({
   const eq = equipment.find(e => e.id === workOrder.equipmentId);
   const sector = eq ? sectors.find(s => s.id === eq.sectorId) : null;
   const company = sector ? companies.find(c => c.id === sector.companyId) : null;
-
-  // Helper para converter hex em rgba
-  const hexToRgba = (hex: string, alpha: number): string => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    if (!result) return `rgba(107, 114, 128, ${alpha})`;
-    const r = parseInt(result[1], 16);
-    const g = parseInt(result[2], 16);
-    const b = parseInt(result[3], 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  };
 
   // Mapear status para português e cores usando configurações
   const getStatusConfig = (status: string) => {

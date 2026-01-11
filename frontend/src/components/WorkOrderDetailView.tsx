@@ -26,8 +26,10 @@ import { cn } from '@/lib/utils';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useSectors, useCompanies } from '@/hooks/useLocationsQuery';
 import { useStockItems } from '@/hooks/useInventoryQuery';
+import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
 import { printWorkOrder } from '@/utils/printWorkOrder';
 import { WorkOrderCostsTab } from '@/components/cmms/WorkOrderCostsTab';
+import { StatusBadge } from '@/shared/ui';
 import type { WorkOrder, StockItem } from '@/types';
 import type { ApiInventoryItem } from '@/types/api';
 
@@ -70,6 +72,7 @@ export function WorkOrderDetailView({
   const { data: sectors = [] } = useSectors();
   const { data: companies = [] } = useCompanies();
   const { data: stockItemsData } = useStockItems();
+  const { settings: workOrderSettings } = useWorkOrderSettingsStore();
   const stockItems = useMemo(() => 
     (Array.isArray(stockItemsData) ? stockItemsData : (stockItemsData as any)?.results || []).map(mapToStockItem), 
     [stockItemsData]
@@ -109,9 +112,10 @@ export function WorkOrderDetailView({
       workOrder: { ...workOrder, ...formData } as WorkOrder,
       equipment: equipmentList,
       sectors: sectorsList,
-      companies: companiesList
+      companies: companiesList,
+      settings: workOrderSettings,
     });
-  }, [workOrder, formData, equipmentList, sectorsList, companiesList]);
+  }, [workOrder, formData, equipmentList, sectorsList, companiesList, workOrderSettings]);
 
   // Derivações memoizadas
   const selectedEquipment = useMemo(() => 
@@ -146,35 +150,6 @@ export function WorkOrderDetailView({
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'OPEN': return 'bg-blue-500/10 text-blue-700 border-blue-500/20';
-      case 'IN_PROGRESS': return 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20';
-      case 'COMPLETED': return 'bg-green-500/10 text-green-700 border-green-500/20';
-      default: return 'bg-gray-500/10 text-gray-700 border-gray-500/20';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'LOW': return 'bg-slate-500/10 text-slate-700 border-slate-500/20';
-      case 'MEDIUM': return 'bg-blue-500/10 text-blue-700 border-blue-500/20';
-      case 'HIGH': return 'bg-orange-500/10 text-orange-700 border-orange-500/20';
-      case 'CRITICAL': return 'bg-red-500/10 text-red-700 border-red-500/20';
-      default: return 'bg-gray-500/10 text-gray-700 border-gray-500/20';
-    }
-  };
-
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case 'LOW': return 'Baixa';
-      case 'MEDIUM': return 'Média';
-      case 'HIGH': return 'Alta';
-      case 'CRITICAL': return 'Crítica';
-      default: return priority;
-    }
-  };
-
   return (
     <div className={cn("flex flex-col h-full bg-background", className)}>
       <div className="px-6 py-4 border-b bg-background shrink-0">
@@ -185,24 +160,20 @@ export function WorkOrderDetailView({
                 <ClipboardList className="h-5 w-5 text-primary flex-shrink-0" />
                 <span className="truncate">OS #{workOrder.number}</span>
               </h2>
-              <Badge 
-                variant="outline" 
-                className={cn("flex-shrink-0", getStatusColor(formData.status || ''))}
-              >
-                {formData.status === 'OPEN' && 'Aberta'}
-                {formData.status === 'IN_PROGRESS' && 'Em Execução'}
-                {formData.status === 'COMPLETED' && 'Concluída'}
-              </Badge>
-              <Badge 
-                variant="outline" 
-                className={cn("flex-shrink-0", getPriorityColor(formData.priority || ''))}
-              >
-                {getPriorityLabel(formData.priority || '')}
-              </Badge>
+              <StatusBadge
+                status={formData.status || 'OPEN'}
+                type="workOrder"
+                cmmsSettings={workOrderSettings}
+              />
+              <StatusBadge status={formData.priority || 'MEDIUM'} type="priority" />
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {formData.type === 'PREVENTIVE' ? 'Manutenção Preventiva' : 'Manutenção Corretiva'}
-            </p>
+            <div className="mt-1">
+              <StatusBadge
+                status={formData.type || 'CORRECTIVE'}
+                type="maintenanceType"
+                cmmsSettings={workOrderSettings}
+              />
+            </div>
           </div>
           
           <div className="flex items-center gap-2 flex-shrink-0">

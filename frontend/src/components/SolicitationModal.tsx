@@ -7,9 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   ArrowRight, 
-  PlayCircle, 
   CheckCircle,
-  XCircle,
   MapPin,
   Package,
   User,
@@ -44,21 +42,6 @@ export function SolicitationModal({
   const isConverted = solicitation.status === 'Convertida em OS';
   const isRejected = solicitation.status === 'Rejeitada';
 
-  const getStatusIcon = (status: Solicitation['status']) => {
-    switch (status) {
-      case 'Nova':
-        return <PlayCircle className="h-4 w-4" />;
-      case 'Em triagem':
-        return <ArrowRight className="h-4 w-4" />;
-      case 'Convertida em OS':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'Rejeitada':
-        return <XCircle className="h-4 w-4" />;
-      default:
-        return null;
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -88,8 +71,7 @@ export function SolicitationModal({
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2">
-              {getStatusIcon(solicitation.status)}
-              <StatusBadge status={solicitation.status} />
+              <StatusBadge status={solicitation.status} type="request" showIcon />
             </div>
           </div>
         </DialogHeader>

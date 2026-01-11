@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useSectors } from '@/hooks/useLocationsQuery';
+import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
 import type { WorkOrder } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -35,6 +36,7 @@ export function WorkOrderDetails({
 }: WorkOrderDetailsProps) {
   const { data: equipment = [] } = useEquipments();
   const { data: sectors = [] } = useSectors();
+  const { settings: workOrderSettings } = useWorkOrderSettingsStore();
 
   // Loading skeleton
   if (loading) {
@@ -135,9 +137,9 @@ export function WorkOrderDetails({
           </div>
           
           <div className="flex items-center gap-2 flex-wrap">
-            <StatusBadge status={workOrder.status} />
-            <StatusBadge status={workOrder.priority} />
-            <StatusBadge status={workOrder.type} />
+            <StatusBadge status={workOrder.status} type="workOrder" cmmsSettings={workOrderSettings} />
+            <StatusBadge status={workOrder.priority} type="priority" />
+            <StatusBadge status={workOrder.type} type="maintenanceType" cmmsSettings={workOrderSettings} />
             {isOverdue && (
               <Badge variant="destructive" className="flex items-center gap-1">
                 <AlertTriangle className="h-3 w-3" />
