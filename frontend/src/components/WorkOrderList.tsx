@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog, StatusBadge } from '@/shared/ui';
 import {
   Dialog,
@@ -38,6 +37,7 @@ import { workOrdersService } from '@/services/workOrdersService';
 import { toast } from 'sonner';
 import type { WorkOrder } from '@/types';
 import { cn } from '@/lib/utils';
+import { getPriorityDotClass, getPriorityLabel } from '@/shared/ui/statusBadgeUtils';
 
 /**
  * Parseia data YYYY-MM-DD como data local (não UTC)
@@ -90,54 +90,6 @@ export function WorkOrderList({
 
   const currentUser = getCurrentUser();
   
-  // Helper para obter cor do tipo de OS das configurações
-  const getTypeColor = (type: WorkOrder['type']): string => {
-    const typeConfig = workOrderSettings.types.find(t => t.id === type);
-    return typeConfig?.color || '#6b7280'; // fallback gray
-  };
-  
-  // Helper para converter hex em RGB
-  const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : null;
-  };
-  
-  // Helper para obter estilos de badge do tipo
-  const getTypeBadgeStyle = (type: WorkOrder['type'], isSelected: boolean): React.CSSProperties => {
-    if (isSelected) {
-      return {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        color: 'white',
-        borderColor: 'rgba(255, 255, 255, 0.3)',
-      };
-    }
-    
-    const color = getTypeColor(type);
-    const rgb = hexToRgb(color);
-    
-    if (!rgb) {
-      return {
-        backgroundColor: '#f3f4f6',
-        color: '#374151',
-      };
-    }
-    
-    // Fundo: cor com 15% de opacidade
-    const backgroundColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`;
-    // Texto: cor original (mais escura/saturada)
-    const textColor = color;
-    
-    return {
-      backgroundColor,
-      color: textColor,
-      border: 'none',
-    };
-  };
-
   const handlePrintWorkOrder = async (workOrder: WorkOrder) => {
     try {
       setPrintingOrderId(workOrder.id);
@@ -244,27 +196,18 @@ export function WorkOrderList({
               }
             };
 
-            // Priority color indicator
-            const getPriorityColor = () => {
-              if (isSelected) {
-                // Use white/light colors when selected for contrast against teal background
-                switch (wo.priority) {
-                  case 'CRITICAL': return 'bg-red-200 border border-red-300';
-                  case 'HIGH': return 'bg-orange-200 border border-orange-300';
-                  case 'MEDIUM': return 'bg-yellow-200 border border-yellow-300';
-                  case 'LOW': return 'bg-blue-200 border border-blue-300';
-                  default: return 'bg-gray-200 border border-gray-300';
+            const priorityDotClass = getPriorityDotClass(
+              wo.priority,
+              isSelected ? 'selected' : 'default'
+            );
+            const priorityLabel = getPriorityLabel(wo.priority);
+            const selectedBadgeStyle = isSelected
+              ? {
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  color: '#ffffff',
                 }
-              } else {
-                switch (wo.priority) {
-                  case 'CRITICAL': return 'bg-red-500';
-                  case 'HIGH': return 'bg-orange-500';
-                  case 'MEDIUM': return 'bg-yellow-500';
-                  case 'LOW': return 'bg-blue-500';
-                  default: return 'bg-gray-400';
-                }
-              }
-            };
+              : undefined;
             
             return (
               <div
@@ -285,8 +228,8 @@ export function WorkOrderList({
                 <div className="flex gap-3">
                   {/* Priority indicator */}
                   <div 
-                    className={cn("mt-1.5 h-2 w-2 rounded-full flex-shrink-0", getPriorityColor())}
-                    title={`Prioridade: ${wo.priority}`}
+                    className={cn("mt-1.5 h-2 w-2 rounded-full flex-shrink-0", priorityDotClass)}
+                    title={`Prioridade: ${priorityLabel}`}
                   />
                   
                   <div className="flex-1 min-w-0">
@@ -344,19 +287,19 @@ export function WorkOrderList({
                       <div className="flex items-center gap-2">
                         <StatusBadge 
                           status={wo.status} 
-                          className={cn(
-                            "text-[10px] px-1.5 py-0.5",
-                            isSelected && "bg-white/20 text-white border-white/30"
-                          )} 
+                          type="workOrder"
+                          cmmsSettings={workOrderSettings}
+                          className="text-[10px] px-1.5 py-0.5"
+                          style={selectedBadgeStyle}
                         />
                         {wo.type && (
-                          <Badge 
-                            variant="outline" 
+                          <StatusBadge 
+                            status={wo.type}
+                            type="maintenanceType"
+                            cmmsSettings={workOrderSettings}
                             className="text-[10px] px-1.5 py-0.5 font-medium"
-                            style={getTypeBadgeStyle(wo.type, isSelected)}
-                          >
-                            {wo.type === 'PREVENTIVE' ? 'Prev' : wo.type === 'REQUEST' ? 'Solic' : 'Corr'}
-                          </Badge>
+                            style={selectedBadgeStyle}
+                          />
                         )}
                       </div>
                       
@@ -453,7 +396,7 @@ export function WorkOrderList({
             <TableRow key={wo.id}>
               <TableCell className="font-medium">{wo.number}</TableCell>
               <TableCell>
-                <StatusBadge status={wo.status} />
+                <StatusBadge status={wo.status} type="workOrder" cmmsSettings={workOrderSettings} />
               </TableCell>
               <TableCell>
                 <div className="text-xs space-y-0.5">
@@ -471,16 +414,15 @@ export function WorkOrderList({
                 </div>
               </TableCell>
               <TableCell>
-                <Badge 
-                  variant="outline" 
+                <StatusBadge
+                  status={wo.type}
+                  type="maintenanceType"
+                  cmmsSettings={workOrderSettings}
                   className="text-xs px-2 py-0.5 font-medium"
-                  style={getTypeBadgeStyle(wo.type, false)}
-                >
-                  {wo.type === 'PREVENTIVE' ? 'Preventiva' : wo.type === 'REQUEST' ? 'Solicitação' : 'Corretiva'}
-                </Badge>
+                />
               </TableCell>
               <TableCell>
-                <StatusBadge status={wo.priority} />
+                <StatusBadge status={wo.priority} type="priority" />
               </TableCell>
               <TableCell>
                 {wo.createdAt

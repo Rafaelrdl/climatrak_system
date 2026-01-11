@@ -39,11 +39,13 @@ import { useStockItems } from '@/hooks/useInventoryQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';
 import { useWorkOrder } from '@/hooks/useWorkOrdersQuery';
 import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
+import { StatusBadge } from '@/shared/ui';
 import { printWorkOrder } from '@/utils/printWorkOrder';
 import { workOrdersService } from '@/services/workOrdersService';
 import type { WorkOrder, ChecklistResponse, UploadedPhoto, StockItem } from '@/types';
 import type { ApiInventoryItem } from '@/types/api';
 import { cn } from '@/lib/utils';
+import { getPriorityDotClass, getPriorityLabel } from '@/shared/ui/statusBadgeUtils';
 
 /**
  * Converte Date para string YYYY-MM-DD no timezone local
@@ -176,40 +178,6 @@ export function WorkOrderEditModal({
   const canEditDetails = user.role === 'ADMIN';
   const canEditExecution = true; // Tanto admin quanto técnico podem editar execução
   
-  // Helper para obter configuração de status
-  const getStatusConfig = (status: WorkOrder['status']) => {
-    const config = settings.statuses.find(s => s.id === status);
-    return config || { id: status, label: status, color: '#6b7280' };
-  };
-  
-  // Helper para obter estilo de badge de status
-  const getStatusBadgeStyle = (status: WorkOrder['status']) => {
-    const config = getStatusConfig(status);
-    const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      } : null;
-    };
-    
-    const rgb = hexToRgb(config.color);
-    if (!rgb) {
-      return {
-        backgroundColor: '#f3f4f6',
-        color: '#374151',
-        dotColor: '#6b7280'
-      };
-    }
-    
-    return {
-      backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`,
-      color: config.color,
-      dotColor: config.color
-    };
-  };
-
   // Função para imprimir a ordem de serviço
   const handlePrintWorkOrder = () => {
     if (!currentWorkOrder) return;

@@ -8,7 +8,9 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
+import { StatusBadge } from '@/shared/ui';
 import type { WorkOrder, Equipment } from '@/types';
+import { getPriorityDotClass, getPriorityLabel } from '@/shared/ui/statusBadgeUtils';
 import {
   DndContext,
   DragOverlay,
@@ -83,29 +85,8 @@ function WorkOrderCard({
     ? format(parseLocalDate(workOrder.scheduledDate), "dd/MM", { locale: ptBR })
     : '';
 
-  // Obter configuração de tipo
-  const typeConfig = settings.types.find(t => t.id === workOrder.type);
-  
-  // Definir cor baseada na prioridade
-  const getPriorityColor = () => {
-    switch (workOrder.priority) {
-      case 'CRITICAL': return 'bg-red-500';
-      case 'HIGH': return 'bg-orange-500';
-      case 'MEDIUM': return 'bg-yellow-500';
-      case 'LOW': return 'bg-blue-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  const getPriorityLabel = () => {
-    switch (workOrder.priority) {
-      case 'CRITICAL': return 'Crítica';
-      case 'HIGH': return 'Alta';
-      case 'MEDIUM': return 'Média';
-      case 'LOW': return 'Baixa';
-      default: return '';
-    }
-  };
+  const priorityDotClass = getPriorityDotClass(workOrder.priority);
+  const priorityLabel = getPriorityLabel(workOrder.priority);
 
   return (
     <div
@@ -129,18 +110,13 @@ function WorkOrderCard({
                 <span className="font-semibold text-sm truncate" title={workOrder.number}>
                   {workOrder.number}
                 </span>
-                {typeConfig && (
-                  <Badge 
-                    variant="outline" 
+                {workOrder.type && (
+                  <StatusBadge
+                    status={workOrder.type}
+                    type="maintenanceType"
+                    cmmsSettings={settings}
                     className="w-fit text-[10px] px-1.5 py-0"
-                    style={{ 
-                      backgroundColor: `${typeConfig.color}15`,
-                      borderColor: typeConfig.color,
-                      color: typeConfig.color
-                    }}
-                  >
-                    {typeConfig.label}
-                  </Badge>
+                  />
                 )}
               </div>
             </div>
@@ -208,7 +184,7 @@ function WorkOrderCard({
             <div className="flex items-center gap-2 flex-1 min-w-0">
               {/* Prioridade */}
               <div className="flex items-center gap-1">
-                <div className={`h-2 w-2 rounded-full ${getPriorityColor()}`} title={getPriorityLabel()}></div>
+                <div className={`h-2 w-2 rounded-full ${priorityDotClass}`} title={priorityLabel}></div>
               </div>
               
               {/* Data programada */}

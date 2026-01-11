@@ -38,11 +38,13 @@ import { useTechnicians } from '@/hooks/useTeamQuery';
 import { useWorkOrder } from '@/hooks/useWorkOrdersQuery';
 import { useWorkOrderCosts } from '@/hooks/finance/useWorkOrderCosts';
 import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
+import { StatusBadge } from '@/shared/ui';
 import { workOrdersService } from '@/services/workOrdersService';
 import { printWorkOrder } from '@/utils/printWorkOrder';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { WorkOrder } from '@/types';
+import { buildBadgeStyle } from '@/shared/ui/statusBadgeUtils';
 
 interface WorkOrderViewModalProps {
   workOrder: WorkOrder | null;
@@ -166,56 +168,11 @@ export function WorkOrderViewModal({
     return Circle;
   };
 
-  // Converter hex para classes Tailwind
-  const getColorClasses = (hexColor: string) => {
-    const colorMap: Record<string, { text: string; bg: string; border: string }> = {
-      '#3b82f6': { text: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
-      '#f59e0b': { text: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
-      '#22c55e': { text: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-      '#6b7280': { text: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' },
-      '#ef4444': { text: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
-      '#8b5cf6': { text: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200' },
-    };
-    return colorMap[hexColor] || { text: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' };
-  };
-
-  // Construir statusConfig dinamicamente a partir das configurações
-  const statusConfig: Record<string, { color: string; bgColor: string; icon: React.ElementType; label: string }> = 
-    settings.statuses.reduce((acc, status) => {
-      const colors = getColorClasses(status.color);
-      acc[status.id] = {
-        color: colors.text,
-        bgColor: `${colors.bg} ${colors.border}`,
-        icon: getStatusIcon(status.id),
-        label: status.label
-      };
-      return acc;
-    }, {} as Record<string, { color: string; bgColor: string; icon: React.ElementType; label: string }>);
-
-  const priorityConfig: Record<string, { color: string; bgColor: string; label: string }> = {
-    'LOW': { color: 'text-slate-600', bgColor: 'bg-slate-100 border-slate-300', label: 'Baixa' },
-    'MEDIUM': { color: 'text-blue-600', bgColor: 'bg-blue-100 border-blue-300', label: 'Média' },
-    'HIGH': { color: 'text-orange-600', bgColor: 'bg-orange-100 border-orange-300', label: 'Alta' },
-    'CRITICAL': { color: 'text-red-600', bgColor: 'bg-red-100 border-red-300', label: 'Crítica' },
-  };
-
-  // Construir typeConfig dinamicamente a partir das configurações
-  const typeConfig: Record<string, { color: string; bgColor: string; label: string }> = 
-    settings.types.reduce((acc, type) => {
-      const colors = getColorClasses(type.color);
-      acc[type.id] = {
-        color: colors.text,
-        bgColor: `${colors.bg} ${colors.border}`,
-        label: type.label
-      };
-      return acc;
-    }, {} as Record<string, { color: string; bgColor: string; label: string }>);
-
-  // Buscar status/tipo atual ou usar primeiro disponível como fallback
-  const status = statusConfig[currentWorkOrder.status] || Object.values(statusConfig)[0];
-  const priority = priorityConfig[currentWorkOrder.priority] || priorityConfig['MEDIUM'];
-  const type = typeConfig[currentWorkOrder.type] || Object.values(typeConfig)[0];
-  const StatusIcon = status?.icon || Circle;
+  const statusSetting = settings.statuses.find(
+    (status) => status.id === currentWorkOrder.status
+  );
+  const statusStyle = buildBadgeStyle(statusSetting?.color ?? '#6b7280');
+  const StatusIcon = getStatusIcon(currentWorkOrder.status);
 
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return '-';
@@ -258,11 +215,14 @@ export function WorkOrderViewModal({
             <div className="flex items-start justify-between gap-4 pr-10">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className={cn(
-                    "p-2 rounded-lg border",
-                    status.bgColor
-                  )}>
-                    <StatusIcon className={cn("h-5 w-5", status.color)} />
+                  <div
+                    className="p-2 rounded-lg border"
+                    style={{
+                      backgroundColor: statusStyle.backgroundColor,
+                      borderColor: statusStyle.borderColor,
+                    }}
+                  >
+                    <StatusIcon className="h-5 w-5" style={{ color: statusStyle.color }} />
                   </div>
                   <div>
                     <DialogTitle className="text-lg font-semibold">
@@ -277,15 +237,9 @@ export function WorkOrderViewModal({
               
               {/* Badges de Status, Tipo e Prioridade */}
               <div className="flex flex-wrap items-center gap-1.5 flex-shrink-0">
-                <Badge variant="outline" className={cn("font-medium", status.bgColor, status.color)}>
-                  {status.label}
-                </Badge>
-                <Badge variant="outline" className={cn("font-medium", type.bgColor, type.color)}>
-                  {type.label}
-                </Badge>
-                <Badge variant="outline" className={cn("font-medium", priority.bgColor, priority.color)}>
-                  {priority.label}
-                </Badge>
+                <StatusBadge status={currentWorkOrder.status} type="workOrder" cmmsSettings={settings} />
+                <StatusBadge status={currentWorkOrder.type} type="maintenanceType" cmmsSettings={settings} />
+                <StatusBadge status={currentWorkOrder.priority} type="priority" />
               </div>
             </div>
           </DialogHeader>
