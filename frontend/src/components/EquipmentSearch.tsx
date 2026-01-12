@@ -332,7 +332,7 @@ export function EquipmentSearch({
     <div className="space-y-3">
       {/* KPI Cards - Resumo Visual - mais compactos */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-        <Card className="bg-card/50 border-0 shadow-sm">
+        <Card className="bg-card border-0 shadow-sm">
           <CardContent className="p-2.5 sm:p-3">
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -346,7 +346,7 @@ export function EquipmentSearch({
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 border-0 shadow-sm">
+        <Card className="bg-card border-0 shadow-sm">
           <CardContent className="p-2.5 sm:p-3">
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
@@ -360,7 +360,7 @@ export function EquipmentSearch({
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 border-0 shadow-sm">
+        <Card className="bg-card border-0 shadow-sm">
           <CardContent className="p-2.5 sm:p-3">
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
@@ -374,7 +374,7 @@ export function EquipmentSearch({
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 border-0 shadow-sm">
+        <Card className="bg-card border-0 shadow-sm">
           <CardContent className="p-2.5 sm:p-3">
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
@@ -388,7 +388,7 @@ export function EquipmentSearch({
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 border-0 shadow-sm col-span-2 sm:col-span-1">
+        <Card className="bg-card border-0 shadow-sm col-span-2 sm:col-span-1">
           <CardContent className="p-2.5 sm:p-3">
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
@@ -798,7 +798,7 @@ export function EquipmentSearch({
                 className={cn(
                   "group cursor-pointer transition-all duration-200",
                   "hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5",
-                  "relative overflow-hidden border-0 bg-card/50 shadow-sm"
+                  "relative overflow-hidden border-0 bg-card shadow-sm"
                 )}
                 onClick={() => onEquipmentSelect(eq)}
               >
