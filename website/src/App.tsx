@@ -8,6 +8,7 @@ import { TrakNorPage } from './pages/products/TrakNorPage'
 import { TrakSensePage } from './pages/products/TrakSensePage'
 import { AirTrakPage } from './pages/products/AirTrakPage'
 import { TrakLedgerPage } from './pages/products/TrakLedgerPage'
+import { TrakServicePage } from './pages/products/TrakServicePage'
 import { SolutionsPage } from './pages/SolutionsPage'
 import { EquipeInternaPage } from './pages/personas/EquipeInternaPage'
 import { PrestadoresPage } from './pages/personas/PrestadoresPage'
@@ -33,6 +34,7 @@ function App() {
           <Route path="/produtos/traksense" element={<TrakSensePage />} />
           <Route path="/produtos/airtrak" element={<AirTrakPage />} />
           <Route path="/produtos/trakledger" element={<TrakLedgerPage />} />
+          <Route path="/produtos/trakservice" element={<TrakServicePage />} />
           <Route path="/solucoes" element={<SolutionsPage />} />
           <Route path="/para-quem/equipe-interna" element={<EquipeInternaPage />} />
           <Route path="/para-quem/prestadores" element={<PrestadoresPage />} />

@@ -6,90 +6,107 @@ export const marketingNavigation = {
     {
       "name": "Produtos",
       "href": "/produtos",
-      "children": [
-        {
-          "name": "TrakNor CMMS",
-          "href": "/produtos/traknor",
-          "description": "CMMS completo para ordens, planos e ativos."
-        },
-        {
-          "name": "TrakSense IoT",
-          "href": "/produtos/traksense",
-          "description": "Monitoramento IoT com alertas em tempo real."
-        },
-        {
-          "name": "AirTrak Sensor",
-          "href": "/produtos/airtrak",
-          "description": "Sensor HVAC plug and play para dados confiaveis."
-        },
-        {
-          "name": "TrakLedger",
-          "href": "/produtos/trakledger",
-          "description": "Custos e orcamentos conectados a cada OS."
-        }
-      ]
-    },
-    {
-      "name": "Funcionalidades",
-      "href": "/funcionalidades",
       "groups": [
         {
-          "name": "Para Gestores",
+          "name": "TrakNor CMMS",
+          "icon": "ClipboardList",
+          "href": "/produtos/traknor",
           "items": [
             {
-              "name": "Ordens de servico e planos",
+              "name": "Gestão de Ordens de Serviço",
               "href": "/funcionalidades/ordens-planos",
-              "description": "Planejamento, execucao e controle das OS."
+              "description": "Planeje, atribua e acompanhe cada OS."
             },
             {
-              "name": "Monitoramento IoT",
-              "href": "/funcionalidades/monitoramento-iot",
-              "description": "Sensores, alertas e dashboards."
+              "name": "Planos de Manutenção",
+              "href": "/funcionalidades/planos-manutencao",
+              "description": "Preventiva, preditiva e corretiva."
             },
             {
-              "name": "Conformidade PMOC",
-              "href": "/funcionalidades/pmoc-conformidade",
-              "description": "Relatorios e laudos automatizados."
+              "name": "Gestão de Ativos",
+              "href": "/funcionalidades/gestao-ativos",
+              "description": "Cadastro, hierarquia e histórico."
             },
             {
-              "name": "Relatorios e KPIs",
-              "href": "/funcionalidades/relatorios-kpis",
-              "description": "Indicadores operacionais e executivos."
-            },
-            {
-              "name": "Financeiro e custos",
-              "href": "/funcionalidades/financeiro-custos",
-              "description": "Orcamentos, lancamentos e economia."
-            },
-            {
-              "name": "Equipe e produtividade",
-              "href": "/funcionalidades/equipe-produtividade",
-              "description": "Gestao da equipe e desempenho."
+              "name": "Estoque e Inventário",
+              "href": "/funcionalidades/estoque-inventario",
+              "description": "Peças, materiais e movimentações."
             }
           ]
         },
         {
-          "name": "Para seus Clientes",
+          "name": "TrakSense IoT",
+          "icon": "Activity",
+          "href": "/produtos/traksense",
           "items": [
             {
-              "name": "Solicitacoes e acompanhamento",
-              "href": "/funcionalidades/solicitacoes-acompanhamento",
-              "description": "Abertura, status e comunicacao transparente."
+              "name": "Monitoramento em Tempo Real",
+              "href": "/funcionalidades/monitoramento-iot",
+              "description": "Temperatura, umidade e pressão ao vivo."
             },
             {
-              "name": "Comunicacao e alertas",
+              "name": "Alertas Inteligentes",
               "href": "/funcionalidades/comunicacao-alertas",
-              "description": "Notificacoes e eventos em tempo real."
+              "description": "Notificações automáticas por desvio."
             },
             {
-              "name": "Relatorios compartilhaveis",
-              "href": "/funcionalidades/relatorios-clientes",
-              "description": "Laudos, evidencias e historicos."
+              "name": "Dashboards e Relatórios",
+              "href": "/funcionalidades/relatorios-kpis",
+              "description": "KPIs e indicadores operacionais."
             },
             {
-              "name": "Central de ajuda",
-              "href": "/funcionalidades/central-ajuda",
-              "description": "Base de conhecimento e suporte."
+              "name": "Conformidade PMOC",
+              "href": "/funcionalidades/pmoc-conformidade",
+              "description": "Laudos e relatórios automatizados."
+            }
+          ]
+        },
+        {
+          "name": "TrakLedger",
+          "icon": "DollarSign",
+          "href": "/produtos/trakledger",
+          "items": [
+            {
+              "name": "Controle de Custos",
+              "href": "/funcionalidades/financeiro-custos",
+              "description": "Orçamentos e lançamentos por OS."
+            },
+            {
+              "name": "Análise de ROI",
+              "href": "/funcionalidades/analise-roi",
+              "description": "Retorno sobre investimento em ativos."
+            },
+            {
+              "name": "Orçamentos e Propostas",
+              "href": "/funcionalidades/orcamentos-propostas",
+              "description": "Crie e gerencie orçamentos."
+            }
+          ]
+        },
+        {
+          "name": "TrakService",
+          "icon": "Truck",
+          "href": "/produtos/trakservice",
+          "items": [
+            {
+              "name": "Agenda & Dispatch",
+              "href": "/funcionalidades/dispatch-agenda",
+              "description": "Agende e distribua trabalhos para a equipe."
+            },
+            {
+              "name": "Rastreamento GPS",
+              "href": "/funcionalidades/rastreamento-gps",
+              "description": "Localização em tempo real da equipe."
+            },
+            {
+              "name": "Roteirização",
+              "href": "/funcionalidades/roteirizacao",
+              "description": "Otimize rotas e reduza custos."
+            },
+            {
+              "name": "Orçamentos em Campo",
+              "href": "/funcionalidades/orcamentos-campo",
+              "description": "Crie orçamentos direto no celular."
             }
           ]
         }
