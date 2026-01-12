@@ -37,7 +37,9 @@ class SubsectionSerializer(serializers.ModelSerializer):
     description = serializers.CharField(required=False, allow_blank=True)
     position = serializers.CharField(required=False, allow_blank=True, max_length=100)
     reference = serializers.CharField(required=False, allow_blank=True, max_length=200)
-    area = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    area = serializers.DecimalField(
+        max_digits=12, decimal_places=2, required=False, allow_null=True
+    )
     occupants = serializers.IntegerField(required=False, allow_null=True)
     hvac_units = serializers.IntegerField(required=False, allow_null=True)
 
@@ -45,8 +47,12 @@ class SubsectionSerializer(serializers.ModelSerializer):
     sector_name = serializers.CharField(source="sector.name", read_only=True)
     unit_id = serializers.IntegerField(source="sector.unit_id", read_only=True)
     unit_name = serializers.CharField(source="sector.unit.name", read_only=True)
-    company_id = serializers.IntegerField(source="sector.unit.company_id", read_only=True)
-    company_name = serializers.CharField(source="sector.unit.company.name", read_only=True)
+    company_id = serializers.IntegerField(
+        source="sector.unit.company_id", read_only=True
+    )
+    company_name = serializers.CharField(
+        source="sector.unit.company.name", read_only=True
+    )
     full_path = serializers.CharField(read_only=True)
     asset_count = serializers.IntegerField(read_only=True)
     contacts = LocationContactSerializer(many=True, read_only=True)
@@ -105,8 +111,12 @@ class SubsectionListSerializer(serializers.ModelSerializer):
     sector_name = serializers.CharField(source="sector.name", read_only=True)
     unit_id = serializers.IntegerField(source="sector.unit_id", read_only=True)
     unit_name = serializers.CharField(source="sector.unit.name", read_only=True)
-    company_id = serializers.IntegerField(source="sector.unit.company_id", read_only=True)
-    company_name = serializers.CharField(source="sector.unit.company.name", read_only=True)
+    company_id = serializers.IntegerField(
+        source="sector.unit.company_id", read_only=True
+    )
+    company_name = serializers.CharField(
+        source="sector.unit.company.name", read_only=True
+    )
     asset_count = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -369,7 +379,15 @@ class UnitNestedSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Unit
-        fields = ["id", "name", "code", "is_active", "sector_count", "asset_count", "sectors"]
+        fields = [
+            "id",
+            "name",
+            "code",
+            "is_active",
+            "sector_count",
+            "asset_count",
+            "sectors",
+        ]
 
 
 # ============================================

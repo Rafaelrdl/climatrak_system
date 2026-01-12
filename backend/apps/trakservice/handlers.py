@@ -21,7 +21,7 @@ from typing import Any, Dict
 # def handle_work_order_closed(self, event_data: Dict[str, Any]):
 #     """
 #     Handle work_order.closed event for TrakService.
-#     
+#
 #     Idempotent: Uses idempotency_key to prevent duplicate processing.
 #     """
 #     idempotency_key = event_data.get('idempotency_key')

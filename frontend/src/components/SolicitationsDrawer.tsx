@@ -132,7 +132,6 @@ export function SolicitationsDrawer({
     toast.success('Item removido.');
   };
 
-  const nextStatus = getNextStatus(solicitation.status);
   const canAdvance = canAdvanceStatus(solicitation.status);
 
   const getActionButtonText = () => {

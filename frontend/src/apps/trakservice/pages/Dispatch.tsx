@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TrakService Dispatch Page
  * 
  * Main page for dispatch management: view and assign work orders to technicians.
@@ -12,8 +12,8 @@
  * TrakService accent color: orange-500
  */
 
-import { useState, useMemo } from 'react';
-import { format, startOfWeek, endOfWeek, isToday, parseISO } from 'date-fns';
+import { useState, useMemo, useCallback } from 'react';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PageHeader } from '@/shared/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,21 +51,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { DataTable, type Column } from '@/shared/ui/components/DataTable';
 import { 
   Calendar as CalendarIcon, 
-  Clock, 
-  Target, 
   CheckCircle, 
   Plus,
   Search,
-  Filter,
   MoreHorizontal,
   Car,
   MapPin,
   XCircle,
   RefreshCw,
   User,
-  Wrench,
-  AlertCircle,
-  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -75,7 +69,6 @@ import {
   useAssignments,
   useTodayAssignments,
   useActiveTechnicians,
-  useCreateAssignment,
   useUpdateAssignmentStatus,
   useDeleteAssignment,
 } from '../hooks/useDispatchQuery';
@@ -85,7 +78,6 @@ import type {
   ServiceAssignment, 
   AssignmentStatus, 
   AssignmentFilters,
-  TechnicianListItem,
 } from '../types';
 import { 
   getStatusConfig, 
@@ -197,11 +189,11 @@ function AssignmentRowActions({
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8">
             <MoreHorizontal className="h-4 w-4" />
-            <span className="sr-only">Ações</span>
+            <span className="sr-only">AÃ§Ãµes</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Ações</DropdownMenuLabel>
+          <DropdownMenuLabel>AÃ§Ãµes</DropdownMenuLabel>
           <DropdownMenuSeparator />
           
           {nextStatuses.length > 0 && (
@@ -216,7 +208,7 @@ function AssignmentRowActions({
                     <span className={config.color}>
                       {status === 'en_route' && 'Marcar A Caminho'}
                       {status === 'on_site' && 'Marcar No Local'}
-                      {status === 'done' && 'Marcar Concluído'}
+                      {status === 'done' && 'Marcar ConcluÃ­do'}
                       {status === 'canceled' && 'Cancelar'}
                     </span>
                   </DropdownMenuItem>
@@ -239,9 +231,9 @@ function AssignmentRowActions({
       <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Cancelar Atribuição</DialogTitle>
+            <DialogTitle>Cancelar AtribuiÃ§Ã£o</DialogTitle>
             <DialogDescription>
-              Você está prestes a cancelar a atribuição da OS {assignment.work_order_number}.
+              VocÃª estÃ¡ prestes a cancelar a atribuiÃ§Ã£o da OS {assignment.work_order_number}.
               Informe o motivo do cancelamento.
             </DialogDescription>
           </DialogHeader>
@@ -283,12 +275,10 @@ export function DispatchPage() {
   // ==========================================================================
   // State
   // ==========================================================================
-  const [filters, setFilters] = useState<AssignmentFilters>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedTechnician, setSelectedTechnician] = useState<string>('all');
-  const [showFilters, setShowFilters] = useState(false);
   
   // ==========================================================================
   // Queries
@@ -328,7 +318,6 @@ export function DispatchPage() {
   // ==========================================================================
   // Mutations
   // ==========================================================================
-  const createMutation = useCreateAssignment();
   const updateStatusMutation = useUpdateAssignmentStatus();
   const deleteMutation = useDeleteAssignment();
   
@@ -342,32 +331,38 @@ export function DispatchPage() {
   // ==========================================================================
   // Handlers
   // ==========================================================================
-  const handleStatusChange = (id: string, status: AssignmentStatus, reason?: string) => {
-    updateStatusMutation.mutate(
-      { id, data: { status, reason } },
-      {
-        onSuccess: () => {
-          toast.success(`Status atualizado para ${getStatusConfig(status).label}`);
-        },
-        onError: (error) => {
-          toast.error(`Erro ao atualizar status: ${error.message}`);
-        },
-      }
-    );
-  };
+  const handleStatusChange = useCallback(
+    (id: string, status: AssignmentStatus, reason?: string) => {
+      updateStatusMutation.mutate(
+        { id, data: { status, reason } },
+        {
+          onSuccess: () => {
+            toast.success(`Status atualizado para ${getStatusConfig(status).label}`);
+          },
+          onError: (error) => {
+            toast.error(`Erro ao atualizar status: ${error.message}`);
+          },
+        }
+      );
+    },
+    [updateStatusMutation]
+  );
   
-  const handleDelete = (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir esta atribuição?')) {
-      deleteMutation.mutate(id, {
-        onSuccess: () => {
-          toast.success('Atribuição excluída com sucesso');
-        },
-        onError: (error) => {
-          toast.error(`Erro ao excluir: ${error.message}`);
-        },
-      });
-    }
-  };
+  const handleDelete = useCallback(
+    (id: string) => {
+      if (window.confirm('Tem certeza que deseja excluir esta atribuição?')) {
+        deleteMutation.mutate(id, {
+          onSuccess: () => {
+            toast.success('Atribuição excluída com sucesso');
+          },
+          onError: (error) => {
+            toast.error(`Erro ao excluir: ${error.message}`);
+          },
+        });
+      }
+    },
+    [deleteMutation]
+  );
   
   const handleRefresh = () => {
     refetchAssignments();
@@ -387,7 +382,7 @@ export function DispatchPage() {
   const columns: Column<ServiceAssignment>[] = useMemo(() => [
     {
       id: 'work_order',
-      header: 'Ordem de Serviço',
+      header: 'Ordem de ServiÃ§o',
       cell: (row) => (
         <div className="space-y-1">
           <div className="font-medium">{row.work_order_number}</div>
@@ -416,7 +411,7 @@ export function DispatchPage() {
     },
     {
       id: 'technician',
-      header: 'Técnico',
+      header: 'TÃ©cnico',
       cell: (row) => (
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
@@ -454,9 +449,9 @@ export function DispatchPage() {
       cell: (row) => {
         const priorityConfig: Record<string, { label: string; color: string }> = {
           LOW: { label: 'Baixa', color: 'text-slate-600' },
-          MEDIUM: { label: 'Média', color: 'text-blue-600' },
+          MEDIUM: { label: 'MÃ©dia', color: 'text-blue-600' },
           HIGH: { label: 'Alta', color: 'text-amber-600' },
-          CRITICAL: { label: 'Crítica', color: 'text-red-600' },
+          CRITICAL: { label: 'CrÃ­tica', color: 'text-red-600' },
         };
         const config = priorityConfig[row.work_order_priority] || priorityConfig.MEDIUM;
         return (
@@ -485,7 +480,6 @@ export function DispatchPage() {
   // ==========================================================================
   // Render
   // ==========================================================================
-  const isLoading = isLoadingAssignments || isLoadingToday;
   const hasActiveFilters = selectedStatus !== 'all' || 
                           selectedTechnician !== 'all' || 
                           searchTerm !== '';
@@ -494,7 +488,7 @@ export function DispatchPage() {
     <div className="space-y-6">
       <PageHeader
         title="Agenda & Dispatch"
-        description="Agende e distribua ordens de serviço para sua equipe"
+        description="Agende e distribua ordens de serviÃ§o para sua equipe"
       >
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRefresh}>
@@ -503,7 +497,7 @@ export function DispatchPage() {
           </Button>
           <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
             <Plus className="h-4 w-4 mr-2" />
-            Nova Atribuição
+            Nova AtribuiÃ§Ã£o
           </Button>
         </div>
       </PageHeader>
@@ -513,7 +507,7 @@ export function DispatchPage() {
         <QuickStatCard
           title="Agendamentos Hoje"
           value={todaySummary.total}
-          description={todaySummary.total === 1 ? 'atribuição' : 'atribuições'}
+          description={todaySummary.total === 1 ? 'atribuiÃ§Ã£o' : 'atribuiÃ§Ãµes'}
           icon={CalendarIcon}
           color="text-blue-500"
           isLoading={isLoadingToday}
@@ -535,7 +529,7 @@ export function DispatchPage() {
           isLoading={isLoadingToday}
         />
         <QuickStatCard
-          title="Concluídos Hoje"
+          title="ConcluÃ­dos Hoje"
           value={todaySummary.done}
           description="finalizados"
           icon={CheckCircle}
@@ -548,7 +542,7 @@ export function DispatchPage() {
       <Card>
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-medium">Atribuições</CardTitle>
+            <CardTitle className="text-base font-medium">AtribuiÃ§Ãµes</CardTitle>
             {hasActiveFilters && (
               <Button 
                 variant="ghost" 
@@ -569,7 +563,7 @@ export function DispatchPage() {
             <div className="relative flex-1 min-w-[200px] max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por OS, ativo ou técnico..."
+                placeholder="Buscar por OS, ativo ou tÃ©cnico..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
@@ -620,10 +614,10 @@ export function DispatchPage() {
               disabled={isLoadingTechnicians}
             >
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Técnico" />
+                <SelectValue placeholder="TÃ©cnico" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os técnicos</SelectItem>
+                <SelectItem value="all">Todos os tÃ©cnicos</SelectItem>
                 {technicians?.map((tech) => (
                   <SelectItem key={tech.id} value={tech.id}>
                     {tech.full_name}
@@ -642,10 +636,10 @@ export function DispatchPage() {
             getRowId={(row) => row.id}
             emptyState={{
               icon: <CalendarIcon className="h-12 w-12" />,
-              title: 'Nenhuma atribuição encontrada',
+              title: 'Nenhuma atribuiÃ§Ã£o encontrada',
               description: hasActiveFilters 
                 ? 'Tente ajustar os filtros para ver mais resultados.'
-                : 'Crie sua primeira atribuição clicando no botão acima.',
+                : 'Crie sua primeira atribuiÃ§Ã£o clicando no botÃ£o acima.',
             }}
             hoverable
             striped
@@ -657,3 +651,5 @@ export function DispatchPage() {
 }
 
 export default DispatchPage;
+
+

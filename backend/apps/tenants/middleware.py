@@ -150,9 +150,7 @@ class TenantHeaderMiddleware:
                     # even though the DB schema was switched
                     if hasattr(settings, "ROOT_URLCONF"):
                         request.urlconf = settings.ROOT_URLCONF
-                        logger.debug(
-                            f"Switched URLconf to '{settings.ROOT_URLCONF}'"
-                        )
+                        logger.debug(f"Switched URLconf to '{settings.ROOT_URLCONF}'")
 
                     logger.debug(
                         f"Switched to tenant '{tenant.schema_name}' via X-Tenant header"

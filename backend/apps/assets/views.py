@@ -40,7 +40,7 @@ from .serializers import (
 class AssetTypeViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gerenciamento de Tipos de Ativo.
-    
+
     Endpoints:
         GET /api/asset-types/ - Lista todos os tipos de ativo
         POST /api/asset-types/ - Cria novo tipo de ativo
@@ -49,7 +49,7 @@ class AssetTypeViewSet(viewsets.ModelViewSet):
         PATCH /api/asset-types/{id}/ - Atualiza tipo parcial
         DELETE /api/asset-types/{id}/ - Remove tipo (apenas se não for do sistema)
     """
-    
+
     queryset = AssetType.objects.filter(is_active=True)
     serializer_class = AssetTypeSerializer
     permission_classes = [IsAuthenticated]
@@ -57,20 +57,20 @@ class AssetTypeViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "code"]
     ordering_fields = ["name", "created_at"]
     ordering = ["name"]
-    
+
     def get_permissions(self):
         """Permite leitura para qualquer autenticado, escrita apenas para quem pode"""
         if self.action in ["create", "update", "partial_update", "destroy"]:
             return [IsAuthenticated(), CanWrite()]
         return [IsAuthenticated()]
-    
+
     def destroy(self, request, *args, **kwargs):
         """Impede exclusão de tipos do sistema"""
         instance = self.get_object()
         if instance.is_system:
             return Response(
                 {"error": "Tipos de ativo do sistema não podem ser excluídos"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
         return super().destroy(request, *args, **kwargs)
 
@@ -352,7 +352,12 @@ class AssetViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Asset.objects.select_related(
-        "site", "sector", "sector__unit", "sector__unit__company", "subsection", "subsection__sector__unit__company"
+        "site",
+        "sector",
+        "sector__unit",
+        "sector__unit__company",
+        "subsection",
+        "subsection__sector__unit__company",
     ).all()
     permission_classes = [IsAuthenticated, CanWrite]
     filter_backends = [
@@ -409,8 +414,8 @@ class AssetViewSet(viewsets.ModelViewSet):
                 status__in=["OPEN", "IN_PROGRESS", "PENDING"]
             ).count()
             if active_count > 0:
-                from rest_framework.response import Response
                 from rest_framework import status
+                from rest_framework.response import Response
 
                 return Response(
                     {
@@ -419,10 +424,6 @@ class AssetViewSet(viewsets.ModelViewSet):
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-
-        # Log para auditoria (opcional - pode ser expandido)
-        device_count = asset.devices.count()
-        sensor_count = sum(d.sensors.count() for d in asset.devices.all())
 
         # Exclui o asset (cascade remove devices e sensors)
         return super().destroy(request, *args, **kwargs)
@@ -543,7 +544,12 @@ class AssetViewSet(viewsets.ModelViewSet):
 
         # Select related para otimizar queries de FK (site, sector, subsection)
         queryset = queryset.select_related(
-            "site", "sector", "sector__unit", "sector__unit__company", "subsection", "subsection__sector__unit__company"
+            "site",
+            "sector",
+            "sector__unit",
+            "sector__unit__company",
+            "subsection",
+            "subsection__sector__unit__company",
         )
 
         # Prefetch para otimizar N+1 queries

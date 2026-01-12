@@ -70,13 +70,6 @@ export function AddEquipmentsModal({
     onOpenChange(false);
   };
 
-  // Get sectors for selected company (if company is selected)
-  const getLocationSectors = useMemo(() => {
-    if (!selectedLocationId || selectedLocationType !== 'company') return [];
-    
-    return sectors.filter(s => s.companyId === selectedLocationId);
-  }, [selectedLocationId, selectedLocationType, sectors]);
-
   // Filter equipments based on location and search
   const filteredEquipments = useMemo(() => {
     let filtered = equipments;
@@ -106,7 +99,7 @@ export function AddEquipmentsModal({
     }
 
     return filtered;
-  }, [equipments, selectedLocationId, searchTerm, companies, sectors]);
+  }, [equipments, selectedLocationId, selectedLocationType, searchTerm, sectors]);
 
   // Check if equipment is selected
   const isSelected = (equipmentId: string) => {

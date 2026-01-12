@@ -117,6 +117,27 @@ export const marketingNavigation = {
       ]
     },
     {
+      "name": "Para Quem",
+      "href": "/para-quem",
+      "children": [
+        {
+          "name": "Equipe Interna",
+          "href": "/para-quem#equipe-interna",
+          "description": "Gestao completa e integrada."
+        },
+        {
+          "name": "Prestadores de Servico",
+          "href": "/para-quem#prestadores",
+          "description": "Operacao e logistica integradas."
+        },
+        {
+          "name": "Tecnico Autonomo",
+          "href": "/para-quem#tecnico-autonomo",
+          "description": "Profissionalismo e agilidade."
+        }
+      ]
+    },
+    {
       "name": "Precos",
       "href": "/precos"
     },

@@ -263,6 +263,7 @@ class CentralizedLoginView(APIView):
 
         # Get tenant features
         from apps.tenants.features import get_tenant_features
+
         features = get_tenant_features(tenant.tenant_id)
 
         response_data = {
@@ -338,6 +339,7 @@ class SelectTenantView(APIView):
 
         # Get tenant features
         from apps.tenants.features import get_tenant_features
+
         features = get_tenant_features(tenant.tenant_id)
 
         response_data = {
@@ -577,7 +579,11 @@ class MobileLoginView(APIView):
             )
 
         # Check if user has multiple tenants and no schema specified
-        if len(result.authenticated_tenants) > 1 and not result.selected_tenant and not schema_name:
+        if (
+            len(result.authenticated_tenants) > 1
+            and not result.selected_tenant
+            and not schema_name
+        ):
             tenants_data = [
                 {
                     "id": t.tenant_id,

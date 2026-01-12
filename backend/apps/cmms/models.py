@@ -1482,7 +1482,10 @@ class GeneratedReport(models.Model):
         CONFORMIDADE_ANVISA = "CONFORMIDADE_ANVISA", "Conformidade ANVISA"
         QUALIDADE_AR = "QUALIDADE_AR", "Qualidade do Ar Interior"
         LAUDO_TECNICO = "LAUDO_TECNICO", "Laudo Técnico"
-        DESEMPENHO_EQUIPAMENTOS = "DESEMPENHO_EQUIPAMENTOS", "Desempenho de Equipamentos"
+        DESEMPENHO_EQUIPAMENTOS = (
+            "DESEMPENHO_EQUIPAMENTOS",
+            "Desempenho de Equipamentos",
+        )
         CONSUMO_ENERGETICO = "CONSUMO_ENERGETICO", "Consumo Energético"
         ALERTAS = "ALERTAS", "Resumo de Alertas"
         SLA = "SLA", "Conformidade SLA"

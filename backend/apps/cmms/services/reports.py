@@ -23,7 +23,6 @@ from django.utils import timezone
 from apps.assets.models import Asset, Site
 from apps.cmms.models import MaintenancePlan, WorkOrder
 
-
 # =============================================================================
 # Defaults "PMOC completo"
 # =============================================================================
@@ -50,6 +49,7 @@ DEFAULT_QAI_CRITERION = getattr(settings, "PMOC_QAI_CRITERION", "RE 09/2003")
 @dataclass
 class PMOCEquipmentSummary:
     """Resumo de equipamento para PMOC."""
+
     asset_id: str
     tag: str
     name: str
@@ -64,7 +64,9 @@ class PMOCEquipmentSummary:
     installation_date: Optional[date]
     preventive_count: int
     corrective_count: int
-    compliance_rate: float  # *observação*: proxy (ver comentário em _get_equipment_data)
+    compliance_rate: (
+        float  # *observação*: proxy (ver comentário em _get_equipment_data)
+    )
 
     @property
     def capacity_btu(self) -> int:
@@ -117,7 +119,9 @@ class PMOCReportService:
 
         # Coleta base
         establishment = cls._get_establishment_info(site_id, company)
-        responsible_tech = cls._get_responsible_technician(site_id=site_id, company=company)
+        responsible_tech = cls._get_responsible_technician(
+            site_id=site_id, company=company
+        )
 
         equipment_data = cls._get_equipment_data(
             site_id=site_id,
@@ -125,8 +129,12 @@ class PMOCReportService:
             start_date=start_date,
             end_date=end_date,
         )
-        maintenance_data = cls._get_maintenance_data(start_date, end_date, site_id, company)
-        work_orders_data = cls._get_work_orders_summary(start_date, end_date, site_id, company)
+        maintenance_data = cls._get_maintenance_data(
+            start_date, end_date, site_id, company
+        )
+        work_orders_data = cls._get_work_orders_summary(
+            start_date, end_date, site_id, company
+        )
 
         total_equipment = len(equipment_data)
         total_capacity_btu = sum(eq.capacity_btu or 0 for eq in equipment_data)
@@ -164,35 +172,28 @@ class PMOCReportService:
             },
             "generated_at": timezone.now().isoformat(),
             "filters": {"site_id": site_id, "company": company},
-
             # 0. Capa/Identificação do PMOC (vigência, base legal, ART)
             "pmoc": pmoc_meta,
-
             # 1. Objetivo (incorporado em pmoc.objective)
-
             # 2. Abrangência/Escopo (incorporado em pmoc.scope)
-
             # 3. Responsabilidades (NOVO)
             "responsibilities": responsibilities,
-
             # 4. Identificação do estabelecimento
             "establishment": establishment,
-
             # 5. Inventário / sistemas de climatização
             "climate_systems": {
                 "total_equipment": total_equipment,
                 "total_capacity_btu": total_capacity_btu,
-                "total_capacity_tr": round(total_capacity_btu / 12000, 2) if total_capacity_btu else 0,
+                "total_capacity_tr": (
+                    round(total_capacity_btu / 12000, 2) if total_capacity_btu else 0
+                ),
                 "equipment_by_type": cls._group_equipment_by_type(equipment_data),
                 "equipment_by_status": cls._group_equipment_by_status(equipment_data),
             },
-
             # 6. Parâmetros de Operação e Controle
             "operation": operation,
-
             # 7. Plano de Manutenção - Rotinas detalhadas (NOVO)
             "maintenance_routines": maintenance_routines,
-
             # 8. Execução do plano de manutenção (mensal)
             "maintenance_summary": {
                 "preventive": {
@@ -205,27 +206,25 @@ class PMOCReportService:
                     "opened": maintenance_data.get("corrective_opened", 0),
                     "completed": maintenance_data.get("corrective_completed", 0),
                     "pending": maintenance_data.get("corrective_pending", 0),
-                    "average_response_hours": maintenance_data.get("avg_response_hours"),
+                    "average_response_hours": maintenance_data.get(
+                        "avg_response_hours"
+                    ),
                 },
                 "requests": {"total": maintenance_data.get("requests", 0)},
-                "overall_compliance_rate": maintenance_data.get("overall_compliance", 0),
+                "overall_compliance_rate": maintenance_data.get(
+                    "overall_compliance", 0
+                ),
             },
-
             # 9. Controle de QAI
             "qai": qai,
-
             # 10. Registros/Anexos
             "annexes": annexes,
-
             # 11. Recomendações para falhas e emergências
             "emergency_plan": emergency_plan,
-
             # 12. Comunicação aos ocupantes (NOVO)
             "communication": communication_plan,
-
             # 13. Status de conformidade geral (NOVO)
             "compliance_status": compliance_status,
-
             # Lista detalhada de equipamentos
             "equipment_list": [
                 {
@@ -244,15 +243,14 @@ class PMOCReportService:
                 }
                 for eq in equipment_data
             ],
-
             # Detalhamento das OS do período
             "work_orders": work_orders_data,
-
             # Responsável técnico
             "responsible_technician": responsible_tech,
-
             # Observações e recomendações
-            "observations": cls._generate_observations(maintenance_data, equipment_data, qai=qai),
+            "observations": cls._generate_observations(
+                maintenance_data, equipment_data, qai=qai
+            ),
         }
         return report
 
@@ -268,7 +266,9 @@ class PMOCReportService:
         end_date = date(year, 12, 31)
 
         establishment = cls._get_establishment_info(site_id, company)
-        responsible_tech = cls._get_responsible_technician(site_id=site_id, company=company)
+        responsible_tech = cls._get_responsible_technician(
+            site_id=site_id, company=company
+        )
 
         equipment_data = cls._get_equipment_data(
             site_id=site_id,
@@ -276,9 +276,13 @@ class PMOCReportService:
             start_date=start_date,
             end_date=end_date,
         )
-        maintenance_data = cls._get_maintenance_data(start_date, end_date, site_id, company)
+        maintenance_data = cls._get_maintenance_data(
+            start_date, end_date, site_id, company
+        )
         monthly_breakdown = cls._get_monthly_breakdown(year, site_id, company)
-        work_orders_summary = cls._get_work_orders_annual_summary(year, site_id, company)
+        work_orders_summary = cls._get_work_orders_annual_summary(
+            year, site_id, company
+        )
 
         total_equipment = len(equipment_data)
         total_capacity_btu = sum(eq.capacity_btu or 0 for eq in equipment_data)
@@ -303,59 +307,57 @@ class PMOCReportService:
             has_qai=bool(qai_annual.get("indicators")),
         )
         emergency_plan = cls._get_emergency_plan()
-        compliance_status = cls._calculate_compliance_status(maintenance_data, qai_annual)
+        compliance_status = cls._calculate_compliance_status(
+            maintenance_data, qai_annual
+        )
 
         report = {
             "report_type": "PMOC_ANUAL",
-            "period": {"year": year, "start_date": start_date.isoformat(), "end_date": end_date.isoformat()},
+            "period": {
+                "year": year,
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+            },
             "generated_at": timezone.now().isoformat(),
             "filters": {"site_id": site_id, "company": company},
-
             # 0. Capa/Identificação do PMOC (vigência, base legal, ART)
             "pmoc": pmoc_meta,
-
             # 1. Objetivo (incorporado em pmoc.objective)
-
             # 2. Abrangência/Escopo (incorporado em pmoc.scope)
-
             # 3. Responsabilidades (NOVO)
             "responsibilities": responsibilities,
-
             # 4. Identificação do estabelecimento
             "establishment": establishment,
-
             # 5. Inventário de sistemas de climatização
             "climate_systems": {
                 "total_equipment": total_equipment,
                 "total_capacity_btu": total_capacity_btu,
-                "total_capacity_tr": round(total_capacity_btu / 12000, 2) if total_capacity_btu else 0,
+                "total_capacity_tr": (
+                    round(total_capacity_btu / 12000, 2) if total_capacity_btu else 0
+                ),
                 "equipment_by_type": cls._group_equipment_by_type(equipment_data),
                 "equipment_by_status": cls._group_equipment_by_status(equipment_data),
                 "equipment_by_age": cls._group_equipment_by_age(equipment_data),
             },
-
             # 6. Parâmetros de Operação e Controle
             "operation": operation,
-
             # 7. Plano de Manutenção - Rotinas detalhadas (NOVO)
             "maintenance_routines": maintenance_routines,
-
             # 8. Consolidado anual de manutenções
             "maintenance_annual": {
                 "total_preventive": maintenance_data.get("preventive_completed", 0),
                 "total_corrective": maintenance_data.get("corrective_completed", 0),
                 "total_requests": maintenance_data.get("requests", 0),
                 "total_work_orders": work_orders_summary.get("total", 0),
-                "overall_compliance_rate": maintenance_data.get("overall_compliance", 0),
+                "overall_compliance_rate": maintenance_data.get(
+                    "overall_compliance", 0
+                ),
                 "average_mttr_hours": maintenance_data.get("avg_response_hours"),
             },
-
             # 9. Controle de QAI
             "qai": qai_annual,
-
             # 10. Breakdown mensal
             "monthly_breakdown": monthly_breakdown,
-
             # 11. Performance por equipamento
             "equipment_performance": [
                 {
@@ -371,36 +373,34 @@ class PMOCReportService:
                 }
                 for eq in equipment_data
             ],
-
             # 12. KPIs
             "kpis": {
-                "preventive_compliance": maintenance_data.get("preventive_compliance", 0),
+                "preventive_compliance": maintenance_data.get(
+                    "preventive_compliance", 0
+                ),
                 "corrective_ratio": cls._calculate_corrective_ratio(maintenance_data),
                 "average_response_time": maintenance_data.get("avg_response_hours"),
-                "equipment_availability": cls._calculate_availability(equipment_data, year),
+                "equipment_availability": cls._calculate_availability(
+                    equipment_data, year
+                ),
                 "backlog_aging_days": work_orders_summary.get("backlog_aging_days", 0),
             },
-
             # 13. Planos de manutenção ativos
             "maintenance_plans": cls._get_maintenance_plans_summary(site_id, company),
-
             # 14. Registros/Anexos
             "annexes": annexes,
-
             # 15. Recomendações para falhas e emergências
             "emergency_plan": emergency_plan,
-
             # 16. Comunicação aos ocupantes (NOVO)
             "communication": communication_plan,
-
             # 17. Status de conformidade geral (NOVO)
             "compliance_status": compliance_status,
-
             # 18. RT
             "responsible_technician": responsible_tech,
-
             # 19. Conclusões (com status alinhado)
-            "conclusions": cls._generate_annual_conclusions(maintenance_data, equipment_data, qai=qai_annual),
+            "conclusions": cls._generate_annual_conclusions(
+                maintenance_data, equipment_data, qai=qai_annual
+            ),
         }
         return report
 
@@ -438,7 +438,10 @@ class PMOCReportService:
         if site:
             if hasattr(site, "pmoc_art_rrt_trt") and site.pmoc_art_rrt_trt:
                 art = site.pmoc_art_rrt_trt
-            if hasattr(site, "pmoc_disclosure_location") and site.pmoc_disclosure_location:
+            if (
+                hasattr(site, "pmoc_disclosure_location")
+                and site.pmoc_disclosure_location
+            ):
                 disclosure_location = site.pmoc_disclosure_location
 
         return {
@@ -472,7 +475,9 @@ class PMOCReportService:
         }
 
     @classmethod
-    def _get_operation_control(cls, site_id: Optional[str], company: Optional[str]) -> Dict[str, Any]:
+    def _get_operation_control(
+        cls, site_id: Optional[str], company: Optional[str]
+    ) -> Dict[str, Any]:
         """
         Operação e Controle (Seção 5):
         - renovação mínima (m³/h/pessoa)
@@ -522,10 +527,26 @@ class PMOCReportService:
             "filter_classification": {
                 "description": "Classificação mínima de filtros conforme NBR 16401-3",
                 "levels": [
-                    {"class": "G1-G4", "efficiency": "Grossos", "application": "Pré-filtro / Proteção de serpentina"},
-                    {"class": "M5-M6", "efficiency": "Médios", "application": "Ar externo / Ambientes comerciais"},
-                    {"class": "F7-F9", "efficiency": "Finos", "application": "Hospitais / Laboratórios / Salas limpas"},
-                    {"class": "H10-H14", "efficiency": "HEPA", "application": "Áreas críticas / Isolamento"},
+                    {
+                        "class": "G1-G4",
+                        "efficiency": "Grossos",
+                        "application": "Pré-filtro / Proteção de serpentina",
+                    },
+                    {
+                        "class": "M5-M6",
+                        "efficiency": "Médios",
+                        "application": "Ar externo / Ambientes comerciais",
+                    },
+                    {
+                        "class": "F7-F9",
+                        "efficiency": "Finos",
+                        "application": "Hospitais / Laboratórios / Salas limpas",
+                    },
+                    {
+                        "class": "H10-H14",
+                        "efficiency": "HEPA",
+                        "application": "Áreas críticas / Isolamento",
+                    },
                 ],
                 "minimum_external_air": "M5 (mínimo recomendado para ar externo)",
             },
@@ -739,16 +760,37 @@ class PMOCReportService:
         - Laudo QAI
         - Histórico de filtros
         """
+
         def ok_or_pending(flag: bool) -> str:
             return "OK" if flag else "PENDENTE"
 
         annexes = [
-            {"name": "ART/RRT/TRT do Responsável Técnico", "status": ok_or_pending(has_rt and has_art)},
-            {"name": "Inventário (TAGs, capacidade, localização, tipo)", "status": ok_or_pending(has_inventory)},
-            {"name": "Planta/Croqui (pontos de insuflamento/retorno/ar externo)", "status": "PENDENTE", "notes": "Cadastrar/Anexar quando disponível"},
-            {"name": "Registros de execução (OS/checklists do período)", "status": ok_or_pending(has_work_orders)},
-            {"name": "Laudo(s) de QAI (quando aplicável)", "status": ok_or_pending(has_qai)},
-            {"name": "Histórico de filtros (classe, trocas, dP se houver)", "status": "PENDENTE", "notes": "Integrar histórico de trocas/inspeções"},
+            {
+                "name": "ART/RRT/TRT do Responsável Técnico",
+                "status": ok_or_pending(has_rt and has_art),
+            },
+            {
+                "name": "Inventário (TAGs, capacidade, localização, tipo)",
+                "status": ok_or_pending(has_inventory),
+            },
+            {
+                "name": "Planta/Croqui (pontos de insuflamento/retorno/ar externo)",
+                "status": "PENDENTE",
+                "notes": "Cadastrar/Anexar quando disponível",
+            },
+            {
+                "name": "Registros de execução (OS/checklists do período)",
+                "status": ok_or_pending(has_work_orders),
+            },
+            {
+                "name": "Laudo(s) de QAI (quando aplicável)",
+                "status": ok_or_pending(has_qai),
+            },
+            {
+                "name": "Histórico de filtros (classe, trocas, dP se houver)",
+                "status": "PENDENTE",
+                "notes": "Integrar histórico de trocas/inspeções",
+            },
         ]
         return annexes
 
@@ -763,7 +805,9 @@ class PMOCReportService:
         ]
 
     @classmethod
-    def _safe_get_site(cls, site_id: Optional[str], company: Optional[str]) -> Optional[Site]:
+    def _safe_get_site(
+        cls, site_id: Optional[str], company: Optional[str]
+    ) -> Optional[Site]:
         if site_id:
             return Site.objects.filter(id=site_id).first()
         if company:
@@ -799,9 +843,18 @@ class PMOCReportService:
             queryset = queryset.filter(site__company__icontains=company)
 
         hvac_types = [
-            "CHILLER", "AHU", "SPLIT", "VRF", "FANCOIL", "TORRE",
-            "CONDENSADORA", "EVAPORADORA",
-            "AC_SPLIT", "AC_WINDOW", "AC_CASSETTE", "AC_DUCTED",
+            "CHILLER",
+            "AHU",
+            "SPLIT",
+            "VRF",
+            "FANCOIL",
+            "TORRE",
+            "CONDENSADORA",
+            "EVAPORADORA",
+            "AC_SPLIT",
+            "AC_WINDOW",
+            "AC_CASSETTE",
+            "AC_DUCTED",
         ]
         queryset = queryset.filter(asset_type__in=hvac_types)
 
@@ -809,7 +862,9 @@ class PMOCReportService:
         for asset in queryset:
             wo_filter = Q(asset=asset)
             if start_date and end_date:
-                wo_filter &= Q(created_at__date__gte=start_date, created_at__date__lte=end_date)
+                wo_filter &= Q(
+                    created_at__date__gte=start_date, created_at__date__lte=end_date
+                )
 
             preventive_count = WorkOrder.objects.filter(
                 wo_filter,
@@ -826,11 +881,19 @@ class PMOCReportService:
             plans = asset.maintenance_plans.filter(is_active=True)
             if plans.exists():
                 total_expected = sum(p.work_orders_generated for p in plans)
-                compliance = (preventive_count / total_expected * 100) if total_expected > 0 else 100
+                compliance = (
+                    (preventive_count / total_expected * 100)
+                    if total_expected > 0
+                    else 100
+                )
             else:
                 compliance = 100.0
 
-            asset_type_name = asset.get_asset_type_display() if hasattr(asset, "get_asset_type_display") else asset.asset_type
+            asset_type_name = (
+                asset.get_asset_type_display()
+                if hasattr(asset, "get_asset_type_display")
+                else asset.asset_type
+            )
             if getattr(asset, "asset_type_other", None):
                 asset_type_name = asset.asset_type_other
 
@@ -845,7 +908,11 @@ class PMOCReportService:
                     serial_number=asset.serial_number or "",
                     capacity=asset.capacity,
                     capacity_unit=asset.capacity_unit or "BTU",
-                    location=f"{asset.site.company} - {asset.site.sector}" if asset.site else "",
+                    location=(
+                        f"{asset.site.company} - {asset.site.sector}"
+                        if asset.site
+                        else ""
+                    ),
                     status=asset.status,
                     installation_date=asset.installation_date,
                     preventive_count=preventive_count,
@@ -871,18 +938,26 @@ class PMOCReportService:
         if company:
             queryset = queryset.filter(asset__site__company__icontains=company)
 
-        queryset = queryset.filter(Q(created_at__date__gte=start_date, created_at__date__lte=end_date))
+        queryset = queryset.filter(
+            Q(created_at__date__gte=start_date, created_at__date__lte=end_date)
+        )
 
         preventive_qs = queryset.filter(type=WorkOrder.Type.PREVENTIVE)
-        preventive_completed = preventive_qs.filter(status=WorkOrder.Status.COMPLETED).count()
+        preventive_completed = preventive_qs.filter(
+            status=WorkOrder.Status.COMPLETED
+        ).count()
         preventive_total = preventive_qs.count()
 
         corrective_qs = queryset.filter(type=WorkOrder.Type.CORRECTIVE)
         corrective_opened = corrective_qs.count()
-        corrective_completed = corrective_qs.filter(status=WorkOrder.Status.COMPLETED).count()
+        corrective_completed = corrective_qs.filter(
+            status=WorkOrder.Status.COMPLETED
+        ).count()
 
         avg_response = None
-        completed_correctives = corrective_qs.filter(status=WorkOrder.Status.COMPLETED, completed_at__isnull=False)
+        completed_correctives = corrective_qs.filter(
+            status=WorkOrder.Status.COMPLETED, completed_at__isnull=False
+        )
         if completed_correctives.exists():
             total_hours = 0.0
             count = 0
@@ -898,8 +973,14 @@ class PMOCReportService:
 
         total_completed = preventive_completed + corrective_completed
         total_opened = preventive_total + corrective_opened
-        overall_compliance = (total_completed / total_opened * 100) if total_opened > 0 else 100
-        preventive_compliance = (preventive_completed / preventive_total * 100) if preventive_total > 0 else 100
+        overall_compliance = (
+            (total_completed / total_opened * 100) if total_opened > 0 else 100
+        )
+        preventive_compliance = (
+            (preventive_completed / preventive_total * 100)
+            if preventive_total > 0
+            else 100
+        )
 
         return {
             "preventive_scheduled": preventive_total,
@@ -930,7 +1011,9 @@ class PMOCReportService:
         if company:
             queryset = queryset.filter(asset__site__company__icontains=company)
 
-        queryset = queryset.filter(created_at__date__gte=start_date, created_at__date__lte=end_date).order_by("-created_at")[:50]
+        queryset = queryset.filter(
+            created_at__date__gte=start_date, created_at__date__lte=end_date
+        ).order_by("-created_at")[:50]
 
         return [
             {
@@ -945,7 +1028,9 @@ class PMOCReportService:
                 "asset_name": wo.asset.name if wo.asset else "",
                 "description": wo.description[:100] if wo.description else "",
                 "created_at": wo.created_at.isoformat() if wo.created_at else None,
-                "completed_at": wo.completed_at.isoformat() if wo.completed_at else None,
+                "completed_at": (
+                    wo.completed_at.isoformat() if wo.completed_at else None
+                ),
             }
             for wo in queryset
         ]
@@ -967,11 +1052,15 @@ class PMOCReportService:
         if company:
             queryset = queryset.filter(asset__site__company__icontains=company)
 
-        queryset = queryset.filter(created_at__date__gte=start_date, created_at__date__lte=end_date)
+        queryset = queryset.filter(
+            created_at__date__gte=start_date, created_at__date__lte=end_date
+        )
 
         total = queryset.count()
         completed = queryset.filter(status=WorkOrder.Status.COMPLETED).count()
-        pending = queryset.exclude(status__in=[WorkOrder.Status.COMPLETED, WorkOrder.Status.CANCELLED])
+        pending = queryset.exclude(
+            status__in=[WorkOrder.Status.COMPLETED, WorkOrder.Status.CANCELLED]
+        )
 
         backlog_aging = 0
         if pending.exists():
@@ -981,7 +1070,12 @@ class PMOCReportService:
                 total_days += delta.days
             backlog_aging = round(total_days / pending.count(), 1)
 
-        return {"total": total, "completed": completed, "pending": pending.count(), "backlog_aging_days": backlog_aging}
+        return {
+            "total": total,
+            "completed": completed,
+            "pending": pending.count(),
+            "backlog_aging_days": backlog_aging,
+        }
 
     @classmethod
     def _get_monthly_breakdown(
@@ -1014,7 +1108,9 @@ class PMOCReportService:
         return breakdown
 
     @classmethod
-    def _get_establishment_info(cls, site_id: Optional[str], company: Optional[str]) -> Dict[str, Any]:
+    def _get_establishment_info(
+        cls, site_id: Optional[str], company: Optional[str]
+    ) -> Dict[str, Any]:
         """Obtém informações do estabelecimento."""
         site = cls._safe_get_site(site_id, company)
         if site:
@@ -1025,10 +1121,18 @@ class PMOCReportService:
                 "sector": site.sector,
                 "subsector": site.subsector,
             }
-        return {"name": "Não especificado", "company": "", "address": "", "sector": "", "subsector": ""}
+        return {
+            "name": "Não especificado",
+            "company": "",
+            "address": "",
+            "sector": "",
+            "subsector": "",
+        }
 
     @classmethod
-    def _get_responsible_technician(cls, *, site_id: Optional[str] = None, company: Optional[str] = None) -> Dict[str, Any]:
+    def _get_responsible_technician(
+        cls, *, site_id: Optional[str] = None, company: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Obtém dados do responsável técnico.
 
@@ -1041,7 +1145,9 @@ class PMOCReportService:
     # ──────────────────────────────────────────────────────────────────────────────
 
     @classmethod
-    def _get_responsibilities(cls, site_id: Optional[str], company: Optional[str]) -> Dict[str, Any]:
+    def _get_responsibilities(
+        cls, site_id: Optional[str], company: Optional[str]
+    ) -> Dict[str, Any]:
         """
         Seção 3 do PMOC: Responsabilidades.
 
@@ -1085,7 +1191,9 @@ class PMOCReportService:
         }
 
     @classmethod
-    def _get_maintenance_routines(cls, site_id: Optional[str], company: Optional[str]) -> Dict[str, Any]:
+    def _get_maintenance_routines(
+        cls, site_id: Optional[str], company: Optional[str]
+    ) -> Dict[str, Any]:
         """
         Seção 6 do PMOC: Plano de Manutenção (rotinas detalhadas por tipo de equipamento).
 
@@ -1093,7 +1201,13 @@ class PMOCReportService:
         """
         return {
             "split_window": {
-                "equipment_types": ["Split Hi-Wall", "Split Piso-Teto", "Split Cassete", "Janela", "Portátil"],
+                "equipment_types": [
+                    "Split Hi-Wall",
+                    "Split Piso-Teto",
+                    "Split Cassete",
+                    "Janela",
+                    "Portátil",
+                ],
                 "routines": [
                     {
                         "task": "Limpeza de filtros de ar",
@@ -1327,14 +1441,20 @@ class PMOCReportService:
         }
 
     @classmethod
-    def _get_maintenance_plans_summary(cls, site_id: Optional[str], company: Optional[str]) -> List[Dict[str, Any]]:
+    def _get_maintenance_plans_summary(
+        cls, site_id: Optional[str], company: Optional[str]
+    ) -> List[Dict[str, Any]]:
         """Resumo dos planos de manutenção ativos."""
-        queryset = MaintenancePlan.objects.filter(is_active=True).prefetch_related("assets")
+        queryset = MaintenancePlan.objects.filter(is_active=True).prefetch_related(
+            "assets"
+        )
 
         if site_id:
             queryset = queryset.filter(assets__site_id=site_id).distinct()
         if company:
-            queryset = queryset.filter(assets__site__company__icontains=company).distinct()
+            queryset = queryset.filter(
+                assets__site__company__icontains=company
+            ).distinct()
 
         return [
             {
@@ -1343,24 +1463,36 @@ class PMOCReportService:
                 "frequency_display": plan.get_frequency_display(),
                 "asset_count": plan.assets.count(),
                 "work_orders_generated": plan.work_orders_generated,
-                "next_execution": plan.next_execution.isoformat() if plan.next_execution else None,
-                "last_execution": plan.last_execution.isoformat() if plan.last_execution else None,
+                "next_execution": (
+                    plan.next_execution.isoformat() if plan.next_execution else None
+                ),
+                "last_execution": (
+                    plan.last_execution.isoformat() if plan.last_execution else None
+                ),
             }
             for plan in queryset
         ]
 
     @classmethod
-    def _group_equipment_by_type(cls, equipment_data: List[PMOCEquipmentSummary]) -> List[Dict[str, Any]]:
+    def _group_equipment_by_type(
+        cls, equipment_data: List[PMOCEquipmentSummary]
+    ) -> List[Dict[str, Any]]:
         type_counts: Dict[str, Dict[str, Any]] = {}
         for eq in equipment_data:
             if eq.asset_type not in type_counts:
-                type_counts[eq.asset_type] = {"type": eq.asset_type, "count": 0, "total_capacity_btu": 0}
+                type_counts[eq.asset_type] = {
+                    "type": eq.asset_type,
+                    "count": 0,
+                    "total_capacity_btu": 0,
+                }
             type_counts[eq.asset_type]["count"] += 1
             type_counts[eq.asset_type]["total_capacity_btu"] += eq.capacity_btu or 0
         return list(type_counts.values())
 
     @classmethod
-    def _group_equipment_by_status(cls, equipment_data: List[PMOCEquipmentSummary]) -> Dict[str, int]:
+    def _group_equipment_by_status(
+        cls, equipment_data: List[PMOCEquipmentSummary]
+    ) -> Dict[str, int]:
         status_counts: Dict[str, int] = {}
         for eq in equipment_data:
             status = eq.status or "UNKNOWN"
@@ -1368,9 +1500,18 @@ class PMOCReportService:
         return status_counts
 
     @classmethod
-    def _group_equipment_by_age(cls, equipment_data: List[PMOCEquipmentSummary]) -> Dict[str, int]:
+    def _group_equipment_by_age(
+        cls, equipment_data: List[PMOCEquipmentSummary]
+    ) -> Dict[str, int]:
         today = date.today()
-        age_groups = {"0-2 anos": 0, "3-5 anos": 0, "6-10 anos": 0, "11-15 anos": 0, "15+ anos": 0, "Não informado": 0}
+        age_groups = {
+            "0-2 anos": 0,
+            "3-5 anos": 0,
+            "6-10 anos": 0,
+            "11-15 anos": 0,
+            "15+ anos": 0,
+            "Não informado": 0,
+        }
 
         for eq in equipment_data:
             if not eq.installation_date:
@@ -1415,7 +1556,9 @@ class PMOCReportService:
         return round(corrective / total * 100, 1)
 
     @classmethod
-    def _calculate_availability(cls, equipment_data: List[PMOCEquipmentSummary], year: int) -> float:
+    def _calculate_availability(
+        cls, equipment_data: List[PMOCEquipmentSummary], year: int
+    ) -> float:
         if not equipment_data:
             return 100.0
         active_count = sum(1 for eq in equipment_data if eq.status == "ACTIVE")
@@ -1456,17 +1599,27 @@ class PMOCReportService:
                 "Considerar aumentar frequência das preventivas."
             )
 
-        no_maintenance = sum(1 for eq in equipment_data if eq.preventive_count == 0 and eq.corrective_count == 0)
+        no_maintenance = sum(
+            1
+            for eq in equipment_data
+            if eq.preventive_count == 0 and eq.corrective_count == 0
+        )
         if no_maintenance > 0:
-            observations.append(f"ℹ️ {no_maintenance} equipamento(s) sem registro de manutenção no período.")
+            observations.append(
+                f"ℹ️ {no_maintenance} equipamento(s) sem registro de manutenção no período."
+            )
 
         # QAI no texto (se existir)
         if qai:
             qai_status = qai.get("status") or qai.get("annual_status")
             if qai_status in {"NAO_CONFORME", "NÃO CONFORME"}:
-                observations.append("⚠️ QAI: houve não conformidade em parâmetros avaliados. Recomenda-se ação corretiva e nova coleta.")
+                observations.append(
+                    "⚠️ QAI: houve não conformidade em parâmetros avaliados. Recomenda-se ação corretiva e nova coleta."
+                )
             elif qai_status == "CONFORME":
-                observations.append("✅ QAI: parâmetros avaliados dentro do critério adotado.")
+                observations.append(
+                    "✅ QAI: parâmetros avaliados dentro do critério adotado."
+                )
 
         if not observations:
             observations.append("✅ Operação dentro dos parâmetros normais.")
@@ -1480,25 +1633,35 @@ class PMOCReportService:
         qai: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Gera conclusões e recomendações para relatório anual (status alinhado)."""
-        observations = cls._generate_observations(maintenance_data, equipment_data, qai=qai)
+        observations = cls._generate_observations(
+            maintenance_data, equipment_data, qai=qai
+        )
 
         recommendations: List[str] = []
 
         compliance = maintenance_data.get("overall_compliance", 100)
         if compliance < 90:
-            recommendations.append("Revisar e atualizar planos de manutenção preventiva")
+            recommendations.append(
+                "Revisar e atualizar planos de manutenção preventiva"
+            )
 
         corrective_ratio = cls._calculate_corrective_ratio(maintenance_data)
         if corrective_ratio > 30:
-            recommendations.append("Implementar programa de manutenção preditiva para reduzir corretivas")
+            recommendations.append(
+                "Implementar programa de manutenção preditiva para reduzir corretivas"
+            )
 
         avg_response = maintenance_data.get("avg_response_hours")
         if avg_response and avg_response > 24:
-            recommendations.append("Otimizar tempo de resposta para manutenções corretivas")
+            recommendations.append(
+                "Otimizar tempo de resposta para manutenções corretivas"
+            )
 
         old_equipment = sum(
-            1 for eq in equipment_data
-            if eq.installation_date and (date.today() - eq.installation_date).days > 3650
+            1
+            for eq in equipment_data
+            if eq.installation_date
+            and (date.today() - eq.installation_date).days > 3650
         )
         if equipment_data and old_equipment > len(equipment_data) * 0.3:
             recommendations.append(
@@ -1506,8 +1669,13 @@ class PMOCReportService:
             )
 
         # Recomendação extra quando QAI não informado/pendente
-        if qai and (qai.get("annual_status") == "NÃO INFORMADO" or qai.get("status") == "NÃO INFORMADO"):
-            recommendations.append("Cadastrar plano de coletas e anexar laudos de QAI conforme critério adotado")
+        if qai and (
+            qai.get("annual_status") == "NÃO INFORMADO"
+            or qai.get("status") == "NÃO INFORMADO"
+        ):
+            recommendations.append(
+                "Cadastrar plano de coletas e anexar laudos de QAI conforme critério adotado"
+            )
 
         if not recommendations:
             recommendations.append("Manter plano atual de manutenção e monitoramento")
@@ -1522,8 +1690,17 @@ class PMOCReportService:
     @classmethod
     def _get_month_name(cls, month: int) -> str:
         months = {
-            1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
-            5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
-            9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro",
+            1: "Janeiro",
+            2: "Fevereiro",
+            3: "Março",
+            4: "Abril",
+            5: "Maio",
+            6: "Junho",
+            7: "Julho",
+            8: "Agosto",
+            9: "Setembro",
+            10: "Outubro",
+            11: "Novembro",
+            12: "Dezembro",
         }
         return months.get(month, "")

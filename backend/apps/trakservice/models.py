@@ -10,6 +10,7 @@ Models are tenant-specific (stored in tenant schemas).
 
 import uuid
 from datetime import time as dt_time
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -18,13 +19,13 @@ from django.utils import timezone
 class TechnicianProfile(models.Model):
     """
     Extended profile for field service technicians.
-    
+
     Links a User to technician-specific data like skills,
     availability, and tracking preferences.
     """
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
+
     # Link to User
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -32,7 +33,7 @@ class TechnicianProfile(models.Model):
         related_name="technician_profile",
         verbose_name="Usuário",
     )
-    
+
     # Contact info (may differ from user profile)
     phone = models.CharField(
         max_length=20,
@@ -40,7 +41,7 @@ class TechnicianProfile(models.Model):
         verbose_name="Telefone",
         help_text="Telefone para contato em campo",
     )
-    
+
     # Skills/specializations (JSON array)
     skills = models.JSONField(
         default=list,
@@ -48,7 +49,7 @@ class TechnicianProfile(models.Model):
         verbose_name="Habilidades",
         help_text="Lista de especialidades do técnico",
     )
-    
+
     # Work schedule preferences
     work_start_time = models.TimeField(
         default=dt_time(8, 0),
@@ -60,33 +61,33 @@ class TechnicianProfile(models.Model):
         verbose_name="Horário de Término",
         help_text="Fim da janela de trabalho",
     )
-    
+
     # Status
     is_active = models.BooleanField(
         default=True,
         verbose_name="Ativo",
         help_text="Se o técnico está disponível para atribuições",
     )
-    
+
     # Tracking preferences (for privacy)
     allow_tracking = models.BooleanField(
         default=True,
         verbose_name="Permitir Rastreamento",
         help_text="Se o técnico permite rastreamento GPS durante trabalho",
     )
-    
+
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
-    
+
     class Meta:
         verbose_name = "Perfil de Técnico"
         verbose_name_plural = "Perfis de Técnicos"
         ordering = ["user__first_name", "user__last_name"]
-    
+
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.email}"
-    
+
     @property
     def full_name(self):
         return self.user.get_full_name() or self.user.email
@@ -95,20 +96,20 @@ class TechnicianProfile(models.Model):
 class ServiceAssignment(models.Model):
     """
     Assignment linking a WorkOrder to a Technician with scheduling info.
-    
+
     Represents a scheduled field service visit for a work order.
     Tracks operational status from scheduling through completion.
     """
-    
+
     class Status(models.TextChoices):
         SCHEDULED = "scheduled", "Agendado"
         EN_ROUTE = "en_route", "A Caminho"
         ON_SITE = "on_site", "No Local"
         DONE = "done", "Concluído"
         CANCELED = "canceled", "Cancelado"
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
+
     # Link to WorkOrder from CMMS
     work_order = models.ForeignKey(
         "cmms.WorkOrder",
@@ -116,7 +117,7 @@ class ServiceAssignment(models.Model):
         related_name="service_assignments",
         verbose_name="Ordem de Serviço",
     )
-    
+
     # Assigned technician
     technician = models.ForeignKey(
         TechnicianProfile,
@@ -124,7 +125,7 @@ class ServiceAssignment(models.Model):
         related_name="assignments",
         verbose_name="Técnico",
     )
-    
+
     # Scheduling
     scheduled_date = models.DateField(
         verbose_name="Data Agendada",
@@ -140,7 +141,7 @@ class ServiceAssignment(models.Model):
         blank=True,
         verbose_name="Horário Fim Previsto",
     )
-    
+
     # Status tracking
     status = models.CharField(
         max_length=20,
@@ -148,7 +149,7 @@ class ServiceAssignment(models.Model):
         default=Status.SCHEDULED,
         verbose_name="Status",
     )
-    
+
     # Timestamps for status changes
     departed_at = models.DateTimeField(
         null=True,
@@ -174,7 +175,7 @@ class ServiceAssignment(models.Model):
         verbose_name="Cancelamento",
         help_text="Quando foi cancelado (se aplicável)",
     )
-    
+
     # Notes
     notes = models.TextField(
         blank=True,
@@ -185,7 +186,7 @@ class ServiceAssignment(models.Model):
         blank=True,
         verbose_name="Motivo do Cancelamento",
     )
-    
+
     # Created by (for audit)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -195,11 +196,11 @@ class ServiceAssignment(models.Model):
         related_name="created_assignments",
         verbose_name="Criado por",
     )
-    
+
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
-    
+
     class Meta:
         verbose_name = "Atribuição de Serviço"
         verbose_name_plural = "Atribuições de Serviço"
@@ -209,59 +210,66 @@ class ServiceAssignment(models.Model):
             models.Index(fields=["status"]),
             models.Index(fields=["work_order"]),
         ]
-    
+
     def __str__(self):
         return f"{self.work_order.number} → {self.technician} ({self.scheduled_date})"
-    
+
     def set_en_route(self, save=True):
         """Mark technician as en route to the location."""
         self.status = self.Status.EN_ROUTE
         self.departed_at = timezone.now()
         if save:
             self.save(update_fields=["status", "departed_at", "updated_at"])
-    
+
     def set_on_site(self, save=True):
         """Mark technician as arrived on site."""
         self.status = self.Status.ON_SITE
         self.arrived_at = timezone.now()
         if save:
             self.save(update_fields=["status", "arrived_at", "updated_at"])
-    
+
     def set_done(self, save=True):
         """Mark assignment as completed."""
         self.status = self.Status.DONE
         self.completed_at = timezone.now()
         if save:
             self.save(update_fields=["status", "completed_at", "updated_at"])
-    
+
     def set_canceled(self, reason="", save=True):
         """Cancel the assignment."""
         self.status = self.Status.CANCELED
         self.canceled_at = timezone.now()
         self.cancellation_reason = reason
         if save:
-            self.save(update_fields=["status", "canceled_at", "cancellation_reason", "updated_at"])
+            self.save(
+                update_fields=[
+                    "status",
+                    "canceled_at",
+                    "cancellation_reason",
+                    "updated_at",
+                ]
+            )
 
 
 class LocationPing(models.Model):
     """
     GPS location ping from a field technician's mobile device.
-    
+
     Stores location data with audit trail for tracking purposes.
     Respects privacy constraints (work window, allow_tracking).
-    
+
     Note: Only pings within the technician's work window and with
     allow_tracking=True should be stored.
     """
-    
+
     class Source(models.TextChoices):
         GPS = "gps", "GPS"
         NETWORK = "network", "Rede"
         FUSED = "fused", "Fusão GPS+Rede"
         MANUAL = "manual", "Manual"
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
+
     # Link to technician
     technician = models.ForeignKey(
         TechnicianProfile,
@@ -269,7 +277,7 @@ class LocationPing(models.Model):
         related_name="location_pings",
         verbose_name="Técnico",
     )
-    
+
     # Location data
     latitude = models.DecimalField(
         max_digits=10,
@@ -283,7 +291,7 @@ class LocationPing(models.Model):
         verbose_name="Longitude",
         help_text="Longitude em graus decimais (-180 a 180)",
     )
-    
+
     # Accuracy/precision metadata
     accuracy = models.FloatField(
         null=True,
@@ -307,7 +315,7 @@ class LocationPing(models.Model):
         verbose_name="Direção (graus)",
         help_text="Direção em graus (0-360, 0=Norte)",
     )
-    
+
     # Source of location data
     source = models.CharField(
         max_length=20,
@@ -315,7 +323,7 @@ class LocationPing(models.Model):
         default=Source.GPS,
         verbose_name="Fonte",
     )
-    
+
     # Audit trail (required by spec)
     device_id = models.CharField(
         max_length=100,
@@ -326,10 +334,10 @@ class LocationPing(models.Model):
         verbose_name="Registrado em",
         help_text="Timestamp quando a localização foi capturada no dispositivo",
     )
-    
+
     # Server-side metadata
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Recebido em")
-    
+
     # Optional: link to active assignment (for context)
     assignment = models.ForeignKey(
         ServiceAssignment,
@@ -340,7 +348,7 @@ class LocationPing(models.Model):
         verbose_name="Atribuição",
         help_text="Atribuição ativa quando o ping foi registrado",
     )
-    
+
     class Meta:
         verbose_name = "Ping de Localização"
         verbose_name_plural = "Pings de Localização"
@@ -350,7 +358,7 @@ class LocationPing(models.Model):
             models.Index(fields=["recorded_at"]),
             models.Index(fields=["device_id"]),
         ]
-    
+
     def __str__(self):
         return f"{self.technician} @ ({self.latitude}, {self.longitude}) - {self.recorded_at}"
 
@@ -363,19 +371,19 @@ class LocationPing(models.Model):
 class DailyRoute(models.Model):
     """
     Daily route for a technician.
-    
+
     Represents the planned sequence of stops (assignments) for a given day.
     Used for route optimization and KM tracking.
     """
-    
+
     class Status(models.TextChoices):
         DRAFT = "draft", "Rascunho"
         CONFIRMED = "confirmed", "Confirmado"
         IN_PROGRESS = "in_progress", "Em Andamento"
         COMPLETED = "completed", "Concluído"
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
+
     # Link to technician
     technician = models.ForeignKey(
         TechnicianProfile,
@@ -383,13 +391,13 @@ class DailyRoute(models.Model):
         related_name="daily_routes",
         verbose_name="Técnico",
     )
-    
+
     # Date for the route
     route_date = models.DateField(
         verbose_name="Data da Rota",
         help_text="Data para a qual a rota foi planejada",
     )
-    
+
     # Status
     status = models.CharField(
         max_length=20,
@@ -397,7 +405,7 @@ class DailyRoute(models.Model):
         default=Status.DRAFT,
         verbose_name="Status",
     )
-    
+
     # Starting point (technician's home/base or first location)
     start_latitude = models.DecimalField(
         max_digits=10,
@@ -418,7 +426,7 @@ class DailyRoute(models.Model):
         blank=True,
         verbose_name="Endereço Inicial",
     )
-    
+
     # KM estimates (calculated at route generation)
     estimated_km = models.DecimalField(
         max_digits=8,
@@ -427,7 +435,7 @@ class DailyRoute(models.Model):
         verbose_name="KM Estimado",
         help_text="Quilometragem estimada para a rota completa",
     )
-    
+
     # KM actual (aggregated from pings/legs)
     actual_km = models.DecimalField(
         max_digits=8,
@@ -436,7 +444,7 @@ class DailyRoute(models.Model):
         verbose_name="KM Real",
         help_text="Quilometragem real percorrida (calculada dos pings)",
     )
-    
+
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
@@ -448,7 +456,7 @@ class DailyRoute(models.Model):
         related_name="created_routes",
         verbose_name="Criado por",
     )
-    
+
     class Meta:
         verbose_name = "Rota Diária"
         verbose_name_plural = "Rotas Diárias"
@@ -458,10 +466,10 @@ class DailyRoute(models.Model):
             models.Index(fields=["route_date", "technician"]),
             models.Index(fields=["status"]),
         ]
-    
+
     def __str__(self):
         return f"Rota {self.technician} - {self.route_date}"
-    
+
     @property
     def total_stops(self):
         return self.stops.count()
@@ -470,13 +478,13 @@ class DailyRoute(models.Model):
 class RouteStop(models.Model):
     """
     A stop in a daily route.
-    
+
     Links to a ServiceAssignment and represents one destination
     in the technician's planned route for the day.
     """
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
+
     # Link to route
     route = models.ForeignKey(
         DailyRoute,
@@ -484,13 +492,13 @@ class RouteStop(models.Model):
         related_name="stops",
         verbose_name="Rota",
     )
-    
+
     # Sequence in the route (1, 2, 3, ...)
     sequence = models.PositiveIntegerField(
         verbose_name="Sequência",
         help_text="Ordem da parada na rota (1 = primeira)",
     )
-    
+
     # Link to assignment (optional - can have manual stops)
     assignment = models.ForeignKey(
         ServiceAssignment,
@@ -500,7 +508,7 @@ class RouteStop(models.Model):
         related_name="route_stops",
         verbose_name="Atribuição",
     )
-    
+
     # Location (can be from assignment or manual)
     latitude = models.DecimalField(
         max_digits=10,
@@ -517,14 +525,14 @@ class RouteStop(models.Model):
         blank=True,
         verbose_name="Endereço",
     )
-    
+
     # Description (from assignment or custom)
     description = models.CharField(
         max_length=500,
         blank=True,
         verbose_name="Descrição",
     )
-    
+
     # Estimated times
     estimated_arrival = models.TimeField(
         null=True,
@@ -535,7 +543,7 @@ class RouteStop(models.Model):
         default=60,
         verbose_name="Duração Estimada (min)",
     )
-    
+
     # Distance from previous stop (km)
     distance_from_previous_km = models.DecimalField(
         max_digits=8,
@@ -543,7 +551,7 @@ class RouteStop(models.Model):
         default=0,
         verbose_name="Distância do Anterior (km)",
     )
-    
+
     # Actual data (filled during execution)
     actual_arrival = models.DateTimeField(
         null=True,
@@ -555,7 +563,7 @@ class RouteStop(models.Model):
         blank=True,
         verbose_name="Saída Real",
     )
-    
+
     class Meta:
         verbose_name = "Parada da Rota"
         verbose_name_plural = "Paradas da Rota"
@@ -564,16 +572,16 @@ class RouteStop(models.Model):
         indexes = [
             models.Index(fields=["route", "sequence"]),
         ]
-    
+
     def __str__(self):
         return f"Parada {self.sequence} - {self.route}"
 
 
 __all__ = [
-    "TechnicianProfile", 
-    "ServiceAssignment", 
-    "LocationPing", 
-    "DailyRoute", 
+    "TechnicianProfile",
+    "ServiceAssignment",
+    "LocationPing",
+    "DailyRoute",
     "RouteStop",
     "ServiceCatalogItem",
     "Quote",
@@ -589,13 +597,13 @@ __all__ = [
 class ServiceCatalogItem(models.Model):
     """
     Service Catalog Item.
-    
+
     Represents a service type that can be added to quotes.
     Contains standard pricing, duration, and cost information.
     """
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
+
     # Identification
     code = models.CharField(
         max_length=50,
@@ -613,7 +621,7 @@ class ServiceCatalogItem(models.Model):
         verbose_name="Descrição",
         help_text="Descrição detalhada do serviço",
     )
-    
+
     # Duration and labor
     estimated_duration_minutes = models.PositiveIntegerField(
         default=60,
@@ -627,7 +635,7 @@ class ServiceCatalogItem(models.Model):
         verbose_name="Custo HH",
         help_text="Custo da hora-homem para este serviço",
     )
-    
+
     # Pricing
     base_price = models.DecimalField(
         max_digits=10,
@@ -643,7 +651,7 @@ class ServiceCatalogItem(models.Model):
         verbose_name="Margem (%)",
         help_text="Margem de lucro padrão em percentual",
     )
-    
+
     # Categorization
     category = models.CharField(
         max_length=100,
@@ -651,14 +659,14 @@ class ServiceCatalogItem(models.Model):
         verbose_name="Categoria",
         help_text="Categoria do serviço (ex: HVAC, Elétrica, Civil)",
     )
-    
+
     # Status
     is_active = models.BooleanField(
         default=True,
         verbose_name="Ativo",
         help_text="Se o serviço está disponível para uso em orçamentos",
     )
-    
+
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
@@ -670,7 +678,7 @@ class ServiceCatalogItem(models.Model):
         related_name="created_catalog_items",
         verbose_name="Criado por",
     )
-    
+
     class Meta:
         verbose_name = "Item do Catálogo de Serviços"
         verbose_name_plural = "Itens do Catálogo de Serviços"
@@ -680,37 +688,40 @@ class ServiceCatalogItem(models.Model):
             models.Index(fields=["category"]),
             models.Index(fields=["is_active"]),
         ]
-    
+
     def __str__(self):
         return f"{self.code} - {self.name}"
-    
+
     @property
     def calculated_price(self):
         """Calculate price with margin."""
         from decimal import Decimal
+
         if self.margin_percent > 0:
             multiplier = 1 + (self.margin_percent / 100)
-            return (self.base_price * Decimal(str(multiplier))).quantize(Decimal("0.01"))
+            return (self.base_price * Decimal(str(multiplier))).quantize(
+                Decimal("0.01")
+            )
         return self.base_price
 
 
 class Quote(models.Model):
     """
     Quote (Orçamento).
-    
+
     Represents a cost estimate for a work order, including
     services and materials with their respective prices.
     """
-    
+
     class Status(models.TextChoices):
         DRAFT = "draft", "Rascunho"
         SENT = "sent", "Enviado"
         APPROVED = "approved", "Aprovado"
         REJECTED = "rejected", "Rejeitado"
         EXPIRED = "expired", "Expirado"
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
+
     # Quote number (auto-generated)
     number = models.CharField(
         max_length=30,
@@ -718,7 +729,7 @@ class Quote(models.Model):
         verbose_name="Número",
         help_text="Número único do orçamento (auto-gerado)",
     )
-    
+
     # Link to WorkOrder
     work_order = models.ForeignKey(
         "cmms.WorkOrder",
@@ -726,7 +737,7 @@ class Quote(models.Model):
         related_name="quotes",
         verbose_name="Ordem de Serviço",
     )
-    
+
     # Status workflow
     status = models.CharField(
         max_length=20,
@@ -734,7 +745,7 @@ class Quote(models.Model):
         default=Status.DRAFT,
         verbose_name="Status",
     )
-    
+
     # Validity
     valid_until = models.DateField(
         null=True,
@@ -742,7 +753,7 @@ class Quote(models.Model):
         verbose_name="Válido até",
         help_text="Data limite de validade do orçamento",
     )
-    
+
     # Totals (calculated from items)
     subtotal_services = models.DecimalField(
         max_digits=12,
@@ -774,7 +785,7 @@ class Quote(models.Model):
         default=0,
         verbose_name="Total",
     )
-    
+
     # Notes
     notes = models.TextField(
         blank=True,
@@ -786,7 +797,7 @@ class Quote(models.Model):
         verbose_name="Observações para Cliente",
         help_text="Notas visíveis no orçamento enviado ao cliente",
     )
-    
+
     # Workflow timestamps
     sent_at = models.DateTimeField(
         null=True,
@@ -807,7 +818,7 @@ class Quote(models.Model):
         blank=True,
         verbose_name="Motivo da Rejeição",
     )
-    
+
     # Audit
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
@@ -827,7 +838,7 @@ class Quote(models.Model):
         related_name="approved_quotes",
         verbose_name="Aprovado por",
     )
-    
+
     class Meta:
         verbose_name = "Orçamento"
         verbose_name_plural = "Orçamentos"
@@ -838,28 +849,28 @@ class Quote(models.Model):
             models.Index(fields=["status"]),
             models.Index(fields=["-created_at"]),
         ]
-    
+
     def __str__(self):
         return f"{self.number} - {self.work_order.number}"
-    
+
     def save(self, *args, **kwargs):
         """Auto-generate quote number if not set."""
         if not self.number:
             self.number = self._generate_number()
         super().save(*args, **kwargs)
-    
+
     def _generate_number(self):
         """Generate unique quote number."""
         from django.utils import timezone
-        
+
         today = timezone.now()
         prefix = f"ORC-{today.strftime('%Y%m')}"
-        
+
         # Get last quote number for this month
-        last = Quote.objects.filter(
-            number__startswith=prefix
-        ).order_by("-number").first()
-        
+        last = (
+            Quote.objects.filter(number__startswith=prefix).order_by("-number").first()
+        )
+
         if last:
             try:
                 last_num = int(last.number.split("-")[-1])
@@ -868,76 +879,82 @@ class Quote(models.Model):
                 new_num = 1
         else:
             new_num = 1
-        
+
         return f"{prefix}-{new_num:04d}"
-    
+
     def recalculate_totals(self):
         """Recalculate quote totals from items."""
         from decimal import Decimal
-        
+
         services_total = Decimal("0")
         materials_total = Decimal("0")
-        
+
         for item in self.items.all():
             if item.item_type == QuoteItem.ItemType.SERVICE:
                 services_total += item.total_price
             else:
                 materials_total += item.total_price
-        
+
         self.subtotal_services = services_total
         self.subtotal_materials = materials_total
-        
+
         subtotal = services_total + materials_total
-        
+
         # Apply discount
         if self.discount_percent > 0:
-            self.discount_amount = (subtotal * self.discount_percent / 100).quantize(Decimal("0.01"))
-        
+            self.discount_amount = (subtotal * self.discount_percent / 100).quantize(
+                Decimal("0.01")
+            )
+
         self.total = subtotal - self.discount_amount
-        self.save(update_fields=[
-            "subtotal_services",
-            "subtotal_materials", 
-            "discount_amount",
-            "total",
-            "updated_at",
-        ])
-    
+        self.save(
+            update_fields=[
+                "subtotal_services",
+                "subtotal_materials",
+                "discount_amount",
+                "total",
+                "updated_at",
+            ]
+        )
+
     def send(self):
         """Mark quote as sent."""
         if self.status != self.Status.DRAFT:
             raise ValueError("Apenas orçamentos em rascunho podem ser enviados.")
-        
+
         self.status = self.Status.SENT
         self.sent_at = timezone.now()
         self.save(update_fields=["status", "sent_at", "updated_at"])
-    
+
     def approve(self, approved_by=None):
         """Mark quote as approved."""
         if self.status != self.Status.SENT:
             raise ValueError("Apenas orçamentos enviados podem ser aprovados.")
-        
+
         self.status = self.Status.APPROVED
         self.approved_at = timezone.now()
         self.approved_by = approved_by
         self.save(update_fields=["status", "approved_at", "approved_by", "updated_at"])
-    
+
     def reject(self, reason=""):
         """Mark quote as rejected."""
         if self.status != self.Status.SENT:
             raise ValueError("Apenas orçamentos enviados podem ser rejeitados.")
-        
+
         self.status = self.Status.REJECTED
         self.rejected_at = timezone.now()
         self.rejection_reason = reason
-        self.save(update_fields=["status", "rejected_at", "rejection_reason", "updated_at"])
-    
+        self.save(
+            update_fields=["status", "rejected_at", "rejection_reason", "updated_at"]
+        )
+
     @property
     def is_expired(self):
         """Check if quote has expired."""
         if self.valid_until:
             return timezone.now().date() > self.valid_until
         return False
-    
+
     @property
     def item_count(self):
         """Total number of items."""
@@ -947,17 +964,17 @@ class Quote(models.Model):
 class QuoteItem(models.Model):
     """
     Quote Item (Item do Orçamento).
-    
+
     Represents a line item in a quote, which can be either
     a service from the catalog or a material from inventory.
     """
-    
+
     class ItemType(models.TextChoices):
         SERVICE = "service", "Serviço"
         MATERIAL = "material", "Material"
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
+
     # Parent quote
     quote = models.ForeignKey(
         Quote,
@@ -965,14 +982,14 @@ class QuoteItem(models.Model):
         related_name="items",
         verbose_name="Orçamento",
     )
-    
+
     # Item type and references
     item_type = models.CharField(
         max_length=20,
         choices=ItemType.choices,
         verbose_name="Tipo",
     )
-    
+
     # Reference to catalog (for services)
     catalog_item = models.ForeignKey(
         ServiceCatalogItem,
@@ -982,7 +999,7 @@ class QuoteItem(models.Model):
         related_name="quote_items",
         verbose_name="Item do Catálogo",
     )
-    
+
     # Reference to inventory (for materials)
     inventory_item = models.ForeignKey(
         "inventory.InventoryItem",
@@ -992,7 +1009,7 @@ class QuoteItem(models.Model):
         related_name="quote_items",
         verbose_name="Item do Estoque",
     )
-    
+
     # Item details (copied from reference or custom)
     code = models.CharField(
         max_length=50,
@@ -1002,7 +1019,7 @@ class QuoteItem(models.Model):
         max_length=500,
         verbose_name="Descrição",
     )
-    
+
     # Quantity and pricing
     quantity = models.DecimalField(
         max_digits=10,
@@ -1020,7 +1037,7 @@ class QuoteItem(models.Model):
         decimal_places=2,
         verbose_name="Preço Unitário",
     )
-    
+
     # Calculated total
     total_price = models.DecimalField(
         max_digits=12,
@@ -1028,23 +1045,23 @@ class QuoteItem(models.Model):
         default=0,
         verbose_name="Preço Total",
     )
-    
+
     # Notes
     notes = models.TextField(
         blank=True,
         verbose_name="Observações",
     )
-    
+
     # Sequence for ordering
     sequence = models.PositiveIntegerField(
         default=0,
         verbose_name="Sequência",
     )
-    
+
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
-    
+
     class Meta:
         verbose_name = "Item do Orçamento"
         verbose_name_plural = "Itens do Orçamento"
@@ -1052,12 +1069,13 @@ class QuoteItem(models.Model):
         indexes = [
             models.Index(fields=["quote", "item_type"]),
         ]
-    
+
     def __str__(self):
         return f"{self.code} - {self.description[:50]}"
-    
+
     def save(self, *args, **kwargs):
         """Calculate total price before saving."""
         from decimal import Decimal
+
         self.total_price = (self.quantity * self.unit_price).quantize(Decimal("0.01"))
         super().save(*args, **kwargs)

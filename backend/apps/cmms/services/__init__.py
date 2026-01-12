@@ -1,6 +1,8 @@
 """
 Services para CMMS
 """
-from .reports import PMOCReportService
 
-__all__ = ['PMOCReportService']
+from .reports import PMOCReportService
+from .work_orders import WorkOrderService
+
+__all__ = ["PMOCReportService", "WorkOrderService"]

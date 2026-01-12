@@ -68,7 +68,10 @@ class CompanyAdmin(admin.ModelAdmin):
     fieldsets = (
         ("Identificação", {"fields": ("name", "code", "cnpj", "is_active")}),
         ("Endereço", {"fields": ("address", "city", "state")}),
-        ("Responsável", {"fields": ("responsible_name", "responsible_role", "manager")}),
+        (
+            "Responsável",
+            {"fields": ("responsible_name", "responsible_role", "manager")},
+        ),
         ("Configurações", {"fields": ("logo", "timezone"), "classes": ("collapse",)}),
         ("Descrição", {"fields": ("description",), "classes": ("collapse",)}),
         (
@@ -85,7 +88,15 @@ class CompanyAdmin(admin.ModelAdmin):
 
 @admin.register(Unit)
 class UnitAdmin(admin.ModelAdmin):
-    list_display = ["name", "company", "code", "city", "state", "sector_count", "is_active"]
+    list_display = [
+        "name",
+        "company",
+        "code",
+        "city",
+        "state",
+        "sector_count",
+        "is_active",
+    ]
     list_filter = ["is_active", "company", "state", "city"]
     search_fields = ["name", "code", "company__name", "cnpj", "city"]
     readonly_fields = ["created_at", "updated_at"]
@@ -95,8 +106,17 @@ class UnitAdmin(admin.ModelAdmin):
     fieldsets = (
         ("Identificação", {"fields": ("name", "code", "company", "is_active")}),
         ("Endereço", {"fields": ("cnpj", "address", "city", "state", "zip_code")}),
-        ("Responsável", {"fields": ("responsible_name", "responsible_role", "manager")}),
-        ("Dados Operacionais", {"fields": ("total_area", "occupants", "hvac_units"), "classes": ("collapse",)}),
+        (
+            "Responsável",
+            {"fields": ("responsible_name", "responsible_role", "manager")},
+        ),
+        (
+            "Dados Operacionais",
+            {
+                "fields": ("total_area", "occupants", "hvac_units"),
+                "classes": ("collapse",),
+            },
+        ),
         ("Descrição", {"fields": ("description",), "classes": ("collapse",)}),
         (
             "Metadados",
@@ -130,8 +150,21 @@ class SectorAdmin(admin.ModelAdmin):
     fieldsets = (
         ("Identificação", {"fields": ("name", "code", "unit", "is_active")}),
         ("Localização", {"fields": ("building", "floor", "area")}),
-        ("Responsável", {"fields": ("supervisor", "responsible_name", "responsible_phone", "responsible_email")}),
-        ("Dados Operacionais", {"fields": ("occupants", "hvac_units"), "classes": ("collapse",)}),
+        (
+            "Responsável",
+            {
+                "fields": (
+                    "supervisor",
+                    "responsible_name",
+                    "responsible_phone",
+                    "responsible_email",
+                )
+            },
+        ),
+        (
+            "Dados Operacionais",
+            {"fields": ("occupants", "hvac_units"), "classes": ("collapse",)},
+        ),
         ("Descrição", {"fields": ("description",), "classes": ("collapse",)}),
         (
             "Metadados",
@@ -149,7 +182,13 @@ class SectorAdmin(admin.ModelAdmin):
 class SubsectionAdmin(admin.ModelAdmin):
     list_display = ["name", "sector", "code", "position", "is_active"]
     list_filter = ["is_active", "sector__unit__company", "sector__unit", "sector"]
-    search_fields = ["name", "code", "sector__name", "sector__unit__name", "sector__unit__company__name"]
+    search_fields = [
+        "name",
+        "code",
+        "sector__name",
+        "sector__unit__name",
+        "sector__unit__company__name",
+    ]
     readonly_fields = ["created_at", "updated_at"]
     raw_id_fields = ["sector"]
     inlines = [SubsectionContactInline]

@@ -155,8 +155,8 @@ export function FunctionalityPage() {
                     <p className="text-sm text-muted-foreground mb-4">
                       Integra dados da operacao para manter equipes e clientes alinhados.
                     </p>
-                    {module?.websiteHref && (
-                      <Link to={module.websiteHref} className="inline-flex items-center text-primary font-medium">
+                    {'websiteHref' in (module || {}) && (module as { websiteHref?: string })?.websiteHref && (
+                      <Link to={(module as { websiteHref: string }).websiteHref} className="inline-flex items-center text-primary font-medium">
                         Ver produto
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Link>

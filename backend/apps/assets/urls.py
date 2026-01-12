@@ -14,7 +14,13 @@ Endpoints disponíveis:
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import AssetTypeViewSet, AssetViewSet, DeviceViewSet, SensorViewSet, SiteViewSet
+from .views import (
+    AssetTypeViewSet,
+    AssetViewSet,
+    DeviceViewSet,
+    SensorViewSet,
+    SiteViewSet,
+)
 
 # Configuração do router
 router = DefaultRouter()

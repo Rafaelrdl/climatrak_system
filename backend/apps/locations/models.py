@@ -101,7 +101,8 @@ class Company(Location):
         from apps.assets.models import Asset
 
         return Asset.objects.filter(
-            models.Q(sector__unit__company=self) | models.Q(subsection__sector__unit__company=self)
+            models.Q(sector__unit__company=self)
+            | models.Q(subsection__sector__unit__company=self)
         ).count()
 
 

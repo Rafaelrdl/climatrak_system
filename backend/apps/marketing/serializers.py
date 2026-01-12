@@ -33,7 +33,11 @@ class BlogPostSerializer(serializers.ModelSerializer):
             base = slugify(title)[:60] or "post"
             slug = base
             counter = 1
-            while BlogPost.objects.filter(slug=slug).exclude(pk=getattr(self.instance, "pk", None)).exists():
+            while (
+                BlogPost.objects.filter(slug=slug)
+                .exclude(pk=getattr(self.instance, "pk", None))
+                .exists()
+            ):
                 slug = f"{base}-{counter}"
                 counter += 1
             attrs["slug"] = slug
@@ -45,7 +49,9 @@ class BlogPostSerializer(serializers.ModelSerializer):
                 attrs["read_time_minutes"] = max(1, min(20, round(word_count / 200)))
 
         status = attrs.get("status", getattr(self.instance, "status", None))
-        published_at = attrs.get("published_at") or getattr(self.instance, "published_at", None)
+        published_at = attrs.get("published_at") or getattr(
+            self.instance, "published_at", None
+        )
         if status == BlogPost.Status.PUBLISHED and not published_at:
             attrs["published_at"] = timezone.now()
 

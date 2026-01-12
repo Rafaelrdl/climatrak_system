@@ -20,10 +20,10 @@ from .models import Asset, AssetType, Device, Sensor, Site
 class AssetTypeSerializer(serializers.ModelSerializer):
     """
     Serializer para o modelo AssetType.
-    
+
     Usado para criar e listar tipos de ativo customizados.
     """
-    
+
     class Meta:
         model = AssetType
         fields = [

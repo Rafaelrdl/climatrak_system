@@ -1,14 +1,14 @@
 """
 Ledger API Tests (API-002)
 
-Testes de integração para os endpoints da API de Ledger:
+Testes de integraÃ§Äƒo para os endpoints da API de Ledger:
 - CostTransaction (listar, criar, filtrar, summary, lock)
 - LedgerAdjustment (criar ajuste manual, listar)
 
-Referências:
+ReferÄ™ncias:
 - docs/finance/02-regras-negocio.md
 
-NOTA: Estes testes usam TenantTestCase com chamadas diretas às views via
+NOTA: Estes testes usam TenantTestCase com chamadas diretas Å•s views via
 RequestFactory em vez de HTTP client, para funcionar corretamente com
 django-tenants multi-tenant.
 """
@@ -42,7 +42,7 @@ class BaseLedgerAPITestCase(TenantTestCase):
         # Usar APIRequestFactory para criar requests
         self.factory = APIRequestFactory()
 
-        # Criar usuário de teste
+        # Criar usuÃ¡rio de teste
         from django.contrib.auth import get_user_model
 
         User = get_user_model()
@@ -60,14 +60,14 @@ class BaseLedgerAPITestCase(TenantTestCase):
             code="CC-TEST", name="Centro de Teste", is_active=True
         )
 
-        # Criar algumas transações
+        # Criar algumas transaÃ§Å‘es
         self.tx_labor = CostTransaction.objects.create(
             idempotency_key=f"wo:{uuid.uuid4()}:labor",
             transaction_type=CostTransaction.TransactionType.LABOR,
             category=CostTransaction.Category.PREVENTIVE,
             amount=Decimal("500.00"),
             occurred_at=timezone.now() - timedelta(days=5),
-            description="Mão de obra manutenção preventiva",
+            description="MÄƒo de obra manutenÃ§Äƒo preventiva",
             cost_center=self.cost_center,
             created_by=self.user,
         )
@@ -78,7 +78,7 @@ class BaseLedgerAPITestCase(TenantTestCase):
             category=CostTransaction.Category.CORRECTIVE,
             amount=Decimal("320.00"),
             occurred_at=timezone.now() - timedelta(days=3),
-            description="Peças corretiva",
+            description="PeÃ§as corretiva",
             cost_center=self.cost_center,
             created_by=self.user,
         )
@@ -89,7 +89,7 @@ class BaseLedgerAPITestCase(TenantTestCase):
             category=CostTransaction.Category.CORRECTIVE,
             amount=Decimal("800.00"),
             occurred_at=timezone.now() - timedelta(days=1),
-            description="Serviço terceirizado",
+            description="ServiÃ§o terceirizado",
             cost_center=self.cost_center,
             created_by=self.user,
         )
@@ -99,7 +99,7 @@ class CostTransactionAPITests(BaseLedgerAPITestCase):
     """Testes para endpoints de CostTransaction (Ledger)."""
 
     def test_list_transactions(self):
-        """GET /api/finance/transactions/ deve listar transações."""
+        """GET /api/finance/transactions/ deve listar transaÃ§Å‘es."""
         request = self.factory.get("/api/finance/transactions/")
         force_authenticate(request, user=self.user)
         view = CostTransactionViewSet.as_view({"get": "list"})
@@ -110,7 +110,7 @@ class CostTransactionAPITests(BaseLedgerAPITestCase):
         self.assertEqual(len(response.data["results"]), 3)
 
     def test_list_transactions_pagination(self):
-        """Listagem deve ter paginação."""
+        """Listagem deve ter paginaÃ§Äƒo."""
         request = self.factory.get("/api/finance/transactions/")
         force_authenticate(request, user=self.user)
         view = CostTransactionViewSet.as_view({"get": "list"})
@@ -131,14 +131,14 @@ class CostTransactionAPITests(BaseLedgerAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["id"], str(self.tx_labor.id))
         self.assertEqual(response.data["transaction_type"], "labor")
-        self.assertEqual(response.data["transaction_type_display"], "Mão de Obra")
+        self.assertEqual(response.data["transaction_type_display"], "MÄƒo de Obra")
         self.assertEqual(response.data["category"], "preventive")
         self.assertEqual(Decimal(response.data["amount"]), Decimal("500.00"))
         self.assertEqual(response.data["cost_center_name"], "Centro de Teste")
         self.assertTrue(response.data["is_editable"])
 
     def test_filter_by_transaction_type(self):
-        """Filtrar por tipo de transação."""
+        """Filtrar por tipo de transaÃ§Äƒo."""
         request = self.factory.get("/api/finance/transactions/?transaction_type=labor")
         force_authenticate(request, user=self.user)
         view = CostTransactionViewSet.as_view({"get": "list"})
@@ -159,13 +159,13 @@ class CostTransactionAPITests(BaseLedgerAPITestCase):
         self.assertEqual(len(response.data["results"]), 2)  # parts + third_party
 
     def test_create_transaction_manual(self):
-        """POST /api/finance/transactions/ deve criar transação manual."""
+        """POST /api/finance/transactions/ deve criar transaÃ§Äƒo manual."""
         data = {
             "transaction_type": "other",
             "category": "other",
             "amount": "150.00",
             "occurred_at": timezone.now().isoformat(),
-            "description": "Transação manual de teste",
+            "description": "TransaÃ§Äƒo manual de teste",
             "cost_center": str(self.cost_center.id),
         }
 
@@ -178,8 +178,8 @@ class CostTransactionAPITests(BaseLedgerAPITestCase):
         self.assertEqual(Decimal(response.data["amount"]), Decimal("150.00"))
 
     def test_update_unlocked_transaction(self):
-        """PATCH deve funcionar em transação não bloqueada."""
-        data = {"description": "Descrição atualizada"}
+        """PATCH deve funcionar em transaÃ§Äƒo nÄƒo bloqueada."""
+        data = {"description": "DescriÃ§Äƒo atualizada"}
 
         request = self.factory.patch(
             f"/api/finance/transactions/{self.tx_labor.id}/", data, format="json"
@@ -189,14 +189,14 @@ class CostTransactionAPITests(BaseLedgerAPITestCase):
         response = view(request, pk=self.tx_labor.id)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["description"], "Descrição atualizada")
+        self.assertEqual(response.data["description"], "DescriÃ§Äƒo atualizada")
 
     def test_update_locked_transaction_fails(self):
-        """PATCH deve falhar em transação bloqueada."""
-        # Bloquear a transação
+        """PATCH deve falhar em transaÃ§Äƒo bloqueada."""
+        # Bloquear a transaÃ§Äƒo
         self.tx_labor.lock(self.user)
 
-        data = {"description": "Tentativa de atualização"}
+        data = {"description": "Tentativa de atualizaÃ§Äƒo"}
 
         request = self.factory.patch(
             f"/api/finance/transactions/{self.tx_labor.id}/", data, format="json"
@@ -209,7 +209,7 @@ class CostTransactionAPITests(BaseLedgerAPITestCase):
         self.assertIn("bloqueada", str(response.data).lower())
 
     def test_delete_unlocked_transaction(self):
-        """DELETE deve funcionar em transação não bloqueada."""
+        """DELETE deve funcionar em transaÃ§Äƒo nÄƒo bloqueada."""
         request = self.factory.delete(f"/api/finance/transactions/{self.tx_labor.id}/")
         force_authenticate(request, user=self.user)
         view = CostTransactionViewSet.as_view({"delete": "destroy"})
@@ -219,7 +219,7 @@ class CostTransactionAPITests(BaseLedgerAPITestCase):
         self.assertFalse(CostTransaction.objects.filter(id=self.tx_labor.id).exists())
 
     def test_summary_endpoint(self):
-        """GET /api/finance/transactions/summary/ deve retornar agregações."""
+        """GET /api/finance/transactions/summary/ deve retornar agregaÃ§Å‘es."""
         request = self.factory.get("/api/finance/transactions/summary/")
         force_authenticate(request, user=self.user)
         view = CostTransactionViewSet.as_view({"get": "summary"})
@@ -243,11 +243,11 @@ class LedgerAdjustmentAPITests(BaseLedgerAPITestCase):
     """Testes para endpoints de LedgerAdjustment."""
 
     def test_create_adjustment_for_transaction(self):
-        """POST /api/finance/adjustments/ deve criar ajuste para transação existente."""
+        """POST /api/finance/adjustments/ deve criar ajuste para transaÃ§Äƒo existente."""
         data = {
             "original_transaction": str(self.tx_labor.id),
             "adjustment_type": "correction",
-            "reason": "Correção de valor lançado incorretamente",
+            "reason": "CorreÃ§Äƒo de valor lanÃ§ado incorretamente",
             "adjustment_amount": "-100.00",
         }
 
@@ -263,14 +263,14 @@ class LedgerAdjustmentAPITests(BaseLedgerAPITestCase):
         )
         self.assertEqual(Decimal(response.data["original_amount"]), Decimal("500.00"))
 
-        # Verificar que criou transação de ajuste
+        # Verificar que criou transaÃ§Äƒo de ajuste
         self.assertIsNotNone(response.data["adjustment_transaction"])
 
     def test_create_standalone_adjustment(self):
-        """Criar ajuste avulso (sem transação original)."""
+        """Criar ajuste avulso (sem transaÃ§Äƒo original)."""
         data = {
             "adjustment_type": "reclassification",
-            "reason": "Lançamento retroativo descoberto em auditoria",
+            "reason": "LanÃ§amento retroativo descoberto em auditoria",
             "adjustment_amount": "250.00",
             "cost_center": str(self.cost_center.id),
             "category": "corrective",
@@ -314,7 +314,7 @@ class LedgerAdjustmentAPITests(BaseLedgerAPITestCase):
 
 
 class LedgerModelTests(TenantTestCase):
-    """Testes de modelo para validar regras de negócio."""
+    """Testes de modelo para validar regras de negÃ³cio."""
 
     def setUp(self):
         super().setUp()
@@ -333,7 +333,7 @@ class LedgerModelTests(TenantTestCase):
         )
 
     def test_transaction_idempotency_key_unique(self):
-        """idempotency_key deve ser único."""
+        """idempotency_key deve ser Ãºnico."""
         idem_key = "unique-key-123"
 
         CostTransaction.objects.create(
@@ -342,7 +342,7 @@ class LedgerModelTests(TenantTestCase):
             category=CostTransaction.Category.PREVENTIVE,
             amount=Decimal("100.00"),
             occurred_at=timezone.now(),
-            description="Primeira transação",
+            description="Primeira transaÃ§Äƒo",
             cost_center=self.cost_center,
             created_by=self.user,
         )
@@ -357,13 +357,13 @@ class LedgerModelTests(TenantTestCase):
                 category=CostTransaction.Category.CORRECTIVE,
                 amount=Decimal("200.00"),
                 occurred_at=timezone.now(),
-                description="Segunda transação duplicada",
+                description="Segunda transaÃ§Äƒo duplicada",
                 cost_center=self.cost_center,
                 created_by=self.user,
             )
 
     def test_transaction_lock_prevents_edit(self):
-        """Transação bloqueada não pode ter campos protegidos alterados."""
+        """TransaÃ§Äƒo bloqueada nÄƒo pode ter campos protegidos alterados."""
         tx = CostTransaction.objects.create(
             idempotency_key="lock-test",
             transaction_type=CostTransaction.TransactionType.LABOR,
@@ -382,7 +382,7 @@ class LedgerModelTests(TenantTestCase):
         self.assertIsNotNone(tx.locked_at)
         self.assertEqual(tx.locked_by, self.user)
 
-        # Tentar alterar campo protegido (amount) deve levantar exceção
+        # Tentar alterar campo protegido (amount) deve levantar exceÃ§Äƒo
         tx.amount = Decimal("200.00")
         from django.core.exceptions import ValidationError
 
@@ -415,7 +415,7 @@ class LedgerModelTests(TenantTestCase):
             data={
                 "original_transaction": str(original.id),
                 "adjustment_type": "correction",
-                "reason": "Correção de valor teste",
+                "reason": "CorreÃ§Äƒo de valor teste",
                 "adjustment_amount": "-100.00",
             },
             context={"request": request},
@@ -423,7 +423,7 @@ class LedgerModelTests(TenantTestCase):
         serializer.is_valid(raise_exception=True)
         adjustment = serializer.save()
 
-        # Deve ter criado transação de ajuste
+        # Deve ter criado transaÃ§Äƒo de ajuste
         self.assertIsNotNone(adjustment.adjustment_transaction)
         self.assertEqual(adjustment.adjustment_transaction.amount, Decimal("-100.00"))
         self.assertEqual(

@@ -170,9 +170,9 @@ class UnitViewSet(viewsets.ModelViewSet):
 class SectorViewSet(viewsets.ModelViewSet):
     """ViewSet para Setores."""
 
-    queryset = Sector.objects.select_related("unit", "unit__company", "supervisor").prefetch_related(
-        "subsections", "contacts"
-    )
+    queryset = Sector.objects.select_related(
+        "unit", "unit__company", "supervisor"
+    ).prefetch_related("subsections", "contacts")
     permission_classes = [IsAuthenticated]
     filter_backends = [
         DjangoFilterBackend,
@@ -287,7 +287,9 @@ class SubsectionViewSet(viewsets.ModelViewSet):
 class LocationContactViewSet(viewsets.ModelViewSet):
     """ViewSet para Contatos de Localização."""
 
-    queryset = LocationContact.objects.select_related("company", "unit", "sector", "subsection")
+    queryset = LocationContact.objects.select_related(
+        "company", "unit", "sector", "subsection"
+    )
     serializer_class = LocationContactSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]

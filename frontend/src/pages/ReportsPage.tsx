@@ -9,7 +9,6 @@ import { useState } from 'react';
 import {
   FileText,
   Download,
-  Eye,
   Calendar,
   Filter,
   BarChart3,
@@ -43,11 +42,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCompanies, useSectors } from '@/hooks/useLocationsQuery';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useGeneratePMOCMonthly, useGeneratePMOCAnnual, useReportHistory, useDeleteReport } from '@/hooks/useReportsQuery';
 import { PMOCMonthlyPreview, PMOCAnnualPreview } from '@/components/reports/PMOCReportPreview';
-import { PMOCMonthlyReport, PMOCAnnualReport, GeneratedReport, ReportHistoryFilters } from '@/services/reportsService';
+import { PMOCMonthlyReport, PMOCAnnualReport, ReportHistoryFilters } from '@/services/reportsService';
 import { PMOCDataModal, PMOCManualData, defaultPMOCManualData } from '@/components/reports/PMOCDataModal';
 
 // Tipos de relatório disponíveis

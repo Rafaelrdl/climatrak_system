@@ -89,9 +89,7 @@ class CostCenter(models.Model):
         verbose_name_plural = "Centros de Custo"
         ordering = ["code", "name"]
         constraints = [
-            models.UniqueConstraint(
-                fields=["code"], name="tl_cc_unique_code"
-            )
+            models.UniqueConstraint(fields=["code"], name="tl_cc_unique_code")
         ]
         indexes = [
             models.Index(fields=["code"], name="trakledger_cc_code_idx"),
@@ -348,9 +346,7 @@ class BudgetPlan(models.Model):
         verbose_name_plural = "Planos Orçamentários"
         ordering = ["-year", "name"]
         constraints = [
-            models.UniqueConstraint(
-                fields=["code"], name="tl_bp_unique_code"
-            )
+            models.UniqueConstraint(fields=["code"], name="tl_bp_unique_code")
         ]
         indexes = [
             models.Index(fields=["code"], name="trakledger_bp_code_idx"),

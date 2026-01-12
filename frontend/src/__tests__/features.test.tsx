@@ -7,7 +7,7 @@
  * 3. Conditional rendering based on features
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { 
@@ -34,7 +34,7 @@ const resetStore = () => {
 // Helper to set features
 const setFeatures = (features: Partial<FeaturesMap>) => {
   useFeaturesStore.setState({ 
-    features: { ...DEFAULT_FEATURES, ...features },
+    features: { ...DEFAULT_FEATURES, ...features } as FeaturesMap,
     isLoading: false,
   });
 };

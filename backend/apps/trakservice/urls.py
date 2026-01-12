@@ -40,7 +40,6 @@ urlpatterns = [
     # Module metadata and health endpoints
     path("_meta/", TrakServiceMetaView.as_view(), name="trakservice-meta"),
     path("_health/", TrakServiceHealthView.as_view(), name="trakservice-health"),
-    
     # Tracking endpoints (trakservice.tracking)
     path("location/pings/", LocationPingView.as_view(), name="location-ping"),
     path(
@@ -53,17 +52,14 @@ urlpatterns = [
         TechnicianLocationView.as_view(),
         name="technician-location-trail",
     ),
-    
     # Routing endpoints (trakservice.routing)
     path(
         "routes/nearest-technician/",
         NearestTechnicianView.as_view(),
         name="nearest-technician",
     ),
-    
     # KM endpoints (trakservice.km)
     path("km/", KMSummaryView.as_view(), name="km-summary"),
-    
     # ViewSet routes
     path("", include(router.urls)),
 ]

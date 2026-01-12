@@ -12,7 +12,7 @@ from .models import ServiceAssignment, TechnicianProfile
 @admin.register(TechnicianProfile)
 class TechnicianProfileAdmin(admin.ModelAdmin):
     """Admin for TechnicianProfile model."""
-    
+
     list_display = [
         "user",
         "phone",
@@ -26,31 +26,23 @@ class TechnicianProfileAdmin(admin.ModelAdmin):
     search_fields = ["user__email", "user__first_name", "user__last_name", "phone"]
     readonly_fields = ["id", "created_at", "updated_at"]
     raw_id_fields = ["user"]
-    
+
     fieldsets = (
-        (None, {
-            "fields": ("id", "user", "phone", "is_active")
-        }),
-        ("Habilidades", {
-            "fields": ("skills",)
-        }),
-        ("Horário de Trabalho", {
-            "fields": ("work_start_time", "work_end_time")
-        }),
-        ("Privacidade", {
-            "fields": ("allow_tracking",)
-        }),
-        ("Metadados", {
-            "fields": ("created_at", "updated_at"),
-            "classes": ("collapse",)
-        }),
+        (None, {"fields": ("id", "user", "phone", "is_active")}),
+        ("Habilidades", {"fields": ("skills",)}),
+        ("Horário de Trabalho", {"fields": ("work_start_time", "work_end_time")}),
+        ("Privacidade", {"fields": ("allow_tracking",)}),
+        (
+            "Metadados",
+            {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
+        ),
     )
 
 
 @admin.register(ServiceAssignment)
 class ServiceAssignmentAdmin(admin.ModelAdmin):
     """Admin for ServiceAssignment model."""
-    
+
     list_display = [
         "id",
         "work_order",
@@ -70,7 +62,7 @@ class ServiceAssignmentAdmin(admin.ModelAdmin):
     readonly_fields = [
         "id",
         "departed_at",
-        "arrived_at", 
+        "arrived_at",
         "completed_at",
         "canceled_at",
         "created_at",
@@ -78,23 +70,26 @@ class ServiceAssignmentAdmin(admin.ModelAdmin):
     ]
     raw_id_fields = ["work_order", "technician", "created_by"]
     date_hierarchy = "scheduled_date"
-    
+
     fieldsets = (
-        (None, {
-            "fields": ("id", "work_order", "technician", "status")
-        }),
-        ("Agendamento", {
-            "fields": ("scheduled_date", "scheduled_start", "scheduled_end")
-        }),
-        ("Timestamps de Status", {
-            "fields": ("departed_at", "arrived_at", "completed_at", "canceled_at"),
-            "classes": ("collapse",)
-        }),
-        ("Notas", {
-            "fields": ("notes", "cancellation_reason")
-        }),
-        ("Auditoria", {
-            "fields": ("created_by", "created_at", "updated_at"),
-            "classes": ("collapse",)
-        }),
+        (None, {"fields": ("id", "work_order", "technician", "status")}),
+        (
+            "Agendamento",
+            {"fields": ("scheduled_date", "scheduled_start", "scheduled_end")},
+        ),
+        (
+            "Timestamps de Status",
+            {
+                "fields": ("departed_at", "arrived_at", "completed_at", "canceled_at"),
+                "classes": ("collapse",),
+            },
+        ),
+        ("Notas", {"fields": ("notes", "cancellation_reason")}),
+        (
+            "Auditoria",
+            {
+                "fields": ("created_by", "created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
     )

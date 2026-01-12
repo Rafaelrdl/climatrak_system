@@ -362,32 +362,38 @@ class WorkOrderSerializer(serializers.ModelSerializer):
         quando a OS é concluída e o campo não foi preenchido.
         """
         from django.utils import timezone
-        
+
         new_status = validated_data.get("status", instance.status)
         old_status = instance.status
-        
+
         # Se está mudando para COMPLETED
         if (
             old_status != WorkOrder.Status.COMPLETED
             and new_status == WorkOrder.Status.COMPLETED
         ):
             # Preencher completed_at se não foi fornecido
-            if "completed_at" not in validated_data or validated_data.get("completed_at") is None:
+            if (
+                "completed_at" not in validated_data
+                or validated_data.get("completed_at") is None
+            ):
                 validated_data["completed_at"] = timezone.now()
-            
+
             # Calcular actual_hours automaticamente se não foi fornecido
-            if validated_data.get("actual_hours") is None and instance.actual_hours is None:
+            if (
+                validated_data.get("actual_hours") is None
+                and instance.actual_hours is None
+            ):
                 completed_at = validated_data.get("completed_at", timezone.now())
                 # Usar created_at como referência se started_at não existir
                 start_time = instance.started_at or instance.created_at
-                
+
                 if start_time and completed_at:
                     # Calcular diferença em horas
                     delta = completed_at - start_time
                     hours = delta.total_seconds() / 3600  # Converter para horas
                     # Arredondar para 2 casas decimais
                     validated_data["actual_hours"] = round(hours, 2)
-        
+
         return super().update(instance, validated_data)
 
 
@@ -1264,7 +1270,9 @@ class WorkOrderCostSummarySerializer(serializers.Serializer):
 class GeneratedReportListSerializer(serializers.ModelSerializer):
     """Serializer para listagem de relatórios gerados."""
 
-    type_display = serializers.CharField(source="get_report_type_display", read_only=True)
+    type_display = serializers.CharField(
+        source="get_report_type_display", read_only=True
+    )
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     generated_by_name = serializers.CharField(
         source="generated_by.get_full_name", read_only=True, allow_null=True
@@ -1295,7 +1303,9 @@ class GeneratedReportListSerializer(serializers.ModelSerializer):
 class GeneratedReportDetailSerializer(serializers.ModelSerializer):
     """Serializer para detalhes de um relatório gerado (inclui conteúdo)."""
 
-    type_display = serializers.CharField(source="get_report_type_display", read_only=True)
+    type_display = serializers.CharField(
+        source="get_report_type_display", read_only=True
+    )
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     generated_by_name = serializers.CharField(
         source="generated_by.get_full_name", read_only=True, allow_null=True

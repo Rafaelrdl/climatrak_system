@@ -18,7 +18,7 @@ import { useState, useMemo } from 'react';
 import { format, formatDistanceToNow, parseISO, subHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PageHeader } from '@/shared/ui';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -39,20 +39,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable, type Column } from '@/shared/ui/components/DataTable';
 import {
   MapPin,
-  Navigation,
-  Clock,
   Users,
   Target,
   Search,
   RefreshCw,
   Map,
   List,
-  Eye,
-  Signal,
   SignalLow,
   SignalMedium,
   SignalHigh,
@@ -62,7 +58,6 @@ import {
   BatteryLow,
   BatteryMedium,
   BatteryFull,
-  Wifi,
   WifiOff,
   Car,
   AlertTriangle,
@@ -72,14 +67,12 @@ import { cn } from '@/lib/utils';
 // Hooks
 import {
   useCurrentLocations,
-  useTechnicianLocation,
   useLocationHistory,
   useTrackingSummary,
 } from '../hooks/useTrackingQuery';
 
 // Types and utilities
-import type { TechnicianLocation, TechnicianStatus, LocationPing, TrackingFilters, LocationHistory } from '../types';
-import { getStatusColor, getStatusLabel, formatDistance } from '../services/trackingService';
+import type { TechnicianLocation, TechnicianStatus, LocationPing } from '../types';
 
 // =============================================================================
 // Sub-components

@@ -32,5 +32,9 @@ urlpatterns = [
     # Mobile-specific endpoints (tokens in response body)
     path("mobile/login/", MobileLoginView.as_view(), name="mobile-login"),
     path("mobile/refresh/", MobileRefreshTokenView.as_view(), name="mobile-refresh"),
-    path("mobile/select-tenant/", MobileSelectTenantView.as_view(), name="mobile-select-tenant"),
+    path(
+        "mobile/select-tenant/",
+        MobileSelectTenantView.as_view(),
+        name="mobile-select-tenant",
+    ),
 ]

@@ -18,7 +18,7 @@ import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, subMonths, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PageHeader } from '@/shared/ui';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -30,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Tooltip,
@@ -52,10 +51,7 @@ import {
   AlertTriangle,
   Car,
   MapPin,
-  Clock,
-  Filter,
   BarChart3,
-  FileSpreadsheet,
   Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -289,9 +285,18 @@ export function MileagePage() {
   // Computed Values
   // ==========================================================================
   // reportData can be KmReport (single object) or PaginatedKmReport (with results)
-  const reports: KmReport[] = Array.isArray(reportData) 
-    ? reportData 
-    : (reportData as unknown as { results?: KmReport[] })?.results || (reportData ? [reportData as KmReport] : []);
+  const reports: KmReport[] = useMemo(() => {
+    if (Array.isArray(reportData)) {
+      return reportData;
+    }
+
+    const results = (reportData as unknown as { results?: KmReport[] })?.results;
+    if (results) {
+      return results;
+    }
+
+    return reportData ? [reportData as KmReport] : [];
+  }, [reportData]);
 
   // Calculate summary from reports
   const summaryData: KmSummary = useMemo(() => {

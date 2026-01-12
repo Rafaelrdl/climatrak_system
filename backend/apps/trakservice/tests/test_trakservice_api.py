@@ -7,17 +7,17 @@ Tests cover:
 3. Health endpoint returns correct data
 """
 
-import pytest
 from django.db import connection
 from rest_framework import status
 from rest_framework.test import APIClient, APIRequestFactory
 
+import pytest
 from django_tenants.utils import schema_context
 
-from apps.tenants.models import Tenant, Domain
 from apps.tenants.features import FeatureService, TenantFeature
-from apps.trakservice.views import TrakServiceMetaView, TrakServiceHealthView
+from apps.tenants.models import Domain, Tenant
 from apps.trakservice.services import TrakServiceMetaService
+from apps.trakservice.views import TrakServiceHealthView, TrakServiceMetaView
 
 
 @pytest.fixture

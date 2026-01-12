@@ -67,7 +67,9 @@ class FeatureRequired(permissions.BasePermission):
         # Check all required features
         for feature_key in required_features:
             if not has_feature(tenant.id, feature_key):
-                self.message = f"Feature '{feature_key}' is not enabled for your organization."
+                self.message = (
+                    f"Feature '{feature_key}' is not enabled for your organization."
+                )
                 return False
 
         return True
@@ -108,14 +110,6 @@ def feature_required(
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(request_or_self, *args, **kwargs):
-            # Handle both function views and class-based view methods
-            if hasattr(request_or_self, "request"):
-                # Class-based view (self)
-                request = request_or_self.request
-            else:
-                # Function-based view (request)
-                request = request_or_self
-
             # Get tenant from connection
             tenant = getattr(connection, "tenant", None)
             if not tenant or connection.schema_name == "public":

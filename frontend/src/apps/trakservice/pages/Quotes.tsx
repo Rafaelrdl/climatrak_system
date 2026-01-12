@@ -15,11 +15,11 @@
  * Requires: trakservice.quotes feature
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PageHeader } from '@/shared/ui';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -72,20 +72,13 @@ import {
   Send,
   CheckCircle,
   XCircle,
-  Clock,
-  Edit,
   Trash2,
   Eye,
-  Copy,
   Building2,
   Package,
   Wrench,
-  AlertTriangle,
   Loader2,
-  ArrowRight,
   Receipt,
-  Calculator,
-  ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -96,17 +89,14 @@ import {
   useQuote,
   useQuotesSummary,
   useCreateQuote,
-  useUpdateQuote,
   useDeleteQuote,
   useSendQuote,
   useApproveQuote,
   useRejectQuote,
   useAddQuoteItem,
-  useUpdateQuoteItem,
   useRemoveQuoteItem,
   useCatalogItems,
 } from '../hooks/useQuotesQuery';
-import { useActiveTechnicians } from '../hooks/useDispatchQuery';
 
 // Types and utilities
 import type {
@@ -124,7 +114,6 @@ import {
   canEditQuote,
   canSendQuote,
   canApproveQuote,
-  getNextActions,
 } from '../services/quotesService';
 
 // =============================================================================
@@ -207,12 +196,11 @@ function ItemTypeIcon({ type }: ItemTypeIconProps) {
 
 interface QuoteItemsListProps {
   items: QuoteItem[];
-  quoteId: string;
   canEdit: boolean;
   onRemove: (itemId: string) => void;
 }
 
-function QuoteItemsList({ items, quoteId, canEdit, onRemove }: QuoteItemsListProps) {
+function QuoteItemsList({ items, canEdit, onRemove }: QuoteItemsListProps) {
   if (items.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -561,7 +549,6 @@ function QuoteDetailSheet({ quoteId, open, onOpenChange }: QuoteDetailSheetProps
                   <CardContent>
                     <QuoteItemsList
                       items={quote.items}
-                      quoteId={quote.id}
                       canEdit={editable}
                       onRemove={handleRemoveItem}
                     />
@@ -904,15 +891,18 @@ export function QuotesPage() {
     refetch();
   };
 
-  const handleViewQuote = (quoteId: string) => {
+  const handleViewQuote = useCallback((quoteId: string) => {
     setSelectedQuoteId(quoteId);
-  };
+  }, []);
 
-  const handleDeleteQuote = (quoteId: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este orçamento?')) {
-      deleteQuote.mutate(quoteId);
-    }
-  };
+  const handleDeleteQuote = useCallback(
+    (quoteId: string) => {
+      if (window.confirm('Tem certeza que deseja excluir este orçamento?')) {
+        deleteQuote.mutate(quoteId);
+      }
+    },
+    [deleteQuote]
+  );
 
   // ==========================================================================
   // Table Columns
@@ -1021,7 +1011,7 @@ export function QuotesPage() {
         align: 'right',
       },
     ],
-    []
+    [handleDeleteQuote, handleViewQuote]
   );
 
   // ==========================================================================

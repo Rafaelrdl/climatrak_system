@@ -2076,7 +2076,7 @@ class WorkOrderCostSummaryViewSet(viewsets.ViewSet):
 class ReportsViewSet(viewsets.ViewSet):
     """
     ViewSet para geração de relatórios PMOC e outros relatórios do CMMS.
-    
+
     Endpoints:
     - GET /cmms/reports/pmoc-monthly/ - Relatório PMOC mensal
     - GET /cmms/reports/pmoc-annual/ - Relatório PMOC anual
@@ -2084,10 +2084,10 @@ class ReportsViewSet(viewsets.ViewSet):
     - GET /cmms/reports/history/{id}/ - Detalhes de um relatório gerado
     - DELETE /cmms/reports/history/{id}/ - Remove um relatório gerado
     """
-    
+
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     required_roles = ["owner", "admin", "operator", "technician"]
-    
+
     def _save_generated_report(
         self,
         request,
@@ -2099,20 +2099,31 @@ class ReportsViewSet(viewsets.ViewSet):
     ):
         """Salva um relatório gerado no banco de dados."""
         from .models import GeneratedReport
-        
+
         # Monta nome do relatório
         month_names = [
-            "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+            "",
+            "Janeiro",
+            "Fevereiro",
+            "Março",
+            "Abril",
+            "Maio",
+            "Junho",
+            "Julho",
+            "Agosto",
+            "Setembro",
+            "Outubro",
+            "Novembro",
+            "Dezembro",
         ]
-        
+
         if report_type == "PMOC_MENSAL":
             name = f"Relatório PMOC - {month_names[month]} {year}"
         elif report_type == "PMOC_ANUAL":
             name = f"Relatório PMOC Anual - {year}"
         else:
             name = f"Relatório {report_type} - {year}"
-        
+
         generated_report = GeneratedReport.objects.create(
             name=name,
             report_type=report_type,
@@ -2124,14 +2135,14 @@ class ReportsViewSet(viewsets.ViewSet):
             generated_by=request.user,
             completed_at=timezone.now(),
         )
-        
+
         return generated_report
-    
+
     @action(detail=False, methods=["get"], url_path="pmoc-monthly")
     def pmoc_monthly(self, request):
         """
         Gera relatório PMOC mensal.
-        
+
         Query params:
         - month: Mês (1-12), default: mês atual
         - year: Ano, default: ano atual
@@ -2139,27 +2150,26 @@ class ReportsViewSet(viewsets.ViewSet):
         - company: Nome da empresa (opcional)
         """
         from .services import PMOCReportService
-        
+
         # Parâmetros
         now = timezone.now()
         month = int(request.query_params.get("month", now.month))
         year = int(request.query_params.get("year", now.year))
         site_id = request.query_params.get("site_id")
         company = request.query_params.get("company")
-        
+
         # Validação
         if not 1 <= month <= 12:
             return Response(
                 {"error": "Mês deve estar entre 1 e 12"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         if year < 2000 or year > 2100:
             return Response(
-                {"error": "Ano inválido"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "Ano inválido"}, status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             report = PMOCReportService.generate_monthly_report(
                 month=month,
@@ -2167,7 +2177,7 @@ class ReportsViewSet(viewsets.ViewSet):
                 site_id=site_id,
                 company=company,
             )
-            
+
             # Salva o relatório gerado
             self._save_generated_report(
                 request=request,
@@ -2177,47 +2187,46 @@ class ReportsViewSet(viewsets.ViewSet):
                 year=year,
                 filters={"site_id": site_id, "company": company},
             )
-            
+
             return Response(report)
         except Exception as e:
             logger.exception("Erro ao gerar relatório PMOC mensal")
             return Response(
                 {"error": f"Erro ao gerar relatório: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-    
+
     @action(detail=False, methods=["get"], url_path="pmoc-annual")
     def pmoc_annual(self, request):
         """
         Gera relatório PMOC anual.
-        
+
         Query params:
         - year: Ano, default: ano atual
         - site_id: ID do site (opcional)
         - company: Nome da empresa (opcional)
         """
         from .services import PMOCReportService
-        
+
         # Parâmetros
         now = timezone.now()
         year = int(request.query_params.get("year", now.year))
         site_id = request.query_params.get("site_id")
         company = request.query_params.get("company")
-        
+
         # Validação
         if year < 2000 or year > 2100:
             return Response(
-                {"error": "Ano inválido"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "Ano inválido"}, status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             report = PMOCReportService.generate_annual_report(
                 year=year,
                 site_id=site_id,
                 company=company,
             )
-            
+
             # Salva o relatório gerado
             self._save_generated_report(
                 request=request,
@@ -2227,20 +2236,20 @@ class ReportsViewSet(viewsets.ViewSet):
                 year=year,
                 filters={"site_id": site_id, "company": company},
             )
-            
+
             return Response(report)
         except Exception as e:
             logger.exception("Erro ao gerar relatório PMOC anual")
             return Response(
                 {"error": f"Erro ao gerar relatório: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @action(detail=False, methods=["get"], url_path="history")
     def history(self, request):
         """
         Lista histórico de relatórios gerados.
-        
+
         Query params:
         - report_type: Filtrar por tipo (PMOC_MENSAL, PMOC_ANUAL, etc)
         - status: Filtrar por status (processing, completed, failed)
@@ -2250,39 +2259,41 @@ class ReportsViewSet(viewsets.ViewSet):
         """
         from .models import GeneratedReport
         from .serializers import GeneratedReportListSerializer
-        
+
         queryset = GeneratedReport.objects.all()
-        
+
         # Filtros
         report_type = request.query_params.get("report_type")
         if report_type:
             queryset = queryset.filter(report_type=report_type)
-        
+
         status_filter = request.query_params.get("status")
         if status_filter:
             queryset = queryset.filter(status=status_filter)
-        
+
         year = request.query_params.get("year")
         if year:
             queryset = queryset.filter(period_year=int(year))
-        
+
         # Paginação simples
         page = int(request.query_params.get("page", 1))
         page_size = min(int(request.query_params.get("page_size", 20)), 100)
         offset = (page - 1) * page_size
-        
+
         total_count = queryset.count()
-        reports = queryset[offset:offset + page_size]
-        
+        reports = queryset[offset : offset + page_size]
+
         serializer = GeneratedReportListSerializer(reports, many=True)
-        
-        return Response({
-            "results": serializer.data,
-            "count": total_count,
-            "page": page,
-            "page_size": page_size,
-            "total_pages": (total_count + page_size - 1) // page_size,
-        })
+
+        return Response(
+            {
+                "results": serializer.data,
+                "count": total_count,
+                "page": page,
+                "page_size": page_size,
+                "total_pages": (total_count + page_size - 1) // page_size,
+            }
+        )
 
     @action(detail=False, methods=["get"], url_path=r"history/(?P<report_id>[^/.]+)")
     def history_detail(self, request, report_id=None):
@@ -2291,33 +2302,34 @@ class ReportsViewSet(viewsets.ViewSet):
         """
         from .models import GeneratedReport
         from .serializers import GeneratedReportDetailSerializer
-        
+
         try:
             report = GeneratedReport.objects.get(id=report_id)
         except GeneratedReport.DoesNotExist:
             return Response(
-                {"error": "Relatório não encontrado"},
-                status=status.HTTP_404_NOT_FOUND
+                {"error": "Relatório não encontrado"}, status=status.HTTP_404_NOT_FOUND
             )
-        
+
         serializer = GeneratedReportDetailSerializer(report)
         return Response(serializer.data)
 
-    @action(detail=False, methods=["delete"], url_path=r"history/(?P<report_id>[^/.]+)/delete")
+    @action(
+        detail=False,
+        methods=["delete"],
+        url_path=r"history/(?P<report_id>[^/.]+)/delete",
+    )
     def history_delete(self, request, report_id=None):
         """
         Remove um relatório gerado.
         """
         from .models import GeneratedReport
-        
+
         try:
             report = GeneratedReport.objects.get(id=report_id)
         except GeneratedReport.DoesNotExist:
             return Response(
-                {"error": "Relatório não encontrado"},
-                status=status.HTTP_404_NOT_FOUND
+                {"error": "Relatório não encontrado"}, status=status.HTTP_404_NOT_FOUND
             )
-        
+
         report.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-

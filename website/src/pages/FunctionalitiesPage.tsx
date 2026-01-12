@@ -104,7 +104,7 @@ export function FunctionalitiesPage() {
 
           <div className="grid md:grid-cols-3 gap-6">
             {productModules
-              .filter((module) => module.websiteHref)
+              .filter((module): module is typeof module & { websiteHref: string } => 'websiteHref' in module)
               .map((module) => (
                 <Card key={module.id} className="card-hover">
                   <CardContent className="pt-6">
@@ -112,7 +112,7 @@ export function FunctionalitiesPage() {
                     <p className="text-sm text-muted-foreground mb-4">
                       Conecte este modulo as funcionalidades que sua equipe precisa hoje.
                     </p>
-                    <Link to={module.websiteHref ?? '/produtos'} className="inline-flex items-center text-primary font-medium">
+                    <Link to={module.websiteHref} className="inline-flex items-center text-primary font-medium">
                       Ver produto
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>

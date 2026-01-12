@@ -8,31 +8,31 @@ Tests cover:
 4. Cache invalidation
 """
 
-import pytest
-from django.db import connection
+from django.db import IntegrityError, connection
 from django.test import override_settings
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.test import APIClient, APIRequestFactory
 from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 
+import pytest
 from django_tenants.utils import schema_context
 
-from apps.tenants.models import Tenant, Domain
 from apps.tenants.features import (
-    TenantFeature,
+    DEFAULT_FEATURES,
     FeatureService,
+    TenantFeature,
     get_tenant_features,
     has_feature,
-    DEFAULT_FEATURES,
 )
+from apps.tenants.models import Domain, Tenant
 from apps.tenants.permissions import (
-    FeatureRequired,
-    feature_required,
-    TrakServiceFeatureRequired,
-    trakservice_feature_required,
     FeatureNotEnabled,
+    FeatureRequired,
+    TrakServiceFeatureRequired,
+    feature_required,
+    trakservice_feature_required,
 )
 
 
@@ -107,7 +107,7 @@ class TestTenantFeatureModel:
                 feature_key="unique.feature",
                 enabled=True,
             )
-            with pytest.raises(Exception):  # IntegrityError
+            with pytest.raises(IntegrityError):
                 TenantFeature.objects.create(
                     tenant=tenant_with_features,
                     feature_key="unique.feature",
@@ -138,9 +138,7 @@ class TestFeatureService:
 
     def test_set_feature_enables(self, tenant_with_features):
         """Test enabling a feature."""
-        FeatureService.set_feature(
-            tenant_with_features.id, "trakservice.enabled", True
-        )
+        FeatureService.set_feature(tenant_with_features.id, "trakservice.enabled", True)
         assert has_feature(tenant_with_features.id, "trakservice.enabled") is True
 
     def test_set_feature_disables(self, tenant_trakservice_enabled):
@@ -149,7 +147,9 @@ class TestFeatureService:
         FeatureService.set_feature(
             tenant_trakservice_enabled.id, "trakservice.enabled", False
         )
-        assert has_feature(tenant_trakservice_enabled.id, "trakservice.enabled") is False
+        assert (
+            has_feature(tenant_trakservice_enabled.id, "trakservice.enabled") is False
+        )
 
     def test_set_features_bulk(self, tenant_with_features):
         """Test setting multiple features at once."""
@@ -174,9 +174,7 @@ class TestFeatureService:
         assert features1["trakservice.enabled"] is False
 
         # Change feature
-        FeatureService.set_feature(
-            tenant_with_features.id, "trakservice.enabled", True
-        )
+        FeatureService.set_feature(tenant_with_features.id, "trakservice.enabled", True)
 
         # Next call should reflect change (cache was invalidated)
         features2 = get_tenant_features(tenant_with_features.id)
@@ -318,7 +316,7 @@ class TestFeatureExposureInMeEndpoint:
         # This test would require full integration setup
         # Simplified version to verify features dict structure
         features = get_tenant_features(tenant_trakservice_enabled.id)
-        
+
         assert isinstance(features, dict)
         assert "trakservice.enabled" in features
         assert features["trakservice.enabled"] is True

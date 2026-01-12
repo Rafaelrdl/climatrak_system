@@ -38,7 +38,6 @@ import {
   User,
   CheckCircle2,
   XCircle,
-  Play,
   Upload,
   Settings,
   TrendingUp,

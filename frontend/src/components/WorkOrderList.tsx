@@ -374,13 +374,6 @@ export function WorkOrderList({
           const subsection = eq?.subSectionId ? subsections.find(sub => sub.id === eq.subSectionId) : null;
           
           // Monta string de localização hierárquica: empresa > unidade > setor > subsetor
-          const locationParts = [
-            company?.name,
-            unit?.name,
-            sector?.name,
-            subsection?.name
-          ].filter(Boolean);
-          const locationString = locationParts.length > 0 ? locationParts.join(' > ') : '-';
           
           const scheduledDate = wo.scheduledDate
             ? (wo.scheduledDate.includes('T') ? new Date(wo.scheduledDate) : parseLocalDate(wo.scheduledDate))

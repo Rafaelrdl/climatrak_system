@@ -14,11 +14,11 @@
  * Requires: trakservice.routing feature
  */
 
-import { useState, useMemo } from 'react';
-import { format, parseISO, isToday, isTomorrow, addDays } from 'date-fns';
+import { useState, useMemo, useCallback } from 'react';
+import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PageHeader } from '@/shared/ui';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -54,7 +54,6 @@ import { Separator } from '@/components/ui/separator';
 import { DataTable, type Column } from '@/shared/ui/components/DataTable';
 import {
   Route,
-  MapPin,
   Clock,
   Users,
   Target,
@@ -68,15 +67,11 @@ import {
   Gauge,
   Navigation,
   Zap,
-  ArrowRight,
-  TrendingUp,
-  AlertCircle,
   Loader2,
   Truck,
   Building2,
   XCircle,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 // Hooks
@@ -221,7 +216,7 @@ function RouteStopsList({ stops, routeId, routeStatus }: RouteStopsListProps) {
 
   return (
     <div className="space-y-2">
-      {stops.map((stop, index) => (
+      {stops.map((stop) => (
         <div
           key={stop.id}
           className={cn(
@@ -462,7 +457,7 @@ export function RoutesPage() {
   // ==========================================================================
   // Computed Values
   // ==========================================================================
-  const routes = routesData?.results || [];
+  const routes = useMemo(() => routesData?.results ?? [], [routesData]);
 
   const stats = useMemo(() => {
     const pending = routes.filter((r) => r.status === 'pending').length;
@@ -480,17 +475,20 @@ export function RoutesPage() {
     refetch();
   };
 
-  const handleOptimize = (technicianId: string, date: string) => {
-    optimizeRoute.mutate({
-      technician_id: technicianId,
-      date,
-      optimize_for: 'distance',
-    });
-  };
+  const handleOptimize = useCallback(
+    (technicianId: string, date: string) => {
+      optimizeRoute.mutate({
+        technician_id: technicianId,
+        date,
+        optimize_for: 'distance',
+      });
+    },
+    [optimizeRoute]
+  );
 
-  const handleViewRoute = (routeId: string) => {
+  const handleViewRoute = useCallback((routeId: string) => {
     setSelectedRouteId(routeId);
-  };
+  }, []);
 
   // ==========================================================================
   // Table Columns
@@ -610,7 +608,7 @@ export function RoutesPage() {
         align: 'right',
       },
     ],
-    []
+    [handleOptimize, handleViewRoute]
   );
 
   // ==========================================================================

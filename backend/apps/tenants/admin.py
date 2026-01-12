@@ -980,7 +980,7 @@ class DomainAdmin(admin.ModelAdmin):
 # TenantFeature Admin
 # =============================================================================
 
-from .features import TenantFeature, DEFAULT_FEATURES
+from .features import DEFAULT_FEATURES, TenantFeature
 
 
 @admin.register(TenantFeature)
@@ -1051,6 +1051,7 @@ class TenantFeatureAdmin(admin.ModelAdmin):
         self.message_user(request, f"{updated} feature(s) enabled.", messages.SUCCESS)
         # Invalidate cache for affected tenants
         from .features import FeatureService
+
         for tenant_id in queryset.values_list("tenant_id", flat=True).distinct():
             FeatureService.invalidate_cache(tenant_id)
 
@@ -1060,12 +1061,14 @@ class TenantFeatureAdmin(admin.ModelAdmin):
         self.message_user(request, f"{updated} feature(s) disabled.", messages.SUCCESS)
         # Invalidate cache for affected tenants
         from .features import FeatureService
+
         for tenant_id in queryset.values_list("tenant_id", flat=True).distinct():
             FeatureService.invalidate_cache(tenant_id)
 
     @admin.action(description="Initialize default features for tenant")
     def initialize_defaults(self, request, queryset):
         from .features import FeatureService
+
         tenant_ids = set(queryset.values_list("tenant_id", flat=True))
         for tenant_id in tenant_ids:
             FeatureService.initialize_tenant_features(tenant_id)
@@ -1074,4 +1077,3 @@ class TenantFeatureAdmin(admin.ModelAdmin):
             f"Default features initialized for {len(tenant_ids)} tenant(s).",
             messages.SUCCESS,
         )
-
