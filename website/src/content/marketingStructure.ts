@@ -97,24 +97,7 @@ export const marketingNavigation = {
     },
     {
       "name": "Segmentos",
-      "href": "/solucoes",
-      "children": [
-        {
-          "name": "Hospitais e Clinicas",
-          "href": "/solucoes#hospitais",
-          "description": "Ambientes criticos e compliance."
-        },
-        {
-          "name": "Industrias",
-          "href": "/solucoes#industrias",
-          "description": "Disponibilidade e previsibilidade operacional."
-        },
-        {
-          "name": "Shoppings e Facilities",
-          "href": "/solucoes#facilities",
-          "description": "Operacao multi-site e padronizacao."
-        }
-      ]
+      "href": "/solucoes"
     },
     {
       "name": "Para Quem",
@@ -122,17 +105,17 @@ export const marketingNavigation = {
       "children": [
         {
           "name": "Equipe Interna",
-          "href": "/para-quem#equipe-interna",
+          "href": "/para-quem/equipe-interna",
           "description": "Gestao completa e integrada."
         },
         {
           "name": "Prestadores de Servico",
-          "href": "/para-quem#prestadores",
+          "href": "/para-quem/prestadores",
           "description": "Operacao e logistica integradas."
         },
         {
           "name": "Tecnico Autonomo",
-          "href": "/para-quem#tecnico-autonomo",
+          "href": "/para-quem/tecnico-autonomo",
           "description": "Profissionalismo e agilidade."
         }
       ]
@@ -140,10 +123,6 @@ export const marketingNavigation = {
     {
       "name": "Precos",
       "href": "/precos"
-    },
-    {
-      "name": "Terceiros",
-      "href": "/terceiros"
     },
     {
       "name": "Sobre",
