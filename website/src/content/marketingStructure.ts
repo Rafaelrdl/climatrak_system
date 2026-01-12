@@ -255,31 +255,31 @@ export const functionalities = [
     "id": "ordens-planos",
     "slug": "ordens-planos",
     "group": "gestores",
-    "name": "Ordens de servico e planos",
-    "tagline": "Planeje, execute e feche ordens com visibilidade total.",
-    "summary": "Centralize OS corretivas e preventivas, automatize planos e acompanhe cada etapa com rastreabilidade.",
+    "name": "Ordens de Servico e Planos",
+    "tagline": "Elimine o caos das OS: planeje, execute e feche com 40% mais velocidade.",
+    "summary": "Chega de planilhas, WhatsApp e retrabalho. Centralize todas as OS em um fluxo digital que mostra quem fez o que, quando e como — da abertura ao fechamento, com rastreabilidade total e SLA garantido.",
     "highlights": [
       {
-        "title": "Fluxo padronizado",
-        "description": "Modelos, checklists e aprovacao por etapa."
+        "title": "Fluxo 100% digital",
+        "description": "Templates inteligentes, checklists obrigatorios e aprovacao em um clique. Zero papel, zero esquecimento."
       },
       {
-        "title": "Planos preventivos",
-        "description": "Gatilhos por tempo, uso ou condicao."
+        "title": "Planos preventivos automaticos",
+        "description": "Crie gatilhos por tempo, horas de uso ou sensor. A OS e criada sozinha — sua equipe so executa."
       },
       {
-        "title": "SLA e prioridades",
-        "description": "Regras por criticidade e prazos."
+        "title": "SLA sob controle",
+        "description": "Defina prazos por criticidade. Alertas automaticos antes do estouro, escalacao para gestores."
       },
       {
-        "title": "Historico por ativo",
-        "description": "Registros completos e auditaveis."
+        "title": "Historico completo por ativo",
+        "description": "Toda intervencao registrada. Em segundos, voce sabe quanto gastou e quando trocou cada peca."
       }
     ],
     "outcomes": [
-      "Menos backlog e retrabalho",
-      "Preventivas no prazo",
-      "Status claro por equipe e unidade"
+      "Reducao de 35% no backlog em 60 dias",
+      "Preventivas executadas no prazo — sem surpresas",
+      "Visibilidade total: gestor ve status em tempo real"
     ],
     "modules": [
       "traknor"
@@ -290,30 +290,30 @@ export const functionalities = [
     "slug": "monitoramento-iot",
     "group": "gestores",
     "name": "Monitoramento IoT",
-    "tagline": "Sensores e alertas para agir antes da falha.",
-    "summary": "Monitore temperatura, vibracao, pressao e energia em tempo real com alertas configuraveis.",
+    "tagline": "Saiba antes de quebrar: sensores que preveem falhas e evitam paradas.",
+    "summary": "Enquanto sua equipe dorme, o TrakSense vigia. Temperatura subindo? Vibracao fora do padrao? Voce recebe o alerta antes que vire problema — e a OS preventiva ja esta criada quando o tecnico chega.",
     "highlights": [
       {
-        "title": "Sensores AirTrak",
-        "description": "Coleta continua com instalacao simples."
+        "title": "Sensores AirTrak plug-and-play",
+        "description": "Instalacao em minutos, sem obras. Temperatura, umidade, vibracao e energia em tempo real."
       },
       {
-        "title": "Dashboards ao vivo",
-        "description": "Visao por unidade, ativo e setor."
+        "title": "Dashboards que falam",
+        "description": "Visao por unidade, ativo ou setor. Identifique padroes e anomalias de relance."
       },
       {
-        "title": "Alertas inteligentes",
-        "description": "Limites, anomalias e tendencias."
+        "title": "Alertas antes da falha",
+        "description": "Limites inteligentes, deteccao de tendencias. Receba no celular ou email quando precisar agir."
       },
       {
-        "title": "Automacao com OS",
-        "description": "Eventos podem abrir OS automaticamente."
+        "title": "OS automatica por evento",
+        "description": "Sensor detectou desvio? A corretiva e aberta sozinha — sua equipe ja chega sabendo o que fazer."
       }
     ],
     "outcomes": [
-      "Menos paradas inesperadas",
-      "Resposta rapida a desvios",
-      "Decisoes com dados confiaveis"
+      "Reducao de 60% em paradas nao planejadas",
+      "Resposta a desvios em minutos, nao horas",
+      "Decisoes com dados — nao com achismo"
     ],
     "modules": [
       "traksense",
@@ -325,30 +325,30 @@ export const functionalities = [
     "slug": "pmoc-conformidade",
     "group": "gestores",
     "name": "Conformidade PMOC",
-    "tagline": "Laudos e evidencias sempre prontos.",
-    "summary": "Automatize relatorios, checklists e historicos para auditorias e exigencias legais.",
+    "tagline": "Auditoria bateu? Relatorio PMOC pronto em 30 segundos.",
+    "summary": "Chega de correr atras de papel na vespera da Vigilancia. Laudos PMOC gerados automaticamente com evidencias, fotos e assinaturas digitais — tudo rastreavel e pronto para impressao.",
     "highlights": [
       {
-        "title": "Relatorios PMOC",
-        "description": "Templates prontos para impressao e envio."
+        "title": "Relatorios PMOC automaticos",
+        "description": "Templates homologados, preenchidos com dados reais da operacao. E so exportar e entregar."
       },
       {
         "title": "Evidencias anexadas",
-        "description": "Fotos, assinaturas e documentos."
+        "description": "Fotos antes/depois, assinaturas digitais, documentos. Tudo vinculado a OS correspondente."
       },
       {
-        "title": "Controle por periodicidade",
-        "description": "Agenda de inspecoes recorrentes."
+        "title": "Agenda de inspecoes",
+        "description": "Periodicidade por ativo e norma. Sistema alerta antes do vencimento — nunca mais perca prazo."
       },
       {
-        "title": "Trilha de auditoria",
-        "description": "Quem fez, quando e com quais dados."
+        "title": "Trilha de auditoria completa",
+        "description": "Quem fez, quando, com quais dados. Rastreabilidade total para qualquer questionamento."
       }
     ],
     "outcomes": [
-      "Menos risco regulatorio",
-      "Auditorias mais rapidas",
-      "Padronizacao operacional"
+      "Auditorias passadas em minutos, nao dias",
+      "Zero multa por falta de documentacao",
+      "Credibilidade com clientes e orgaos reguladores"
     ],
     "modules": [
       "traknor"
@@ -359,30 +359,30 @@ export const functionalities = [
     "slug": "relatorios-kpis",
     "group": "gestores",
     "name": "Relatorios e KPIs",
-    "tagline": "Indicadores claros para liderar a manutencao.",
-    "summary": "Acompanhe MTTR, backlog, custos e produtividade com dashboards e relatorios executivos.",
+    "tagline": "Dados que convencem diretoria e justificam investimento.",
+    "summary": "Pare de montar planilha na vespera da reuniao. Dashboards em tempo real mostram MTTR, backlog, custos e produtividade — com um clique, vira PDF executivo para aprovar aquela verba.",
     "highlights": [
       {
-        "title": "KPIs em tempo real",
-        "description": "MTTR, MTBF, backlog e SLA."
+        "title": "KPIs ao vivo, sempre",
+        "description": "MTTR, MTBF, backlog, SLA, custo por ativo. Atualizados a cada OS fechada, sem esperar fim de mes."
       },
       {
-        "title": "Relatorios executivos",
-        "description": "Resumo por unidade e carteira."
+        "title": "Relatorios executivos prontos",
+        "description": "Resumo por unidade, carteira ou periodo. Visual limpo que diretoria entende."
       },
       {
-        "title": "Comparativos",
-        "description": "Evolucao mensal e metas."
+        "title": "Comparativos e tendencias",
+        "description": "Evolucao mensal, comparativo entre sites, meta vs realizado. Veja o que esta melhorando (ou nao)."
       },
       {
-        "title": "Exportacao facil",
-        "description": "PDF e CSV para diretoria."
+        "title": "Exportacao em 1 clique",
+        "description": "PDF profissional ou CSV para BI. Envie para diretoria sem editar nada."
       }
     ],
     "outcomes": [
-      "Decisoes baseadas em dados",
-      "Priorizacao de investimentos",
-      "Transparencia para gestores"
+      "Reunioes de resultado em 5 minutos de preparo",
+      "Investimentos aprovados com dados concretos",
+      "Problemas identificados antes de virarem crise"
     ],
     "modules": [
       "traknor",
@@ -393,31 +393,31 @@ export const functionalities = [
     "id": "financeiro-custos",
     "slug": "financeiro-custos",
     "group": "gestores",
-    "name": "Financeiro e custos",
-    "tagline": "Custos e orcamentos conectados a cada OS.",
-    "summary": "Planeje orcamentos, categorize custos e acompanhe economias por ativo e unidade.",
+    "name": "Financeiro e Custos",
+    "tagline": "Saiba exatamente quanto custa cada ativo — e prove a economia.",
+    "summary": "Orcamento estourou? Com o TrakLedger, voce ve antes de acontecer. Custos de mao de obra, pecas e terceiros alimentados automaticamente por cada OS — planejado vs realizado em tempo real.",
     "highlights": [
       {
-        "title": "Orcamentos vivos",
-        "description": "Visao de planejado x realizado."
+        "title": "Orcamento Vivo",
+        "description": "Planejado vs realizado atualizado a cada OS. Veja desvios antes que virem problema."
       },
       {
-        "title": "Lancamentos automaticos",
-        "description": "Custos alimentados pelas OS."
+        "title": "Custos automaticos por OS",
+        "description": "Mao de obra, pecas, deslocamento. Tudo calculado sem digitacao manual."
       },
       {
-        "title": "Centros de custo",
-        "description": "Rateio por area e contrato."
+        "title": "Centros de custo e rateio",
+        "description": "Distribua custos por area, contrato ou cliente. Faturamento preciso sem planilha."
       },
       {
-        "title": "Economias registradas",
-        "description": "ROI da manutencao preventiva."
+        "title": "ROI da preventiva comprovado",
+        "description": "Registre economias evitadas. Mostre para diretoria quanto a manutencao economiza."
       }
     ],
     "outcomes": [
-      "Controle financeiro da operacao",
-      "Previsibilidade orcamentaria",
-      "Justificativa clara de economia"
+      "Orcamento sob controle — sem surpresas no fim do mes",
+      "Custo por ativo preciso para decisao de troca",
+      "Justificativa financeira para investir em preventiva"
     ],
     "modules": [
       "trakledger",
@@ -496,31 +496,31 @@ export const functionalities = [
     "id": "comunicacao-alertas",
     "slug": "comunicacao-alertas",
     "group": "clientes",
-    "name": "Comunicacao e alertas",
-    "tagline": "Notificacoes certas, no momento certo.",
-    "summary": "Alinhe expectativas com alertas de eventos, prazos e incidentes criticos.",
+    "name": "Comunicacao e Alertas",
+    "tagline": "Zero ligacoes de cobranca: seu cliente sabe antes de perguntar.",
+    "summary": "Acabe com o WhatsApp das 18h perguntando 'como ficou'. Alertas automaticos avisam seu cliente em cada mudanca de status — e voce ganha tempo para o que importa: resolver, nao explicar.",
     "highlights": [
       {
-        "title": "Alertas proativos",
-        "description": "Eventos e anomalias em tempo real."
+        "title": "Alertas proativos automaticos",
+        "description": "Evento critico? Sensor disparou? O cliente recebe na hora, com contexto e proximo passo."
       },
       {
-        "title": "Notificacoes de status",
-        "description": "Mudancas na OS e prazos."
+        "title": "Status em tempo real",
+        "description": "Tecnico saiu, chegou, concluiu. Cliente acompanha como rastreia delivery — sem te ligar."
       },
       {
-        "title": "Multicanal",
-        "description": "Email e notificacoes no sistema."
+        "title": "Multicanal inteligente",
+        "description": "Email, push notification e historico no sistema. Cada perfil recebe no canal certo."
       },
       {
-        "title": "Registro de comunicacoes",
-        "description": "Historico completo por chamado."
+        "title": "Audit trail completo",
+        "description": "Toda comunicacao registrada por chamado. Se der discussao, voce tem prova."
       }
     ],
     "outcomes": [
-      "Menos chamadas de follow-up",
-      "Transparencia com o cliente",
-      "Resposta rapida a incidentes"
+      "Reducao de 70% em ligacoes de follow-up",
+      "Clientes informados = clientes satisfeitos",
+      "Equipe focada em resolver, nao em atualizar"
     ],
     "modules": [
       "traksense",
