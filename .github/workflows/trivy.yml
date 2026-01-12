@@ -47,7 +47,7 @@ jobs:
           ignore-unfixed: true
           
       - name: 📤 Upload Trivy scan results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-repo-results.sarif'
@@ -98,7 +98,7 @@ jobs:
           ignore-unfixed: true
 
       - name: 📤 Upload Trivy image scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-backend-image.sarif'
@@ -132,7 +132,7 @@ jobs:
           skip-dirs: 'node_modules,.git'
 
       - name: 📤 Upload Trivy IaC scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-iac-results.sarif'

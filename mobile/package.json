@@ -69,5 +69,8 @@
     "react-test-renderer": "18.2.0",
     "typescript": "~5.3.3"
   },
+  "overrides": {
+    "@remix-run/router": "1.23.2"
+  },
   "private": true
 }
