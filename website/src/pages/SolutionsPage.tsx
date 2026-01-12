@@ -30,10 +30,10 @@ import {
 // ============================================================================
 
 const heroStats = [
-  { value: '99.7%', label: 'Uptime médio' },
-  { value: '-40%', label: 'Custos operacionais' },
+  { value: 'R$ 2.4M', label: 'Economizados por clientes' },
+  { value: '-47%', label: 'Redução em corretivas' },
   { value: '100%', label: 'Conformidade PMOC' },
-  { value: '24/7', label: 'Monitoramento' },
+  { value: '< 4 meses', label: 'ROI médio' },
 ]
 
 const solutions = [
@@ -284,26 +284,26 @@ export function SolutionsPage() {
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
         <div className="container-wide">
           <div className="text-center max-w-3xl mx-auto mb-12">
-            <Badge className="mb-4">Soluções por Segmento</Badge>
+            <Badge className="mb-4">Resultados comprovados por segmento</Badge>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-              Cada setor tem seus{' '}
-              <span className="text-gradient">desafios únicos</span>
+              Soluções que{' '}
+              <span className="text-gradient">falam a sua língua</span>
             </h1>
             <p className="text-lg text-muted-foreground mb-8">
-              Hospitais precisam de compliance. Indústrias precisam de uptime.
-              Facilities precisam de padronização. A ClimaTrak se adapta ao seu negócio.
+              Hospitais precisam de conformidade total. Indústrias não podem parar.
+              Facilities gerenciam dezenas de locais. <strong>A ClimaTrak entende e resolve cada desafio.</strong>
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="xl">
                 <Link to="/demo">
-                  Agendar demonstração
+                  Ver demonstração para meu segmento
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
               <Button asChild size="xl" variant="outline">
                 <Link to="#hospitais">
                   <Play className="mr-2 h-5 w-5" />
-                  Explorar segmentos
+                  Explorar casos de sucesso
                 </Link>
               </Button>
             </div>
@@ -429,16 +429,16 @@ export function SolutionsPage() {
       <section className="section-padding bg-gradient-to-r from-teal-600 to-teal-500 text-white">
         <div className="container-wide text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Pronto para transformar sua operação?
+            Qual resultado você quer alcançar?
           </h2>
           <p className="text-lg text-teal-100 mb-8 max-w-2xl mx-auto">
-            Agende uma demonstração personalizada para o seu segmento e veja
-            como a ClimaTrak pode ajudar.
+            Agende uma demonstração personalizada. Mostramos exatamente como a ClimaTrak resolve 
+            os desafios específicos do seu segmento — com números reais de clientes similares.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" className="bg-white text-teal-600 hover:bg-teal-50">
               <Link to="/demo">
-                Agendar demonstração
+                Agendar demonstração gratuita
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -448,9 +448,12 @@ export function SolutionsPage() {
               variant="outline"
               className="border-white text-white hover:bg-white/10"
             >
-              <Link to="/contato">Falar com especialista</Link>
+              <Link to="/contato">Falar com especialista do meu setor</Link>
             </Button>
           </div>
+          <p className="mt-6 text-sm text-teal-200">
+            ✓ Demonstração personalizada  ✓ Cases do seu segmento  ✓ ROI calculado
+          </p>
         </div>
       </section>
     </div>

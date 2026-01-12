@@ -87,10 +87,10 @@ const moduleScreens = [
 ]
 
 const metrics = [
-  { icon: Clock, label: 'Latencia media', value: '< 2s' },
-  { icon: Radio, label: 'Sensores suportados', value: '100+' },
-  { icon: Bell, label: 'Alertas em tempo real', value: '99.9%' },
-  { icon: Wifi, label: 'Uptime garantido', value: '99.9%' },
+  { icon: Clock, label: 'Alerta antes da falha', value: '24h+' },
+  { icon: Radio, label: 'Sensores conectados', value: '500+' },
+  { icon: Bell, label: 'Alertas resolvidos', value: '15 mil+' },
+  { icon: Wifi, label: 'Disponibilidade', value: '99.9%' },
 ]
 
 export function TrakSensePage() {
@@ -110,19 +110,47 @@ export function TrakSensePage() {
                 </div>
                 <Badge className="bg-teal-100 text-teal-700">IoT Platform</Badge>
               </div>
-              <h1 className="text-4xl sm:text-5xl font-bold mb-6">TrakSense</h1>
-              <p className="text-xl text-gray-600 mb-4">Plataforma de monitoramento IoT em tempo real</p>
-              <p className="text-lg text-gray-500 mb-8">Transforme dados em acao com dashboards, alertas inteligentes e analise de tendencias para HVAC.</p>
+              <h1 className="text-4xl sm:text-5xl font-bold mb-6">
+                TrakSense: <span className="text-teal-600">Saiba antes que quebre.</span>
+              </h1>
+              <p className="text-xl text-gray-600 mb-4">
+                Monitoramento 24/7 que alerta 24h antes da falha acontecer.
+              </p>
+              <p className="text-lg text-gray-500 mb-6">
+                Sensores IoT + alertas inteligentes + dashboards em tempo real. Pare de esperar 
+                o equipamento quebrar para agir. <strong>Previna perdas.</strong>
+              </p>
+              
+              {/* Quick stats */}
+              <div className="flex gap-6 mb-8">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-teal-600">-60%</div>
+                  <div className="text-xs text-gray-500">Paradas inesperadas</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-teal-600">&lt; 2min</div>
+                  <div className="text-xs text-gray-500">Tempo de alerta</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-teal-600">24/7</div>
+                  <div className="text-xs text-gray-500">Monitoramento</div>
+                </div>
+              </div>
+              
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link to="/demo">
                   <Button size="lg" className="bg-teal-600 hover:bg-teal-700">
-                    Agendar demo <ArrowRight className="ml-2 h-4 w-4" />
+                    Ver demonstração <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
                 <Link to="/precos">
                   <Button size="lg" variant="outline">Ver Planos</Button>
                 </Link>
               </div>
+              
+              <p className="mt-4 text-sm text-gray-500">
+                ✓ Integração com CMMS TrakNor  ✓ Alertas por WhatsApp/E-mail  ✓ Setup em 1 dia
+              </p>
             </div>
             
             {/* Hero Screen Mockup */}
@@ -551,20 +579,22 @@ export function TrakSensePage() {
       {/* CTA Section */}
       <section className="py-16 md:py-24 bg-gradient-to-r from-teal-600 to-teal-500 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Comece a monitorar agora</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Quanto custa uma parada não planejada?</h2>
           <p className="text-lg text-teal-100 mb-8 max-w-2xl mx-auto">
-            Agende uma demonstração e veja como o TrakSense pode dar visibilidade total aos seus equipamentos HVAC.
+            Um chiller fora por 8 horas pode custar R$ 50 mil em perdas. O TrakSense alerta 24h antes. 
+            Faça as contas e agende uma demonstração.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link to="/demo">
               <Button size="lg" className="bg-white text-teal-600 hover:bg-teal-50">
-                Agendar demo <ArrowRight className="ml-2 h-4 w-4" />
+                Ver demonstração gratuita <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
             <Link to="/precos">
               <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">Ver Planos e Preços</Button>
             </Link>
           </div>
+          <p className="mt-6 text-sm text-teal-200">✓ Setup em 1 dia  ✓ Integra com seu CMMS  ✓ ROI em semanas</p>
         </div>
       </section>
     </div>

@@ -35,10 +35,31 @@ import {
 // ============================================================================
 
 const heroStats = [
-  { value: '+47%', label: 'Produtividade em campo' },
+  { value: '+47%', label: 'Produtividade da equipe' },
   { value: '3x', label: 'Mais orçamentos aprovados' },
-  { value: '-35%', label: 'Tempo de deslocamento' },
-  { value: '100%', label: 'Rastreabilidade' },
+  { value: '-35%', label: 'Custo com combustível' },
+  { value: 'R$ 15 mil', label: 'Economia mensal média' },
+]
+
+const painPoints = [
+  {
+    icon: Route,
+    problem: 'Rotas mal planejadas',
+    description: 'Técnicos perdem horas no trânsito. Combustível jogado fora.',
+    cost: 'R$ 5 mil/mês em deslocamento',
+  },
+  {
+    icon: Calculator,
+    problem: 'Orçamentos demorados',
+    description: 'Cliente esfria enquanto você monta orçamento no escritório.',
+    cost: '40% dos orçamentos rejeitados',
+  },
+  {
+    icon: Users,
+    problem: 'Clientes ligando',
+    description: '"Cadê meu técnico?", "Já começou?" — sua equipe vira call center.',
+    cost: '20h/mês em ligações',
+  },
 ]
 
 const mainFeatures = [
@@ -48,6 +69,7 @@ const mainFeatures = [
     description:
       'Gestão de ativos, estoque, orçamento, conformidade PMOC, análise de custos, monitoramento IoT e IA — tudo incluso.',
     benefits: ['CMMS completo', 'IoT integrado', 'Financeiro', 'Clima IA'],
+    result: 'Uma plataforma, zero gambiarras',
   },
   {
     icon: Calculator,
@@ -55,6 +77,7 @@ const mainFeatures = [
     description:
       'Crie orçamentos detalhados em campo com peças, mão de obra e deslocamento. Envie por WhatsApp ou PDF com um toque.',
     benefits: ['Templates prontos', 'Catálogo de peças', 'Margem automática', 'WhatsApp direto'],
+    result: '3x mais aprovações de orçamento',
   },
   {
     icon: Route,
@@ -62,6 +85,7 @@ const mainFeatures = [
     description:
       'Algoritmos otimizam rotas considerando localização, prioridade e janela de atendimento. Economize combustível e tempo.',
     benefits: ['Otimização IA', 'Economia KM', 'Janelas de tempo', 'Redistribuição'],
+    result: '-35% em custos de deslocamento',
   },
   {
     icon: MapPin,
@@ -69,6 +93,7 @@ const mainFeatures = [
     description:
       'Localização em tempo real dos técnicos com respeito à privacidade. Controle de jornada e relatórios de deslocamento.',
     benefits: ['GPS em tempo real', 'Jornada de trabalho', 'Histórico de rotas', 'Privacidade'],
+    result: 'Zero ligações perguntando "onde está?"',
   },
   {
     icon: FileCheck,
@@ -76,6 +101,7 @@ const mainFeatures = [
     description:
       'Defina prazos por cliente e tipo de chamado. Alertas automáticos antes do vencimento e relatórios de cumprimento.',
     benefits: ['Prazos por cliente', 'Alertas auto', 'Relatórios SLA', 'Penalidades'],
+    result: '98% de SLA cumprido',
   },
   {
     icon: Users,
@@ -83,6 +109,7 @@ const mainFeatures = [
     description:
       'Organize ativos, contratos e OS por cliente. Cada cliente vê apenas seus dados no portal dedicado.',
     benefits: ['Portal do cliente', 'Contratos separados', 'Visão individual', 'White-label'],
+    result: '-70% de ligações de status',
   },
 ]
 
@@ -123,21 +150,24 @@ const fieldServiceFeatures = [
 const testimonials = [
   {
     name: 'Carlos Silva',
-    role: 'Empresa terceirizada - SP',
+    role: 'Empresa terceirizada - 15 técnicos',
     avatar: 'CS',
-    text: 'Os orçamentos saem rápido e padronizados. Isso melhorou muito a aprovação com clientes.',
+    text: 'Os orçamentos saem na hora pelo app. Nossa taxa de aprovação foi de 35% para 78%.',
+    metric: '+120% aprovações',
   },
   {
     name: 'Roberto Almeida',
     role: 'Parceiro HVAC - RJ',
     avatar: 'RA',
-    text: 'A roteirização nos fez economizar 30% em combustível. Os técnicos atendem mais clientes por dia.',
+    text: 'A roteirização nos fez economizar R$ 4.200/mês em combustível. Os técnicos atendem 2 clientes a mais por dia.',
+    metric: 'R$ 50 mil/ano economizados',
   },
   {
     name: 'Ana Costa',
     role: 'Coordenadora técnica - MG',
     avatar: 'AC',
-    text: 'O portal do cliente reduziu 70% das ligações perguntando status. Todos acompanham online.',
+    text: 'O portal do cliente acabou com as ligações de "onde está meu técnico". Ganhamos 20h/mês da equipe de volta.',
+    metric: '-70% ligações',
   },
 ]
 
@@ -451,35 +481,38 @@ export function PrestadoresPage() {
             <div>
               <Badge className="mb-4 bg-teal-100 text-teal-700">Para Prestadores de Serviço</Badge>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-                Potencialize sua{' '}
-                <span className="text-teal-600">operação de campo</span>
+                Cresça sem <span className="text-teal-600">virar bagunça</span>
               </h1>
+              <p className="text-xl text-muted-foreground mb-4 max-w-xl">
+                Mais clientes não pode significar mais caos. 
+                <strong className="text-foreground"> Sua operação precisa escalar com controle.</strong>
+              </p>
               <p className="text-lg text-muted-foreground mb-8 max-w-xl">
-                Orçamentos profissionais, rotas otimizadas, rastreamento de equipe e portal
-                do cliente — tudo integrado ao CMMS e financeiro.
+                Rotas otimizadas, orçamentos na hora, portal do cliente e zero ligações de status. 
+                Atenda mais, gaste menos, fature melhor.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
                 <Button asChild size="xl" className="bg-teal-600 hover:bg-teal-700">
                   <Link to="/demo?persona=prestadores">
-                    Agendar demonstração
+                    Quero escalar com controle
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
                 <Button asChild size="xl" variant="outline">
                   <Link to="/produtos">
                     <Play className="mr-2 h-5 w-5" />
-                    Ver vídeo de 2 min
+                    Ver em 2 minutos
                   </Link>
                 </Button>
               </div>
               <div className="flex items-center gap-6 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-teal-500" />
-                  <span>Sem contrato longo</span>
+                  <span>Onboarding em 3 dias</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-teal-500" />
-                  <span>Onboarding em 3 dias</span>
+                  <span>ROI em &lt; 2 meses</span>
                 </div>
               </div>
             </div>
@@ -509,6 +542,35 @@ export function PrestadoresPage() {
                 <div className="text-sm text-teal-100">{stat.label}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pain Points */}
+      <section className="section-padding bg-gray-50">
+        <div className="container-wide">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-red-100 text-red-700">Sua operação sofre com isso?</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+              Crescer não deveria ser tão difícil
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {painPoints.map((point) => {
+              const Icon = point.icon
+              return (
+                <div key={point.problem} className="bg-white rounded-2xl p-6 border-2 border-red-100">
+                  <div className="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center mb-4">
+                    <Icon className="w-7 h-7 text-red-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2 text-red-700">{point.problem}</h3>
+                  <p className="text-muted-foreground mb-3">{point.description}</p>
+                  <div className="bg-red-50 rounded-lg px-4 py-2">
+                    <span className="text-sm font-medium text-red-600">{point.cost}</span>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -781,16 +843,19 @@ export function PrestadoresPage() {
       <section className="section-padding bg-gradient-to-r from-teal-600 to-teal-500 text-white">
         <div className="container-wide text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Pronto para profissionalizar sua operação?
+            Quanto sua equipe desperdiça por mês com rotas ruins e orçamentos lentos?
           </h2>
-          <p className="text-lg text-teal-100 mb-8 max-w-2xl mx-auto">
-            Junte-se a prestadores que já usam a ClimaTrak para atender mais clientes
-            com mais qualidade e controle.
+          <p className="text-lg text-teal-100 mb-4 max-w-2xl mx-auto">
+            Nossos clientes economizam em média <strong className="text-white">R$ 15 mil/mês</strong> ao 
+            otimizar rotas e acelerar aprovações de orçamento.
+          </p>
+          <p className="text-teal-200 mb-8">
+            Se você tem 5+ técnicos em campo, podemos mostrar o caminho para crescer com controle.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button asChild size="lg" className="bg-white text-teal-600 hover:bg-teal-50">
               <Link to="/demo?persona=prestadores">
-                Agendar demonstração
+                Calcular minha economia
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -803,6 +868,9 @@ export function PrestadoresPage() {
               <Link to="/precos">Ver planos e preços</Link>
             </Button>
           </div>
+          <p className="text-sm text-teal-200 mt-6">
+            ✓ Demonstração personalizada &nbsp;|&nbsp; ✓ Análise de ROI inclusa &nbsp;|&nbsp; ✓ Sem compromisso
+          </p>
         </div>
       </section>
     </div>

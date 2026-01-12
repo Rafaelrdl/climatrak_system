@@ -594,6 +594,316 @@ export const functionalities = [
     "modules": [
       "traknor"
     ]
+  },
+  {
+    "id": "planos-manutencao",
+    "slug": "planos-manutencao",
+    "group": "gestores",
+    "name": "Planos de Manutencao",
+    "tagline": "Preventiva, preditiva e corretiva em um so lugar.",
+    "summary": "Crie planos de manutencao por tempo, uso ou condicao com geracao automatica de OS.",
+    "highlights": [
+      {
+        "title": "Gatilhos flexiveis",
+        "description": "Por tempo, horas de uso ou condicao do sensor."
+      },
+      {
+        "title": "Templates reutilizaveis",
+        "description": "Padronize planos por tipo de ativo."
+      },
+      {
+        "title": "Calendario visual",
+        "description": "Visualize toda a programacao em um calendario."
+      },
+      {
+        "title": "Geracao automatica",
+        "description": "OS criadas automaticamente no vencimento."
+      }
+    ],
+    "outcomes": [
+      "Menos paradas nao planejadas",
+      "Controle total da programacao",
+      "Equipe sempre informada"
+    ],
+    "modules": [
+      "traknor"
+    ]
+  },
+  {
+    "id": "gestao-ativos",
+    "slug": "gestao-ativos",
+    "group": "gestores",
+    "name": "Gestao de Ativos",
+    "tagline": "Cadastro, hierarquia e historico completo.",
+    "summary": "Organize seu parque de ativos com hierarquia, QR codes, documentos e historico de manutencoes.",
+    "highlights": [
+      {
+        "title": "Arvore de localizacao",
+        "description": "Hierarquia por unidade, setor e equipamento."
+      },
+      {
+        "title": "QR Code integrado",
+        "description": "Identifique ativos rapidamente com o celular."
+      },
+      {
+        "title": "Documentos anexados",
+        "description": "Manuais, certificados e fotos."
+      },
+      {
+        "title": "Historico completo",
+        "description": "Todas as OS, custos e intervencoes."
+      }
+    ],
+    "outcomes": [
+      "Visibilidade total do parque",
+      "Decisoes baseadas em historico",
+      "Auditorias mais rapidas"
+    ],
+    "modules": [
+      "traknor"
+    ]
+  },
+  {
+    "id": "estoque-inventario",
+    "slug": "estoque-inventario",
+    "group": "gestores",
+    "name": "Estoque e Inventario",
+    "tagline": "Pecas, materiais e movimentacoes sob controle.",
+    "summary": "Controle estoque de pecas e materiais com alertas de minimo, movimentacoes e vinculo com OS.",
+    "highlights": [
+      {
+        "title": "Movimentacoes rastreadas",
+        "description": "Entrada, saida e transferencias."
+      },
+      {
+        "title": "Estoque minimo",
+        "description": "Alertas automaticos de reposicao."
+      },
+      {
+        "title": "Vinculo com OS",
+        "description": "Pecas consumidas em cada servico."
+      },
+      {
+        "title": "Inventario periodico",
+        "description": "Conte e ajuste com facilidade."
+      }
+    ],
+    "outcomes": [
+      "Menos falta de pecas",
+      "Custos por OS mais precisos",
+      "Controle de fornecedores"
+    ],
+    "modules": [
+      "traknor"
+    ]
+  },
+  {
+    "id": "analise-roi",
+    "slug": "analise-roi",
+    "group": "gestores",
+    "name": "Analise de ROI",
+    "tagline": "Retorno sobre investimento em ativos.",
+    "summary": "Calcule o retorno de cada ativo comparando custos de manutencao, disponibilidade e vida util.",
+    "highlights": [
+      {
+        "title": "Custo total de propriedade",
+        "description": "TCO por ativo e categoria."
+      },
+      {
+        "title": "Analise de substituicao",
+        "description": "Quando vale trocar o equipamento."
+      },
+      {
+        "title": "Economia comprovada",
+        "description": "ROI da manutencao preventiva."
+      },
+      {
+        "title": "Relatorios executivos",
+        "description": "Dados para justificar investimentos."
+      }
+    ],
+    "outcomes": [
+      "Decisoes de investimento embasadas",
+      "Justificativa para diretoria",
+      "Priorizacao de substituicoes"
+    ],
+    "modules": [
+      "trakledger",
+      "traknor"
+    ]
+  },
+  {
+    "id": "orcamentos-propostas",
+    "slug": "orcamentos-propostas",
+    "group": "gestores",
+    "name": "Orcamentos e Propostas",
+    "tagline": "Crie e gerencie orcamentos profissionais.",
+    "summary": "Monte orcamentos detalhados com mao de obra, pecas e servicos. Acompanhe aprovacoes e converta em OS.",
+    "highlights": [
+      {
+        "title": "Templates de orcamento",
+        "description": "Modelos por tipo de servico."
+      },
+      {
+        "title": "Itens detalhados",
+        "description": "Mao de obra, pecas e servicos."
+      },
+      {
+        "title": "Fluxo de aprovacao",
+        "description": "Envio, aprovacao e rejeicao."
+      },
+      {
+        "title": "Conversao em OS",
+        "description": "Orcamento aprovado vira ordem."
+      }
+    ],
+    "outcomes": [
+      "Propostas mais profissionais",
+      "Aprovacoes mais rapidas",
+      "Controle de margem"
+    ],
+    "modules": [
+      "trakledger",
+      "trakservice"
+    ]
+  },
+  {
+    "id": "dispatch-agenda",
+    "slug": "dispatch-agenda",
+    "group": "gestores",
+    "name": "Agenda e Dispatch",
+    "tagline": "Agende e distribua trabalhos para a equipe.",
+    "summary": "Visualize a agenda da equipe, atribua OS e acompanhe o status de cada atendimento em tempo real.",
+    "highlights": [
+      {
+        "title": "Calendario interativo",
+        "description": "Visao diaria, semanal e mensal."
+      },
+      {
+        "title": "Atribuicao inteligente",
+        "description": "Por disponibilidade e habilidade."
+      },
+      {
+        "title": "Status em tempo real",
+        "description": "Agendado, em rota, no local, concluido."
+      },
+      {
+        "title": "Notificacoes automaticas",
+        "description": "Tecnico e cliente informados."
+      }
+    ],
+    "outcomes": [
+      "Mais atendimentos por dia",
+      "Menos conflitos de agenda",
+      "Equipe sempre informada"
+    ],
+    "modules": [
+      "trakservice",
+      "traknor"
+    ]
+  },
+  {
+    "id": "rastreamento-gps",
+    "slug": "rastreamento-gps",
+    "group": "gestores",
+    "name": "Rastreamento GPS",
+    "tagline": "Localizacao em tempo real da equipe.",
+    "summary": "Acompanhe a localizacao dos tecnicos em campo com respeito a privacidade e janela de trabalho.",
+    "highlights": [
+      {
+        "title": "Mapa em tempo real",
+        "description": "Posicao atualizada de cada tecnico."
+      },
+      {
+        "title": "Status automatico",
+        "description": "Em movimento, parado, no local."
+      },
+      {
+        "title": "Historico de trajeto",
+        "description": "Rota percorrida por dia."
+      },
+      {
+        "title": "Privacidade garantida",
+        "description": "Rastreio apenas no horario de trabalho."
+      }
+    ],
+    "outcomes": [
+      "Visibilidade da equipe externa",
+      "Estimativas de chegada precisas",
+      "Comprovacao de presenca"
+    ],
+    "modules": [
+      "trakservice"
+    ]
+  },
+  {
+    "id": "roteirizacao",
+    "slug": "roteirizacao",
+    "group": "gestores",
+    "name": "Roteirizacao",
+    "tagline": "Otimize rotas e reduza custos de deslocamento.",
+    "summary": "Calcule a melhor rota para multiplas paradas, economize combustivel e tempo da equipe.",
+    "highlights": [
+      {
+        "title": "Otimizacao automatica",
+        "description": "Algoritmo TSP para menor distancia."
+      },
+      {
+        "title": "Multiplas paradas",
+        "description": "Organize ate 20 atendimentos por rota."
+      },
+      {
+        "title": "Tempo e distancia",
+        "description": "Estimativas precisas por trecho."
+      },
+      {
+        "title": "Reordenacao facil",
+        "description": "Drag and drop para ajustar."
+      }
+    ],
+    "outcomes": [
+      "Menos km rodados",
+      "Mais atendimentos por dia",
+      "Economia em combustivel"
+    ],
+    "modules": [
+      "trakservice"
+    ]
+  },
+  {
+    "id": "orcamentos-campo",
+    "slug": "orcamentos-campo",
+    "group": "gestores",
+    "name": "Orcamentos em Campo",
+    "tagline": "Crie orcamentos direto no celular.",
+    "summary": "Tecnicos podem criar orcamentos profissionais no campo, com catalogo de servicos e aprovacao digital.",
+    "highlights": [
+      {
+        "title": "App mobile completo",
+        "description": "Crie orcamentos do celular ou tablet."
+      },
+      {
+        "title": "Catalogo de servicos",
+        "description": "Itens padronizados com precos."
+      },
+      {
+        "title": "Aprovacao digital",
+        "description": "Cliente aprova na hora pelo celular."
+      },
+      {
+        "title": "Integracao Finance",
+        "description": "Aprovado vira lancamento automatico."
+      }
+    ],
+    "outcomes": [
+      "Fechamento mais rapido",
+      "Menos orcamentos perdidos",
+      "Profissionalismo em campo"
+    ],
+    "modules": [
+      "trakservice",
+      "trakledger"
+    ]
   }
 ] as const;
 
@@ -619,6 +929,7 @@ export const productModules = [
   {
     "id": "trakservice",
     "name": "TrakService Field Service",
+    "websiteHref": "/produtos/trakservice",
     "frontendRoute": "/trakservice",
     "backendFeatures": [
       "trakservice.enabled",

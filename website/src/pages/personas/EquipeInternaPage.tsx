@@ -32,10 +32,31 @@ import {
 // ============================================================================
 
 const heroStats = [
-  { value: '40%', label: 'Redução em custos corretivos' },
-  { value: '99.9%', label: 'Uptime da plataforma' },
-  { value: '24/7', label: 'Monitoramento contínuo' },
-  { value: '-60%', label: 'Tempo em relatórios' },
+  { value: '-47%', label: 'Corretivas não planejadas' },
+  { value: 'R$ 2.4M', label: 'Economizados por clientes' },
+  { value: '100%', label: 'Conformidade PMOC' },
+  { value: '< 4 meses', label: 'Payback médio' },
+]
+
+const painPoints = [
+  {
+    icon: AlertTriangle,
+    problem: 'Falhas inesperadas',
+    description: 'Equipamentos param sem aviso, gerando custos emergenciais e reclamações.',
+    cost: 'R$ 150 mil/ano em corretivas',
+  },
+  {
+    icon: FileCheck,
+    problem: 'PMOC manual',
+    description: 'Horas perdidas gerando laudos em planilhas. Risco de multas por não conformidade.',
+    cost: 'R$ 15 mil em multas potenciais',
+  },
+  {
+    icon: Clock,
+    problem: 'Zero visibilidade',
+    description: 'Não sabe quanto gasta por ativo. Decisões baseadas em achismo.',
+    cost: 'Orçamento estourado todo ano',
+  },
 ]
 
 const mainFeatures = [
@@ -45,6 +66,7 @@ const mainFeatures = [
     description:
       'Cadastro hierárquico de equipamentos HVAC, histórico completo de manutenções, documentação técnica anexada e QR Code para acesso rápido em campo.',
     benefits: ['Hierarquia ilimitada', 'Histórico completo', 'Documentação anexada', 'QR Code'],
+    result: 'Encontre qualquer informação em segundos',
   },
   {
     icon: Calendar,
@@ -52,6 +74,7 @@ const mainFeatures = [
     description:
       'Crie planos preventivos baseados em tempo, horas de operação ou leituras de sensores. Gere OS automaticamente e nunca perca um prazo.',
     benefits: ['Gatilhos flexíveis', 'OS automáticas', 'Calendário visual', 'Alertas antecipados'],
+    result: 'Reduza até 47% das manutenções corretivas',
   },
   {
     icon: Package,
@@ -59,6 +82,7 @@ const mainFeatures = [
     description:
       'Gerencie peças e consumíveis com níveis mínimos, requisições automáticas e rastreamento de uso por ordem de serviço.',
     benefits: ['Níveis mínimos', 'Requisições auto', 'Rastreio por OS', 'Custo por ativo'],
+    result: 'Nunca mais pare por falta de peça',
   },
   {
     icon: DollarSign,
@@ -66,6 +90,7 @@ const mainFeatures = [
     description:
       'Defina orçamentos anuais por centro de custo, acompanhe gastos em tempo real e receba alertas antes de estourar o limite.',
     benefits: ['Budget por área', 'Alertas de desvio', 'Projeção de gastos', 'Relatórios gerenciais'],
+    result: 'Prove o valor da manutenção para a diretoria',
   },
   {
     icon: ShieldCheck,
@@ -73,6 +98,7 @@ const mainFeatures = [
     description:
       'Gere laudos PMOC automaticamente a partir das OS executadas. Rastreabilidade total para auditorias e órgãos reguladores.',
     benefits: ['Laudos automáticos', 'Evidências anexadas', 'Assinatura digital', 'Exportação PDF'],
+    result: '100% conformidade, zero multas',
   },
   {
     icon: Brain,
@@ -80,6 +106,7 @@ const mainFeatures = [
     description:
       'Inteligência artificial que preenche OS, sugere diagnósticos, analisa causas raiz e ajuda técnicos em campo com troubleshooting.',
     benefits: ['Preenchimento auto', 'Diagnóstico IA', 'Análise de causas', 'Base de conhecimento'],
+    result: 'Técnicos 40% mais produtivos',
   },
 ]
 
@@ -120,19 +147,22 @@ const testimonials = [
     name: 'Ricardo Mendes',
     role: 'Gerente de Facilities - Hospital São Lucas',
     avatar: 'RM',
-    text: 'Reduzimos 45% das manutenções corretivas no primeiro ano. Os laudos PMOC saem em minutos.',
+    text: 'Reduzimos 45% das manutenções corretivas no primeiro ano. Os laudos PMOC saem em minutos. Antes levava 2 dias.',
+    metric: '45% menos corretivas',
   },
   {
     name: 'Fernanda Costa',
     role: 'Coord. Manutenção - Shopping Center',
     avatar: 'FC',
-    text: 'O monitoramento IoT nos salvou de uma falha crítica. Detectamos o problema antes do equipamento parar.',
+    text: 'O monitoramento IoT nos salvou de uma falha crítica no chiller central. Detectamos o problema 18 horas antes.',
+    metric: 'R$ 200 mil evitados',
   },
   {
     name: 'André Lima',
     role: 'Diretor de Operações - Indústria Alimentícia',
     avatar: 'AL',
-    text: 'Visibilidade total dos custos por ativo. Agora sei exatamente onde investir e onde cortar.',
+    text: 'Visibilidade total dos custos por ativo. Agora sei exatamente onde investir e onde cortar. O payback veio em 3 meses.',
+    metric: 'Payback em 3 meses',
   },
 ]
 
@@ -323,24 +353,27 @@ export function EquipeInternaPage() {
             <div>
               <Badge className="mb-4 bg-blue-100 text-blue-700">Para Equipes Internas</Badge>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-                Gestão completa de{' '}
-                <span className="text-gradient">manutenção HVAC</span>
+                Chega de <span className="text-gradient">apagar incêndios</span>
               </h1>
+              <p className="text-xl text-muted-foreground mb-4 max-w-xl">
+                Você não foi contratado para lidar com emergências todo dia. 
+                <strong className="text-foreground"> Seu trabalho é garantir que nada pare.</strong>
+              </p>
               <p className="text-lg text-muted-foreground mb-8 max-w-xl">
-                Controle ativos, execute planos preventivos, monitore equipamentos em tempo real
-                e garanta conformidade PMOC — tudo em uma única plataforma integrada.
+                Com ClimaTrak, sua equipe previne falhas, comprova resultados 
+                e entrega conformidade PMOC em cliques — não em dias.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
                 <Button asChild size="xl">
                   <Link to="/demo?persona=equipe-interna">
-                    Agendar demonstração
+                    Quero sair do modo bombeiro
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
                 <Button asChild size="xl" variant="outline">
                   <Link to="/produtos">
                     <Play className="mr-2 h-5 w-5" />
-                    Ver vídeo de 2 min
+                    Ver em 2 minutos
                   </Link>
                 </Button>
               </div>
@@ -351,7 +384,7 @@ export function EquipeInternaPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-green-500" />
-                  <span>Suporte dedicado</span>
+                  <span>Payback em &lt; 4 meses</span>
                 </div>
               </div>
             </div>
@@ -381,6 +414,35 @@ export function EquipeInternaPage() {
                 <div className="text-sm text-blue-100">{stat.label}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pain Points */}
+      <section className="section-padding bg-gray-50">
+        <div className="container-wide">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-red-100 text-red-700">Reconhece esses problemas?</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+              Sua rotina não deveria ser assim
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {painPoints.map((point) => {
+              const Icon = point.icon
+              return (
+                <div key={point.problem} className="bg-white rounded-2xl p-6 border-2 border-red-100">
+                  <div className="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center mb-4">
+                    <Icon className="w-7 h-7 text-red-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2 text-red-700">{point.problem}</h3>
+                  <p className="text-muted-foreground mb-3">{point.description}</p>
+                  <div className="bg-red-50 rounded-lg px-4 py-2">
+                    <span className="text-sm font-medium text-red-600">{point.cost}</span>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -684,16 +746,19 @@ export function EquipeInternaPage() {
       <section className="section-padding bg-gradient-to-r from-blue-600 to-blue-500 text-white">
         <div className="container-wide text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Pronto para transformar sua gestão de manutenção?
+            Quanto você perde por ano com manutenções corretivas?
           </h2>
-          <p className="text-lg text-blue-100 mb-8 max-w-2xl mx-auto">
-            Agende uma demonstração personalizada e veja como a ClimaTrak pode reduzir
-            custos e aumentar a disponibilidade dos seus ativos.
+          <p className="text-lg text-blue-100 mb-4 max-w-2xl mx-auto">
+            Nossos clientes economizam em média <strong className="text-white">R$ 2.4 milhões por ano</strong> ao 
+            substituir emergências por prevenção inteligente.
+          </p>
+          <p className="text-blue-200 mb-8">
+            Se sua operação gasta mais de R$ 100 mil/ano com corretivas, podemos mostrar o caminho.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button asChild size="lg" className="bg-white text-blue-600 hover:bg-blue-50">
               <Link to="/demo?persona=equipe-interna">
-                Agendar demonstração
+                Calcular minha economia
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -706,6 +771,9 @@ export function EquipeInternaPage() {
               <Link to="/precos">Ver planos e preços</Link>
             </Button>
           </div>
+          <p className="text-sm text-blue-200 mt-6">
+            ✓ Demonstração personalizada gratuita &nbsp;|&nbsp; ✓ Análise de ROI inclusa &nbsp;|&nbsp; ✓ Sem compromisso
+          </p>
         </div>
       </section>
     </div>

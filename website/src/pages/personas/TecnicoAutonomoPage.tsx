@@ -32,8 +32,29 @@ import {
 const heroStats = [
   { value: '3x', label: 'Mais orçamentos por dia' },
   { value: '-60%', label: 'Tempo administrativo' },
-  { value: '100%', label: 'Funciona offline' },
-  { value: 'Grátis', label: 'Plano inicial' },
+  { value: 'R$ 2k', label: 'A mais por mês' },
+  { value: 'Grátis', label: 'Para começar' },
+]
+
+const painPoints = [
+  {
+    icon: Clock,
+    problem: 'Perdendo tempo com papel',
+    description: 'Anotar em caderno, passar pro WhatsApp depois. Horas perdidas.',
+    cost: '10h/semana em burocracia',
+  },
+  {
+    icon: Calculator,
+    problem: 'Cálculos de cabeça',
+    description: 'Cliente pergunta BTU e você chuta. Passa vergonha ou perde serviço.',
+    cost: '2 serviços perdidos/mês',
+  },
+  {
+    icon: WifiOff,
+    problem: 'Sem internet = sem app',
+    description: 'Apps que não funcionam offline são inúteis no porão do prédio.',
+    cost: 'Frustração toda semana',
+  },
 ]
 
 const mainFeatures = [
@@ -43,6 +64,7 @@ const mainFeatures = [
     description:
       'Projetado para quem trabalha sozinho. Tudo na palma da mão: clientes, OS, orçamentos, fotos e financeiro.',
     benefits: ['Interface simples', 'Uma mão só', 'Notificações', 'Widget home'],
+    result: 'Tudo em um lugar só',
   },
   {
     icon: Bot,
@@ -50,6 +72,7 @@ const mainFeatures = [
     description:
       'Não sabe o código de erro? Pergunta pra IA. Dúvida em cálculo de BTU? A IA resolve. É como ter um colega experiente 24h.',
     benefits: ['Códigos de erro', 'Cálculos técnicos', 'Diagnóstico', 'Manuais'],
+    result: 'Nunca mais fique perdido',
   },
   {
     icon: Calculator,
@@ -57,6 +80,7 @@ const mainFeatures = [
     description:
       'Calcule BTUs em segundos considerando área, orientação solar, pessoas e equipamentos. Gere PDF para o cliente.',
     benefits: ['BTU preciso', 'Relatório PDF', 'Sem internet', 'Compartilha fácil'],
+    result: 'Impressione o cliente na hora',
   },
   {
     icon: WifiOff,
@@ -64,6 +88,7 @@ const mainFeatures = [
     description:
       'Abriu OS, registrou foto, gerou orçamento — tudo funciona sem internet. Sincroniza quando voltar a conectar.',
     benefits: ['Zero dependência', 'Sync automático', 'Sem perda', 'Áreas rurais'],
+    result: 'Funciona até no porão do prédio',
   },
   {
     icon: Receipt,
@@ -71,6 +96,7 @@ const mainFeatures = [
     description:
       'Monte orçamentos profissionais na hora com templates prontos. Envie por WhatsApp e receba aprovação mais rápido.',
     benefits: ['Templates', 'WhatsApp direto', 'PDF bonito', 'Histórico'],
+    result: '3x mais aprovações',
   },
   {
     icon: Users,
@@ -78,6 +104,7 @@ const mainFeatures = [
     description:
       'Cadastro simples de clientes com histórico de atendimentos, equipamentos e orçamentos. Tudo organizado.',
     benefits: ['CRM básico', 'Histórico', 'Equipamentos', 'Lembretes'],
+    result: 'Cliente lembra de você',
   },
 ]
 
@@ -113,21 +140,24 @@ const offlineCapabilities = [
 const testimonials = [
   {
     name: 'Marcelo Santos',
-    role: 'Técnico autônomo - GO',
+    role: 'Técnico autônomo há 5 anos - GO',
     avatar: 'MS',
-    text: 'A IA me salva todo dia. Não preciso mais ficar procurando código de erro em fórum.',
+    text: 'A IA me salva todo dia. Antes perdia 30 min procurando código de erro. Agora pergunto e ela responde na hora.',
+    metric: '-30 min/atendimento',
   },
   {
     name: 'Paulo Ribeiro',
-    role: 'Autônomo há 8 anos - BA',
+    role: 'Autônomo em área rural - BA',
     avatar: 'PR',
-    text: 'Trabalho em fazendas sem sinal. O app funciona offline perfeitamente, sincroniza quando chego na cidade.',
+    text: 'Trabalho em fazendas sem sinal. O app funciona offline perfeitamente. Sincroniza quando chego na cidade.',
+    metric: '100% offline',
   },
   {
     name: 'Diego Ferreira',
-    role: 'Técnico iniciante - PR',
+    role: 'Ex-funcionário, agora autônomo - PR',
     avatar: 'DF',
-    text: 'Comecei no plano grátis. Em 2 meses já estava no Pro. A calculadora de BTU impressiona os clientes.',
+    text: 'Comecei no plano grátis. Em 2 meses já estava no Pro. A calculadora de BTU impressiona os clientes. Fecho mais.',
+    metric: 'R$ 2k a mais/mês',
   },
 ]
 
@@ -434,31 +464,34 @@ export function TecnicoAutonomoPage() {
             <div>
               <Badge className="mb-4 bg-purple-100 text-purple-700">Para Técnico Autônomo</Badge>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-                Seu parceiro de bolso para{' '}
-                <span className="text-purple-600">trabalhar melhor</span>
+                Trabalhe <span className="text-purple-600">mais inteligente</span>, não mais duro
               </h1>
+              <p className="text-xl text-muted-foreground mb-4 max-w-xl">
+                Você é bom no que faz. 
+                <strong className="text-foreground"> Mas perder tempo com papel e cálculo de cabeça te atrasa.</strong>
+              </p>
               <p className="text-lg text-muted-foreground mb-8 max-w-xl">
-                App completo com IA que tira dúvidas, calculadora de BTU, orçamentos
-                instantâneos e funciona 100% offline. Comece grátis.
+                App que funciona offline, IA que tira dúvidas, calculadora de BTU que impressiona 
+                e orçamentos via WhatsApp em segundos. <strong className="text-purple-600">Comece grátis.</strong>
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
                 <Button asChild size="xl" className="bg-purple-600 hover:bg-purple-700">
                   <Link to="/demo?persona=autonomo">
-                    Começar grátis
+                    Começar grátis agora
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
                 <Button asChild size="xl" variant="outline">
                   <Link to="/produtos">
                     <Play className="mr-2 h-5 w-5" />
-                    Ver como funciona
+                    Ver em 2 minutos
                   </Link>
                 </Button>
               </div>
               <div className="flex items-center gap-6 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-purple-500" />
-                  <span>Plano grátis para sempre</span>
+                  <span>Grátis para sempre</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-purple-500" />
@@ -492,6 +525,35 @@ export function TecnicoAutonomoPage() {
                 <div className="text-sm text-purple-100">{stat.label}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pain Points */}
+      <section className="section-padding bg-gray-50">
+        <div className="container-wide">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-red-100 text-red-700">Você vive isso todo dia?</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+              Ser autônomo não deveria ser tão difícil
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {painPoints.map((point) => {
+              const Icon = point.icon
+              return (
+                <div key={point.problem} className="bg-white rounded-2xl p-6 border-2 border-red-100">
+                  <div className="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center mb-4">
+                    <Icon className="w-7 h-7 text-red-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2 text-red-700">{point.problem}</h3>
+                  <p className="text-muted-foreground mb-3">{point.description}</p>
+                  <div className="bg-red-50 rounded-lg px-4 py-2">
+                    <span className="text-sm font-medium text-red-600">{point.cost}</span>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -832,16 +894,19 @@ export function TecnicoAutonomoPage() {
       <section className="section-padding bg-gradient-to-r from-purple-600 to-purple-500 text-white">
         <div className="container-wide text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Pronto para trabalhar mais inteligente?
+            Quantos serviços você perde por não ter as ferramentas certas?
           </h2>
-          <p className="text-lg text-purple-100 mb-8 max-w-2xl mx-auto">
-            Junte-se a milhares de técnicos autônomos que já usam a ClimaTrak
-            para economizar tempo e impressionar clientes.
+          <p className="text-lg text-purple-100 mb-4 max-w-2xl mx-auto">
+            Nossos usuários relatam ganhar em média <strong className="text-white">R$ 2 mil a mais por mês</strong> ao 
+            economizar tempo com burocracia e fechar mais orçamentos.
+          </p>
+          <p className="text-purple-200 mb-8">
+            E você pode começar <strong className="text-white">100% grátis</strong>. Sem cartão, sem compromisso.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button asChild size="lg" className="bg-white text-purple-600 hover:bg-purple-50">
               <Link to="/demo?persona=autonomo">
-                Começar grátis
+                Começar grátis agora
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -851,9 +916,12 @@ export function TecnicoAutonomoPage() {
               variant="outline"
               className="border-white text-white hover:bg-white/10"
             >
-              <Link to="/precos">Ver todos os planos</Link>
+              <Link to="/precos">Ver planos Pro</Link>
             </Button>
           </div>
+          <p className="text-sm text-purple-200 mt-6">
+            ✓ Sem cartão de crédito &nbsp;|&nbsp; ✓ Funciona offline &nbsp;|&nbsp; ✓ Suporte via WhatsApp
+          </p>
         </div>
       </section>
     </div>

@@ -64,9 +64,9 @@ export function Header() {
                 {hasDropdown && openDropdown === item.name && (
                   <div className="absolute left-0 top-full pt-2">
                     {isProductsMenu && groups ? (
-                      // Products mega menu with modules and features
-                      <div className="w-[720px] rounded-xl border bg-card shadow-xl overflow-hidden">
-                        <div className="grid grid-cols-3 divide-x">
+                      // Products mega menu with modules and features - 2x2 grid
+                      <div className="w-[900px] rounded-xl border bg-card shadow-xl overflow-hidden">
+                        <div className="grid grid-cols-4 divide-x">
                           {groups.map((group) => {
                             const IconComponent = 'icon' in group && typeof group.icon === 'string' 
                               ? iconMap[group.icon] 
@@ -78,18 +78,18 @@ export function Header() {
                                 {/* Module Header */}
                                 <Link
                                   to={groupHref}
-                                  className="flex items-center gap-3 mb-4 group"
+                                  className="flex items-center gap-2 mb-4 group"
                                 >
                                   {IconComponent && (
-                                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                                       <IconComponent className="w-5 h-5 text-primary" />
                                     </div>
                                   )}
                                   <div className="flex items-center gap-1">
-                                    <span className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                                    <span className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
                                       {group.name}
                                     </span>
-                                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                                    <ChevronRight className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
                                   </div>
                                 </Link>
                                 
@@ -99,12 +99,12 @@ export function Header() {
                                     <Link
                                       key={feature.name}
                                       to={feature.href}
-                                      className="block rounded-lg px-3 py-2 hover:bg-muted transition-colors group/item"
+                                      className="block rounded-lg px-2 py-1.5 hover:bg-muted transition-colors group/item"
                                     >
-                                      <div className="text-sm font-medium text-foreground group-hover/item:text-primary transition-colors">
+                                      <div className="text-xs font-medium text-foreground group-hover/item:text-primary transition-colors">
                                         {feature.name}
                                       </div>
-                                      <div className="text-xs text-muted-foreground">
+                                      <div className="text-[10px] text-muted-foreground line-clamp-1">
                                         {feature.description}
                                       </div>
                                     </Link>

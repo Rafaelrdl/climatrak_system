@@ -117,12 +117,12 @@ const moduleScreens = [
 ]
 
 const benefits = [
-  'Reducao de custos com corretivas',
-  'Mais preventivas no prazo',
-  'Conformidade PMOC automatizada',
-  'Visibilidade total do parque de ativos',
-  'Historico completo para auditorias',
-  'Integracao com sensores IoT (TrakSense)',
+  'Reduza até 40% dos custos com manutenções corretivas',
+  'Aumente em 25% a disponibilidade dos seus equipamentos',
+  'Gere laudos PMOC automaticamente em 1 clique',
+  'Tenha visibilidade total do histórico de cada ativo',
+  'Acabe com as planilhas e papéis perdidos',
+  'Integre sensores IoT para manutenção preditiva (TrakSense)',
 ]
 
 export function TrakNorPage() {
@@ -158,21 +158,46 @@ export function TrakNorPage() {
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-teal-600 to-teal-400 flex items-center justify-center">
                   <Wrench className="w-6 h-6 text-white" />
                 </div>
-                <Badge className="bg-teal-100 text-teal-700">CMMS</Badge>
+                <Badge className="bg-teal-100 text-teal-700">CMMS Completo</Badge>
               </div>
-              <h1 className="text-4xl sm:text-5xl font-bold mb-6">TrakNor</h1>
-              <p className="text-xl text-gray-600 mb-4">CMMS completo para gestao de manutencao</p>
-              <p className="text-lg text-gray-500 mb-8">Controle ordens, planos e ativos em uma unica plataforma com rastreabilidade total.</p>
+              <h1 className="text-4xl sm:text-5xl font-bold mb-6">
+                TrakNor: Chega de planilhas. <span className="text-teal-600">Controle de verdade.</span>
+              </h1>
+              <p className="text-xl text-gray-600 mb-4">
+                O CMMS que reduz corretivas em 40% e gera laudos PMOC automaticamente.
+              </p>
+              <p className="text-lg text-gray-500 mb-6">
+                Ordens de serviço, planos preventivos, estoque e métricas — tudo integrado para você parar de apagar incêndio e começar a prevenir.
+              </p>
+              
+              {/* Quick stats */}
+              <div className="flex gap-6 mb-8">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-teal-600">-40%</div>
+                  <div className="text-xs text-gray-500">Corretivas</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-teal-600">98%</div>
+                  <div className="text-xs text-gray-500">Disponibilidade</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-teal-600">100%</div>
+                  <div className="text-xs text-gray-500">PMOC em dia</div>
+                </div>
+              </div>
+              
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link to="/demo">
                   <Button size="lg" className="bg-teal-600 hover:bg-teal-700">
-                    Agendar demo <ArrowRight className="ml-2 h-4 w-4" />
+                    Ver demonstração gratuita <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
                 <Link to="/precos">
                   <Button size="lg" variant="outline">Ver Planos</Button>
                 </Link>
               </div>
+              
+              <p className="mt-4 text-sm text-gray-500">✓ Setup em 7 dias  ✓ Suporte dedicado  ✓ Sem fidelidade</p>
             </div>
             
             {/* Hero Screen Mockup */}
@@ -518,8 +543,11 @@ export function TrakNorPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <Badge className="mb-4 bg-teal-100 text-teal-700">Resultados</Badge>
-              <h2 className="text-3xl sm:text-4xl font-bold mb-6">Benefícios Comprovados</h2>
+              <Badge className="mb-4 bg-teal-100 text-teal-700">Resultados comprovados</Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">Por que empresas migram para o TrakNor?</h2>
+              <p className="text-lg text-gray-500 mb-6">
+                Mais de 200 empresas já transformaram sua operação de manutenção. Os resultados falam por si.
+              </p>
               <div className="space-y-4">
                 {benefits.map((benefit) => (
                   <div key={benefit} className="flex items-start gap-3">
@@ -529,6 +557,13 @@ export function TrakNorPage() {
                     <span className="text-lg">{benefit}</span>
                   </div>
                 ))}
+              </div>
+              <div className="mt-8">
+                <Link to="/demo">
+                  <Button size="lg" className="bg-teal-600 hover:bg-teal-700">
+                    Quero esses resultados <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
               </div>
             </div>
             
@@ -553,20 +588,22 @@ export function TrakNorPage() {
       {/* CTA */}
       <section className="py-16 md:py-24 bg-gradient-to-r from-teal-600 to-teal-500 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Pronto para transformar sua manutenção?</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Quanto você perde com corretivas não planejadas?</h2>
           <p className="text-lg text-teal-100 mb-8 max-w-2xl mx-auto">
-            Agende uma demonstração gratuita e veja como o TrakNor pode revolucionar a gestão de manutenção da sua empresa.
+            Empresas como a sua economizam em média R$ 150 mil/ano só com a redução de manutenções emergenciais. 
+            Agende uma demonstração e descubra seu potencial de economia.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link to="/demo">
               <Button size="lg" className="bg-white text-teal-600 hover:bg-teal-50">
-                Agendar demonstração <ArrowRight className="ml-2 h-4 w-4" />
+                Calcular minha economia <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
             <Link to="/precos">
               <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">Ver Planos e Preços</Button>
             </Link>
           </div>
+          <p className="mt-6 text-sm text-teal-200">✓ Demonstração personalizada  ✓ Sem compromisso  ✓ Resposta em 24h</p>
         </div>
       </section>
     </div>

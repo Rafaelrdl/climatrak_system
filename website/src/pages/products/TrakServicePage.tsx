@@ -114,12 +114,12 @@ const moduleScreens = [
 ]
 
 const benefits = [
-  'Redução de tempo de deslocamento',
-  'Aumento de produtividade da equipe',
-  'Controle total de custos com KM',
-  'Orçamentos aprovados mais rápido',
-  'Visibilidade em tempo real',
-  'Integração nativa com TrakNor e TrakLedger',
+  'Reduza em 30% os custos com deslocamento',
+  'Aumente em 25% o número de atendimentos/dia',
+  'Orçamentos enviados e aprovados no mesmo dia',
+  'Rastreamento com privacidade (janela de trabalho)',
+  'Controle total de KM: GPS vs declarado',
+  'Integrado nativamente ao TrakNor e TrakLedger',
 ]
 
 export function TrakServicePage() {
@@ -156,19 +156,47 @@ export function TrakServicePage() {
                 </div>
                 <Badge className="bg-orange-100 text-orange-700">Field Service</Badge>
               </div>
-              <h1 className="text-4xl sm:text-5xl font-bold mb-6">TrakService</h1>
-              <p className="text-xl text-gray-600 mb-4">Gestão completa de equipes externas</p>
-              <p className="text-lg text-gray-500 mb-8">Despacho, rastreamento, roteirização e orçamentos em campo. Tudo integrado para máxima eficiência.</p>
+              <h1 className="text-4xl sm:text-5xl font-bold mb-6">
+                TrakService: <span className="text-orange-600">Sua equipe externa sob controle total.</span>
+              </h1>
+              <p className="text-xl text-gray-600 mb-4">
+                Menos KM rodado. Mais atendimentos por dia. Orçamentos aprovados no campo.
+              </p>
+              <p className="text-lg text-gray-500 mb-6">
+                Despacho inteligente, rastreamento com privacidade, roteirização otimizada e orçamentos 
+                enviados do celular. <strong>Produtividade que você consegue medir.</strong>
+              </p>
+              
+              {/* Quick stats */}
+              <div className="flex gap-6 mb-8">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">-30%</div>
+                  <div className="text-xs text-gray-500">KM rodado</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">+25%</div>
+                  <div className="text-xs text-gray-500">Atendimentos/dia</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">2x</div>
+                  <div className="text-xs text-gray-500">Mais rápido orçamentos</div>
+                </div>
+              </div>
+              
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link to="/demo">
                   <Button size="lg" className="bg-orange-600 hover:bg-orange-700">
-                    Agendar demo <ArrowRight className="ml-2 h-4 w-4" />
+                    Ver demonstração <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
                 <Link to="/precos">
                   <Button size="lg" variant="outline">Ver Planos</Button>
                 </Link>
               </div>
+              
+              <p className="mt-4 text-sm text-gray-500">
+                ✓ App mobile incluído  ✓ Integra com TrakNor  ✓ Privacidade do técnico garantida
+              </p>
             </div>
             
             {/* Hero Screen Mockup */}
@@ -914,23 +942,27 @@ export function TrakServicePage() {
       <section className="py-16 md:py-24 bg-gradient-to-r from-orange-600 to-orange-500">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-            Pronto para transformar seu Field Service?
+            Quanto você gasta por mês com deslocamento improdutivo?
           </h2>
           <p className="text-xl text-orange-100 mb-8">
-            Agende uma demonstração gratuita e veja como o TrakService pode otimizar suas operações.
+            Empresas com o TrakService economizam em média R$ 15 mil/mês só em combustível e horas extras. 
+            Agende uma demonstração e descubra seu potencial de economia.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/demo">
               <Button size="lg" variant="secondary" className="bg-white text-orange-600 hover:bg-orange-50">
-                Agendar demonstração <ArrowRight className="ml-2 h-4 w-4" />
+                Calcular minha economia <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
             <Link to="/contato">
               <Button size="lg" variant="outline" className="border-white text-white hover:bg-orange-700">
-                Falar com vendas
+                Falar com especialista
               </Button>
             </Link>
           </div>
+          <p className="mt-6 text-sm text-orange-200">
+            ✓ App mobile gratuito  ✓ Setup em 3 dias  ✓ Treinamento incluso
+          </p>
         </div>
       </section>
     </div>
