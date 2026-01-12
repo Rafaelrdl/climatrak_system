@@ -174,7 +174,7 @@ function DashboardMockup() {
   return (
     <div className="bg-white rounded-2xl shadow-2xl border overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-4 text-white">
+      <div className="bg-gradient-to-r from-teal-600 to-teal-500 px-6 py-4 text-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
@@ -182,7 +182,7 @@ function DashboardMockup() {
             </div>
             <div>
               <div className="font-bold">ClimaTrak Dashboard</div>
-              <div className="text-sm text-blue-100">Hospital São Lucas</div>
+              <div className="text-sm text-teal-100">Hospital São Lucas</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -200,7 +200,7 @@ function DashboardMockup() {
             { label: 'OS Abertas', value: '12', color: 'text-amber-600', bg: 'bg-amber-50' },
             { label: 'Ativos Críticos', value: '3', color: 'text-red-600', bg: 'bg-red-50' },
             { label: 'Preventivas Mês', value: '28', color: 'text-green-600', bg: 'bg-green-50' },
-            { label: 'MTTR (h)', value: '4.2', color: 'text-blue-600', bg: 'bg-blue-50' },
+            { label: 'MTTR (h)', value: '4.2', color: 'text-teal-600', bg: 'bg-teal-50' },
           ].map((stat) => (
             <div key={stat.label} className={cn('rounded-xl p-4 text-center', stat.bg)}>
               <div className={cn('text-2xl font-bold', stat.color)}>{stat.value}</div>
@@ -221,7 +221,7 @@ function DashboardMockup() {
                 <div
                   className={cn(
                     'w-full rounded-t',
-                    i % 2 === 0 ? 'bg-blue-500' : 'bg-blue-300'
+                    i % 2 === 0 ? 'bg-teal-500' : 'bg-teal-300'
                   )}
                   style={{ height: `${height}%` }}
                 />
@@ -351,7 +351,7 @@ export function EquipeInternaPage() {
         <div className="container-wide">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <Badge className="mb-4 bg-blue-100 text-blue-700">Para Equipes Internas</Badge>
+              <Badge className="mb-4 bg-teal-100 text-teal-700">Para Equipes Internas</Badge>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
                 Chega de <span className="text-gradient">apagar incêndios</span>
               </h1>
@@ -405,13 +405,13 @@ export function EquipeInternaPage() {
       </section>
 
       {/* Stats Bar */}
-      <section className="py-8 bg-blue-600 text-white">
+      <section className="py-8 bg-teal-600 text-white">
         <div className="container-wide">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {heroStats.map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-3xl sm:text-4xl font-bold mb-1">{stat.value}</div>
-                <div className="text-sm text-blue-100">{stat.label}</div>
+                <div className="text-sm text-teal-100">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -465,16 +465,16 @@ export function EquipeInternaPage() {
             {mainFeatures.map((feature) => {
               const Icon = feature.icon
               return (
-                <Card key={feature.title} className="card-hover border-2 hover:border-blue-200">
+                <Card key={feature.title} className="card-hover border-2 hover:border-teal-200">
                   <CardContent className="pt-6">
-                    <div className="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center mb-4">
-                      <Icon className="w-7 h-7 text-blue-600" />
+                    <div className="w-14 h-14 rounded-2xl bg-teal-100 flex items-center justify-center mb-4">
+                      <Icon className="w-7 h-7 text-teal-600" />
                     </div>
                     <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
                     <p className="text-muted-foreground mb-4">{feature.description}</p>
                     <div className="flex flex-wrap gap-2">
                       {feature.benefits.map((benefit) => (
-                        <Badge key={benefit} variant="secondary" className="bg-blue-50 text-blue-700">
+                        <Badge key={benefit} variant="secondary" className="bg-teal-50 text-teal-700">
                           {benefit}
                         </Badge>
                       ))}
@@ -543,10 +543,10 @@ export function EquipeInternaPage() {
               return (
                 <div
                   key={kpi.name}
-                  className="bg-white border-2 border-gray-100 rounded-2xl p-6 text-center hover:border-blue-200 transition-colors"
+                  className="bg-white border-2 border-gray-100 rounded-2xl p-6 text-center hover:border-teal-200 transition-colors"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mx-auto mb-3">
-                    <Icon className="w-6 h-6 text-blue-600" />
+                  <div className="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center mx-auto mb-3">
+                    <Icon className="w-6 h-6 text-teal-600" />
                   </div>
                   <div className="font-bold text-lg mb-1">{kpi.name}</div>
                   <div className="text-xs text-muted-foreground">{kpi.description}</div>
@@ -657,8 +657,8 @@ export function EquipeInternaPage() {
                   </div>
                   <p className="text-muted-foreground mb-6">"{testimonial.text}"</p>
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="font-bold text-blue-700">{testimonial.avatar}</span>
+                    <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
+                      <span className="font-bold text-teal-700">{testimonial.avatar}</span>
                     </div>
                     <div>
                       <div className="font-semibold">{testimonial.name}</div>
@@ -743,20 +743,20 @@ export function EquipeInternaPage() {
       </section>
 
       {/* CTA */}
-      <section className="section-padding bg-gradient-to-r from-blue-600 to-blue-500 text-white">
+      <section className="section-padding bg-gradient-to-r from-teal-600 to-teal-500 text-white">
         <div className="container-wide text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
             Quanto você perde por ano com manutenções corretivas?
           </h2>
-          <p className="text-lg text-blue-100 mb-4 max-w-2xl mx-auto">
+          <p className="text-lg text-teal-100 mb-4 max-w-2xl mx-auto">
             Nossos clientes economizam em média <strong className="text-white">R$ 2.4 milhões por ano</strong> ao 
             substituir emergências por prevenção inteligente.
           </p>
-          <p className="text-blue-200 mb-8">
+          <p className="text-teal-200 mb-8">
             Se sua operação gasta mais de R$ 100 mil/ano com corretivas, podemos mostrar o caminho.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Button asChild size="lg" className="bg-white text-blue-600 hover:bg-blue-50">
+            <Button asChild size="lg" className="bg-white text-teal-600 hover:bg-teal-50">
               <Link to="/demo?persona=equipe-interna">
                 Calcular minha economia
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -771,7 +771,7 @@ export function EquipeInternaPage() {
               <Link to="/precos">Ver planos e preços</Link>
             </Button>
           </div>
-          <p className="text-sm text-blue-200 mt-6">
+          <p className="text-sm text-teal-200 mt-6">
             ✓ Demonstração personalizada gratuita &nbsp;|&nbsp; ✓ Análise de ROI inclusa &nbsp;|&nbsp; ✓ Sem compromisso
           </p>
         </div>

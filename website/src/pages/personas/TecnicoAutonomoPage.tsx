@@ -170,7 +170,7 @@ function MobileAppMockup() {
     <div className="bg-gray-900 rounded-[3rem] p-3 shadow-2xl max-w-[320px] mx-auto">
       <div className="bg-white rounded-[2.5rem] overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-purple-500 px-5 py-6 text-white">
+        <div className="bg-gradient-to-r from-teal-600 to-teal-500 px-5 py-6 text-white">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
@@ -178,7 +178,7 @@ function MobileAppMockup() {
               </div>
               <div>
                 <div className="font-bold">Olá, Marcelo!</div>
-                <div className="text-sm text-purple-200">Técnico autônomo</div>
+                <div className="text-sm text-teal-200">Técnico autônomo</div>
               </div>
             </div>
             <div className="flex items-center gap-1 text-xs bg-white/20 px-2 py-1 rounded-full">
@@ -189,15 +189,15 @@ function MobileAppMockup() {
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-white/10 rounded-xl p-3 text-center">
               <div className="text-2xl font-bold">5</div>
-              <div className="text-xs text-purple-200">Hoje</div>
+              <div className="text-xs text-teal-200">Hoje</div>
             </div>
             <div className="bg-white/10 rounded-xl p-3 text-center">
               <div className="text-2xl font-bold">R$ 2,4k</div>
-              <div className="text-xs text-purple-200">Semana</div>
+              <div className="text-xs text-teal-200">Semana</div>
             </div>
             <div className="bg-white/10 rounded-xl p-3 text-center">
               <div className="text-2xl font-bold">12</div>
-              <div className="text-xs text-purple-200">Clientes</div>
+              <div className="text-xs text-teal-200">Clientes</div>
             </div>
           </div>
         </div>
@@ -207,7 +207,7 @@ function MobileAppMockup() {
           {/* Quick actions */}
           <div className="grid grid-cols-4 gap-2 mb-4">
             {[
-              { icon: ClipboardList, label: 'Nova OS', color: 'bg-purple-100 text-purple-600' },
+              { icon: ClipboardList, label: 'Nova OS', color: 'bg-teal-100 text-teal-600' },
               { icon: Calculator, label: 'Calc BTU', color: 'bg-blue-100 text-blue-600' },
               { icon: Receipt, label: 'Orçam.', color: 'bg-green-100 text-green-600' },
               { icon: Bot, label: 'Clima IA', color: 'bg-amber-100 text-amber-600' },
@@ -227,15 +227,15 @@ function MobileAppMockup() {
           </div>
 
           {/* Current job */}
-          <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 mb-4">
+          <div className="bg-teal-50 border border-teal-200 rounded-xl p-3 mb-4">
             <div className="flex items-center justify-between mb-2">
-              <Badge className="bg-purple-600 text-white text-[10px]">Em andamento</Badge>
+              <Badge className="bg-teal-600 text-white text-[10px]">Em andamento</Badge>
               <span className="text-xs text-gray-500">14:30</span>
             </div>
             <div className="font-medium text-sm">Maria Silva</div>
             <div className="text-xs text-gray-500 mb-2">Split 12000 - Não gela</div>
             <div className="flex gap-2">
-              <Button size="sm" className="flex-1 h-8 text-xs bg-purple-600 hover:bg-purple-700">
+              <Button size="sm" className="flex-1 h-8 text-xs bg-teal-600 hover:bg-teal-700">
                 Finalizar
               </Button>
               <Button size="sm" variant="outline" className="h-8 text-xs">
@@ -252,14 +252,14 @@ function MobileAppMockup() {
               { name: 'Ana Pereira', time: '18:00', type: 'Preventiva' },
             ].map((job, i) => (
               <div key={i} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-purple-600" />
+                <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-teal-600" />
                 </div>
                 <div className="flex-1">
                   <div className="text-sm font-medium">{job.name}</div>
                   <div className="text-xs text-gray-500">{job.type}</div>
                 </div>
-                <span className="text-xs font-medium text-purple-600">{job.time}</span>
+                <span className="text-xs font-medium text-teal-600">{job.time}</span>
               </div>
             ))}
           </div>
@@ -272,21 +272,21 @@ function MobileAppMockup() {
 function AIChatMockup() {
   return (
     <div className="bg-white rounded-2xl shadow-2xl border overflow-hidden max-w-md">
-      <div className="bg-gradient-to-r from-purple-600 to-purple-500 px-6 py-4 text-white">
+      <div className="bg-gradient-to-r from-teal-600 to-teal-500 px-6 py-4 text-white">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
             <Bot className="w-5 h-5" />
           </div>
           <div>
             <div className="font-bold">Clima IA</div>
-            <div className="text-sm text-purple-200">Seu assistente técnico 24h</div>
+            <div className="text-sm text-teal-200">Seu assistente técnico 24h</div>
           </div>
         </div>
       </div>
       <div className="p-4 space-y-4 h-80 overflow-y-auto bg-gray-50">
         {/* User message */}
         <div className="flex justify-end">
-          <div className="bg-purple-600 text-white rounded-2xl rounded-tr-md px-4 py-2 max-w-[80%]">
+          <div className="bg-teal-600 text-white rounded-2xl rounded-tr-md px-4 py-2 max-w-[80%]">
             <p className="text-sm">{aiExamples[0].question}</p>
           </div>
         </div>
@@ -306,7 +306,7 @@ function AIChatMockup() {
         </div>
         {/* User message 2 */}
         <div className="flex justify-end">
-          <div className="bg-purple-600 text-white rounded-2xl rounded-tr-md px-4 py-2 max-w-[80%]">
+          <div className="bg-teal-600 text-white rounded-2xl rounded-tr-md px-4 py-2 max-w-[80%]">
             <p className="text-sm">{aiExamples[1].question}</p>
           </div>
         </div>
@@ -322,9 +322,9 @@ function AIChatMockup() {
           <input
             type="text"
             placeholder="Digite sua dúvida técnica..."
-            className="flex-1 px-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="flex-1 px-4 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
-          <Button size="icon" className="rounded-full bg-purple-600 hover:bg-purple-700">
+          <Button size="icon" className="rounded-full bg-teal-600 hover:bg-teal-700">
             <Send className="w-4 h-4" />
           </Button>
         </div>
@@ -367,9 +367,9 @@ function PTCalculatorMockup() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4 mb-4">
+        <div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-xl p-4 mb-4">
           <div className="text-sm text-gray-600 mb-1">Potência recomendada</div>
-          <div className="text-4xl font-bold text-purple-600 mb-1">18.000 BTU</div>
+          <div className="text-4xl font-bold text-teal-600 mb-1">18.000 BTU</div>
           <div className="text-sm text-gray-500">Carga calculada: 16.800 BTU (+7% margem)</div>
         </div>
 
@@ -393,7 +393,7 @@ function PTCalculatorMockup() {
         </div>
 
         <div className="flex gap-2 mt-6">
-          <Button className="flex-1 bg-purple-600 hover:bg-purple-700">
+          <Button className="flex-1 bg-teal-600 hover:bg-teal-700">
             <FileText className="w-4 h-4 mr-2" /> Gerar PDF
           </Button>
           <Button variant="outline">
@@ -457,14 +457,14 @@ export function TecnicoAutonomoPage() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="section-padding bg-gradient-to-br from-purple-50 via-white to-purple-100 relative overflow-hidden">
+      <section className="section-padding bg-gradient-to-br from-teal-50 via-white to-teal-100 relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
         <div className="container-wide">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <Badge className="mb-4 bg-purple-100 text-purple-700">Para Técnico Autônomo</Badge>
+              <Badge className="mb-4 bg-teal-100 text-teal-700">Para Técnico Autônomo</Badge>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-                Trabalhe <span className="text-purple-600">mais inteligente</span>, não mais duro
+                Trabalhe <span className="text-teal-600">mais inteligente</span>, não mais duro
               </h1>
               <p className="text-xl text-muted-foreground mb-4 max-w-xl">
                 Você é bom no que faz. 
@@ -472,10 +472,10 @@ export function TecnicoAutonomoPage() {
               </p>
               <p className="text-lg text-muted-foreground mb-8 max-w-xl">
                 App que funciona offline, IA que tira dúvidas, calculadora de BTU que impressiona 
-                e orçamentos via WhatsApp em segundos. <strong className="text-purple-600">Comece grátis.</strong>
+                e orçamentos via WhatsApp em segundos. <strong className="text-teal-600">Comece grátis.</strong>
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Button asChild size="xl" className="bg-purple-600 hover:bg-purple-700">
+                <Button asChild size="xl" className="bg-teal-600 hover:bg-teal-700">
                   <Link to="/demo?persona=autonomo">
                     Começar grátis agora
                     <ArrowRight className="ml-2 h-5 w-5" />
@@ -490,11 +490,11 @@ export function TecnicoAutonomoPage() {
               </div>
               <div className="flex items-center gap-6 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-purple-500" />
+                  <CheckCircle2 className="w-4 h-4 text-teal-500" />
                   <span>Grátis para sempre</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-purple-500" />
+                  <CheckCircle2 className="w-4 h-4 text-teal-500" />
                   <span>100% offline</span>
                 </div>
               </div>
@@ -503,11 +503,11 @@ export function TecnicoAutonomoPage() {
               <MobileAppMockup />
               {/* Floating elements */}
               <div className="absolute -top-4 -right-4 bg-white rounded-xl shadow-lg p-3 hidden lg:flex items-center gap-2">
-                <Bot className="w-4 h-4 text-purple-500" />
+                <Bot className="w-4 h-4 text-teal-500" />
                 <span className="text-sm font-medium">IA disponível 24h</span>
               </div>
               <div className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-lg p-3 hidden lg:flex items-center gap-2">
-                <WifiOff className="w-4 h-4 text-purple-500" />
+                <WifiOff className="w-4 h-4 text-teal-500" />
                 <span className="text-sm font-medium">Funciona sem internet</span>
               </div>
             </div>
@@ -516,13 +516,13 @@ export function TecnicoAutonomoPage() {
       </section>
 
       {/* Stats Bar */}
-      <section className="py-8 bg-purple-600 text-white">
+      <section className="py-8 bg-teal-600 text-white">
         <div className="container-wide">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {heroStats.map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-3xl sm:text-4xl font-bold mb-1">{stat.value}</div>
-                <div className="text-sm text-purple-100">{stat.label}</div>
+                <div className="text-sm text-teal-100">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -576,16 +576,16 @@ export function TecnicoAutonomoPage() {
             {mainFeatures.map((feature) => {
               const Icon = feature.icon
               return (
-                <Card key={feature.title} className="card-hover border-2 hover:border-purple-200">
+                <Card key={feature.title} className="card-hover border-2 hover:border-teal-200">
                   <CardContent className="pt-6">
-                    <div className="w-14 h-14 rounded-2xl bg-purple-100 flex items-center justify-center mb-4">
-                      <Icon className="w-7 h-7 text-purple-600" />
+                    <div className="w-14 h-14 rounded-2xl bg-teal-100 flex items-center justify-center mb-4">
+                      <Icon className="w-7 h-7 text-teal-600" />
                     </div>
                     <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
                     <p className="text-muted-foreground mb-4">{feature.description}</p>
                     <div className="flex flex-wrap gap-2">
                       {feature.benefits.map((benefit) => (
-                        <Badge key={benefit} variant="secondary" className="bg-purple-50 text-purple-700">
+                        <Badge key={benefit} variant="secondary" className="bg-teal-50 text-teal-700">
                           {benefit}
                         </Badge>
                       ))}
@@ -603,7 +603,7 @@ export function TecnicoAutonomoPage() {
         <div className="container-wide">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <Badge className="mb-4 bg-purple-100 text-purple-700">Clima IA</Badge>
+              <Badge className="mb-4 bg-teal-100 text-teal-700">Clima IA</Badge>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">
                 Um colega experiente no seu bolso
               </h2>
@@ -618,7 +618,7 @@ export function TecnicoAutonomoPage() {
                   <Card key={i}>
                     <CardContent className="pt-4">
                       <div className="flex items-start gap-3 mb-2">
-                        <MessageSquare className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                        <MessageSquare className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
                         <p className="text-sm font-medium">{example.question}</p>
                       </div>
                       <div className="flex items-start gap-3 pl-8">
@@ -678,7 +678,7 @@ export function TecnicoAutonomoPage() {
         <div className="container-wide">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <Badge className="mb-4 bg-purple-900 text-purple-300">100% Offline</Badge>
+              <Badge className="mb-4 bg-teal-900 text-teal-300">100% Offline</Badge>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">
                 Funciona até onde não pega sinal
               </h2>
@@ -689,15 +689,15 @@ export function TecnicoAutonomoPage() {
               <div className="grid sm:grid-cols-2 gap-3">
                 {offlineCapabilities.map((item) => (
                   <div key={item} className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center">
-                      <Check className="w-4 h-4 text-purple-400" />
+                    <div className="w-6 h-6 rounded-full bg-teal-500/20 flex items-center justify-center">
+                      <Check className="w-4 h-4 text-teal-400" />
                     </div>
                     <span className="text-sm">{item}</span>
                   </div>
                 ))}
               </div>
-              <div className="mt-8 p-4 bg-purple-500/20 rounded-xl">
-                <div className="flex items-center gap-2 text-purple-300 mb-2">
+              <div className="mt-8 p-4 bg-teal-500/20 rounded-xl">
+                <div className="flex items-center gap-2 text-teal-300 mb-2">
                   <Wifi className="w-4 h-4" />
                   <span className="text-sm font-medium">Sincronização inteligente</span>
                 </div>
@@ -710,8 +710,8 @@ export function TecnicoAutonomoPage() {
             <div className="relative">
               <div className="bg-gray-800 rounded-3xl p-8">
                 <div className="flex items-center justify-center mb-6">
-                  <div className="w-20 h-20 bg-purple-500/20 rounded-full flex items-center justify-center">
-                    <WifiOff className="w-10 h-10 text-purple-400" />
+                  <div className="w-20 h-20 bg-teal-500/20 rounded-full flex items-center justify-center">
+                    <WifiOff className="w-10 h-10 text-teal-400" />
                   </div>
                 </div>
                 <div className="text-center mb-6">
@@ -726,8 +726,8 @@ export function TecnicoAutonomoPage() {
                     { icon: Camera, label: 'Fotos' },
                   ].map((item) => (
                     <div key={item.label} className="text-center">
-                      <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mx-auto mb-1">
-                        <item.icon className="w-6 h-6 text-purple-400" />
+                      <div className="w-12 h-12 bg-teal-500/20 rounded-xl flex items-center justify-center mx-auto mb-1">
+                        <item.icon className="w-6 h-6 text-teal-400" />
                       </div>
                       <span className="text-xs text-gray-400">{item.label}</span>
                     </div>
@@ -796,8 +796,8 @@ export function TecnicoAutonomoPage() {
                   </div>
                   <p className="text-muted-foreground mb-6">"{testimonial.text}"</p>
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                      <span className="font-bold text-purple-700">{testimonial.avatar}</span>
+                    <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
+                      <span className="font-bold text-teal-700">{testimonial.avatar}</span>
                     </div>
                     <div>
                       <div className="font-semibold">{testimonial.name}</div>
@@ -849,18 +849,18 @@ export function TecnicoAutonomoPage() {
                 key={plan.name}
                 className={cn(
                   'relative',
-                  plan.highlight && 'border-purple-500 border-2 shadow-lg'
+                  plan.highlight && 'border-teal-500 border-2 shadow-lg'
                 )}
               >
                 {plan.highlight && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-purple-600 text-white">Mais popular</Badge>
+                    <Badge className="bg-teal-600 text-white">Mais popular</Badge>
                   </div>
                 )}
                 <CardContent className="pt-6">
                   <div className="text-center mb-4">
                     <h3 className="font-semibold text-lg mb-1">{plan.name}</h3>
-                    <div className="text-3xl font-bold text-purple-600 mb-1">
+                    <div className="text-3xl font-bold text-teal-600 mb-1">
                       {plan.price}
                       {plan.price !== 'R$ 0' && <span className="text-sm font-normal text-gray-500">/mês</span>}
                     </div>
@@ -869,7 +869,7 @@ export function TecnicoAutonomoPage() {
                   <div className="space-y-2 mb-6">
                     {plan.features.map((feature) => (
                       <div key={feature} className="flex items-center gap-2 text-sm">
-                        <Check className="w-4 h-4 text-purple-600" />
+                        <Check className="w-4 h-4 text-teal-600" />
                         <span>{feature}</span>
                       </div>
                     ))}
@@ -877,7 +877,7 @@ export function TecnicoAutonomoPage() {
                   <Button
                     className={cn(
                       'w-full',
-                      plan.highlight ? 'bg-purple-600 hover:bg-purple-700' : ''
+                      plan.highlight ? 'bg-teal-600 hover:bg-teal-700' : ''
                     )}
                     variant={plan.highlight ? 'default' : 'outline'}
                   >
@@ -891,20 +891,20 @@ export function TecnicoAutonomoPage() {
       </section>
 
       {/* CTA */}
-      <section className="section-padding bg-gradient-to-r from-purple-600 to-purple-500 text-white">
+      <section className="section-padding bg-gradient-to-r from-teal-600 to-teal-500 text-white">
         <div className="container-wide text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
             Quantos serviços você perde por não ter as ferramentas certas?
           </h2>
-          <p className="text-lg text-purple-100 mb-4 max-w-2xl mx-auto">
+          <p className="text-lg text-teal-100 mb-4 max-w-2xl mx-auto">
             Nossos usuários relatam ganhar em média <strong className="text-white">R$ 2 mil a mais por mês</strong> ao 
             economizar tempo com burocracia e fechar mais orçamentos.
           </p>
-          <p className="text-purple-200 mb-8">
+          <p className="text-teal-200 mb-8">
             E você pode começar <strong className="text-white">100% grátis</strong>. Sem cartão, sem compromisso.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Button asChild size="lg" className="bg-white text-purple-600 hover:bg-purple-50">
+            <Button asChild size="lg" className="bg-white text-teal-600 hover:bg-teal-50">
               <Link to="/demo?persona=autonomo">
                 Começar grátis agora
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -919,7 +919,7 @@ export function TecnicoAutonomoPage() {
               <Link to="/precos">Ver planos Pro</Link>
             </Button>
           </div>
-          <p className="text-sm text-purple-200 mt-6">
+          <p className="text-sm text-teal-200 mt-6">
             ✓ Sem cartão de crédito &nbsp;|&nbsp; ✓ Funciona offline &nbsp;|&nbsp; ✓ Suporte via WhatsApp
           </p>
         </div>
