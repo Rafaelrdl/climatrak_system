@@ -132,7 +132,7 @@ export function useUpdateChecklist() {
           type: item.type,
           required: item.required,
           order: item.order || index + 1,
-          options: item.options,
+          options: item.options?.map((opt) => (typeof opt === 'string' ? opt : opt.value)),
         }));
       }
       

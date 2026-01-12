@@ -520,6 +520,7 @@ function AssetsContent() {
         warrantyExpiry: '',
         notes: '',
         companyId: '',
+        unitId: '',
         sectorId: '',
         subSectionId: '',
         location: '',

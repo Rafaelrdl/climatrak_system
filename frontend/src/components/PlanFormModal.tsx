@@ -72,7 +72,7 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
         
         return {
           id,
-          name: eq?.name || eq?.model || '',
+          name: eq?.tag || eq?.model || '',
           tag: equipmentNames[index] || eq?.tag || '',
           brand: eq?.brand,
           type: eq?.type,

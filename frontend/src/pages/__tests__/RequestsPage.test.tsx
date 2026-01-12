@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { RequestsPage } from '../RequestsPage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 
 // Mock the toast function
 vi.mock('sonner', () => ({
@@ -67,6 +68,10 @@ vi.mock('@/hooks/useLocationsQuery', () => ({
     data: [{ id: '1', name: 'Test Location', company_id: '1' }],
     isLoading: false
   }),
+  useUnits: () => ({
+    data: [{ id: '1', name: 'Test Unit', company_id: '1' }],
+    isLoading: false
+  }),
   useSectors: () => ({
     data: [{ id: '1', name: 'Test Sector', company_id: '1' }],
     isLoading: false
@@ -100,7 +105,7 @@ const createWrapper = () => {
   
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <MemoryRouter>{children}</MemoryRouter>
     </QueryClientProvider>
   );
 };

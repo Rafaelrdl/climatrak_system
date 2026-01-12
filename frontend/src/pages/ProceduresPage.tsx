@@ -432,7 +432,7 @@ export function ProceduresPage() {
                     <CheckSquare className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{'total_items' in checklistStats ? checklistStats.total_items : checklistStats.totalItems}</div>
+                    <div className="text-2xl font-bold">{checklistStats.total_items}</div>
                     <p className="text-xs text-muted-foreground">
                       Tarefas cadastradas
                     </p>
@@ -443,11 +443,11 @@ export function ProceduresPage() {
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Utilizações</CardTitle>
                     <Badge variant="secondary" className="h-4">
-                      {'total_usage' in checklistStats ? checklistStats.total_usage : checklistStats.totalUsage}
+                      {checklistStats.total_usage}
                     </Badge>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{'total_usage' in checklistStats ? checklistStats.total_usage : checklistStats.totalUsage}</div>
+                    <div className="text-2xl font-bold">{checklistStats.total_usage}</div>
                     <p className="text-xs text-muted-foreground">
                       Vinculados a planos
                     </p>

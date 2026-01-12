@@ -531,7 +531,7 @@ export function TrackingPage() {
         />
         <QuickStatCard
           title="No Local"
-          value={summaryData.at_site}
+          value={summaryData.at_site ?? 0}
           description="Em atendimento"
           icon={Target}
           color="text-purple-500"
