@@ -44,6 +44,18 @@ const mapToStockItem = (item: ApiInventoryItem): StockItem => ({
   maximum: item.max_quantity ?? 0
 });
 
+const parseLocalDate = (dateString: string): Date => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+const formatDateToLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 interface WorkOrderDetailViewProps {
   workOrder: WorkOrder | null;
   onSave?: (updates: Partial<WorkOrder>) => void;
@@ -83,6 +95,13 @@ export function WorkOrderDetailView({
   const sectorsList = useMemo(() => sectors, [sectors]);
   const companiesList = useMemo(() => companies, [companies]);
   const stockItemsList = useMemo(() => stockItems, [stockItems]);
+
+  const scheduledDateValue = useMemo(() => {
+    if (!formData.scheduledDate) return undefined;
+    return formData.scheduledDate.includes('T')
+      ? new Date(formData.scheduledDate)
+      : parseLocalDate(formData.scheduledDate);
+  }, [formData.scheduledDate]);
 
   // Carregar dados quando workOrder mudar
   useEffect(() => {
@@ -385,8 +404,8 @@ export function WorkOrderDetailView({
                         <div className="space-y-2">
                           <Label>Data Programada</Label>
                           <DatePicker
-                            date={formData.scheduledDate ? new Date(formData.scheduledDate) : undefined}
-                            setDate={(date) => handleFieldChange('scheduledDate', date?.toISOString())}
+                            date={scheduledDateValue}
+                            setDate={(date) => handleFieldChange('scheduledDate', date ? formatDateToLocal(date) : undefined)}
                             disabled={readOnly}
                           />
                         </div>

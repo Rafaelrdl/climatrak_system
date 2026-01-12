@@ -167,6 +167,9 @@ export function WorkOrderList({
 
   // Compact mode - Gmail-style list view for panel
   if (compact) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
     return (
       <div className="h-full flex flex-col bg-background">
         <div className="flex-shrink-0 bg-background/95 backdrop-blur-sm border-b px-4 py-3">
@@ -175,15 +178,19 @@ export function WorkOrderList({
           </h3>
         </div>
         <div className="flex-1 overflow-y-auto">
-          <div className="divide-y divide-border/60">
+          <div className="divide-y divide-border/60" role="listbox" aria-label="Ordens de serviço">
             {workOrders.map((wo) => {
             const eq = equipment.find(e => e.id === wo.equipmentId);
 
             const isSelected = selectedWorkOrderId === wo.id;
-            const scheduledDateObj = wo.scheduledDate ? (wo.scheduledDate.includes('T') ? new Date(wo.scheduledDate) : parseLocalDate(wo.scheduledDate)) : null;
-            const isOverdue = scheduledDateObj && scheduledDateObj < new Date() &&
-              !['COMPLETED', 'CANCELLED'].includes(wo.status);
-            const isToday = scheduledDateObj && scheduledDateObj.toDateString() === new Date().toDateString();
+            const scheduledDateObj = wo.scheduledDate
+              ? (wo.scheduledDate.includes('T') ? new Date(wo.scheduledDate) : parseLocalDate(wo.scheduledDate))
+              : null;
+            const hasTime = !!wo.scheduledDate?.includes('T');
+            const isOverdue = scheduledDateObj
+              && !['COMPLETED', 'CANCELLED'].includes(wo.status)
+              && (hasTime ? scheduledDateObj < now : scheduledDateObj < today);
+            const isToday = scheduledDateObj && scheduledDateObj.toDateString() === today.toDateString();
             
             // Format date Gmail style (show time if today, date if not)
             const formatDate = (dateString: string) => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
@@ -21,7 +21,6 @@ function WorkOrderPanelComponent({
   onUpdateWorkOrder
 }: WorkOrderPanelProps) {
   const { selectedWorkOrder, selectedWorkOrderId, setSelectedWorkOrder, clearSelection } = useWorkOrderStore();
-  const [panelSizes, setPanelSizes] = useState([30, 70]);
   
   // Use refs to avoid dependency issues
   const setSelectedWorkOrderRef = useRef(setSelectedWorkOrder);
@@ -37,18 +36,10 @@ function WorkOrderPanelComponent({
   const hasAutoSelectedRef = useRef(false);
   const workOrdersCountRef = useRef(workOrders.length);
 
-  // Handle URL query params for deep linking
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const woId = urlParams.get('wo');
-    
-    if (woId && woId !== selectedWorkOrderId) {
-      const workOrder = workOrders.find(wo => wo.id === woId);
-      if (workOrder) {
-        setSelectedWorkOrderRef.current(workOrder);
-      }
-    }
-  }, [workOrders, selectedWorkOrderId]);
+  const getWorkOrderById = useCallback(
+    (id: string) => workOrders.find((wo) => wo.id === id),
+    [workOrders]
+  );
 
   // Update URL when selection changes
   useEffect(() => {
@@ -68,37 +59,64 @@ function WorkOrderPanelComponent({
     }
   }, [selectedWorkOrder?.id, setSelectedWorkOrder]);
 
-  // Auto-select first work order if none selected and list is not empty
+  // Sync selection with URL param, persisted selection, and list updates
   useEffect(() => {
-    // Check if workOrders count has changed (new filter/search)
     if (workOrdersCountRef.current !== workOrders.length) {
       workOrdersCountRef.current = workOrders.length;
       hasAutoSelectedRef.current = false;
     }
-    
-    // Only auto-select if:
-    // 1. No current selection
-    // 2. We have work orders
-    // 3. We haven't already auto-selected for this set
-    if (!selectedWorkOrderId && workOrders.length > 0 && !hasAutoSelectedRef.current) {
-      hasAutoSelectedRef.current = true;
-      const firstWorkOrder = workOrders[0];
-      setSelectedWorkOrderRef.current(firstWorkOrder);
-    }
-    
-    // Clear the auto-selected flag if the list becomes empty
+
     if (workOrders.length === 0) {
+      if (selectedWorkOrderId) {
+        clearSelectionRef.current();
+      }
+      hasAutoSelectedRef.current = false;
+      return;
+    }
+
+    const urlParams = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search)
+      : null;
+    const urlWorkOrderId = urlParams?.get('wo');
+
+    if (urlWorkOrderId) {
+      const workOrder = getWorkOrderById(urlWorkOrderId);
+      if (workOrder && selectedWorkOrder !== workOrder) {
+        setSelectedWorkOrderRef.current(workOrder);
+      } else if (selectedWorkOrderId) {
+        clearSelectionRef.current();
+      }
+      hasAutoSelectedRef.current = false;
+      return;
+    }
+
+    if (selectedWorkOrderId) {
+      const workOrder = getWorkOrderById(selectedWorkOrderId);
+      if (workOrder && selectedWorkOrder !== workOrder) {
+        setSelectedWorkOrderRef.current(workOrder);
+        return;
+      }
+
+      clearSelectionRef.current();
       hasAutoSelectedRef.current = false;
     }
-  }, [selectedWorkOrderId, workOrders]);
+
+    if (!selectedWorkOrderId && !hasAutoSelectedRef.current) {
+      hasAutoSelectedRef.current = true;
+      setSelectedWorkOrderRef.current(workOrders[0]);
+    }
+  }, [workOrders, selectedWorkOrderId, selectedWorkOrder, getWorkOrderById]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    // Only handle keyboard navigation when panel view is active
-    const isInputFocused = document.activeElement?.tagName === 'INPUT' || 
-                         document.activeElement?.tagName === 'TEXTAREA';
-    
-    if (isInputFocused) return;
+    if (event.defaultPrevented) return;
+
+    const target = event.target as HTMLElement | null;
+    const isInteractiveElement = target?.closest(
+      'input, textarea, select, button, [contenteditable="true"], [role="textbox"], [role="combobox"], [role="spinbutton"]'
+    );
+
+    if (isInteractiveElement) return;
     
     if (event.key === 'Escape' && selectedWorkOrder) {
       event.preventDefault();
@@ -158,9 +176,6 @@ function WorkOrderPanelComponent({
     }
   }, [canGoPrev, currentIndex, workOrders, handleSelectWorkOrder]);
 
-  // Removido useEffect que causava loop infinito ao atualizar workOrders
-  // A seleção é tratada apenas em resposta a ações do usuário
-
   const handleSaveWorkOrder = useCallback((updates: Partial<WorkOrder>) => {
     if (selectedWorkOrder && onUpdateWorkOrder) {
       onUpdateWorkOrder(selectedWorkOrder.id, updates);
@@ -173,11 +188,11 @@ function WorkOrderPanelComponent({
         <ResizablePanelGroup 
           direction="horizontal"
           className="h-full"
-          onLayout={(sizes) => setPanelSizes(sizes)}
+          autoSaveId="work-orders-panel"
         >
           {/* Lista de Ordens de Serviço */}
           <ResizablePanel 
-            defaultSize={panelSizes[0]}
+            defaultSize={30}
             minSize={25}
             maxSize={40}
             className="bg-muted/30"
@@ -230,7 +245,7 @@ function WorkOrderPanelComponent({
 
           {/* Detalhes da Ordem de Serviço */}
           <ResizablePanel 
-            defaultSize={panelSizes[1]}
+            defaultSize={70}
             minSize={60}
             className="bg-background"
           >
