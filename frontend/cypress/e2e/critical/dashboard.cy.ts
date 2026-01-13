@@ -14,7 +14,7 @@ describe('Dashboard Flow', () => {
 
   describe('Main Dashboard', () => {
     beforeEach(function () {
-      cy.login(this.adminUser.username, this.adminUser.password);
+      cy.login(this.adminUser.username, this.adminUser.password, this.adminUser.tenant);
     });
 
     it('should load main dashboard without errors', () => {
@@ -83,7 +83,7 @@ describe('Dashboard Flow', () => {
 
   describe('CMMS Dashboard', () => {
     beforeEach(function () {
-      cy.login(this.adminUser.username, this.adminUser.password);
+      cy.login(this.adminUser.username, this.adminUser.password, this.adminUser.tenant);
     });
 
     it('should load CMMS dashboard', () => {
@@ -126,7 +126,7 @@ describe('Dashboard Flow', () => {
 
   describe('Monitor Dashboard', () => {
     beforeEach(function () {
-      cy.login(this.adminUser.username, this.adminUser.password);
+      cy.login(this.adminUser.username, this.adminUser.password, this.adminUser.tenant);
     });
 
     it('should load Monitor dashboard', () => {
@@ -158,7 +158,7 @@ describe('Dashboard Flow', () => {
 
   describe('Finance Dashboard', () => {
     beforeEach(function () {
-      cy.login(this.adminUser.username, this.adminUser.password);
+      cy.login(this.adminUser.username, this.adminUser.password, this.adminUser.tenant);
     });
 
     it('should load Finance dashboard', () => {
@@ -192,7 +192,7 @@ describe('Dashboard Flow', () => {
   describe('Authorization', () => {
     it('should restrict access based on user role', function () {
       // Login as viewer (limited permissions)
-      cy.login(this.viewerUser.username, this.viewerUser.password);
+      cy.login(this.viewerUser.username, this.viewerUser.password, this.viewerUser.tenant);
       cy.visit('/');
 
       // Should not see admin-only elements
@@ -202,7 +202,7 @@ describe('Dashboard Flow', () => {
     });
 
     it('should show appropriate navigation for role', function () {
-      cy.login(this.viewerUser.username, this.viewerUser.password);
+      cy.login(this.viewerUser.username, this.viewerUser.password, this.viewerUser.tenant);
       cy.visit('/');
 
       // Navigation should be visible
@@ -213,7 +213,7 @@ describe('Dashboard Flow', () => {
     });
 
     it('should redirect unauthorized access', function () {
-      cy.login(this.viewerUser.username, this.viewerUser.password);
+      cy.login(this.viewerUser.username, this.viewerUser.password, this.viewerUser.tenant);
 
       // Try to access admin-only page
       cy.visit('/settings/users', { failOnStatusCode: false });
@@ -231,7 +231,7 @@ describe('Dashboard Flow', () => {
 
   describe('Performance', () => {
     beforeEach(function () {
-      cy.login(this.adminUser.username, this.adminUser.password);
+      cy.login(this.adminUser.username, this.adminUser.password, this.adminUser.tenant);
     });
 
     it('should load dashboard within acceptable time', () => {

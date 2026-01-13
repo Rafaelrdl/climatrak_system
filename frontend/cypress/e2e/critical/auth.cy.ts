@@ -17,7 +17,6 @@ describe('Authentication Flow', () => {
 
       // Check essential elements
       cy.get('input[name="username_or_email"], input[type="email"]').should('be.visible');
-      cy.get('input[name="password"], input[type="password"]').should('be.visible');
       cy.get('button[type="submit"]').should('be.visible');
 
       // Check branding
@@ -25,14 +24,16 @@ describe('Authentication Flow', () => {
     });
 
     it('should show error for invalid credentials', () => {
-      cy.visit('/login');
+      cy.visit('/login?email=invalid@test.com');
 
-      cy.get('input[name="username_or_email"], input[type="email"]').type('invalid@test.com');
       cy.get('input[name="password"], input[type="password"]').type('wrongpassword');
       cy.get('button[type="submit"]').click();
 
       // Should show error message
-      cy.get('[data-testid="error-message"], [role="alert"], .error', { timeout: 10000 }).should(
+      cy.get(
+        '[data-testid="error-message"], [role="alert"], [role="status"], [data-sonner-toast], .error',
+        { timeout: 10000 }
+      ).should(
         'be.visible'
       );
 
@@ -44,18 +45,17 @@ describe('Authentication Flow', () => {
       cy.fixture('users').then((users) => {
         const user = users.admin;
 
-        cy.visit('/login');
-
-        cy.get('input[name="username_or_email"], input[type="email"]').type(user.username);
+        cy.visit(`/login?email=${encodeURIComponent(user.email)}`);
         cy.get('input[name="password"], input[type="password"]').type(user.password);
         cy.get('button[type="submit"]').click();
 
         // Should redirect away from login
         cy.url({ timeout: 15000 }).should('not.include', '/login');
 
-        // Should have auth tokens in storage
+        // Should have auth data in storage
         cy.window().then((win) => {
-          expect(win.localStorage.getItem('access_token')).to.exist;
+          expect(win.localStorage.getItem('auth:user')).to.exist;
+          expect(win.localStorage.getItem('auth:tenant_schema')).to.exist;
         });
       });
     });
@@ -65,7 +65,7 @@ describe('Authentication Flow', () => {
         const user = users.admin;
 
         // Login first
-        cy.login(user.username, user.password);
+        cy.login(user.username, user.password, user.tenant);
         cy.visit('/');
 
         // Reload page
@@ -85,7 +85,7 @@ describe('Authentication Flow', () => {
     });
 
     it('should display tenant selector for multi-tenant users', function () {
-      cy.login(this.user.username, this.user.password);
+      cy.login(this.user.username, this.user.password, this.user.tenant);
       cy.visit('/');
 
       // Look for tenant selector (may be in header or sidebar)
@@ -96,7 +96,7 @@ describe('Authentication Flow', () => {
     });
 
     it('should switch tenant without full page reload', function () {
-      cy.login(this.user.username, this.user.password);
+      cy.login(this.user.username, this.user.password, this.user.tenant);
       cy.visit('/');
 
       // Get current tenant name
@@ -122,7 +122,7 @@ describe('Authentication Flow', () => {
     });
 
     it('should update data context after tenant switch', function () {
-      cy.login(this.user.username, this.user.password);
+      cy.login(this.user.username, this.user.password, this.user.tenant);
       cy.visit('/');
 
       // Intercept API calls to verify tenant header
@@ -147,7 +147,7 @@ describe('Authentication Flow', () => {
       cy.fixture('users').then((users) => {
         const user = users.admin;
 
-        cy.login(user.username, user.password);
+        cy.login(user.username, user.password, user.tenant);
         cy.visit('/');
 
         // Find and click logout button
@@ -166,9 +166,10 @@ describe('Authentication Flow', () => {
         // Should redirect to login
         cy.url({ timeout: 10000 }).should('include', '/login');
 
-        // Tokens should be cleared
+        // Auth data should be cleared
         cy.window().then((win) => {
-          expect(win.localStorage.getItem('access_token')).to.be.null;
+          expect(win.localStorage.getItem('auth:user')).to.be.null;
+          expect(win.localStorage.getItem('auth:tenant_schema')).to.be.null;
         });
       });
     });

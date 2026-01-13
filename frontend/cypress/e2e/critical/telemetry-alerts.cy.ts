@@ -6,10 +6,10 @@
 
 describe('Telemetry & Alerts Flow (Monitor)', () => {
   beforeEach(function () {
-    cy.fixture('users').then((users) => {
-      this.user = users.admin;
-      cy.login(this.user.username, this.user.password);
-    });
+      cy.fixture('users').then((users) => {
+        this.user = users.admin;
+        cy.login(this.user.username, this.user.password, this.user.tenant);
+      });
   });
 
   describe('Monitor Dashboard', () => {

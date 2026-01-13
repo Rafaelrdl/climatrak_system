@@ -2,6 +2,8 @@
 // Cypress Custom Commands - ClimaTrak System
 // ***********************************************
 
+import { defaultPreferences, defaultSecurity, type UserRole } from '../../src/models/user';
+
 declare global {
   namespace Cypress {
     interface Chainable {
@@ -47,61 +49,146 @@ declare global {
 // LOGIN COMMANDS
 // =============================================================================
 
+const normalizeApiBaseUrl = (apiUrl: string): string => {
+  const trimmed = apiUrl.replace(/\/$/, '');
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+};
+
+const normalizeRole = (role?: string | null): UserRole => {
+  const normalized = (role || '').toLowerCase();
+  const allowed: UserRole[] = ['owner', 'admin', 'operator', 'technician', 'requester', 'viewer'];
+  return allowed.includes(normalized as UserRole) ? (normalized as UserRole) : 'viewer';
+};
+
 Cypress.Commands.add('login', (username: string, password: string, tenant?: string) => {
+  const apiUrl = normalizeApiBaseUrl(Cypress.env('API_URL') || 'http://127.0.0.1:8000');
+
   cy.session(
     [username, tenant],
     () => {
-      // Login via API for speed
+      // Login via centralized auth (cookie-based)
       cy.request({
         method: 'POST',
-        url: `${Cypress.env('API_URL')}/api/v1/auth/login/`,
+        url: `${apiUrl}/v2/auth/login/`,
         body: {
-          username_or_email: username,
+          email: username,
           password: password,
         },
         failOnStatusCode: false,
-      }).then((response) => {
-        if (response.status === 200) {
-          const { access, refresh, user, tenants } = response.body;
-
-          // Store tokens
-          window.localStorage.setItem('access_token', access);
-          window.localStorage.setItem('refresh_token', refresh);
-          window.localStorage.setItem('user', JSON.stringify(user));
-
-          // If tenant specified, select it
-          if (tenant && tenants?.length > 0) {
-            const selectedTenant = tenants.find(
-              (t: { schema_name: string }) => t.schema_name === tenant
-            );
-            if (selectedTenant) {
-              window.localStorage.setItem('current_tenant', JSON.stringify(selectedTenant));
-            }
-          } else if (tenants?.length > 0) {
-            // Default to first tenant
-            window.localStorage.setItem('current_tenant', JSON.stringify(tenants[0]));
+      })
+        .then((response) => {
+          if (response.status !== 200) {
+            throw new Error(`Login failed with status ${response.status}`);
           }
-        }
-      });
+
+          if (response.body?.requires_tenant_selection) {
+            const tenants = response.body?.tenants || [];
+            const matchedTenant = tenant
+              ? tenants.find(
+                  (item: { schema_name?: string; slug?: string }) =>
+                    item.schema_name === tenant || item.slug === tenant
+                )
+              : null;
+            const schemaName =
+              matchedTenant?.schema_name || tenants[0]?.schema_name || tenants[0]?.slug || tenant;
+            if (!schemaName) {
+              throw new Error('Tenant selection required but no tenant provided.');
+            }
+
+            return cy.request({
+              method: 'POST',
+              url: `${apiUrl}/v2/auth/select-tenant/`,
+              body: {
+                email: username,
+                password: password,
+                schema_name: schemaName,
+              },
+              failOnStatusCode: false,
+            });
+          }
+
+          return response;
+        })
+        .then((response) => {
+          if (response.status !== 200) {
+            throw new Error(`Tenant login failed with status ${response.status}`);
+          }
+
+          const responseUser = response.body?.user || {};
+          const responseTenant = response.body?.tenant || {};
+          const role = normalizeRole(responseTenant.role);
+          const tenantSchema = responseTenant.schema_name || tenant || 'default';
+          const tenantSlug = responseTenant.slug || tenantSchema;
+
+          const authUser = {
+            id: String(responseUser.id || tenantSchema),
+            name: responseUser.full_name || responseUser.email || username,
+            email: responseUser.email || username,
+            role,
+            status: 'active',
+            avatar_url: responseUser.avatar || undefined,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            preferences: { ...defaultPreferences },
+            security: { ...defaultSecurity },
+          };
+
+          const tenantConfig = {
+            tenantId: String(responseTenant.id || tenantSchema),
+            tenantSlug,
+            tenantName: responseTenant.name || tenantSchema,
+            apiBaseUrl: apiUrl,
+          };
+
+          const features = responseTenant.features || {};
+
+          cy.visit('/', {
+            onBeforeLoad(win) {
+              win.localStorage.setItem('auth:user', JSON.stringify(authUser));
+              win.localStorage.setItem('auth:role', role);
+              win.localStorage.setItem('auth:tenant_schema', tenantSchema);
+              win.localStorage.setItem(
+                'current_tenant',
+                JSON.stringify({
+                  tenantId: tenantConfig.tenantId,
+                  tenantSlug: tenantConfig.tenantSlug,
+                  tenantName: tenantConfig.tenantName,
+                })
+              );
+              win.localStorage.setItem(
+                `${tenantSchema}:tenant_config`,
+                JSON.stringify(tenantConfig)
+              );
+              win.localStorage.setItem(
+                'tenant:features',
+                JSON.stringify({
+                  state: { features },
+                  version: 0,
+                })
+              );
+            },
+          });
+        });
     },
     {
       validate: () => {
-        cy.window().its('localStorage.access_token').should('exist');
+        cy.window().then((win) => {
+          expect(win.localStorage.getItem('auth:user')).to.exist;
+          expect(win.localStorage.getItem('auth:tenant_schema')).to.exist;
+        });
       },
     }
   );
 });
 
 Cypress.Commands.add('loginViaUI', (username: string, password: string) => {
-  cy.visit('/login');
+  const encodedEmail = encodeURIComponent(username);
+  cy.visit(`/login?email=${encodedEmail}`);
 
-  // Wait for page load
-  cy.get('input[name="username_or_email"], input[type="email"]', { timeout: 10000 }).should(
-    'be.visible'
-  );
+  // Wait for password step
+  cy.get('input[name="password"], input[type="password"]', { timeout: 10000 }).should('be.visible');
 
   // Fill credentials
-  cy.get('input[name="username_or_email"], input[type="email"]').clear().type(username);
   cy.get('input[name="password"], input[type="password"]').clear().type(password);
 
   // Submit
