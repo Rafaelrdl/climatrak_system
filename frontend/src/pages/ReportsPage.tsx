@@ -779,7 +779,7 @@ export function ReportsPage() {
                           <div className="space-y-2">
                             <Label htmlFor="company">Empresa</Label>
                             <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-                              <SelectTrigger>
+                              <SelectTrigger id="company">
                                 <SelectValue placeholder="Selecionar empresa" />
                               </SelectTrigger>
                               <SelectContent>
@@ -795,7 +795,7 @@ export function ReportsPage() {
                           <div className="space-y-2">
                             <Label htmlFor="sector">Setor</Label>
                             <Select value={selectedSector} onValueChange={setSelectedSector}>
-                              <SelectTrigger>
+                              <SelectTrigger id="sector">
                                 <SelectValue placeholder="Selecionar setor" />
                               </SelectTrigger>
                               <SelectContent>
@@ -811,7 +811,7 @@ export function ReportsPage() {
                           <div className="space-y-2">
                             <Label htmlFor="format">Formato</Label>
                             <Select value={reportFormat} onValueChange={setReportFormat}>
-                              <SelectTrigger>
+                              <SelectTrigger id="format">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>

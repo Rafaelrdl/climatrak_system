@@ -1200,6 +1200,7 @@ function AssetsContent() {
                   <Label htmlFor="type" className="mb-2 block">Tipo do Ativo *</Label>
                   <div className="flex gap-2">
                     <SearchableSelect
+                      id="type"
                       options={assetTypes.map((type) => ({
                         value: type.value,
                         label: type.label
@@ -1291,7 +1292,7 @@ function AssetsContent() {
                       setNewEquipment(prev => ({ ...prev, criticidade: value }))
                     }
                   >
-                    <SelectTrigger className="h-10">
+                    <SelectTrigger id="criticidade" className="h-10">
                       <SelectValue placeholder="Selecione a criticidade" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1312,7 +1313,7 @@ function AssetsContent() {
                       setNewEquipment(prev => ({ ...prev, status: value }))
                     }
                   >
-                    <SelectTrigger className="h-10">
+                    <SelectTrigger id="status" className="h-10">
                       <SelectValue placeholder="Selecione o status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1378,6 +1379,7 @@ function AssetsContent() {
                 <div>
                   <Label htmlFor="company" className="mb-2 block">Empresa *</Label>
                   <SearchableSelect
+                    id="company"
                     options={companies.map(company => ({
                       value: company.id,
                       label: company.name
@@ -1400,6 +1402,7 @@ function AssetsContent() {
                 <div>
                   <Label htmlFor="unit" className="mb-2 block">Unidade *</Label>
                   <SearchableSelect
+                    id="unit"
                     options={units
                       .filter(u => u.companyId === newEquipment.companyId)
                       .map(unit => ({
@@ -1424,6 +1427,7 @@ function AssetsContent() {
                 <div>
                   <Label htmlFor="sector" className="mb-2 block">Setor *</Label>
                   <SearchableSelect
+                    id="sector"
                     options={sectors
                       .filter(s => s.unitId === newEquipment.unitId)
                       .map(sector => ({
@@ -1450,6 +1454,7 @@ function AssetsContent() {
                     <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
                   </Label>
                   <SearchableSelect
+                    id="subsection"
                     options={subSections
                       .filter(ss => ss.sectorId === newEquipment.sectorId)
                       .map(subSection => ({
@@ -1516,7 +1521,7 @@ function AssetsContent() {
                       setNewEquipment(prev => ({ ...prev, phases: parseInt(value) as 1 | 2 | 3 }))
                     }
                   >
-                    <SelectTrigger className="h-10">
+                    <SelectTrigger id="phases" className="h-10">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1605,6 +1610,7 @@ function AssetsContent() {
                     Fluido Refrigerante
                   </Label>
                   <SearchableSelect
+                    id="refrigerant"
                     options={[
                       { value: 'R-11', label: 'R-11' },
                       { value: 'R-12', label: 'R-12' },

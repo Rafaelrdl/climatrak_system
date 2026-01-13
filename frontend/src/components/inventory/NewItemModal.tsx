@@ -197,7 +197,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             <div>
               <Label htmlFor="category">Categoria</Label>
               <Select value={formData.category_id} onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}>
-                <SelectTrigger>
+                <SelectTrigger id="category">
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
@@ -214,7 +214,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             <div>
               <Label htmlFor="unit">Unidade *</Label>
               <Select value={formData.unit} onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}>
-                <SelectTrigger>
+                <SelectTrigger id="unit">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

@@ -13,6 +13,7 @@ interface DatePickerProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  id?: string;
 }
 
 export function DatePicker({
@@ -20,13 +21,15 @@ export function DatePicker({
   setDate,
   placeholder = "Selecione uma data",
   disabled = false,
-  className
+  className,
+  id,
 }: DatePickerProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
+          id={id}
           className={cn(
             "w-full justify-start text-left font-normal",
             !date && "text-muted-foreground",

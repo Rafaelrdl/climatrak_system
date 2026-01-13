@@ -32,6 +32,7 @@ interface SearchableSelectProps {
   emptyMessage?: string
   disabled?: boolean
   className?: string
+  id?: string
 }
 
 export function SearchableSelect({
@@ -43,6 +44,7 @@ export function SearchableSelect({
   emptyMessage = "Nenhum item encontrado.",
   disabled = false,
   className,
+  id,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false)
 
@@ -56,6 +58,7 @@ export function SearchableSelect({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
+          id={id}
           className={cn(
             "h-10 w-full justify-between font-normal",
             !value && "text-muted-foreground",

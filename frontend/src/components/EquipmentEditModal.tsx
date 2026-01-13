@@ -399,7 +399,7 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
                   value={formData.type} 
                   onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
                 >
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger id="edit-type" className="h-10">
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -477,7 +477,7 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
                     setFormData(prev => ({ ...prev, criticidade: value }))
                   }
                 >
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger id="edit-criticidade" className="h-10">
                     <SelectValue placeholder="Selecione a criticidade" />
                   </SelectTrigger>
                   <SelectContent>
@@ -499,7 +499,7 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
                     setFormData(prev => ({ ...prev, status: value }))
                   }
                 >
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger id="edit-status" className="h-10">
                     <SelectValue placeholder="Selecione o status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -577,7 +577,7 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
                     }));
                   }}
                 >
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger id="edit-company" className="h-10">
                     <SelectValue placeholder={isLoadingCompanies ? "Carregando..." : "Selecione a empresa"} />
                   </SelectTrigger>
                   <SelectContent>
@@ -604,7 +604,7 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
                   }}
                   disabled={!formData.companyId}
                 >
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger id="edit-sector" className="h-10">
                     <SelectValue placeholder={
                       !formData.companyId 
                         ? "Selecione uma empresa primeiro" 
@@ -634,7 +634,7 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
                   onValueChange={(value) => setFormData(prev => ({ ...prev, subSectionId: value }))}
                   disabled={!formData.sectorId}
                 >
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger id="edit-subsector" className="h-10">
                     <SelectValue placeholder={
                       !formData.sectorId 
                         ? "Selecione um setor primeiro" 
@@ -701,7 +701,7 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
                     setFormData(prev => ({ ...prev, phases: parseInt(value) as 1 | 2 | 3 }))
                   }
                 >
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger id="edit-phases" className="h-10">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
@@ -793,7 +793,7 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
                   value={formData.refrigerant} 
                   onValueChange={(value) => setFormData(prev => ({ ...prev, refrigerant: value }))}
                 >
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger id="edit-refrigerant" className="h-10">
                     <SelectValue placeholder="Selecione o refrigerante" />
                   </SelectTrigger>
                   <SelectContent>

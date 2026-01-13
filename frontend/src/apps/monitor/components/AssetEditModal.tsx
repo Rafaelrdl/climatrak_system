@@ -166,7 +166,7 @@ export function AssetEditModal({ asset, open, onOpenChange }: AssetEditModalProp
                 value={formData.asset_type}
                 onValueChange={(value) => handleChange('asset_type', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="asset_type">
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -184,7 +184,7 @@ export function AssetEditModal({ asset, open, onOpenChange }: AssetEditModalProp
                 value={formData.status}
                 onValueChange={(value) => handleChange('status', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="status">
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
                 <SelectContent>

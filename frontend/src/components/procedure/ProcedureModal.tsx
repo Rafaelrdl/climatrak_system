@@ -344,7 +344,7 @@ export function ProcedureModal({
                     handleInputChange('category_id', value === 'none' ? null : value)
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="category">
                     <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
                   <SelectContent>
@@ -373,7 +373,7 @@ export function ProcedureModal({
                   value={formData.status}
                   onValueChange={(value) => handleInputChange('status', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

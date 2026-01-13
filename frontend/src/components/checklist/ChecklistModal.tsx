@@ -263,7 +263,7 @@ export function ChecklistModal({
                     setFormData({ ...formData, equipment_type: value === 'none' ? '' : value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="equipment_type">
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -285,7 +285,7 @@ export function ChecklistModal({
                     setFormData({ ...formData, category_id: value === 'none' ? null : value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="category">
                     <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
                   <SelectContent>

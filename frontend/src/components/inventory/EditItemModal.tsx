@@ -184,7 +184,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             <div>
               <Label htmlFor="edit-category">Categoria</Label>
               <Select value={formData.category_id} onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}>
-                <SelectTrigger>
+                <SelectTrigger id="edit-category">
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
@@ -201,7 +201,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             <div>
               <Label htmlFor="edit-unit">Unidade</Label>
               <Select value={formData.unit} onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}>
-                <SelectTrigger>
+                <SelectTrigger id="edit-unit">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

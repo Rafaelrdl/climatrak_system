@@ -357,7 +357,7 @@ export function RuleFormModal({ open, onOpenChange, editingRule }: RuleFormModal
                     Equipamento <span className="text-destructive">*</span>
                   </Label>
                   <Select value={equipmentId} onValueChange={setEquipmentId}>
-                    <SelectTrigger>
+                    <SelectTrigger id="equipment">
                       <SelectValue placeholder="Selecione um equipamento" />
                     </SelectTrigger>
                     <SelectContent>

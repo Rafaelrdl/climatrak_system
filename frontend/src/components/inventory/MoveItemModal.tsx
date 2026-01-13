@@ -162,7 +162,7 @@ export function MoveItemModal({ item, open, onOpenChange, onItemMoved }: MoveIte
               value={formData.type} 
               onValueChange={(value: MovementType) => setFormData(prev => ({ ...prev, type: value }))}
             >
-              <SelectTrigger>
+              <SelectTrigger id="move-type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -189,7 +189,7 @@ export function MoveItemModal({ item, open, onOpenChange, onItemMoved }: MoveIte
               value={formData.reason} 
               onValueChange={(value: ReasonType) => setFormData(prev => ({ ...prev, reason: value }))}
             >
-              <SelectTrigger>
+              <SelectTrigger id="move-reason">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -390,7 +390,7 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
                       frequency: value as MaintenancePlan['frequency']
                     }))}
                   >
-                    <SelectTrigger className={errors.frequency ? 'border-red-500' : ''}>
+                    <SelectTrigger id="frequency" className={errors.frequency ? 'border-red-500' : ''}>
                       <SelectValue placeholder="Selecione a frequência" />
                     </SelectTrigger>
                     <SelectContent>
@@ -586,7 +586,7 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
                     value={formData.checklist_id || "none"} 
                     onValueChange={handleChecklistChange}
                   >
-                    <SelectTrigger className={errors.checklist ? 'border-red-500' : ''}>
+                    <SelectTrigger id="checklist-select" className={errors.checklist ? 'border-red-500' : ''}>
                       <SelectValue placeholder="Selecione um checklist criado na tela de procedimentos" />
                     </SelectTrigger>
                     <SelectContent>

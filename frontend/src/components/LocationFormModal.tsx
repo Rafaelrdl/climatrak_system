@@ -592,7 +592,7 @@ export function LocationFormModal({
               value={unitForm.companyId} 
               onValueChange={(value) => setUnitForm(prev => ({ ...prev, companyId: value }))}
             >
-              <SelectTrigger className="h-10">
+              <SelectTrigger id="unitCompanySelect" className="h-10">
                 <SelectValue placeholder="Selecione uma empresa" />
               </SelectTrigger>
               <SelectContent>
@@ -803,7 +803,7 @@ export function LocationFormModal({
                 setUnitForm(prev => ({ ...prev, companyId }));
               }}
             >
-              <SelectTrigger className="h-10">
+              <SelectTrigger id="companySelectSector" className="h-10">
                 <SelectValue placeholder="Selecione uma empresa" />
               </SelectTrigger>
               <SelectContent>
@@ -825,7 +825,7 @@ export function LocationFormModal({
               onValueChange={(value) => setSectorForm(prev => ({ ...prev, unitId: value }))}
               disabled={!hasCompany}
             >
-              <SelectTrigger className="h-10">
+              <SelectTrigger id="unitSelect" className="h-10">
                 <SelectValue placeholder="Selecione uma unidade" />
               </SelectTrigger>
               <SelectContent>
@@ -1017,7 +1017,7 @@ export function LocationFormModal({
                 setUnitForm(prev => ({ ...prev, companyId }));
               }}
             >
-              <SelectTrigger className="h-10">
+              <SelectTrigger id="companySelectSub" className="h-10">
                 <SelectValue placeholder="Selecione uma empresa" />
               </SelectTrigger>
               <SelectContent>
@@ -1044,7 +1044,7 @@ export function LocationFormModal({
               }}
               disabled={!hasCompany}
             >
-              <SelectTrigger className="h-10">
+              <SelectTrigger id="unitSelectSub" className="h-10">
                 <SelectValue placeholder="Selecione uma unidade" />
               </SelectTrigger>
               <SelectContent>
@@ -1066,7 +1066,7 @@ export function LocationFormModal({
               onValueChange={(value) => setSubSectionForm(prev => ({ ...prev, sectorId: value }))}
               disabled={!hasUnit}
             >
-              <SelectTrigger className="h-10">
+              <SelectTrigger id="sectorSelectSub" className="h-10">
                 <SelectValue placeholder="Selecione um setor" />
               </SelectTrigger>
               <SelectContent>

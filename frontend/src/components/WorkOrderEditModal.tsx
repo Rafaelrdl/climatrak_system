@@ -659,7 +659,7 @@ export function WorkOrderEditModal({
                                   }}
                                   disabled={formData.type === 'REQUEST'}
                                 >
-                                  <SelectTrigger className={cn(
+                                  <SelectTrigger id="workOrderType" className={cn(
                                     "h-9",
                                     errors.type && "border-destructive focus:ring-destructive",
                                     formData.type === 'REQUEST' && "bg-muted cursor-not-allowed"
@@ -702,7 +702,7 @@ export function WorkOrderEditModal({
                                     if (errors.priority) setErrors(prev => ({ ...prev, priority: '' }));
                                   }}
                                 >
-                                  <SelectTrigger className={cn(
+                                  <SelectTrigger id="workOrderPriority" className={cn(
                                     "h-9",
                                     errors.priority && "border-destructive focus:ring-destructive"
                                   )}>
@@ -739,7 +739,7 @@ export function WorkOrderEditModal({
                                     if (errors.status) setErrors(prev => ({ ...prev, status: '' }));
                                   }}
                                 >
-                                  <SelectTrigger className={cn(
+                                  <SelectTrigger id="workOrderStatus" className={cn(
                                     "h-9",
                                     errors.status && "border-destructive focus:ring-destructive"
                                   )}>
@@ -807,7 +807,7 @@ export function WorkOrderEditModal({
                                   <Calendar className="h-3 w-3" />
                                   Data Programada
                                 </Label>
-                                <DatePicker
+                                <DatePicker id="scheduledDate"
                                   date={formData.scheduledDate ? new Date(formData.scheduledDate) : undefined}
                                   setDate={(date) => {
                                     setFormData(prev => ({ ...prev, scheduledDate: date ? formatDateToLocal(date) : undefined }));
@@ -833,7 +833,7 @@ export function WorkOrderEditModal({
                                   value={formData.assignedTo || 'none'} 
                                   onValueChange={(value) => setFormData(prev => ({ ...prev, assignedTo: value === 'none' ? '' : value }))}
                                 >
-                                  <SelectTrigger className="h-9 text-sm">
+                                  <SelectTrigger id="assignedTo" className="h-9 text-sm">
                                     <SelectValue placeholder="Selecione um técnico" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -965,7 +965,7 @@ export function WorkOrderEditModal({
                                   if (errors.equipmentId) setErrors(prev => ({ ...prev, equipmentId: '' }));
                                 }}
                               >
-                                <SelectTrigger className={cn(
+                                <SelectTrigger id="equipmentId" className={cn(
                                   "h-auto min-h-[2.25rem] whitespace-normal",
                                   errors.equipmentId && "border-destructive focus:ring-destructive"
                                 )}>
@@ -1275,7 +1275,7 @@ export function WorkOrderEditModal({
                               }));
                             }}
                           >
-                            <SelectTrigger className={cn(errors.status && "border-destructive")}>
+                            <SelectTrigger id="status" className={cn(errors.status && "border-destructive")}>
                               <SelectValue placeholder="Selecione o status" />
                             </SelectTrigger>
                             <SelectContent>

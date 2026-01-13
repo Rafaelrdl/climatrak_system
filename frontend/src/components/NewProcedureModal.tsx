@@ -175,7 +175,7 @@ export function NewProcedureModal({ onProcedureCreated }: NewProcedureModalProps
                   value={formData.category}
                   onValueChange={(value) => handleInputChange('category', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="category">
                     <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
                   <SelectContent>
@@ -207,7 +207,7 @@ export function NewProcedureModal({ onProcedureCreated }: NewProcedureModalProps
                   value={formData.priority}
                   onValueChange={(value) => handleInputChange('priority', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="priority">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

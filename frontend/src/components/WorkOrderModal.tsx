@@ -250,7 +250,7 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
                 setFormData(prev => ({ ...prev, equipmentId: '' }));
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger id="company">
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
@@ -275,7 +275,7 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
               }}
               disabled={!selectedCompanyId}
             >
-              <SelectTrigger>
+              <SelectTrigger id="unit">
                 <SelectValue placeholder={selectedCompanyId ? "Selecione..." : "Selecione empresa"} />
               </SelectTrigger>
             <SelectContent>
@@ -301,7 +301,7 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
               }}
               disabled={!selectedUnitId}
             >
-              <SelectTrigger>
+              <SelectTrigger id="sector">
                 <SelectValue placeholder={selectedUnitId ? "Selecione..." : "Selecione unidade"} />
               </SelectTrigger>
               <SelectContent>
@@ -324,7 +324,7 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
               }}
               disabled={!selectedSectorId}
             >
-              <SelectTrigger>
+              <SelectTrigger id="subsection">
                 <SelectValue placeholder={selectedSectorId ? "Selecione..." : "Selecione setor"} />
               </SelectTrigger>
               <SelectContent>
@@ -344,7 +344,7 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
             value={formData.equipmentId}
             onValueChange={handleEquipmentSelect}
           >
-            <SelectTrigger>
+            <SelectTrigger id="equipmentId">
               <SelectValue placeholder="Selecione um equipamento" />
             </SelectTrigger>
             <SelectContent>
@@ -371,7 +371,7 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
                 setFormData(prev => ({ ...prev, type: value }))
               }
             >
-              <SelectTrigger>
+              <SelectTrigger id="type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -389,7 +389,7 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
                 setFormData(prev => ({ ...prev, priority: value }))
               }
             >
-              <SelectTrigger>
+              <SelectTrigger id="priority">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -408,6 +408,7 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
+                id="scheduledDate"
                 className={cn(
                   "w-full justify-start text-left font-normal",
                   !formData.scheduledDate && "text-muted-foreground"
@@ -446,7 +447,7 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
               setFormData(prev => ({ ...prev, assignedTo: value }))
             }
           >
-            <SelectTrigger>
+            <SelectTrigger id="assignedTo">
               <SelectValue placeholder="Selecione um responsável" />
             </SelectTrigger>
             <SelectContent>

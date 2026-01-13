@@ -189,6 +189,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                 <div className="space-y-2 min-w-0">
                   <Label htmlFor="company">Empresa</Label>
                   <SearchableSelect
+                    id="company"
                     options={companies.map(company => ({ value: company.id, label: company.name }))}
                     value={selectedCompanyId}
                     onValueChange={(value) => {
@@ -208,6 +209,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                 <div className="space-y-2 min-w-0">
                   <Label htmlFor="unit">Unidade</Label>
                   <SearchableSelect
+                    id="unit"
                     options={units.map(unit => ({ value: unit.id, label: unit.name }))}
                     value={selectedUnitId}
                     onValueChange={(value) => {
@@ -232,6 +234,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                     Setor <span className="text-destructive">*</span>
                   </Label>
                   <SearchableSelect
+                    id="sector"
                     options={sectors.map(sector => ({ value: sector.id, label: sector.name }))}
                     value={selectedSectorId}
                     onValueChange={(value) => {
@@ -250,6 +253,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                 <div className="space-y-2">
                   <Label htmlFor="subsection">Subsetor</Label>
                   <SearchableSelect
+                    id="subsection"
                     options={subsections.map(sub => ({ value: sub.id, label: sub.name }))}
                     value={selectedSubsectionId}
                     onValueChange={(value) => {
@@ -279,6 +283,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
               <div className="space-y-2">
                 <Label htmlFor="equipment">Equipamento relacionado</Label>
                 <SearchableSelect
+                  id="equipment"
                   options={[
                     { value: 'none', label: 'Nenhum equipamento específico' },
                     ...filteredEquipment.map(eq => ({ 
