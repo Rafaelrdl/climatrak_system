@@ -8,9 +8,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export interface SLAConfig {
-  /** SLA de atendimento em horas */
+  /** SLA de atendimento em minutos totais */
   responseTime: number;
-  /** SLA de fechamento em horas */
+  /** SLA de fechamento em minutos totais */
   resolutionTime: number;
 }
 
@@ -34,10 +34,10 @@ interface SLAStore {
 const defaultSettings: SLASettings = {
   enabled: false,
   priorities: {
-    CRITICAL: { responseTime: 1, resolutionTime: 4 },
-    HIGH: { responseTime: 2, resolutionTime: 8 },
-    MEDIUM: { responseTime: 4, resolutionTime: 24 },
-    LOW: { responseTime: 8, resolutionTime: 48 },
+    CRITICAL: { responseTime: 60, resolutionTime: 240 },    // 1h, 4h
+    HIGH: { responseTime: 120, resolutionTime: 480 },       // 2h, 8h
+    MEDIUM: { responseTime: 240, resolutionTime: 1440 },    // 4h, 24h
+    LOW: { responseTime: 480, resolutionTime: 2880 },       // 8h, 48h
   },
 };
 
@@ -97,15 +97,16 @@ export function calculateSLAStatus(
   let responseTimeRemaining = 0;
   let responsePercentage = 0;
   
-  const responseDeadline = new Date(created.getTime() + config.responseTime * 60 * 60 * 1000);
+  const responseDeadline = new Date(created.getTime() + config.responseTime * 60 * 1000);
   
   // Considera que a OS foi atendida se tem startedAt OU se está em execução/concluída
   const wasStarted = startedAt || workOrderStatus === 'IN_PROGRESS' || workOrderStatus === 'COMPLETED';
   
   if (wasStarted) {
     // OS já foi iniciada
-    // Se temos startedAt, usamos ele; senão, assumimos que foi agora (para OS antigas)
-    const started = startedAt ? new Date(startedAt) : now;
+    // Se temos startedAt, usamos ele; senão, usamos createdAt como fallback 
+    // (nunca usar 'now' pois muda a cada renderização e causa flickering do status)
+    const started = startedAt ? new Date(startedAt) : created;
     if (started <= responseDeadline) {
       responseStatus = 'completed';
       responsePercentage = 100;
@@ -117,7 +118,7 @@ export function calculateSLAStatus(
   } else {
     // OS ainda não foi iniciada
     responseTimeRemaining = Math.floor((responseDeadline.getTime() - now.getTime()) / (1000 * 60));
-    const totalResponseMinutes = config.responseTime * 60;
+    const totalResponseMinutes = config.responseTime;
     const elapsedMinutes = Math.floor((now.getTime() - created.getTime()) / (1000 * 60));
     responsePercentage = Math.min(100, (elapsedMinutes / totalResponseMinutes) * 100);
     
@@ -133,11 +134,16 @@ export function calculateSLAStatus(
   let resolutionTimeRemaining = 0;
   let resolutionPercentage = 0;
   
-  const resolutionDeadline = new Date(created.getTime() + config.resolutionTime * 60 * 60 * 1000);
+  const resolutionDeadline = new Date(created.getTime() + config.resolutionTime * 60 * 1000);
   
-  if (completedAt) {
+  // Considera concluída se tem completedAt OU se está com status COMPLETED
+  const wasCompleted = completedAt || workOrderStatus === 'COMPLETED';
+  
+  if (wasCompleted) {
     // OS já foi concluída
-    const completed = new Date(completedAt);
+    // Se temos completedAt, usamos ele; senão, usamos createdAt como fallback
+    // (nunca usar 'now' pois muda a cada renderização e causa flickering do status)
+    const completed = completedAt ? new Date(completedAt) : created;
     if (completed <= resolutionDeadline) {
       resolutionStatus = 'completed';
       resolutionPercentage = 100;
@@ -149,7 +155,7 @@ export function calculateSLAStatus(
   } else {
     // OS ainda não foi concluída
     resolutionTimeRemaining = Math.floor((resolutionDeadline.getTime() - now.getTime()) / (1000 * 60));
-    const totalResolutionMinutes = config.resolutionTime * 60;
+    const totalResolutionMinutes = config.resolutionTime;
     const elapsedMinutes = Math.floor((now.getTime() - created.getTime()) / (1000 * 60));
     resolutionPercentage = Math.min(100, (elapsedMinutes / totalResolutionMinutes) * 100);
     

@@ -70,20 +70,38 @@ export function SLAConfigModal({ open, onOpenChange }: SLAConfigModalProps) {
   const updatePrioritySLA = (
     priority: keyof SLASettings['priorities'],
     field: 'responseTime' | 'resolutionTime',
+    type: 'hours' | 'minutes',
     value: string
   ) => {
     const numValue = parseInt(value) || 0;
-    setLocalSettings((prev) => ({
-      ...prev,
-      priorities: {
-        ...prev.priorities,
-        [priority]: {
-          ...prev.priorities[priority],
-          [field]: numValue,
+    setLocalSettings((prev) => {
+      const currentTotalMinutes = prev.priorities[priority][field];
+      const currentHours = Math.floor(currentTotalMinutes / 60);
+      const currentMinutes = currentTotalMinutes % 60;
+      
+      let newTotalMinutes: number;
+      if (type === 'hours') {
+        newTotalMinutes = numValue * 60 + currentMinutes;
+      } else {
+        newTotalMinutes = currentHours * 60 + Math.min(numValue, 59);
+      }
+      
+      return {
+        ...prev,
+        priorities: {
+          ...prev.priorities,
+          [priority]: {
+            ...prev.priorities[priority],
+            [field]: newTotalMinutes,
+          },
         },
-      },
-    }));
+      };
+    });
   };
+
+  // Helpers para extrair horas e minutos de minutos totais
+  const getHours = (totalMinutes: number) => Math.floor(totalMinutes / 60);
+  const getMinutes = (totalMinutes: number) => totalMinutes % 60;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -165,17 +183,28 @@ export function SLAConfigModal({ open, onOpenChange }: SLAConfigModalProps) {
                         <Clock className="h-3 w-3" />
                         SLA de Atendimento
                       </Label>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <Input
-                          id={`${priority}-response`}
+                          id={`${priority}-response-hours`}
                           type="number"
                           min="0"
-                          value={config.responseTime}
-                          onChange={(e) => updatePrioritySLA(priority, 'responseTime', e.target.value)}
-                          className="w-24"
+                          value={getHours(config.responseTime)}
+                          onChange={(e) => updatePrioritySLA(priority, 'responseTime', 'hours', e.target.value)}
+                          className="w-16 text-center"
                           disabled={!localSettings.enabled}
                         />
-                        <span className="text-sm text-muted-foreground">horas</span>
+                        <span className="text-xs text-muted-foreground">h</span>
+                        <Input
+                          id={`${priority}-response-minutes`}
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={getMinutes(config.responseTime)}
+                          onChange={(e) => updatePrioritySLA(priority, 'responseTime', 'minutes', e.target.value)}
+                          className="w-16 text-center"
+                          disabled={!localSettings.enabled}
+                        />
+                        <span className="text-xs text-muted-foreground">min</span>
                       </div>
                     </div>
 
@@ -184,17 +213,28 @@ export function SLAConfigModal({ open, onOpenChange }: SLAConfigModalProps) {
                         <CheckCircle2 className="h-3 w-3" />
                         SLA de Fechamento
                       </Label>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <Input
-                          id={`${priority}-resolution`}
+                          id={`${priority}-resolution-hours`}
                           type="number"
                           min="0"
-                          value={config.resolutionTime}
-                          onChange={(e) => updatePrioritySLA(priority, 'resolutionTime', e.target.value)}
-                          className="w-24"
+                          value={getHours(config.resolutionTime)}
+                          onChange={(e) => updatePrioritySLA(priority, 'resolutionTime', 'hours', e.target.value)}
+                          className="w-16 text-center"
                           disabled={!localSettings.enabled}
                         />
-                        <span className="text-sm text-muted-foreground">horas</span>
+                        <span className="text-xs text-muted-foreground">h</span>
+                        <Input
+                          id={`${priority}-resolution-minutes`}
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={getMinutes(config.resolutionTime)}
+                          onChange={(e) => updatePrioritySLA(priority, 'resolutionTime', 'minutes', e.target.value)}
+                          className="w-16 text-center"
+                          disabled={!localSettings.enabled}
+                        />
+                        <span className="text-xs text-muted-foreground">min</span>
                       </div>
                     </div>
                   </div>

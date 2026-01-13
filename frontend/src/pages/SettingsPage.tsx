@@ -183,20 +183,38 @@ export function SettingsPage() {
   const updatePrioritySLA = (
     priority: keyof SLASettings['priorities'],
     field: 'responseTime' | 'resolutionTime',
+    type: 'hours' | 'minutes',
     value: string
   ) => {
     const numValue = parseInt(value) || 0;
-    setLocalSLASettings((prev) => ({
-      ...prev,
-      priorities: {
-        ...prev.priorities,
-        [priority]: {
-          ...prev.priorities[priority],
-          [field]: numValue,
+    setLocalSLASettings((prev) => {
+      const currentTotalMinutes = prev.priorities[priority][field];
+      const currentHours = Math.floor(currentTotalMinutes / 60);
+      const currentMinutes = currentTotalMinutes % 60;
+      
+      let newTotalMinutes: number;
+      if (type === 'hours') {
+        newTotalMinutes = numValue * 60 + currentMinutes;
+      } else {
+        newTotalMinutes = currentHours * 60 + Math.min(numValue, 59);
+      }
+      
+      return {
+        ...prev,
+        priorities: {
+          ...prev.priorities,
+          [priority]: {
+            ...prev.priorities[priority],
+            [field]: newTotalMinutes,
+          },
         },
-      },
-    }));
+      };
+    });
   };
+
+  // Helpers para extrair horas e minutos de minutos totais
+  const getHours = (totalMinutes: number) => Math.floor(totalMinutes / 60);
+  const getMinutes = (totalMinutes: number) => totalMinutes % 60;
 
   const handleAddStatus = () => {
     if (!newStatusLabel.trim()) {
@@ -280,6 +298,8 @@ export function SettingsPage() {
           localSLASettings={localSLASettings}
           setLocalSLASettings={setLocalSLASettings}
           updatePrioritySLA={updatePrioritySLA}
+          getHours={getHours}
+          getMinutes={getMinutes}
         />;
       case 'notifications':
         return <NotificationsSection />;
@@ -618,11 +638,14 @@ interface SLASectionProps {
   updatePrioritySLA: (
     priority: keyof SLASettings['priorities'],
     field: 'responseTime' | 'resolutionTime',
+    type: 'hours' | 'minutes',
     value: string
   ) => void;
+  getHours: (totalMinutes: number) => number;
+  getMinutes: (totalMinutes: number) => number;
 }
 
-function SLASection({ localSLASettings, setLocalSLASettings, updatePrioritySLA }: SLASectionProps) {
+function SLASection({ localSLASettings, setLocalSLASettings, updatePrioritySLA, getHours, getMinutes }: SLASectionProps) {
   return (
     <div className="space-y-8">
       {/* Header da seção */}
@@ -724,31 +747,51 @@ function SLASection({ localSLASettings, setLocalSLASettings, updatePrioritySLA }
                   <div className="flex items-center gap-8">
                     <div className="flex items-center gap-3">
                       <Clock className="h-4 w-4 text-blue-500" />
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <Input
                           type="number"
                           min="0"
-                          value={config.responseTime}
-                          onChange={(e) => updatePrioritySLA(priority, 'responseTime', e.target.value)}
-                          className="w-20 h-9 text-center"
+                          value={getHours(config.responseTime)}
+                          onChange={(e) => updatePrioritySLA(priority, 'responseTime', 'hours', e.target.value)}
+                          className="w-14 h-9 text-center"
                           disabled={!localSLASettings.enabled}
                         />
-                        <span className="text-sm text-muted-foreground">horas</span>
+                        <span className="text-xs text-muted-foreground">h</span>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={getMinutes(config.responseTime)}
+                          onChange={(e) => updatePrioritySLA(priority, 'responseTime', 'minutes', e.target.value)}
+                          className="w-14 h-9 text-center"
+                          disabled={!localSLASettings.enabled}
+                        />
+                        <span className="text-xs text-muted-foreground">min</span>
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <Input
                           type="number"
                           min="0"
-                          value={config.resolutionTime}
-                          onChange={(e) => updatePrioritySLA(priority, 'resolutionTime', e.target.value)}
-                          className="w-20 h-9 text-center"
+                          value={getHours(config.resolutionTime)}
+                          onChange={(e) => updatePrioritySLA(priority, 'resolutionTime', 'hours', e.target.value)}
+                          className="w-14 h-9 text-center"
                           disabled={!localSLASettings.enabled}
                         />
-                        <span className="text-sm text-muted-foreground">horas</span>
+                        <span className="text-xs text-muted-foreground">h</span>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="59"
+                          value={getMinutes(config.resolutionTime)}
+                          onChange={(e) => updatePrioritySLA(priority, 'resolutionTime', 'minutes', e.target.value)}
+                          className="w-14 h-9 text-center"
+                          disabled={!localSLASettings.enabled}
+                        />
+                        <span className="text-xs text-muted-foreground">min</span>
                       </div>
                     </div>
                   </div>
