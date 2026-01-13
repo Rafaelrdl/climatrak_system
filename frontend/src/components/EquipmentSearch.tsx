@@ -702,15 +702,15 @@ export function EquipmentSearch({
               return (
                 <Card 
                   key={eq.id}
-                  className="cursor-pointer hover:bg-accent/50 transition-colors border-0 bg-card/50 shadow-sm"
+                  className="cursor-pointer hover:bg-primary/50 transition-colors border-0 bg-card shadow-sm"
                   onClick={() => onEquipmentSelect(eq)}
                 >
-                  <CardContent className="p-2">
-                    <div className="flex items-center gap-2.5">
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-3">
                       {/* Criticidade indicator */}
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className={cn("w-0.5 h-8 rounded-full", getCriticidadeColor(eq.criticidade))} />
+                          <div className={cn("w-1 h-10 rounded-full shrink-0", getCriticidadeColor(eq.criticidade))} />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>Criticidade: {getCriticidadeLabel(eq.criticidade)}</p>
@@ -718,16 +718,20 @@ export function EquipmentSearch({
                       </Tooltip>
 
                       {/* Type Icon */}
-                      {renderTypeIcon(eq.type, 'sm')}
+                      <div className="shrink-0">
+                        {renderTypeIcon(eq.type, 'sm')}
+                      </div>
 
-                      {/* Main Info */}
-                      <div className="flex-1 min-w-0">
+                      {/* Main Info - Tag e Modelo */}
+                      <div className="min-w-[180px] max-w-[220px]">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm truncate">{eq.tag}</span>
-                          <Badge variant="outline" className="text-[10px] h-4 px-1.5 shrink-0">{eq.type}</Badge>
+                          <span className="font-semibold text-sm truncate">{eq.tag}</span>
                         </div>
                         <p className="text-xs text-muted-foreground truncate">{eq.brand} {eq.model}</p>
                       </div>
+
+                      {/* Type Badge */}
+                      <Badge variant="outline" className="text-[10px] h-5 px-2 shrink-0 hidden sm:flex">{eq.type}</Badge>
 
                       {/* Location - Hierarquia completa */}
                       {(() => {
@@ -735,17 +739,20 @@ export function EquipmentSearch({
                         return fullLocation && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="hidden lg:flex items-center gap-1 text-xs text-muted-foreground max-w-[200px]">
-                                <MapPin className="h-3 w-3 shrink-0" />
+                              <div className="hidden lg:flex items-center gap-1.5 text-xs text-muted-foreground flex-1 min-w-0 max-w-[280px]">
+                                <MapPin className="h-3.5 w-3.5 shrink-0 text-primary/70" />
                                 <span className="truncate">{fullLocation}</span>
                               </div>
                             </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-xs">
+                            <TooltipContent side="top" className="max-w-sm">
                               <p className="text-xs">{fullLocation}</p>
                             </TooltipContent>
                           </Tooltip>
                         );
                       })()}
+
+                      {/* Spacer para empurrar elementos para a direita */}
+                      <div className="flex-1 hidden lg:block" />
 
                       {/* Status Badge */}
                       <StatusBadge
@@ -753,38 +760,40 @@ export function EquipmentSearch({
                         type="equipment"
                         size="sm"
                         showIcon
-                        className="shrink-0 text-[10px] h-5 px-1.5"
+                        className="shrink-0 text-[10px] h-6 px-2"
                       />
 
                       {/* Actions */}
-                      {onEditAsset && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 shrink-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEditAsset(eq);
-                          }}
-                          title="Editar ativo"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      {onDeleteAsset && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteAsset(eq);
-                          }}
-                          title="Excluir ativo"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                        {onEditAsset && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEditAsset(eq);
+                            }}
+                            title="Editar ativo"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {onDeleteAsset && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteAsset(eq);
+                            }}
+                            title="Excluir ativo"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
