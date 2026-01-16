@@ -95,11 +95,10 @@ export function WelcomeGuide() {
     const tourCompleted = isOnboardingCompleted('tourCompleted');
     const guideShown = isOnboardingCompleted('welcomeGuideShown');
     
-    console.log('[WelcomeGuide] Check visibility:', { tourCompleted, guideShown, shouldShow: tourCompleted && !guideShown });
+    
     
     if (tourCompleted && !guideShown) {
       const timer = setTimeout(() => {
-        console.log('[WelcomeGuide] Setting visible to true');
         setIsVisible(true);
       }, 1000); // Show after 1 second on dashboard
 
@@ -108,7 +107,6 @@ export function WelcomeGuide() {
   }, []);
 
   const handleClose = () => {
-    console.log('[WelcomeGuide] handleClose called');
     markOnboardingCompleted('welcomeGuideShown');
     setIsVisible(false);
   };
