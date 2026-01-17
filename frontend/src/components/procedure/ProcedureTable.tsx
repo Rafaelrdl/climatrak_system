@@ -187,7 +187,7 @@ export function ProcedureTable({
                   <th scope="col" className="text-left p-4 font-medium text-muted-foreground">
                     Atualizado
                   </th>
-                  <th scope="col" className="text-center p-4 font-medium text-muted-foreground">
+                  <th scope="col" className="text-center p-4 font-medium text-muted-foreground sticky right-0 z-20 bg-muted shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
                     Ações
                   </th>
                 </tr>
@@ -321,7 +321,7 @@ export function ProcedureTable({
                         </time>
                       </td>
                       
-                      <td className="p-4">
+                      <td className="p-4 sticky right-0 z-10 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
                         <div className="flex items-center justify-center gap-1">
                           <Button
                             variant="ghost"

@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Plus, Edit, Play, CheckCircle, Loader2, Trash2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Calendar, Plus, Edit, Play, CheckCircle, Loader2, Trash2, Eye } from 'lucide-react';
 import { PlanFormModal } from '@/components/PlanFormModal';
 import { 
   useMaintenancePlans, 
@@ -187,7 +188,7 @@ export function PlansPage() {
                 <TableHead scope="col">Próxima Execução</TableHead>
                 <TableHead scope="col">Geração Automática</TableHead>
                 <TableHead scope="col">Status</TableHead>
-                <TableHead scope="col">Ações</TableHead>
+                <TableHead scope="col" className="sticky right-0 z-20 bg-muted shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -261,52 +262,93 @@ export function PlansPage() {
                         {plan.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <IfCanEdit subject="plan">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleEditPlan(plan)}
-                            disabled={isLoadingPlanDetails}
-                            className="flex items-center gap-1"
-                            aria-label={`Editar plano ${plan.name}`}
-                            data-testid="plan-edit"
-                          >
-                            {isLoadingPlanDetails ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <Edit className="h-3 w-3" />
-                            )}
-                            Editar
-                          </Button>
-                        </IfCanEdit>
-                        
-                        {plan.status === 'Ativo' && (plan.assets?.length || plan.scope?.equipment_ids?.length || 0) > 0 && (
-                          <Button 
-                            variant="default" 
-                            size="sm"
-                            onClick={() => handleGenerateWorkOrders(plan)}
-                            className="flex items-center gap-1"
-                            aria-label={`Gerar ordens de serviço para ${plan.name}`}
-                            data-testid="plan-generate"
-                          >
-                            <Play className="h-3 w-3" />
-                            Gerar OS
-                          </Button>
-                        )}
-                        
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleDeletePlan(plan)}
-                          className="flex items-center gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          aria-label={`Excluir plano ${plan.name}`}
-                          data-testid="plan-delete"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          Excluir
-                        </Button>
+                    <TableCell className="sticky right-0 z-10 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
+                      <div className="flex items-center gap-1">
+                        <TooltipProvider>
+                          {/* Visualizar */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleEditPlan(plan)}
+                                disabled={isLoadingPlanDetails}
+                                aria-label={`Visualizar plano ${plan.name}`}
+                                data-testid="plan-view"
+                              >
+                                {isLoadingPlanDetails ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Visualizar Plano</p>
+                            </TooltipContent>
+                          </Tooltip>
+
+                          {/* Editar */}
+                          <IfCanEdit subject="plan">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleEditPlan(plan)}
+                                  disabled={isLoadingPlanDetails}
+                                  aria-label={`Editar plano ${plan.name}`}
+                                  data-testid="plan-edit"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Editar Plano</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </IfCanEdit>
+
+                          {/* Gerar OS */}
+                          {plan.status === 'Ativo' && (plan.assets?.length || plan.scope?.equipment_ids?.length || 0) > 0 && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleGenerateWorkOrders(plan)}
+                                  className="text-primary hover:text-primary"
+                                  aria-label={`Gerar ordens de serviço para ${plan.name}`}
+                                  data-testid="plan-generate"
+                                >
+                                  <Play className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Gerar OS</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+
+                          {/* Excluir */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleDeletePlan(plan)}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                aria-label={`Excluir plano ${plan.name}`}
+                                data-testid="plan-delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Excluir Plano</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </TableCell>
                   </TableRow>

@@ -119,7 +119,7 @@ export function InventoryTable({ items, categories, onView, onEdit, onMove, onDe
               {/* Ações - sticky à direita, sempre visível */}
               <TableHead 
                 scope="col" 
-                className="text-right w-[100px] sticky right-0 bg-muted/50 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]"
+                className="text-right w-[100px] sticky right-0 z-20 bg-muted shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]"
               >
                 Ações
               </TableHead>
@@ -223,7 +223,7 @@ export function InventoryTable({ items, categories, onView, onEdit, onMove, onDe
                 </TableCell>
 
                 {/* Ações - sticky à direita */}
-                <TableCell className="text-right sticky right-0 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
+                <TableCell className="text-right sticky right-0 z-10 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
                   {/* Desktop: botões inline */}
                   <TooltipProvider>
                     <div className="hidden sm:flex items-center justify-end gap-0.5">

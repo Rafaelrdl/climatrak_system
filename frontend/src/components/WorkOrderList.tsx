@@ -11,6 +11,13 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -23,7 +30,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Edit, ClipboardList, AlertTriangle, User, FileText, UserPlus, Eye, Trash2, Loader2 } from 'lucide-react';
+import { Edit, ClipboardList, AlertTriangle, User, FileText, UserPlus, Eye, Trash2, Loader2, MoreHorizontal } from 'lucide-react';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useSectors, useCompanies, useUnits, useSubsections } from '@/hooks/useLocationsQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';
@@ -344,25 +351,26 @@ export function WorkOrderList({
   // Regular table mode
   return (
     <>
+    <div className="overflow-x-auto">
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Número</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Localização</TableHead>
-          <TableHead>Equipamento</TableHead>
-          <TableHead>Tipo</TableHead>
-          <TableHead>Prioridade</TableHead>
-          <TableHead>Criado em</TableHead>
-          <TableHead>Data Agendada</TableHead>
-          <TableHead>Responsável</TableHead>
+          <TableHead className="min-w-[80px]">Número</TableHead>
+          <TableHead className="min-w-[100px]">Status</TableHead>
+          <TableHead className="hidden lg:table-cell min-w-[180px]">Localização</TableHead>
+          <TableHead className="min-w-[140px]">Equipamento</TableHead>
+          <TableHead className="hidden md:table-cell min-w-[90px]">Tipo</TableHead>
+          <TableHead className="hidden sm:table-cell min-w-[90px]">Prioridade</TableHead>
+          <TableHead className="hidden xl:table-cell min-w-[130px]">Criado em</TableHead>
+          <TableHead className="hidden lg:table-cell min-w-[100px]">Data Agendada</TableHead>
+          <TableHead className="hidden xl:table-cell min-w-[120px]">Responsável</TableHead>
           {slaSettings.enabled && (
             <>
-              <TableHead className="text-center">SLA Atendimento</TableHead>
-              <TableHead className="text-center">SLA Fechamento</TableHead>
+              <TableHead className="hidden 2xl:table-cell text-center min-w-[120px]">SLA Atendimento</TableHead>
+              <TableHead className="hidden 2xl:table-cell text-center min-w-[120px]">SLA Fechamento</TableHead>
             </>
           )}
-          <TableHead>Ações</TableHead>
+          <TableHead className="sticky right-0 z-20 bg-muted shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)] min-w-[100px]">Ações</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -398,7 +406,7 @@ export function WorkOrderList({
               <TableCell>
                 <StatusBadge status={wo.status} type="workOrder" cmmsSettings={workOrderSettings} />
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden lg:table-cell">
                 <div className="text-xs space-y-0.5">
                   {company?.name && <div className="font-medium text-foreground">{company.name}</div>}
                   {unit?.name && <div className="text-muted-foreground pl-2">↳ {unit.name}</div>}
@@ -413,7 +421,7 @@ export function WorkOrderList({
                   <div className="text-sm text-muted-foreground">{eq?.brand} {eq?.model}</div>
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden md:table-cell">
                 <StatusBadge
                   status={wo.type}
                   type="maintenanceType"
@@ -421,10 +429,10 @@ export function WorkOrderList({
                   className="text-xs px-2 py-0.5 font-medium"
                 />
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden sm:table-cell">
                 <StatusBadge status={wo.priority} type="priority" />
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden xl:table-cell">
                 {wo.createdAt
                   ? new Date(wo.createdAt).toLocaleDateString('pt-BR', {
                       day: '2-digit',
@@ -435,11 +443,11 @@ export function WorkOrderList({
                     })
                   : '-'}
               </TableCell>
-              <TableCell>{scheduledDate}</TableCell>
-              <TableCell>{wo.assignedToName || wo.assignedTo || '-'}</TableCell>
+              <TableCell className="hidden lg:table-cell">{scheduledDate}</TableCell>
+              <TableCell className="hidden xl:table-cell">{wo.assignedToName || wo.assignedTo || '-'}</TableCell>
               {slaSettings.enabled && (
                 <>
-                  <TableCell className="text-center">
+                  <TableCell className="hidden 2xl:table-cell text-center">
                     {slaStatus ? (
                       <SLABadge
                         status={slaStatus.responseStatus}
@@ -451,7 +459,7 @@ export function WorkOrderList({
                       <span className="text-muted-foreground text-sm">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="hidden 2xl:table-cell text-center">
                     {slaStatus ? (
                       <SLABadge
                         status={slaStatus.resolutionStatus}
@@ -461,11 +469,10 @@ export function WorkOrderList({
                       />
                     ) : (
                       <span className="text-muted-foreground text-sm">-</span>
-                    )}
-                  </TableCell>
+                    )}n                  </TableCell>
                 </>
               )}
-              <TableCell>
+              <TableCell className="sticky right-0 z-10 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
                 <div className="flex items-center gap-1">
                   <TooltipProvider>
                     {onViewWorkOrder && (
@@ -519,45 +526,45 @@ export function WorkOrderList({
                         </TooltipContent>
                       </Tooltip>
                     )}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handlePrintWorkOrder(wo)}
-                          disabled={printingOrderId === wo.id}
-                          aria-label={`Imprimir ordem de serviço ${wo.number}`}
-                        >
-                          {printingOrderId === wo.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <FileText className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{printingOrderId === wo.id ? 'Carregando...' : 'Imprimir OS'}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    {onDeleteWorkOrder && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleDeleteClick(wo)}
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            aria-label={`Excluir ordem de serviço ${wo.number}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Excluir OS</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
                   </TooltipProvider>
+
+                  {/* Dropdown Menu para ações secundárias */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Mais ações para ${wo.number}`}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem 
+                        onClick={() => handlePrintWorkOrder(wo)}
+                        disabled={printingOrderId === wo.id}
+                      >
+                        {printingOrderId === wo.id ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <FileText className="h-4 w-4 mr-2" />
+                        )}
+                        {printingOrderId === wo.id ? 'Gerando...' : 'Imprimir OS'}
+                      </DropdownMenuItem>
+                      {onDeleteWorkOrder && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteClick(wo)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Excluir OS
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </TableCell>
             </TableRow>
@@ -572,6 +579,7 @@ export function WorkOrderList({
         )}
       </TableBody>
     </Table>
+    </div>
 
     {/* Modal para designar técnico à OS */}
     <Dialog open={isAssignModalOpen} onOpenChange={setIsAssignModalOpen}>
