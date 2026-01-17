@@ -318,6 +318,50 @@ class MeView(APIView):
         )
 
 
+class AuthMeView(APIView):
+    """
+    Current authenticated session endpoint (tenant schema).
+
+    GET /api/auth/me/
+
+    Returns user + tenant metadata + tenant features for the frontend session.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from django.db import connection
+
+        from apps.tenants.features import get_tenant_features
+
+        tenant = getattr(connection, "tenant", None)
+        if not tenant or connection.schema_name == "public":
+            return Response(
+                {"error": "Tenant nao identificado"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user_data = UserSerializer(
+            request.user, context={"request": request, "tenant": tenant}
+        ).data
+        role = user_data.get("role", "viewer")
+        features = get_tenant_features(tenant.id)
+
+        response_data = {
+            "user": user_data,
+            "tenant": {
+                "id": tenant.id,
+                "schema_name": tenant.schema_name,
+                "name": tenant.name,
+                "slug": getattr(tenant, "slug", tenant.schema_name.lower()),
+                "role": role,
+                "features": features,
+            },
+        }
+
+        return Response(response_data)
+
+
 class ChangePasswordView(APIView):
     """
     Change password endpoint.
