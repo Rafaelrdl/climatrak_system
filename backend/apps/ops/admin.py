@@ -3,7 +3,8 @@ Django Admin configuration for Control Center (ops app).
 """
 
 from django.contrib import admin, messages
-from django.utils.html import format_html
+
+from unfold.decorators import display
 
 from apps.common.admin_base import BaseAdmin
 
@@ -58,22 +59,19 @@ class ExportJobAdmin(BaseAdmin):
     ordering = ["-created_at"]
     date_hierarchy = "created_at"
 
+    @display(
+        description="Status",
+        ordering="status",
+        label={
+            "pending": "warning",
+            "processing": "info",
+            "completed": "success",
+            "failed": "danger",
+        },
+    )
     def status_badge(self, obj):
         """Colorful status badge."""
-        colors = {
-            "pending": "#6c757d",
-            "processing": "#0dcaf0",
-            "completed": "#198754",
-            "failed": "#dc3545",
-        }
-        return format_html(
-            '<span style="background: {}; color: white; padding: 3px 8px; '
-            'border-radius: 3px; font-weight: bold;">{}</span>',
-            colors.get(obj.status, "#6c757d"),
-            obj.get_status_display(),
-        )
-
-    status_badge.short_description = "Status"
+        return obj.status, obj.get_status_display()
 
     def file_size_display(self, obj):
         """Display file size in MB."""

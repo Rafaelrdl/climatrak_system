@@ -2,12 +2,12 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
+from unfold.decorators import display
+
 from apps.common.admin_base import (
     BaseAdmin,
     BaseTabularInline,
     TimestampedAdminMixin,
-    get_status_color,
-    status_badge,
 )
 
 from .models import BudgetEnvelope, BudgetMonth, BudgetPlan, CostCenter, RateCard
@@ -22,6 +22,7 @@ class CostCenterChildInline(BaseTabularInline):
     show_change_link = True
     verbose_name = _("Centro de Custo Filho")
     verbose_name_plural = _("Centros de Custo Filhos")
+    tab = True  # Unfold: exibir como aba
 
 
 @admin.register(CostCenter)
@@ -59,13 +60,18 @@ class CostCenterAdmin(TimestampedAdminMixin, BaseAdmin):
     parent_link.short_description = _("Pai")
     parent_link.admin_order_field = "parent__code"
 
+    @display(
+        description=_("Status"),
+        ordering="is_active",
+        label={
+            True: "success",
+            False: "danger",
+        },
+    )
     def active_badge(self, obj):
         if obj.is_active:
-            return status_badge(_("Ativo"), get_status_color("active"), "✓")
-        return status_badge(_("Inativo"), get_status_color("inactive"), "✗")
-
-    active_badge.short_description = _("Status")
-    active_badge.admin_order_field = "is_active"
+            return True, _("Ativo")
+        return False, _("Inativo")
 
     def level(self, obj):
         return obj.level
@@ -108,13 +114,18 @@ class RateCardAdmin(TimestampedAdminMixin, BaseAdmin):
         ),
     )
 
+    @display(
+        description=_("Status"),
+        ordering="is_active",
+        label={
+            True: "success",
+            False: "danger",
+        },
+    )
     def active_badge(self, obj):
         if obj.is_active:
-            return status_badge(_("Ativo"), get_status_color("active"), "✓")
-        return status_badge(_("Inativo"), get_status_color("inactive"), "✗")
-
-    active_badge.short_description = _("Status")
-    active_badge.admin_order_field = "is_active"
+            return True, _("Ativo")
+        return False, _("Inativo")
 
 
 class BudgetEnvelopeInline(BaseTabularInline):
@@ -123,6 +134,7 @@ class BudgetEnvelopeInline(BaseTabularInline):
     fields = ["name", "category", "cost_center", "amount", "is_active"]
     autocomplete_fields = ["cost_center"]
     show_change_link = True
+    tab = True  # Unfold: exibir como aba
 
 
 @admin.register(BudgetPlan)
@@ -156,18 +168,18 @@ class BudgetPlanAdmin(TimestampedAdminMixin, BaseAdmin):
         ),
     )
 
-    def status_badge(self, obj):
-        colors = {
-            "draft": "neutral",
+    @display(
+        description=_("Status"),
+        ordering="status",
+        label={
+            "draft": "warning",
             "approved": "success",
             "active": "info",
-            "closed": "warning",
-        }
-        color = get_status_color(colors.get(obj.status, "neutral"))
-        return status_badge(obj.get_status_display(), color)
-
-    status_badge.short_description = _("Status")
-    status_badge.admin_order_field = "status"
+            "closed": "danger",
+        },
+    )
+    def status_badge(self, obj):
+        return obj.status, obj.get_status_display()
 
 
 class BudgetMonthInline(BaseTabularInline):
@@ -175,6 +187,7 @@ class BudgetMonthInline(BaseTabularInline):
     extra = 0
     fields = ["month", "planned_amount", "is_locked", "locked_at", "locked_by"]
     readonly_fields = ["locked_at", "locked_by"]
+    tab = True  # Unfold: exibir como aba
 
 
 @admin.register(BudgetEnvelope)
@@ -228,13 +241,18 @@ class BudgetEnvelopeAdmin(TimestampedAdminMixin, BaseAdmin):
     cost_center_link.short_description = _("Centro de Custo")
     cost_center_link.admin_order_field = "cost_center__code"
 
+    @display(
+        description=_("Status"),
+        ordering="is_active",
+        label={
+            True: "success",
+            False: "danger",
+        },
+    )
     def active_badge(self, obj):
         if obj.is_active:
-            return status_badge(_("Ativo"), get_status_color("active"), "✓")
-        return status_badge(_("Inativo"), get_status_color("inactive"), "✗")
-
-    active_badge.short_description = _("Status")
-    active_badge.admin_order_field = "is_active"
+            return True, _("Ativo")
+        return False, _("Inativo")
 
 
 @admin.register(BudgetMonth)
@@ -295,14 +313,19 @@ class BudgetMonthAdmin(TimestampedAdminMixin, BaseAdmin):
     envelope_link.short_description = _("Envelope")
     envelope_link.admin_order_field = "envelope__name"
 
+    @display(
+        description=_("Status"),
+        ordering="is_locked",
+        label={
+            True: "danger",
+            False: "success",
+        },
+    )
     def lock_status_badge(self, obj):
         """Badge visual para status de lock."""
         if obj.is_locked:
-            return status_badge(_("BLOQUEADO"), get_status_color("locked"), "🔒")
-        return status_badge(_("ABERTO"), get_status_color("success"), "✅")
-
-    lock_status_badge.short_description = _("Status")
-    lock_status_badge.admin_order_field = "is_locked"
+            return True, _("🔒 BLOQUEADO")
+        return False, _("✅ ABERTO")
 
     def get_readonly_fields(self, request, obj=None):
         """Torna planned_amount readonly se o mês estiver bloqueado."""

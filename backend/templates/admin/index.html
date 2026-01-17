@@ -1,0 +1,207 @@
+{% extends "admin/base_site.html" %}
+{% load i18n unfold %}
+
+{% block title %}{% trans "Dashboard" %} | {{ site_title }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="container mb-6 mx-auto px-4 lg:px-8">
+    <div class="flex items-center gap-2 text-sm text-base-500 dark:text-base-400">
+        <span class="material-symbols-outlined text-base">home</span>
+        <span>{% trans "Dashboard" %}</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 pb-12 lg:px-8">
+    {# Schema Detection - Public vs Tenant #}
+    {% if is_public_schema %}
+        {# Public Schema View #}
+        {% component "unfold/components/card.html" with title=_("Administração Global") class="mb-8" %}
+            {% slot children %}
+                <div class="flex flex-col gap-4 text-center py-8">
+                    <span class="material-symbols-outlined text-6xl text-primary-500">admin_panel_settings</span>
+                    <h2 class="text-xl font-semibold text-base-700 dark:text-base-200">
+                        {% trans "Bem-vindo ao painel administrativo global" %}
+                    </h2>
+                    <p class="text-base-500 dark:text-base-400 max-w-xl mx-auto">
+                        {% trans "Você está no schema público. Selecione um tenant no menu lateral ou gerencie recursos globais abaixo." %}
+                    </p>
+                </div>
+            {% endslot %}
+        {% endcomponent %}
+
+        {# Global Management Cards #}
+        <div class="grid gap-6 mb-8 md:grid-cols-2 lg:grid-cols-3">
+            {% component "unfold/components/card.html" with icon="apartment" href="/admin/tenants/tenant/" %}
+                {% slot children %}
+                    <div class="flex flex-col">
+                        <span class="text-3xl font-bold text-base-900 dark:text-white">{{ tenant_count|default:"0" }}</span>
+                        <span class="text-sm text-base-500 dark:text-base-400">{% trans "Tenants Ativos" %}</span>
+                    </div>
+                {% endslot %}
+                {% slot footer %}
+                    <a href="/admin/tenants/tenant/" class="text-primary-600 dark:text-primary-400 hover:underline text-sm">
+                        {% trans "Gerenciar tenants" %} →
+                    </a>
+                {% endslot %}
+            {% endcomponent %}
+
+            {% component "unfold/components/card.html" with icon="domain" href="/admin/tenants/domain/" %}
+                {% slot children %}
+                    <div class="flex flex-col">
+                        <span class="text-3xl font-bold text-base-900 dark:text-white">{{ domain_count|default:"0" }}</span>
+                        <span class="text-sm text-base-500 dark:text-base-400">{% trans "Domínios Configurados" %}</span>
+                    </div>
+                {% endslot %}
+                {% slot footer %}
+                    <a href="/admin/tenants/domain/" class="text-primary-600 dark:text-primary-400 hover:underline text-sm">
+                        {% trans "Ver domínios" %} →
+                    </a>
+                {% endslot %}
+            {% endcomponent %}
+
+            {% component "unfold/components/card.html" with icon="settings" href="/admin/" %}
+                {% slot children %}
+                    <div class="flex flex-col">
+                        <span class="text-3xl font-bold text-base-900 dark:text-white">
+                            <span class="material-symbols-outlined text-3xl">build</span>
+                        </span>
+                        <span class="text-sm text-base-500 dark:text-base-400">{% trans "Configurações do Sistema" %}</span>
+                    </div>
+                {% endslot %}
+                {% slot footer %}
+                    <span class="text-base-400 text-sm">{% trans "Acesso restrito" %}</span>
+                {% endslot %}
+            {% endcomponent %}
+        </div>
+
+    {% else %}
+        {# Tenant Schema View - Full Dashboard #}
+
+        {# Dashboard Header with Welcome Message #}
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-base-900 dark:text-white mb-2">
+                {% trans "Dashboard" %}
+            </h1>
+            <p class="text-base-500 dark:text-base-400">
+                {% blocktrans with tenant=tenant_name %}Visão geral do tenant {{ tenant }}{% endblocktrans %}
+            </p>
+        </div>
+
+        {# Quick Actions Bar #}
+        {% if quick_links %}
+        <div class="flex flex-wrap gap-3 mb-8">
+            {% for link in quick_links %}
+                <a href="{{ link.url }}"
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors">
+                    <span class="material-symbols-outlined text-lg">{{ link.icon }}</span>
+                    {{ link.title }}
+                </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {# KPI Cards Grid #}
+        {% if dashboard_cards %}
+        <div class="grid gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {% for card in dashboard_cards %}
+                {% component "unfold/components/card.html" with icon=card.icon class=card.class %}
+                    {% slot children %}
+                        <div class="flex flex-col">
+                            <span class="text-3xl font-bold {% if card.color == 'danger' %}text-red-600 dark:text-red-400{% elif card.color == 'warning' %}text-orange-600 dark:text-orange-400{% elif card.color == 'success' %}text-green-600 dark:text-green-400{% elif card.color == 'info' %}text-blue-600 dark:text-blue-400{% else %}text-primary-600 dark:text-primary-400{% endif %}">
+                                {{ card.metric }}
+                            </span>
+                            <span class="text-sm font-medium text-base-700 dark:text-base-300 mt-1">{{ card.title }}</span>
+                        </div>
+                    {% endslot %}
+                    {% if card.footer %}
+                        {% slot footer %}
+                            <a href="{{ card.footer.link }}" 
+                               class="{% if card.color == 'danger' %}text-red-600 dark:text-red-400{% else %}text-primary-600 dark:text-primary-400{% endif %} hover:underline text-sm inline-flex items-center gap-1">
+                                {{ card.footer.label }}
+                                <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                            </a>
+                        {% endslot %}
+                    {% endif %}
+                {% endcomponent %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {# Budget Utilization Progress #}
+        {% if budget_utilization is not None %}
+        <div class="mb-8">
+            {% component "unfold/components/card.html" with title=_("Utilização do Orçamento Mensal") %}
+                {% slot children %}
+                    {% component "unfold/components/progress.html" with value=budget_utilization title=budget_month_name description=budget_description %}
+                    {% endcomponent %}
+                {% endslot %}
+            {% endcomponent %}
+        </div>
+        {% endif %}
+
+        {# Operations Overview Table #}
+        {% if table_data.rows %}
+        <div class="mb-8">
+            {% component "unfold/components/card.html" with title=_("Visão Geral de Operações") %}
+                {% slot children %}
+                    {% component "unfold/components/table.html" with table=table_data card_included=0 striped=1 %}
+                    {% endcomponent %}
+                {% endslot %}
+            {% endcomponent %}
+        </div>
+        {% endif %}
+
+        {# Recent Activity Section #}
+        {% if recent_activity %}
+        <div class="mb-8">
+            {% component "unfold/components/card.html" with title=_("Atividade Recente") %}
+                {% slot children %}
+                    <div class="divide-y divide-base-200 dark:divide-base-700">
+                        {% for activity in recent_activity %}
+                        <div class="flex items-center gap-4 py-3 {% if forloop.first %}pt-0{% endif %} {% if forloop.last %}pb-0{% endif %}">
+                            <span class="material-symbols-outlined text-xl 
+                                {% if activity.type == 'alert' %}text-red-500
+                                {% elif activity.type == 'workorder' %}text-blue-500
+                                {% elif activity.type == 'inventory' %}text-amber-500
+                                {% else %}text-base-400{% endif %}">
+                                {{ activity.icon }}
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm text-base-900 dark:text-base-100 truncate">{{ activity.message }}</p>
+                                <p class="text-xs text-base-500 dark:text-base-400">{{ activity.timestamp }}</p>
+                            </div>
+                            {% if activity.link %}
+                            <a href="{{ activity.link }}" class="text-primary-600 dark:text-primary-400 hover:underline text-sm shrink-0">
+                                {% trans "Ver" %}
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% endslot %}
+            {% endcomponent %}
+        </div>
+        {% endif %}
+
+        {# No Data State #}
+        {% if not dashboard_cards and not table_data.rows %}
+            {% component "unfold/components/card.html" %}
+                {% slot children %}
+                    <div class="flex flex-col items-center justify-center py-12 text-center">
+                        <span class="material-symbols-outlined text-5xl text-base-300 dark:text-base-600 mb-4">dashboard</span>
+                        <h3 class="text-lg font-semibold text-base-700 dark:text-base-200 mb-2">
+                            {% trans "Nenhum dado disponível" %}
+                        </h3>
+                        <p class="text-sm text-base-500 dark:text-base-400 max-w-md">
+                            {% trans "Comece criando ordens de serviço, registrando movimentações de estoque ou configurando alertas para ver estatísticas aqui." %}
+                        </p>
+                    </div>
+                {% endslot %}
+            {% endcomponent %}
+        {% endif %}
+
+    {% endif %}
+</div>
+{% endblock %}

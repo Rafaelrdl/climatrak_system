@@ -49,7 +49,7 @@ class RuleAdmin(TimestampedAdminMixin, BaseAdmin):
     list_filter = ["enabled", "created_at"]
     search_fields = ["name", "description", "equipment__name", "equipment__tag"]
     list_select_related = ["equipment"]
-    autocomplete_fields = ["equipment"]
+    raw_id_fields = ["equipment"]  # Usando raw_id pois AssetAdmin não está registrado
     readonly_fields = ["created_at", "updated_at", "created_by"]
     inlines = [RuleParameterInline]
 

@@ -14,11 +14,39 @@ Configuração no settings:
         ...
         "DASHBOARD_CALLBACK": "apps.ops.admin_dashboard.dashboard_callback",
     }
+
+Ícones usados: Material Symbols (Google)
+https://fonts.google.com/icons?icon.set=Material+Symbols
 """
 
 from django.db.models import Count, F, Q, Sum
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+
+# Mapeamento de ícones para Material Symbols
+ICON_MAP = {
+    # CMMS
+    "clipboard-list": "assignment",
+    "wrench": "build",
+    "package": "inventory_2",
+    "alert-triangle": "warning",
+    # Inventory
+    "package-x": "inventory_2",
+    "boxes": "inventory_2",
+    # Alerts
+    "bell-ring": "notifications",
+    "alert-octagon": "error",
+    # Finance
+    "wallet": "account_balance_wallet",
+    "calendar-check": "event_available",
+    # TrakService
+    "truck": "local_shipping",
+    "clock": "schedule",
+    # Quick links
+    "plus-circle": "add_circle",
+    "package-plus": "add_box",
+    "check-circle": "check_circle",
+}
 
 # Importações condicionais - falha silenciosamente se app não existir
 try:
@@ -64,6 +92,11 @@ def _format_number(value: int | float) -> str:
     return f"{value:,}".replace(",", ".")
 
 
+def _normalize_icon(icon_name: str) -> str:
+    """Converte nome de ícone legado para Material Symbols."""
+    return ICON_MAP.get(icon_name, icon_name)
+
+
 def _get_cmms_cards(request) -> list:
     """Retorna cards do domínio CMMS (Manutenção)."""
     if not CMMS_AVAILABLE:
@@ -96,7 +129,7 @@ def _get_cmms_cards(request) -> list:
                 "link": "/admin/cmms/workorder/?status=open",
                 "label": _("Ver todas")
             },
-            "icon": "clipboard-list",
+            "icon": "assignment",
             "color": "primary" if open_count < 10 else "warning",
         })
 
@@ -108,7 +141,7 @@ def _get_cmms_cards(request) -> list:
                 "link": "/admin/cmms/workorder/?status=in_progress",
                 "label": _("Ver detalhes")
             },
-            "icon": "wrench",
+            "icon": "build",
             "color": "info",
         })
 
@@ -121,7 +154,7 @@ def _get_cmms_cards(request) -> list:
                     "link": "/admin/cmms/workorder/?status=pending_parts",
                     "label": _("Verificar")
                 },
-                "icon": "package",
+                "icon": "inventory_2",
                 "color": "warning",
             })
 
@@ -139,7 +172,7 @@ def _get_cmms_cards(request) -> list:
                     "link": f"/admin/cmms/workorder/?status__in=open,in_progress,pending_parts&due_date__lt={today}",
                     "label": _("URGENTE")
                 },
-                "icon": "alert-triangle",
+                "icon": "warning",
                 "color": "danger",
             })
 
@@ -175,7 +208,7 @@ def _get_inventory_cards(request) -> list:
                     "link": "/admin/inventory/inventoryitem/?low_stock=true",
                     "label": _("Reabastecer")
                 },
-                "icon": "package-x",
+                "icon": "inventory_2",
                 "color": "warning",
             })
 
@@ -188,7 +221,7 @@ def _get_inventory_cards(request) -> list:
                 "link": "/admin/inventory/inventoryitem/",
                 "label": _("Gerenciar")
             },
-            "icon": "boxes",
+            "icon": "inventory_2",
             "color": "primary",
         })
 
@@ -229,7 +262,7 @@ def _get_alerts_cards(request) -> list:
                     "link": "/admin/alerts/alert/?severity=critical&is_acknowledged__exact=0",
                     "label": _("AÇÃO IMEDIATA")
                 },
-                "icon": "alert-octagon",
+                "icon": "error",
                 "color": "danger",
             })
         elif active_alerts > 0:
@@ -240,7 +273,7 @@ def _get_alerts_cards(request) -> list:
                     "link": "/admin/alerts/alert/?is_acknowledged__exact=0",
                     "label": _("Verificar")
                 },
-                "icon": "bell-ring",
+                "icon": "notifications",
                 "color": "warning",
             })
 
@@ -290,7 +323,7 @@ def _get_finance_cards(request) -> list:
                     "link": "/admin/trakledger/budgetmonth/",
                     "label": current_month.name or _("Ver detalhes")
                 },
-                "icon": "wallet",
+                "icon": "account_balance_wallet",
                 "color": color,
             })
 
@@ -306,7 +339,7 @@ def _get_finance_cards(request) -> list:
                     "link": "/admin/trakledger/budgetmonth/?is_locked__exact=0",
                     "label": _("Gerenciar")
                 },
-                "icon": "calendar-check",
+                "icon": "event_available",
                 "color": "info",
             })
 
@@ -345,7 +378,7 @@ def _get_trakservice_cards(request) -> list:
                     "link": f"/admin/trakservice/serviceassignment/?scheduled_date={today}",
                     "label": _("Ver agenda")
                 },
-                "icon": "truck",
+                "icon": "local_shipping",
                 "color": "primary",
             })
 
@@ -357,7 +390,7 @@ def _get_trakservice_cards(request) -> list:
                     "link": "/admin/trakservice/serviceassignment/?status=pending",
                     "label": _("Despachar")
                 },
-                "icon": "clock",
+                "icon": "schedule",
                 "color": "warning",
             })
 
@@ -365,6 +398,93 @@ def _get_trakservice_cards(request) -> list:
         pass
 
     return cards
+
+
+def _get_budget_utilization(request) -> dict | None:
+    """Retorna dados de utilização do orçamento para progress bar."""
+    if not TRAKLEDGER_AVAILABLE:
+        return None
+
+    if not request.user.has_perm("trakledger.view_budgetmonth"):
+        return None
+
+    today = timezone.now().date()
+
+    try:
+        current_month = BudgetMonth.objects.filter(
+            start_date__lte=today,
+            end_date__gte=today,
+        ).first()
+
+        if not current_month:
+            return None
+
+        if current_month.planned_amount <= 0:
+            return None
+
+        utilization = (
+            current_month.actual_amount / current_month.planned_amount * 100
+        )
+
+        if utilization > 100:
+            description = _("Orçamento excedido!")
+        elif utilization > 90:
+            description = _("Atenção: próximo do limite")
+        elif utilization > 75:
+            description = _("Consumo moderado")
+        else:
+            description = _("Dentro do planejado")
+
+        return {
+            "value": min(utilization, 100),  # Progress bar max 100%
+            "month_name": current_month.name or str(current_month),
+            "description": description,
+        }
+    except Exception:
+        return None
+
+
+def _get_operations_table(request) -> dict:
+    """Retorna dados para tabela de visão geral de operações."""
+    headers = [_("Módulo"), _("Status"), _("Contagem")]
+    rows = []
+
+    # CMMS
+    if CMMS_AVAILABLE and request.user.has_perm("cmms.view_workorder"):
+        try:
+            open_wo = WorkOrder.objects.filter(status="open").count()
+            in_progress_wo = WorkOrder.objects.filter(status="in_progress").count()
+            if open_wo > 0 or in_progress_wo > 0:
+                rows.append([_("CMMS"), _("OS Abertas"), str(open_wo)])
+                rows.append([_("CMMS"), _("OS Em Andamento"), str(in_progress_wo)])
+        except Exception:
+            pass
+
+    # Inventory
+    if INVENTORY_AVAILABLE and request.user.has_perm("inventory.view_inventoryitem"):
+        try:
+            low_stock = InventoryItem.objects.filter(
+                quantity__lt=F("minimum_quantity"),
+                is_active=True,
+            ).count()
+            if low_stock > 0:
+                rows.append([_("Inventário"), _("Estoque Baixo"), str(low_stock)])
+        except Exception:
+            pass
+
+    # Alerts
+    if ALERTS_AVAILABLE and request.user.has_perm("alerts.view_alert"):
+        try:
+            active_alerts = Alert.objects.filter(
+                is_acknowledged=False,
+                resolved_at__isnull=True,
+            ).count()
+            if active_alerts > 0:
+                rows.append([_("Alertas"), _("Não Reconhecidos"), str(active_alerts)])
+        except Exception:
+            pass
+
+    return {"headers": headers, "rows": rows}
 
 
 def dashboard_callback(request, context):
@@ -394,30 +514,63 @@ def dashboard_callback(request, context):
     # Adicionar cards ao contexto
     context["dashboard_cards"] = all_cards
 
-    # Links rápidos por permissão
+    # Links rápidos por permissão (ícones Material Symbols)
     quick_links = []
 
     if request.user.has_perm("cmms.add_workorder"):
         quick_links.append({
             "title": _("Nova OS"),
             "url": "/admin/cmms/workorder/add/",
-            "icon": "plus-circle",
+            "icon": "add_circle",
         })
 
     if request.user.has_perm("inventory.add_inventorymovement"):
         quick_links.append({
             "title": _("Nova Movimentação"),
             "url": "/admin/inventory/inventorymovement/add/",
-            "icon": "package-plus",
+            "icon": "add_box",
         })
 
     if request.user.has_perm("alerts.change_alert"):
         quick_links.append({
             "title": _("Reconhecer Alertas"),
             "url": "/admin/alerts/alert/?is_acknowledged__exact=0",
-            "icon": "check-circle",
+            "icon": "check_circle",
         })
 
     context["quick_links"] = quick_links
+
+    # Detectar schema público vs tenant
+    is_public_schema = False
+    tenant_name = ""
+
+    if hasattr(request, "tenant"):
+        tenant = request.tenant
+        if hasattr(tenant, "schema_name"):
+            is_public_schema = tenant.schema_name == "public"
+            tenant_name = getattr(tenant, "name", "") or tenant.schema_name
+
+    context["is_public_schema"] = is_public_schema
+    context["tenant_name"] = tenant_name
+
+    # Dados extras para schema público
+    if is_public_schema:
+        try:
+            from apps.tenants.models import Tenant, Domain
+            context["tenant_count"] = Tenant.objects.exclude(schema_name="public").count()
+            context["domain_count"] = Domain.objects.count()
+        except Exception:
+            context["tenant_count"] = 0
+            context["domain_count"] = 0
+    else:
+        # Dados extras para tenant específico
+        budget_data = _get_budget_utilization(request)
+        if budget_data:
+            context["budget_utilization"] = budget_data["value"]
+            context["budget_month_name"] = budget_data["month_name"]
+            context["budget_description"] = budget_data["description"]
+
+        # Tabela de operações
+        context["table_data"] = _get_operations_table(request)
 
     return context
