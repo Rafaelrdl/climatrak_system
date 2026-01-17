@@ -79,6 +79,11 @@ class WorkOrderAdmin(admin.ModelAdmin):
     ]
     date_hierarchy = "scheduled_date"
     inlines = [WorkOrderPhotoInline, WorkOrderItemInline]
+    list_per_page = 25
+    list_select_related = ["asset", "assigned_to", "request", "maintenance_plan"]
+    ordering = ["-scheduled_date", "-created_at"]
+    
+    actions = ["mark_in_progress", "mark_completed", "mark_cancelled"]
 
     fieldsets = (
         (
@@ -135,6 +140,26 @@ class WorkOrderAdmin(admin.ModelAdmin):
         )
 
     status_badge.short_description = "Status"
+
+    @admin.action(description="✅ Marcar como Em Andamento")
+    def mark_in_progress(self, request, queryset):
+        updated = queryset.filter(status="OPEN").update(status="IN_PROGRESS")
+        self.message_user(request, f"{updated} ordem(s) atualizada(s) para Em Andamento.")
+
+    @admin.action(description="✅ Marcar como Concluída")
+    def mark_completed(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.exclude(status__in=["COMPLETED", "CANCELLED"]).update(
+            status="COMPLETED", completed_at=timezone.now()
+        )
+        self.message_user(request, f"{updated} ordem(s) marcada(s) como concluída(s).")
+
+    @admin.action(description="❌ Cancelar Ordens")
+    def mark_cancelled(self, request, queryset):
+        updated = queryset.exclude(status__in=["COMPLETED", "CANCELLED"]).update(
+            status="CANCELLED"
+        )
+        self.message_user(request, f"{updated} ordem(s) cancelada(s).")
 
 
 class RequestItemInline(admin.TabularInline):

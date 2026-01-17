@@ -209,6 +209,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",  # Custom static files (admin CSS, etc.)
+]
 
 # Media files (User uploaded files)
 MEDIA_URL = "/media/"
@@ -483,104 +486,235 @@ DEFAULT_FROM_EMAIL = os.getenv("MAIL_FROM_ADDRESS", "noreply@climatrak.com.br")
 EMAIL_TIMEOUT = 10  # Timeout de 10 segundos para conexão SMTP
 
 # ============================================================================
-# DJANGO JAZZMIN - Modern Admin Interface
+# DJANGO JAZZMIN - Modern Admin Interface (ClimaTrak)
 # ============================================================================
+
+# Environment detection for admin badge
+import os as _env_os
+
+_IS_PRODUCTION = _env_os.getenv("DJANGO_ENV", "development") == "production"
+_ENV_BADGE = "" if _IS_PRODUCTION else " [DEV]"
+_ENV_COLOR = "danger" if _IS_PRODUCTION else "warning"
+
 JAZZMIN_SETTINGS = {
-    # Title
-    "site_title": "TrakSense Admin",
-    "site_header": "TrakSense",
-    "site_brand": "TrakSense Platform",
-    "site_logo": None,
+    # ==========================================================================
+    # Branding ClimaTrak
+    # ==========================================================================
+    "site_title": f"ClimaTrak Admin{_ENV_BADGE}",
+    "site_header": f"ClimaTrak{_ENV_BADGE}",
+    "site_brand": "ClimaTrak Platform",
+    "site_logo": None,  # TODO: Add /static/images/logo.png
     "login_logo": None,
-    "site_icon": None,
-    # Welcome text
-    "welcome_sign": "Bem-vindo ao TrakSense Admin",
-    "copyright": "TrakSense © 2025",
-    # Search model
-    "search_model": ["accounts.User", "tenants.Tenant", "tenants.Domain"],
-    # Top menu
-    "topmenu_links": [
-        {"name": "Home", "url": "admin:index", "permissions": ["accounts.view_user"]},
-        {"name": "API Docs", "url": "/api/schema/swagger-ui/", "new_window": True},
-        {"model": "tenants.Tenant"},
+    "site_icon": None,  # TODO: Add favicon
+    "welcome_sign": "Bem-vindo ao ClimaTrak Admin",
+    "copyright": "ClimaTrak © 2025",
+    # ==========================================================================
+    # Search
+    # ==========================================================================
+    "search_model": [
+        "accounts.User",
+        "tenants.Tenant",
+        "cmms.WorkOrder",
+        "inventory.InventoryItem",
     ],
-    # User menu
-    "usermenu_links": [{"model": "accounts.user"}],
-    # Side menu
+    # ==========================================================================
+    # Top Menu
+    # ==========================================================================
+    "topmenu_links": [
+        {"name": "🏠 Home", "url": "admin:index", "permissions": ["accounts.view_user"]},
+        {"name": "📊 Ops Panel", "url": "/ops/", "new_window": False},
+        {"name": "📖 API Docs", "url": "/api/docs/", "new_window": True},
+    ],
+    # ==========================================================================
+    # User Menu
+    # ==========================================================================
+    "usermenu_links": [
+        {"name": "📋 Meu Perfil", "model": "accounts.user"},
+    ],
+    # ==========================================================================
+    # Sidebar Navigation
+    # ==========================================================================
     "show_sidebar": True,
-    "navigation_expanded": True,
+    "navigation_expanded": False,
     "hide_apps": [],
-    "hide_models": [],
-    # Icons (FontAwesome)
+    "hide_models": [
+        "auth.Group",  # Usar grupos customizados se necessário
+    ],
+    # ==========================================================================
+    # Custom App/Model Ordering (por domínio de negócio)
+    # ==========================================================================
+    "order_with_respect_to": [
+        # 🏢 Plataforma
+        "tenants",
+        "accounts",
+        "public_identity",
+        # 🔧 CMMS (Manutenção)
+        "cmms",
+        # 📦 Inventário
+        "inventory",
+        # 📍 Localizações
+        "locations",
+        # 🚨 Alertas
+        "alerts",
+        # 💰 Finance (TrakLedger)
+        "trakledger",
+        # 🚗 Field Service (TrakService)
+        "trakservice",
+        # ⚙️ Sistema
+        "ops",
+        "core_events",
+        "marketing",
+        "auth",
+    ],
+    # ==========================================================================
+    # Icons (FontAwesome 5)
+    # ==========================================================================
     "icons": {
-        "auth": "fas fa-users-cog",
-        "accounts.user": "fas fa-user",
-        "auth.Group": "fas fa-users",
+        # Plataforma
+        "tenants": "fas fa-building",
         "tenants.Tenant": "fas fa-building",
         "tenants.Domain": "fas fa-globe",
-        "ingest.Telemetry": "fas fa-database",
+        "tenants.TenantFeature": "fas fa-toggle-on",
+        "accounts": "fas fa-users",
+        "accounts.User": "fas fa-user",
+        "public_identity": "fas fa-id-card",
+        "public_identity.TenantMembership": "fas fa-user-tag",
+        "public_identity.TenantUserIndex": "fas fa-user-check",
+        "public_identity.TenantInvite": "fas fa-envelope",
+        # CMMS
+        "cmms": "fas fa-tools",
+        "cmms.WorkOrder": "fas fa-clipboard-list",
+        "cmms.Request": "fas fa-hand-paper",
+        "cmms.MaintenancePlan": "fas fa-calendar-alt",
+        "cmms.ChecklistTemplate": "fas fa-tasks",
+        "cmms.TimeEntry": "fas fa-clock",
+        "cmms.ExternalCost": "fas fa-file-invoice-dollar",
+        "cmms.PartUsage": "fas fa-cogs",
+        # Inventário
+        "inventory": "fas fa-boxes",
+        "inventory.InventoryItem": "fas fa-box",
+        "inventory.InventoryCategory": "fas fa-folder",
+        "inventory.InventoryMovement": "fas fa-exchange-alt",
+        "inventory.InventoryCount": "fas fa-clipboard-check",
+        # Localizações
+        "locations": "fas fa-map-marker-alt",
+        "locations.Company": "fas fa-city",
+        "locations.Unit": "fas fa-warehouse",
+        "locations.Sector": "fas fa-layer-group",
+        "locations.Subsection": "fas fa-th",
+        "locations.LocationContact": "fas fa-address-book",
+        # Alertas
+        "alerts": "fas fa-bell",
+        "alerts.Alert": "fas fa-exclamation-triangle",
+        "alerts.Rule": "fas fa-cog",
+        "alerts.RuleParameter": "fas fa-sliders-h",
+        "alerts.NotificationPreference": "fas fa-envelope-open",
+        # TrakLedger (Finance)
+        "trakledger": "fas fa-coins",
+        "trakledger.CostCenter": "fas fa-sitemap",
+        "trakledger.RateCard": "fas fa-dollar-sign",
+        "trakledger.BudgetPlan": "fas fa-chart-pie",
+        "trakledger.BudgetEnvelope": "fas fa-envelope-open-text",
+        "trakledger.BudgetMonth": "fas fa-calendar-day",
+        # TrakService (Field Service)
+        "trakservice": "fas fa-truck",
+        "trakservice.TechnicianProfile": "fas fa-hard-hat",
+        "trakservice.ServiceAssignment": "fas fa-calendar-check",
+        # Sistema
+        "ops": "fas fa-cogs",
+        "ops.ExportJob": "fas fa-file-export",
+        "ops.AuditLog": "fas fa-history",
+        "core_events": "fas fa-broadcast-tower",
+        "core_events.OutboxEvent": "fas fa-paper-plane",
+        "marketing": "fas fa-bullhorn",
+        "marketing.BlogPost": "fas fa-newspaper",
+        "auth": "fas fa-shield-alt",
+        "auth.Group": "fas fa-users-cog",
     },
-    # Theme
     "default_icon_parents": "fas fa-chevron-circle-right",
     "default_icon_children": "fas fa-circle",
-    # UI Tweaks
+    # ==========================================================================
+    # UI Settings
+    # ==========================================================================
     "show_ui_builder": False,
     "changeform_format": "horizontal_tabs",
     "changeform_format_overrides": {
         "accounts.user": "collapsible",
         "auth.group": "vertical_tabs",
+        "cmms.workorder": "horizontal_tabs",
+        "trakledger.budgetplan": "horizontal_tabs",
     },
+    # ==========================================================================
     # Custom CSS/JS
-    "custom_css": None,
+    # ==========================================================================
+    "custom_css": "admin/css/climatrak_admin.css",
     "custom_js": None,
     "use_google_fonts_cdn": True,
-    # Related modal
+    # ==========================================================================
+    # Related Modal
+    # ==========================================================================
     "related_modal_active": True,
-    # Custom links (per app)
+    # ==========================================================================
+    # Custom Links (per app)
+    # ==========================================================================
     "custom_links": {
-        "auth": [
+        "tenants": [
             {
-                "name": "🎛️ Control Center",
+                "name": "📊 Ops Panel",
                 "url": "/ops/",
                 "icon": "fas fa-chart-line",
                 "permissions": ["accounts.view_user"],
             }
         ],
-        "tenants": [
+        "trakledger": [
             {
-                "name": "Ver Documentação Multi-Tenant",
-                "url": "/docs/multi-tenant",
-                "icon": "fas fa-book",
-                "permissions": ["tenants.view_tenant"],
+                "name": "📈 Relatório Financeiro",
+                "url": "/ops/finance/",
+                "icon": "fas fa-chart-bar",
+                "permissions": ["trakledger.view_budgetplan"],
             }
         ],
     },
-    # Language chooser
     "language_chooser": False,
 }
 
 JAZZMIN_UI_TWEAKS = {
+    # ==========================================================================
+    # Text Size
+    # ==========================================================================
     "navbar_small_text": False,
-    "footer_small_text": False,
+    "footer_small_text": True,
     "body_small_text": False,
     "brand_small_text": False,
+    # ==========================================================================
+    # Colors & Theme
+    # ==========================================================================
     "brand_colour": "navbar-primary",
     "accent": "accent-primary",
-    "navbar": "navbar-dark",
-    "no_navbar_border": False,
+    "navbar": "navbar-dark navbar-primary",
+    "no_navbar_border": True,
     "navbar_fixed": True,
     "layout_boxed": False,
     "footer_fixed": False,
     "sidebar_fixed": True,
     "sidebar": "sidebar-dark-primary",
+    # ==========================================================================
+    # Sidebar Navigation
+    # ==========================================================================
     "sidebar_nav_small_text": False,
     "sidebar_disable_expand": False,
     "sidebar_nav_legacy_style": False,
-    "sidebar_nav_compact_style": False,
-    "sidebar_nav_child_indent": False,
+    "sidebar_nav_compact_style": True,  # Mais compacto
+    "sidebar_nav_child_indent": True,  # Indentação filhos
     "sidebar_nav_flat_style": False,
-    "theme": "default",
-    "dark_mode_theme": None,
+    # ==========================================================================
+    # Theme Variants
+    # ==========================================================================
+    "theme": "cyborg",  # Dark theme profissional
+    "dark_mode_theme": "cyborg",
+    # ==========================================================================
+    # Button Classes
+    # ==========================================================================
     "button_classes": {
         "primary": "btn-primary",
         "secondary": "btn-secondary",
@@ -589,4 +723,8 @@ JAZZMIN_UI_TWEAKS = {
         "danger": "btn-danger",
         "success": "btn-success",
     },
+    # ==========================================================================
+    # Actions & Links
+    # ==========================================================================
+    "actions_sticky_top": True,  # Ações fixas no topo
 }

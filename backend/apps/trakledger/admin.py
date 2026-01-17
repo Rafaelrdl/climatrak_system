@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.html import format_html
 
 from .models import BudgetEnvelope, BudgetMonth, BudgetPlan, CostCenter, RateCard
 
@@ -152,16 +153,39 @@ class BudgetEnvelopeAdmin(admin.ModelAdmin):
 
 @admin.register(BudgetMonth)
 class BudgetMonthAdmin(admin.ModelAdmin):
-    list_display = ["envelope", "month", "planned_amount", "is_locked", "locked_at"]
+    """
+    Admin para BudgetMonth com proteção de meses bloqueados.
+    
+    IMPORTANTE: Meses bloqueados (is_locked=True) não podem ser editados.
+    Para correções, use o mecanismo de ajustes/adjustments.
+    """
+    list_display = [
+        "envelope",
+        "month",
+        "planned_amount",
+        "lock_status_badge",
+        "locked_at",
+        "locked_by",
+    ]
     list_filter = ["is_locked", "month", "envelope__budget_plan__year"]
     search_fields = ["envelope__name", "envelope__budget_plan__name"]
     readonly_fields = ["id", "created_at", "updated_at", "locked_at", "locked_by"]
     autocomplete_fields = ["envelope"]
+    list_select_related = ["envelope", "envelope__budget_plan", "locked_by"]
+    list_per_page = 25
+    ordering = ["-envelope__budget_plan__year", "month"]
 
     fieldsets = (
         (None, {"fields": ("id", "envelope", "month")}),
         ("Valores", {"fields": ("planned_amount",)}),
-        ("Lock", {"fields": ("is_locked", "locked_at", "locked_by")}),
+        (
+            "🔒 Lock (Fechamento Mensal)",
+            {
+                "fields": ("is_locked", "locked_at", "locked_by"),
+                "description": "⚠️ ATENÇÃO: Meses bloqueados não podem ser editados. "
+                "Use ajustes para correções.",
+            },
+        ),
         (
             "Auditoria",
             {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
@@ -170,16 +194,72 @@ class BudgetMonthAdmin(admin.ModelAdmin):
 
     actions = ["lock_months", "unlock_months"]
 
-    @admin.action(description="Bloquear meses selecionados")
+    def lock_status_badge(self, obj):
+        """Badge visual para status de lock."""
+        if obj.is_locked:
+            return format_html(
+                '<span style="background-color: #ef4444; color: white; padding: 4px 8px; '
+                'border-radius: 4px; font-size: 11px;">🔒 BLOQUEADO</span>'
+            )
+        return format_html(
+            '<span style="background-color: #10b981; color: white; padding: 4px 8px; '
+            'border-radius: 4px; font-size: 11px;">✅ ABERTO</span>'
+        )
+
+    lock_status_badge.short_description = "Status"
+    lock_status_badge.admin_order_field = "is_locked"
+
+    def get_readonly_fields(self, request, obj=None):
+        """Torna planned_amount readonly se o mês estiver bloqueado."""
+        readonly = list(super().get_readonly_fields(request, obj))
+        if obj and obj.is_locked:
+            # Mês bloqueado: não pode editar valor
+            readonly.extend(["planned_amount", "is_locked"])
+        return readonly
+
+    def has_change_permission(self, request, obj=None):
+        """Restringe edição de meses bloqueados para não-superusers."""
+        if obj and obj.is_locked and not request.user.is_superuser:
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        """Proíbe deleção de meses bloqueados."""
+        if obj and obj.is_locked:
+            return False
+        return super().has_delete_permission(request, obj)
+
+    @admin.action(description="🔒 Bloquear meses selecionados")
     def lock_months(self, request, queryset):
+        locked_count = 0
         for month in queryset:
             if not month.is_locked:
                 month.lock(request.user)
-        self.message_user(request, f"{queryset.count()} mês(es) bloqueado(s).")
+                locked_count += 1
+        self.message_user(
+            request,
+            f"✅ {locked_count} mês(es) bloqueado(s) com sucesso.",
+            level="success" if locked_count > 0 else "warning",
+        )
 
-    @admin.action(description="Desbloquear meses selecionados")
+    @admin.action(description="🔓 Desbloquear meses (requer superuser)")
     def unlock_months(self, request, queryset):
+        if not request.user.is_superuser:
+            self.message_user(
+                request,
+                "❌ Apenas superusuários podem desbloquear meses.",
+                level="error",
+            )
+            return
+        
+        unlocked_count = 0
         for month in queryset:
             if month.is_locked:
                 month.unlock(request.user)
-        self.message_user(request, f"{queryset.count()} mês(es) desbloqueado(s).")
+                unlocked_count += 1
+        self.message_user(
+            request,
+            f"⚠️ {unlocked_count} mês(es) desbloqueado(s). "
+            "Lembre-se: alterações em meses já fechados podem afetar relatórios.",
+            level="warning",
+        )

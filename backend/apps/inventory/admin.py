@@ -64,6 +64,11 @@ class InventoryItemAdmin(admin.ModelAdmin):
     readonly_fields = ["created_at", "updated_at"]
     raw_id_fields = ["category"]
     inlines = [InventoryMovementInline]
+    list_per_page = 25
+    list_select_related = ["category"]
+    ordering = ["name"]
+    
+    actions = ["mark_critical", "mark_not_critical", "deactivate_items"]
 
     fieldsets = (
         (
@@ -128,6 +133,21 @@ class InventoryItemAdmin(admin.ModelAdmin):
         )
 
     stock_status_badge.short_description = "Status"
+
+    @admin.action(description="⚠️ Marcar como Item Crítico")
+    def mark_critical(self, request, queryset):
+        updated = queryset.update(is_critical=True)
+        self.message_user(request, f"{updated} item(ns) marcado(s) como crítico(s).")
+
+    @admin.action(description="✅ Remover marcação de crítico")
+    def mark_not_critical(self, request, queryset):
+        updated = queryset.update(is_critical=False)
+        self.message_user(request, f"{updated} item(ns) desmarcado(s) como crítico(s).")
+
+    @admin.action(description="🚫 Desativar itens selecionados")
+    def deactivate_items(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f"{updated} item(ns) desativado(s).")
 
 
 @admin.register(InventoryMovement)
