@@ -84,6 +84,11 @@ class InventoryItemSerializer(serializers.ModelSerializer):
         max_digits=14, decimal_places=2, read_only=True
     )
     stock_status = serializers.CharField(read_only=True)
+    
+    # Campo para receber quantidade inicial (write-only para criação)
+    initial_quantity = serializers.DecimalField(
+        max_digits=12, decimal_places=2, write_only=True, required=False, default=Decimal("0")
+    )
 
     class Meta:
         model = InventoryItem
@@ -122,7 +127,55 @@ class InventoryItemSerializer(serializers.ModelSerializer):
             "stock_status",
             "created_at",
             "updated_at",
+            "initial_quantity",
         ]
+
+    def create(self, validated_data):
+        """
+        Cria item de estoque com movimentação inicial se quantity > 0.
+        """
+        from .services import InventoryItemService
+
+        # Extrair quantidade inicial
+        initial_quantity = validated_data.pop("initial_quantity", Decimal("0"))
+        quantity = validated_data.pop("quantity", initial_quantity)
+        
+        # Usar o maior entre quantity e initial_quantity
+        if initial_quantity > quantity:
+            quantity = initial_quantity
+
+        # Obter usuário do contexto
+        request = self.context.get("request")
+        performed_by = request.user if request else None
+
+        # Usar o service para criar com movimentação
+        item, _ = InventoryItemService.create_item_with_initial_stock(
+            code=validated_data.get("code"),
+            name=validated_data.get("name"),
+            unit=validated_data.get("unit", InventoryItem.Unit.UNIT),
+            quantity=quantity,
+            min_quantity=validated_data.get("min_quantity", Decimal("0")),
+            max_quantity=validated_data.get("max_quantity"),
+            unit_cost=validated_data.get("unit_cost", Decimal("0")),
+            category=validated_data.get("category"),
+            manufacturer=validated_data.get("manufacturer", ""),
+            description=validated_data.get("description", ""),
+            barcode=validated_data.get("barcode", ""),
+            location=validated_data.get("location", ""),
+            shelf=validated_data.get("shelf", ""),
+            bin_location=validated_data.get("bin", ""),
+            supplier=validated_data.get("supplier", ""),
+            supplier_code=validated_data.get("supplier_code", ""),
+            lead_time_days=validated_data.get("lead_time_days"),
+            image=validated_data.get("image"),
+            image_url=validated_data.get("image_url"),
+            is_active=validated_data.get("is_active", True),
+            is_critical=validated_data.get("is_critical", False),
+            notes=validated_data.get("notes", ""),
+            performed_by=performed_by,
+        )
+
+        return item
 
 
 class InventoryItemListSerializer(serializers.ModelSerializer):

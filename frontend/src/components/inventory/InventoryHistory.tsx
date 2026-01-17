@@ -58,12 +58,17 @@ export function InventoryHistory({ className }: InventoryHistoryProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedReason, setSelectedReason] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<string>('7'); // últimos 7 dias
+  // Default 90 dias para consistência com aba Análise
+  const [dateRange, setDateRange] = useState<string>('90');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
   
   // Calcular datas baseado no filtro
   const dateFilter = useMemo(() => {
+    // Se "all", não aplica filtro de data
+    if (dateRange === 'all') {
+      return {};
+    }
     const days = parseInt(dateRange);
     const startDate = subDays(new Date(), days);
     return {
@@ -308,6 +313,7 @@ export function InventoryHistory({ className }: InventoryHistoryProps) {
                   <SelectItem value="30">Últimos 30 dias</SelectItem>
                   <SelectItem value="90">Últimos 90 dias</SelectItem>
                   <SelectItem value="365">Último ano</SelectItem>
+                  <SelectItem value="all">Todo o histórico</SelectItem>
                 </SelectContent>
               </Select>
             </div>
