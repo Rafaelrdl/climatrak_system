@@ -9,14 +9,13 @@ Tests cover:
 """
 
 from django.db import IntegrityError, connection
-from django.test import override_settings
+from django.test import TestCase, override_settings
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.test import APIClient, APIRequestFactory
 from rest_framework.views import APIView
 
-import pytest
 from django_tenants.utils import schema_context
 
 from apps.tenants.features import (
@@ -36,9 +35,8 @@ from apps.tenants.permissions import (
 )
 
 
-@pytest.fixture
-def tenant_with_features(db):
-    """Create a tenant with features for testing."""
+def create_tenant_with_features() -> Tenant:
+    """Create a tenant with default features for testing."""
     with schema_context("public"):
         tenant = Tenant.objects.create(
             name="Test Tenant Features",
@@ -50,13 +48,11 @@ def tenant_with_features(db):
             tenant=tenant,
             is_primary=True,
         )
-        # Initialize default features
         FeatureService.initialize_tenant_features(tenant.id)
         return tenant
 
 
-@pytest.fixture
-def tenant_trakservice_enabled(db):
+def create_tenant_trakservice_enabled() -> Tenant:
     """Create a tenant with TrakService enabled."""
     with schema_context("public"):
         tenant = Tenant.objects.create(
@@ -69,7 +65,6 @@ def tenant_trakservice_enabled(db):
             tenant=tenant,
             is_primary=True,
         )
-        # Enable TrakService features
         FeatureService.set_features(
             tenant.id,
             {
@@ -84,11 +79,12 @@ def tenant_trakservice_enabled(db):
         return tenant
 
 
-class TestTenantFeatureModel:
+class TestTenantFeatureModel(TestCase):
     """Tests for TenantFeature model."""
 
-    def test_create_feature(self, tenant_with_features):
+    def test_create_feature(self):
         """Test creating a feature flag."""
+        tenant_with_features = create_tenant_with_features()
         with schema_context("public"):
             feature = TenantFeature.objects.create(
                 tenant=tenant_with_features,
@@ -99,23 +95,25 @@ class TestTenantFeatureModel:
             assert feature.feature_key == "custom.feature"
             assert feature.enabled is True
 
-    def test_unique_constraint(self, tenant_with_features):
+    def test_unique_constraint(self):
         """Test that tenant+feature_key must be unique."""
+        tenant_with_features = create_tenant_with_features()
         with schema_context("public"):
             TenantFeature.objects.create(
                 tenant=tenant_with_features,
                 feature_key="unique.feature",
                 enabled=True,
             )
-            with pytest.raises(IntegrityError):
+            with self.assertRaises(IntegrityError):
                 TenantFeature.objects.create(
                     tenant=tenant_with_features,
                     feature_key="unique.feature",
                     enabled=False,
                 )
 
-    def test_feature_str(self, tenant_with_features):
+    def test_feature_str(self):
         """Test string representation."""
+        tenant_with_features = create_tenant_with_features()
         with schema_context("public"):
             feature = TenantFeature.objects.filter(
                 tenant=tenant_with_features, feature_key="trakservice.enabled"
@@ -123,26 +121,30 @@ class TestTenantFeatureModel:
             assert "trakservice.enabled" in str(feature)
 
 
-class TestFeatureService:
+class TestFeatureService(TestCase):
     """Tests for FeatureService."""
 
-    def test_get_features_returns_defaults(self, tenant_with_features):
+    def test_get_features_returns_defaults(self):
         """Test that get_features returns default values."""
+        tenant_with_features = create_tenant_with_features()
         features = FeatureService.get_features(tenant_with_features.id)
         assert "trakservice.enabled" in features
         assert features["trakservice.enabled"] is False
 
-    def test_has_feature_false_by_default(self, tenant_with_features):
+    def test_has_feature_false_by_default(self):
         """Test that features are disabled by default."""
+        tenant_with_features = create_tenant_with_features()
         assert has_feature(tenant_with_features.id, "trakservice.enabled") is False
 
-    def test_set_feature_enables(self, tenant_with_features):
+    def test_set_feature_enables(self):
         """Test enabling a feature."""
+        tenant_with_features = create_tenant_with_features()
         FeatureService.set_feature(tenant_with_features.id, "trakservice.enabled", True)
         assert has_feature(tenant_with_features.id, "trakservice.enabled") is True
 
-    def test_set_feature_disables(self, tenant_trakservice_enabled):
+    def test_set_feature_disables(self):
         """Test disabling a feature."""
+        tenant_trakservice_enabled = create_tenant_trakservice_enabled()
         assert has_feature(tenant_trakservice_enabled.id, "trakservice.enabled") is True
         FeatureService.set_feature(
             tenant_trakservice_enabled.id, "trakservice.enabled", False
@@ -151,8 +153,9 @@ class TestFeatureService:
             has_feature(tenant_trakservice_enabled.id, "trakservice.enabled") is False
         )
 
-    def test_set_features_bulk(self, tenant_with_features):
+    def test_set_features_bulk(self):
         """Test setting multiple features at once."""
+        tenant_with_features = create_tenant_with_features()
         FeatureService.set_features(
             tenant_with_features.id,
             {
@@ -167,8 +170,9 @@ class TestFeatureService:
         assert features["trakservice.quotes"] is True
         assert features["trakservice.tracking"] is False  # Not set, remains default
 
-    def test_cache_invalidation(self, tenant_with_features):
+    def test_cache_invalidation(self):
         """Test that cache is invalidated when features change."""
+        tenant_with_features = create_tenant_with_features()
         # First call populates cache
         features1 = get_tenant_features(tenant_with_features.id)
         assert features1["trakservice.enabled"] is False
@@ -181,11 +185,12 @@ class TestFeatureService:
         assert features2["trakservice.enabled"] is True
 
 
-class TestFeaturePermissions:
+class TestFeaturePermissions(TestCase):
     """Tests for feature-based permissions."""
 
-    def test_feature_required_blocks_when_disabled(self, tenant_with_features):
+    def test_feature_required_blocks_when_disabled(self):
         """Test that FeatureRequired blocks access when feature is disabled."""
+        tenant_with_features = create_tenant_with_features()
 
         # Create a view with required features
         class TestView(APIView):
@@ -208,8 +213,9 @@ class TestFeaturePermissions:
             response = view(request)
             assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_feature_required_allows_when_enabled(self, tenant_trakservice_enabled):
+    def test_feature_required_allows_when_enabled(self):
         """Test that FeatureRequired allows access when feature is enabled."""
+        tenant_trakservice_enabled = create_tenant_trakservice_enabled()
 
         class TestView(APIView):
             permission_classes = [FeatureRequired]
@@ -230,8 +236,9 @@ class TestFeaturePermissions:
             response = view(request)
             assert response.status_code == status.HTTP_200_OK
 
-    def test_trakservice_feature_required_checks_base(self, tenant_with_features):
+    def test_trakservice_feature_required_checks_base(self):
         """Test TrakServiceFeatureRequired checks trakservice.enabled first."""
+        tenant_with_features = create_tenant_with_features()
 
         class TestView(APIView):
             permission_classes = [TrakServiceFeatureRequired]
@@ -253,8 +260,9 @@ class TestFeaturePermissions:
             response = view(request)
             assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_feature_decorator_blocks_disabled(self, tenant_with_features):
+    def test_feature_decorator_blocks_disabled(self):
         """Test @feature_required decorator blocks when feature disabled."""
+        tenant_with_features = create_tenant_with_features()
 
         @feature_required("trakservice.enabled")
         def test_view(request):
@@ -266,11 +274,12 @@ class TestFeaturePermissions:
         with schema_context(tenant_with_features.schema_name):
             connection.tenant = tenant_with_features
 
-            with pytest.raises(FeatureNotEnabled):
+            with self.assertRaises(FeatureNotEnabled):
                 test_view(request)
 
-    def test_trakservice_decorator(self, tenant_trakservice_enabled):
+    def test_trakservice_decorator(self):
         """Test @trakservice_feature_required decorator."""
+        tenant_trakservice_enabled = create_tenant_trakservice_enabled()
 
         @trakservice_feature_required("dispatch")
         def test_view(request):
@@ -286,10 +295,9 @@ class TestFeaturePermissions:
             response = test_view(request)
             assert response.status_code == status.HTTP_200_OK
 
-    def test_trakservice_decorator_blocks_missing_subfeature(
-        self, tenant_trakservice_enabled
-    ):
+    def test_trakservice_decorator_blocks_missing_subfeature(self):
         """Test decorator blocks when sub-feature is disabled."""
+        tenant_trakservice_enabled = create_tenant_trakservice_enabled()
 
         @trakservice_feature_required("tracking")  # tracking is False
         def test_view(request):
@@ -301,18 +309,16 @@ class TestFeaturePermissions:
         with schema_context(tenant_trakservice_enabled.schema_name):
             connection.tenant = tenant_trakservice_enabled
 
-            with pytest.raises(FeatureNotEnabled):
+            with self.assertRaises(FeatureNotEnabled):
                 test_view(request)
 
 
-class TestFeatureExposureInMeEndpoint:
+class TestFeatureExposureInMeEndpoint(TestCase):
     """Tests for features exposure in /api/auth/me/ response."""
 
-    @pytest.mark.django_db(transaction=True)
-    def test_me_endpoint_includes_features(
-        self, tenant_trakservice_enabled, django_user_model
-    ):
+    def test_me_endpoint_includes_features(self):
         """Test that /api/auth/me/ includes tenant features."""
+        tenant_trakservice_enabled = create_tenant_trakservice_enabled()
         # This test would require full integration setup
         # Simplified version to verify features dict structure
         features = get_tenant_features(tenant_trakservice_enabled.id)
@@ -324,10 +330,10 @@ class TestFeatureExposureInMeEndpoint:
         assert features["trakservice.tracking"] is False
 
 
-class TestFeatureIsolation:
+class TestFeatureIsolation(TestCase):
     """Tests for feature isolation between tenants."""
 
-    def test_features_isolated_between_tenants(self, db):
+    def test_features_isolated_between_tenants(self):
         """Test that features are isolated between tenants."""
         with schema_context("public"):
             # Create two tenants

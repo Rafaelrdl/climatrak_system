@@ -558,7 +558,7 @@ class AssetCompleteSerializer(serializers.ModelSerializer):
                 )
                 readings[metric_key] = {
                     "sensor_id": sensor.id,
-                    "sensor_name": sensor.name,
+                    "sensor_name": sensor.tag,
                     "value": float(last_reading.value) if last_reading.value else None,
                     "unit": sensor.unit or "",
                     "timestamp": (

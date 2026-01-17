@@ -477,6 +477,11 @@ class AssetViewSet(viewsets.ModelViewSet):
             is_online_bool = is_online.lower() == "true"
             devices = devices.filter(is_online=is_online_bool)
 
+        page = self.paginate_queryset(devices)
+        if page is not None:
+            serializer = DeviceListSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         serializer = DeviceListSerializer(devices, many=True)
         return Response(serializer.data)
 

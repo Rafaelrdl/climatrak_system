@@ -19,8 +19,6 @@ from django.db import connection
 from django.test import RequestFactory, TestCase, override_settings
 from rest_framework import status
 from rest_framework.test import APIClient
-
-import pytest
 from django_tenants.test.cases import TenantTestCase
 from django_tenants.test.client import TenantClient
 from django_tenants.utils import (
@@ -145,7 +143,6 @@ class TenantConfigurationTests(TestCase):
     REGRA: Apps sensíveis devem estar em TENANT_APPS para isolamento.
     """
 
-    @pytest.mark.tenant
     def test_finance_models_are_tenant_specific(self):
         """Finance deve estar em TENANT_APPS para isolamento de dados financeiros."""
         tenant_apps = getattr(settings, "TENANT_APPS", [])
@@ -155,7 +152,6 @@ class TenantConfigurationTests(TestCase):
             "apps.trakledger DEVE estar em TENANT_APPS para isolamento!",
         )
 
-    @pytest.mark.tenant
     def test_accounts_models_are_tenant_specific(self):
         """Accounts deve estar em TENANT_APPS para isolamento de usuários."""
         tenant_apps = getattr(settings, "TENANT_APPS", [])
@@ -165,7 +161,6 @@ class TenantConfigurationTests(TestCase):
             "apps.accounts DEVE estar em TENANT_APPS para isolamento!",
         )
 
-    @pytest.mark.tenant
     def test_cmms_models_are_tenant_specific(self):
         """CMMS deve estar em TENANT_APPS para isolamento de ordens de serviço."""
         tenant_apps = getattr(settings, "TENANT_APPS", [])
@@ -175,7 +170,6 @@ class TenantConfigurationTests(TestCase):
             "apps.cmms DEVE estar em TENANT_APPS para isolamento!",
         )
 
-    @pytest.mark.tenant
     def test_assets_models_are_tenant_specific(self):
         """Assets deve estar em TENANT_APPS para isolamento de ativos."""
         tenant_apps = getattr(settings, "TENANT_APPS", [])
@@ -185,7 +179,6 @@ class TenantConfigurationTests(TestCase):
             "apps.assets DEVE estar em TENANT_APPS para isolamento!",
         )
 
-    @pytest.mark.tenant
     def test_alerts_models_are_tenant_specific(self):
         """Alerts deve estar em TENANT_APPS para isolamento de alertas."""
         tenant_apps = getattr(settings, "TENANT_APPS", [])
@@ -195,7 +188,6 @@ class TenantConfigurationTests(TestCase):
             "apps.alerts DEVE estar em TENANT_APPS para isolamento!",
         )
 
-    @pytest.mark.tenant
     def test_core_events_is_shared(self):
         """
         Core Events (Outbox) pode ser shared ou tenant.

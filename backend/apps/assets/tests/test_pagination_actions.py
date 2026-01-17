@@ -29,11 +29,10 @@ class AssetPaginationActionTests(TenantTestCase):
             password="testpass123",
         )
         with schema_context("public"):
-            TenantMembership.objects.create(
+            TenantMembership.objects.get_or_create(
                 tenant=self.tenant,
                 email_hash=compute_email_hash(self.user.email),
-                role="admin",
-                status="active",
+                defaults={"role": "admin", "status": "active"},
             )
 
     def test_site_assets_action_paginates(self):

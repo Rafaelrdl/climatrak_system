@@ -9,12 +9,7 @@ Testes para validar as correções dos 5 bugs críticos identificados.
 """
 
 import os
-import django
 import sys
-
-# Setup Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
-django.setup()
 
 from django.test import TestCase
 from django_tenants.utils import schema_context
@@ -212,5 +207,15 @@ def run_tests():
     return failures
 
 
-if __name__ == '__main__':
-    sys.exit(run_tests())
+def main() -> int:
+    import django
+
+    # Setup Django
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    django.setup()
+
+    return run_tests()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

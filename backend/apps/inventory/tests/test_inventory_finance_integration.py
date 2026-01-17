@@ -12,7 +12,6 @@ Verificações:
 6. Cálculos de valor corretos
 """
 
-import pytest
 from decimal import Decimal
 from django.test import TransactionTestCase
 from django.utils import timezone
@@ -25,11 +24,10 @@ from apps.trakledger.models import CostTransaction, CostCenter, Commitment
 User = get_user_model()
 
 
-@pytest.mark.django_db(transaction=True, databases={'default', 'default_other_tenant'})
 class TestInventoryToFinanceIntegration(TransactionTestCase):
     """Testes de integração Inventory → Finance"""
 
-    databases = {'default', 'default_other_tenant'}
+    databases = {'default'}
 
     def setUp(self):
         """Setup de dados para cada teste"""
@@ -205,7 +203,6 @@ class TestInventoryToFinanceIntegration(TransactionTestCase):
         assert cost_txn.cost_center_id is not None, "Cost center deveria estar preenchido"
 
 
-@pytest.mark.django_db(transaction=True)
 class TestCommitmentToFinanceIntegration(TransactionTestCase):
     """Testes de integração Commitment → Finance"""
 

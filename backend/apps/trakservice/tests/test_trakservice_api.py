@@ -9,9 +9,8 @@ Tests cover:
 
 from django.db import connection
 from rest_framework import status
+from django.test import TestCase
 from rest_framework.test import APIClient, APIRequestFactory
-
-import pytest
 from django_tenants.utils import schema_context
 
 from apps.tenants.features import FeatureService, TenantFeature
@@ -20,8 +19,7 @@ from apps.trakservice.services import TrakServiceMetaService
 from apps.trakservice.views import TrakServiceHealthView, TrakServiceMetaView
 
 
-@pytest.fixture
-def tenant_without_trakservice(db):
+def create_tenant_without_trakservice() -> Tenant:
     """Create a tenant without TrakService enabled."""
     with schema_context("public"):
         tenant = Tenant.objects.create(
@@ -34,13 +32,11 @@ def tenant_without_trakservice(db):
             tenant=tenant,
             is_primary=True,
         )
-        # Initialize with TrakService disabled (default)
         FeatureService.initialize_tenant_features(tenant.id)
         return tenant
 
 
-@pytest.fixture
-def tenant_with_trakservice(db):
+def create_tenant_with_trakservice() -> Tenant:
     """Create a tenant with TrakService enabled."""
     with schema_context("public"):
         tenant = Tenant.objects.create(
@@ -53,7 +49,6 @@ def tenant_with_trakservice(db):
             tenant=tenant,
             is_primary=True,
         )
-        # Enable TrakService
         FeatureService.set_features(
             tenant.id,
             {
@@ -68,11 +63,12 @@ def tenant_with_trakservice(db):
         return tenant
 
 
-class TestTrakServiceFeatureGating:
+class TestTrakServiceFeatureGating(TestCase):
     """Tests for TrakService feature gating."""
 
-    def test_meta_endpoint_blocked_when_disabled(self, tenant_without_trakservice):
+    def test_meta_endpoint_blocked_when_disabled(self):
         """Test that _meta endpoint returns 403 when TrakService is disabled."""
+        tenant_without_trakservice = create_tenant_without_trakservice()
         factory = APIRequestFactory()
         request = factory.get("/api/trakservice/_meta/")
         request.user = type("User", (), {"is_authenticated": True})()
@@ -84,8 +80,9 @@ class TestTrakServiceFeatureGating:
             response = view(request)
             assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_meta_endpoint_allowed_when_enabled(self, tenant_with_trakservice):
+    def test_meta_endpoint_allowed_when_enabled(self):
         """Test that _meta endpoint returns 200 when TrakService is enabled."""
+        tenant_with_trakservice = create_tenant_with_trakservice()
         factory = APIRequestFactory()
         request = factory.get("/api/trakservice/_meta/")
         request.user = type("User", (), {"is_authenticated": True})()
@@ -97,8 +94,9 @@ class TestTrakServiceFeatureGating:
             response = view(request)
             assert response.status_code == status.HTTP_200_OK
 
-    def test_health_endpoint_blocked_when_disabled(self, tenant_without_trakservice):
+    def test_health_endpoint_blocked_when_disabled(self):
         """Test that _health endpoint returns 403 when TrakService is disabled."""
+        tenant_without_trakservice = create_tenant_without_trakservice()
         factory = APIRequestFactory()
         request = factory.get("/api/trakservice/_health/")
         request.user = type("User", (), {"is_authenticated": True})()
@@ -110,8 +108,9 @@ class TestTrakServiceFeatureGating:
             response = view(request)
             assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_health_endpoint_allowed_when_enabled(self, tenant_with_trakservice):
+    def test_health_endpoint_allowed_when_enabled(self):
         """Test that _health endpoint returns 200 when TrakService is enabled."""
+        tenant_with_trakservice = create_tenant_with_trakservice()
         factory = APIRequestFactory()
         request = factory.get("/api/trakservice/_health/")
         request.user = type("User", (), {"is_authenticated": True})()
@@ -124,11 +123,12 @@ class TestTrakServiceFeatureGating:
             assert response.status_code == status.HTTP_200_OK
 
 
-class TestTrakServiceMetaEndpoint:
+class TestTrakServiceMetaEndpoint(TestCase):
     """Tests for TrakService _meta endpoint."""
 
-    def test_meta_returns_module_info(self, tenant_with_trakservice):
+    def test_meta_returns_module_info(self):
         """Test that _meta returns correct module information."""
+        tenant_with_trakservice = create_tenant_with_trakservice()
         factory = APIRequestFactory()
         request = factory.get("/api/trakservice/_meta/")
         request.user = type("User", (), {"is_authenticated": True})()
@@ -151,11 +151,12 @@ class TestTrakServiceMetaEndpoint:
             assert data["features"]["trakservice.tracking"] is False
 
 
-class TestTrakServiceHealthEndpoint:
+class TestTrakServiceHealthEndpoint(TestCase):
     """Tests for TrakService _health endpoint."""
 
-    def test_health_returns_status(self, tenant_with_trakservice):
+    def test_health_returns_status(self):
         """Test that _health returns correct health status."""
+        tenant_with_trakservice = create_tenant_with_trakservice()
         factory = APIRequestFactory()
         request = factory.get("/api/trakservice/_health/")
         request.user = type("User", (), {"is_authenticated": True})()
@@ -177,11 +178,12 @@ class TestTrakServiceHealthEndpoint:
             assert "trakservice.dispatch" in data["features_enabled"]
 
 
-class TestTrakServiceMetaService:
+class TestTrakServiceMetaService(TestCase):
     """Tests for TrakServiceMetaService."""
 
-    def test_get_enabled_features(self, tenant_with_trakservice):
+    def test_get_enabled_features(self):
         """Test that get_enabled_features returns correct list."""
+        tenant_with_trakservice = create_tenant_with_trakservice()
         with schema_context(tenant_with_trakservice.schema_name):
             connection.tenant = tenant_with_trakservice
 
@@ -194,8 +196,9 @@ class TestTrakServiceMetaService:
             assert "trakservice.tracking" not in enabled
             assert "trakservice.routing" not in enabled
 
-    def test_get_meta_data(self, tenant_with_trakservice):
+    def test_get_meta_data(self):
         """Test that get_meta returns correct structure."""
+        tenant_with_trakservice = create_tenant_with_trakservice()
         with schema_context(tenant_with_trakservice.schema_name):
             connection.tenant = tenant_with_trakservice
 
@@ -206,8 +209,9 @@ class TestTrakServiceMetaService:
             assert meta["status"] == "operational"
             assert isinstance(meta["features"], dict)
 
-    def test_get_health_data(self, tenant_with_trakservice):
+    def test_get_health_data(self):
         """Test that get_health returns correct structure."""
+        tenant_with_trakservice = create_tenant_with_trakservice()
         with schema_context(tenant_with_trakservice.schema_name):
             connection.tenant = tenant_with_trakservice
 

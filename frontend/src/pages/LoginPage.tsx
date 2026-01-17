@@ -85,9 +85,17 @@ export function LoginPage() {
         setIsLoading(false);
         return;
       }
-      
+
+      const primary = result.primary_tenant;
+      if (!primary) {
+        // Neutral discovery response (anti-enumeration). Continue login locally.
+        console.debug('[auth] Tenant discovery returned neutral response.');
+        setStep('password');
+        setIsLoading(false);
+        return;
+      }
+
       // Tenant encontrado - redirecionar para o tenant
-      const primary = result.primary_tenant!;
       const tenantSlug = primary.slug || primary.schema_name.toLowerCase();
       
       const protocol = window.location.protocol;
@@ -115,6 +123,9 @@ export function LoginPage() {
       window.location.href = tenantUrl;
       
     } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[auth] Tenant discovery failed', error);
+      }
       toast.error(getErrorMessage(error));
       setIsLoading(false);
     }
@@ -138,6 +149,9 @@ export function LoginPage() {
       // Navegar para home
       window.location.href = '/';
     } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[auth] Tenant login failed', error);
+      }
       toast.error(getErrorMessage(error));
     } finally {
       setIsLoading(false);
