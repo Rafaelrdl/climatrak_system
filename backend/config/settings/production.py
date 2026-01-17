@@ -2,6 +2,8 @@
 Production settings for TrakSense backend.
 """
 
+import os
+
 from .base import *
 
 DEBUG = False
@@ -24,29 +26,7 @@ REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] = [
 ]
 
 # Logging
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "json": {
-            "format": '{"time": "%(asctime)s", "level": "%(levelname)s", "name": "%(name)s", "message": "%(message)s"}',
-        },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "json",
-        },
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": "WARNING",
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["console"],
-            "level": "WARNING",
-            "propagate": False,
-        },
-    },
-}
+from apps.common.observability.logging import build_logging_config
+
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+LOGGING = build_logging_config(LOG_LEVEL)

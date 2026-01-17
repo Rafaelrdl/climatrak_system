@@ -4,8 +4,7 @@ Django Admin configuration for Control Center (ops app).
 
 from django.contrib import admin, messages
 
-from unfold.decorators import display
-
+from apps.common.admin_compat import display
 from apps.common.admin_base import BaseAdmin
 
 from .models import AuditLog, ExportJob

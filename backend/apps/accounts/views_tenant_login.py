@@ -64,9 +64,7 @@ class TenantLoginView(APIView):
         email = request.data.get("email", "").strip().lower()
         password = request.data.get("password")
 
-        logger.info(
-            f"🔐 Login attempt - Email: {email}, Tenant: {connection.tenant.schema_name}"
-        )
+        logger.info("Login attempt for tenant schema %s", connection.tenant.schema_name if connection.tenant else "unknown")
 
         if not email or not password:
             return Response(
@@ -78,7 +76,7 @@ class TenantLoginView(APIView):
         # O django-tenants já define connection.tenant automaticamente
         user = authenticate(request=request, username=email, password=password)
 
-        logger.info(f"🔐 Authentication result: {user}")
+        logger.info("Authentication result: %s", "success" if user else "failure")
 
         if not user:
             return Response(

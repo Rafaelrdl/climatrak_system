@@ -54,6 +54,30 @@ DEBUG = os.getenv("DEBUG", "False") == "True"
 # Allow X-Tenant header override only in dev/test.
 ALLOW_X_TENANT_HEADER = DEBUG and os.getenv("ALLOW_X_TENANT_HEADER", "False") == "True"
 
+# Environment metadata for observability
+ENVIRONMENT = os.getenv("DJANGO_ENV", "development" if DEBUG else "production")
+SERVICE_NAME = os.getenv("SERVICE_NAME", "climatrak-backend")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG" if DEBUG else "INFO")
+
+# Metrics configuration
+METRICS_ENABLED = os.getenv("METRICS_ENABLED", "True" if DEBUG else "False") == "True"
+METRICS_ALLOW_ALL = os.getenv("METRICS_ALLOW_ALL", "False") == "True"
+METRICS_ALLOWED_IPS = [
+    ip.strip()
+    for ip in os.getenv("METRICS_ALLOWED_IPS", "127.0.0.1,::1").split(",")
+    if ip.strip()
+]
+CELERY_METRICS_ENABLED = os.getenv("CELERY_METRICS_ENABLED", "False") == "True"
+CELERY_METRICS_PORT = int(os.getenv("CELERY_METRICS_PORT", "9187"))
+
+# OpenTelemetry configuration (optional)
+OTEL_ENABLED = os.getenv("OTEL_ENABLED", "False") == "True"
+OTEL_EXPORTER_OTLP_ENDPOINT = os.getenv(
+    "OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4317"
+)
+OTEL_SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", SERVICE_NAME)
+OTEL_SAMPLE_RATIO = float(os.getenv("OTEL_SAMPLE_RATIO", "1.0"))
+
 # Domain for auth cookies (set to ".localhost" in dev to share across subdomains).
 AUTH_COOKIE_DOMAIN = os.getenv("AUTH_COOKIE_DOMAIN")
 if AUTH_COOKIE_DOMAIN in ("", "localhost", ".localhost"):
@@ -135,6 +159,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.common.observability.middleware.RequestContextMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -394,6 +419,7 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+CELERYD_HIJACK_ROOT_LOGGER = False
 
 # Celery Beat Schedule - Tarefas periódicas
 CELERY_BEAT_SCHEDULE = {
@@ -896,3 +922,8 @@ UNFOLD = {
         ],
     },
 }
+
+# Logging (JSON + context + redaction)
+from apps.common.observability.logging import build_logging_config
+
+LOGGING = build_logging_config(LOG_LEVEL)

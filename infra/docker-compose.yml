@@ -61,7 +61,10 @@ services:
 
   # EMQX for MQTT messaging
   emqx:
-    image: emqx/emqx:latest
+    build:
+      context: .
+      dockerfile: ./emqx/Dockerfile
+    image: climatrak-emqx
     container_name: climatrak-emqx
     ports:
       - "1883:1883"   # MQTT

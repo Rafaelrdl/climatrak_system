@@ -2,6 +2,8 @@
 Development settings for TrakSense backend.
 """
 
+import os
+
 from .base import *
 
 DEBUG = True
@@ -23,35 +25,7 @@ INSTALLED_APPS += []
 SECURE_SSL_REDIRECT = False
 
 # Logging
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "verbose": {
-            "format": "{levelname} {asctime} {module} {message}",
-            "style": "{",
-        },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": "INFO",
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        "django.db.backends": {
-            "handlers": ["console"],
-            "level": "WARNING",
-            "propagate": False,
-        },
-    },
-}
+from apps.common.observability.logging import build_logging_config
+
+LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG" if DEBUG else "INFO")
+LOGGING = build_logging_config(LOG_LEVEL)

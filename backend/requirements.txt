@@ -38,6 +38,9 @@ Pillow==11.1.0
 # Async Tasks
 celery==5.4.0
 
+# Observability / Metrics
+prometheus_client==0.21.1
+
 # Configuration
 python-dotenv==1.0.1
 pydantic==2.10.4

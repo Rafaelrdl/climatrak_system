@@ -252,8 +252,7 @@ class CentralizedLoginView(APIView):
 
         response = Response(response_data)
         set_auth_cookies(response, result.access_token, result.refresh_token)
-
-        logger.info(f"Login successful: {email} -> {tenant.schema_name}")
+        logger.info("Login successful for tenant schema %s", tenant.schema_name)
 
         return response
 
@@ -328,8 +327,7 @@ class SelectTenantView(APIView):
 
         response = Response(response_data)
         set_auth_cookies(response, result.access_token, result.refresh_token)
-
-        logger.info(f"Tenant selected: {email} -> {schema_name}")
+        logger.info("Tenant selected for schema %s", schema_name)
 
         return response
 
@@ -615,8 +613,7 @@ class MobileLoginView(APIView):
                 "role": tenant.role,
             },
         }
-
-        logger.info(f"Mobile login successful: {email} -> {tenant.schema_name}")
+        logger.info("Mobile login successful for tenant schema %s", tenant.schema_name)
 
         # Also set cookies for hybrid scenarios (optional)
         response = Response(response_data)
@@ -752,8 +749,7 @@ class MobileSelectTenantView(APIView):
                 "role": tenant.role,
             },
         }
-
-        logger.info(f"Mobile tenant selection: {email} -> {tenant.schema_name}")
+        logger.info("Mobile tenant selection for schema %s", tenant.schema_name)
 
         response = Response(response_data)
         set_auth_cookies(response, result.access_token, result.refresh_token)

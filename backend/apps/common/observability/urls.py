@@ -7,6 +7,8 @@ when observability endpoints are optional.
 
 from django.urls import path
 
+from .views import metrics_view
+
 urlpatterns = [
-    # Add observability endpoints here (metrics, tracing hooks, etc.).
+    path("metrics", metrics_view, name="metrics"),
 ]

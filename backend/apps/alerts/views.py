@@ -68,13 +68,13 @@ class RuleViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         """Override para logging de erros de validação"""
-        logger.info(f"📝 Rule UPDATE request data: {request.data}")
+        logger.info("Rule update request received (fields=%s)", list(request.data.keys()))
         response = super().update(request, *args, **kwargs)
         return response
 
     def partial_update(self, request, *args, **kwargs):
         """Override para logging de erros de validação"""
-        logger.info(f"📝 Rule PATCH request data: {request.data}")
+        logger.info("Rule patch request received (fields=%s)", list(request.data.keys()))
         partial = kwargs.pop("partial", True)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
@@ -96,10 +96,7 @@ class RuleViewSet(viewsets.ModelViewSet):
         rule.enabled = not rule.enabled
         rule.save(update_fields=["enabled", "updated_at"])
 
-        logger.info(
-            f"🔄 Rule #{rule.id} '{rule.name}' status changed: "
-            f"{old_status} → {rule.enabled} by user {request.user.email}"
-        )
+        logger.info("Rule %s status changed to %s", rule.id, rule.enabled)
 
         serializer = self.get_serializer(rule)
         return Response(
@@ -253,10 +250,7 @@ class AlertViewSet(viewsets.ModelViewSet):
 
         alert.save()
 
-        logger.info(
-            f"🔗 Alert #{alert.id} linked to WorkOrder #{work_order.number} "
-            f"by user {request.user.email}"
-        )
+        logger.info("Alert %s linked to WorkOrder %s", alert.id, work_order.number)
 
         response_serializer = self.get_serializer(alert)
         return Response(

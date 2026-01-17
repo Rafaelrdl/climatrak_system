@@ -316,7 +316,7 @@ class MeView(APIView):
         # expondo telefones e bios nos logs."
         # Conditional logging prevents compliance violations
         if settings.DEBUG:
-            logger.debug(f"🔄 PATCH /api/users/me/ - Data recebida: {request.data}")
+            logger.debug("PATCH /api/users/me - fields=%s", list(request.data.keys()))
 
         serializer = UserUpdateSerializer(request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -328,14 +328,9 @@ class MeView(APIView):
         # Serializa usuário atualizado
         user_data = UserSerializer(request.user, context={"request": request}).data
 
-        logger.info(f"✅ PATCH /api/users/me/ - User data serializado: {user_data}")
-        logger.info(
-            f"🕐 PATCH /api/users/me/ - time_format no response: {user_data.get('time_format', 'MISSING')}"
-        )
+        logger.info("PATCH /api/users/me - profile updated")
 
-        return Response(
-            {"user": user_data, "message": "Perfil atualizado com sucesso!"}
-        )
+        return Response({"user": user_data, "message": "Perfil atualizado com sucesso!"})
 
 
 class AuthMeView(APIView):

@@ -2,8 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from unfold.decorators import display
-
+from apps.common.admin_compat import display
 from apps.common.admin_base import (
     BaseAdmin,
     BaseTabularInline,

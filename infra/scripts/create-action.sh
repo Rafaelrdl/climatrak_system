@@ -37,7 +37,7 @@ ACTION_PAYLOAD="$(jq -nc \
       method: "post",
       headers: (
         {"content-type": "application/json", "x-tenant": $tenant}
-        + ( ($dtv | length) > 0 ? {($dtk): $dtv} : {} )
+        + (if ($dtv | length) > 0 then {($dtk): $dtv} else {} end)
       ),
       body: $body,
       max_retries: 3

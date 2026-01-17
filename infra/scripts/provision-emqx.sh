@@ -141,7 +141,7 @@ if [[ "$(get_ok_or_404 "${EMQX_BASE_URL}/api/v5/actions/http:${ACTION_NAME}")" =
         path: $path,
         headers: (
           {"content-type": "application/json", "x-tenant": $tenant}
-          + ( ($dtv | length) > 0 ? {($dtk): $dtv} : {} )
+          + (if ($dtv | length) > 0 then {($dtk): $dtv} else {} end)
         ),
         body: $body,
         max_retries: 5,

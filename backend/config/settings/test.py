@@ -103,26 +103,10 @@ REST_FRAMEWORK = {
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
 # Logging - reduce noise during tests
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-        },
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": "WARNING",
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["console"],
-            "level": "WARNING",
-            "propagate": False,
-        },
-    },
-}
+from apps.common.observability.logging import build_logging_config
+
+LOG_LEVEL = os.getenv("LOG_LEVEL", "WARNING")
+LOGGING = build_logging_config(LOG_LEVEL)
 
 # Disable SSL redirect in tests
 SECURE_SSL_REDIRECT = False

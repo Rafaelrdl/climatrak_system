@@ -28,6 +28,12 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 # Load task modules from all registered Django apps.
 app.autodiscover_tasks()
 
+from apps.common.observability.celery import setup_celery_observability
+from apps.common.observability.tracing import configure_tracing
+
+configure_tracing()
+setup_celery_observability()
+
 
 @app.task(bind=True, ignore_result=True)
 def debug_task(self):

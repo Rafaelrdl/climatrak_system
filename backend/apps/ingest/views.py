@@ -68,13 +68,9 @@ class IngestView(APIView):
 
         # Only log verbose details in DEBUG mode
         if settings.DEBUG:
-            logger.info("=" * 60)
-            logger.info("INGEST POST INICIADO")
-            logger.info(f"Headers: {dict(request.headers)}")
-            logger.info(f"Content-Type: {request.content_type}")
-            logger.info(f"Body tamanho: {len(request.body)} bytes")
-            logger.info(f"Body COMPLETO: {request.body.decode('utf-8')}")
-            logger.info("=" * 60)
+            logger.info("INGEST POST START")
+            logger.info("Content-Type: %s", request.content_type)
+            logger.info("Body size bytes: %s", len(request.body))
 
         # Extract tenant from header
         tenant_slug = request.headers.get("x-tenant")
@@ -88,33 +84,30 @@ class IngestView(APIView):
         try:
             # Validate payload structure
             if settings.DEBUG:
-                logger.info("🔍 Parseando JSON manualmente do request.body...")
+                logger.info("Parsing JSON body for ingest request")
             import json
 
             try:
                 raw_body_bytes = request.body
                 raw_body = raw_body_bytes.decode("utf-8")
-                if settings.DEBUG:
-                    logger.info(f"📏 Body completo ({len(raw_body)} chars): {raw_body}")
                 data = json.loads(raw_body)
                 if settings.DEBUG:
-                    logger.info(f"✅ JSON parseado com sucesso, tipo: {type(data)}")
+                    logger.info("JSON parsed successfully, type=%s", type(data))
             except json.JSONDecodeError as e_json:
-                logger.error(f"❌ Erro ao parsear JSON: {e_json}", exc_info=True)
-                logger.error(f"JSON problemático: {raw_body}")
+                logger.error("Error parsing JSON: %s", e_json, exc_info=True)
                 return Response(
                     {"error": f"Erro ao parsear JSON: {str(e_json)}"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             except Exception as e_data:
-                logger.error(f"❌ Erro inesperado: {e_data}", exc_info=True)
+                logger.error("Unexpected error parsing ingest JSON: %s", e_data, exc_info=True)
                 return Response(
                     {"error": f"Erro ao processar request: {str(e_data)}"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if settings.DEBUG:
-                logger.info(f"📥 Ingest received data: {data}")
+                logger.info("Ingest payload parsed (keys=%s)", list(data.keys()))
 
             if not isinstance(data, dict):
                 logger.warning(f"Invalid payload type: {type(data)}")
@@ -173,6 +166,17 @@ class IngestView(APIView):
                     {"error": "Tenant not found", "tenant": tenant_slug},
                     status=status.HTTP_404_NOT_FOUND,
                 )
+
+            from apps.common.observability.context import (
+                set_device_context,
+                set_request_context,
+            )
+
+            set_request_context(
+                tenant_schema=tenant.schema_name,
+                tenant_slug=getattr(tenant, "slug", None) or tenant.schema_name,
+            )
+            set_device_context(device_id=device_id)
 
             auth_response = self._authenticate_ingest_request(
                 request=request,
@@ -363,7 +367,6 @@ class IngestView(APIView):
             if settings.DEBUG:
                 logger.info(f"🔍 Tentando encontrar parser para topic: {topic}")
                 logger.info(f"🔍 Tipo do payload: {type(payload)}")
-                logger.info(f"🔍 Payload preview: {str(payload)[:200]}")
 
             # IMPORTANTE: Passar o payload interno, não o data completo!
             parser = parser_manager.get_parser(payload, topic)
@@ -373,7 +376,6 @@ class IngestView(APIView):
                     f"⚠️ Nenhum parser encontrado para o payload. Topic: {topic}"
                 )
                 if settings.DEBUG:
-                    logger.warning(f"⚠️ Payload recebido: {payload}")
                     logger.warning(
                         f"⚠️ Parsers disponíveis: {[p.__class__.__name__ for p in parser_manager._parsers]}"
                     )

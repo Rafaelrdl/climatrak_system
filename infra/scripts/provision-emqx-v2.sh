@@ -187,7 +187,7 @@ ACTION_PAYLOAD="$(jq -nc \
       headers: (
         {($ctk): $ctv}
         + {($tkey): $tval}
-        + ( ($dtv | length) > 0 ? {($dtk): $dtv} : {} )
+        + (if ($dtv | length) > 0 then {($dtk): $dtv} else {} end)
       ),
       body: $body
     }
