@@ -108,8 +108,18 @@ export const devicesService = {
    * incluindo contagem de variáveis online/offline e informações do asset.
    */
   async getSummaryBySite(siteId: number, filters?: DeviceFilters): Promise<DeviceSummary[]> {
-    const response = await api.get<DeviceSummary[]>(`/sites/${siteId}/devices/summary/`, { params: filters });
-    return response.data;
+    const response = await api.get<any>(`/sites/${siteId}/devices/summary/`, { params: filters });
+    const data = response.data;
+    if (Array.isArray(data)) {
+      return data;
+    }
+    if (Array.isArray(data?.results)) {
+      return data.results;
+    }
+    if (Array.isArray(data?.devices)) {
+      return data.devices;
+    }
+    return [];
   },
 
   /**
