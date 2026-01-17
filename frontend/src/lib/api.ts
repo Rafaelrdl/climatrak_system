@@ -17,6 +17,8 @@ import { appStorage, STORAGE_KEYS } from './storage';
 
 const LOG_THROTTLE_MS = 30000;
 const errorLogTimestamps = new Map<string, number>();
+const CSRF_COOKIE_NAME = 'csrftoken';
+const CSRF_HEADER_NAME = 'X-CSRFToken';
 
 const shouldLogError = (key: string): boolean => {
   const now = Date.now();
@@ -68,6 +70,18 @@ const setHeader = (
   (headers as Record<string, string>)[name] = value;
   return headers;
 };
+
+const isSafeMethod = (method?: string): boolean => {
+  const normalized = method?.toLowerCase();
+  return !normalized || ['get', 'head', 'options'].includes(normalized);
+};
+
+const getCookie = (name: string): string | null => {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
 
 
 // Base URL da API (dinâmica por tenant)
@@ -147,6 +161,13 @@ api.interceptors.request.use(
     const tenantSchema = getTenantSchema();
     if (tenantSchema && shouldSendTenantHeader()) {
       config.headers = setHeader(config.headers, 'X-Tenant', tenantSchema);
+    }
+
+    if (!isSafeMethod(config.method)) {
+      const csrfToken = getCookie(CSRF_COOKIE_NAME);
+      if (csrfToken) {
+        config.headers = setHeader(config.headers, CSRF_HEADER_NAME, csrfToken);
+      }
     }
     
     return config;

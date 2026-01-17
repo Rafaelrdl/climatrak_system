@@ -122,11 +122,6 @@ export async function tenantLogin(email: string, password: string): Promise<{
     password,
   });
 
-  // Debug: Log completo da resposta
-  console.log('🔐 [AUTH] Login response completa:', data);
-  console.log('🔐 [AUTH] tenant.features recebido:', data.tenant?.features);
-  console.log('🔐 [AUTH] tenant.role recebido:', data.tenant?.role);
-
   // Map user data - role comes from tenant, not user
   const user = mapApiUserToUser({ ...data.user, role: data.tenant?.role });
 
@@ -145,14 +140,8 @@ export async function tenantLogin(email: string, password: string): Promise<{
   getTenantConfig();
   
   // Persist tenant features if available
-  console.log('🔐 [AUTH] Verificando features...', { hasFeatures: !!data.tenant?.features, features: data.tenant?.features });
   if (data.tenant?.features) {
-    console.log('🔐 [AUTH] Salvando features no store:', data.tenant.features);
-    // Update Zustand store (persisted via storage wrapper)
     useFeaturesStore.getState().setFeatures(data.tenant.features);
-    console.log('🔐 [AUTH] Features após save:', useFeaturesStore.getState().features);
-  } else {
-    console.warn('🔐 [AUTH] ⚠️ Nenhuma feature recebida do backend!');
   }
   
   window.dispatchEvent(new Event('authChange'));
