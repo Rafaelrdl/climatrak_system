@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertCircle, Eye, EyeOff, Mail, Lock, Shield, BarChart3, Wrench, ThermometerSnowflake, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ type LoginStep = 'email' | 'password';
 
 export function LoginPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const emailParam = searchParams.get('email');
   
   const [step, setStep] = useState<LoginStep>(() => emailParam ? 'password' : 'email');
@@ -89,7 +90,6 @@ export function LoginPage() {
       const primary = result.primary_tenant;
       if (!primary) {
         // Neutral discovery response (anti-enumeration). Continue login locally.
-        console.debug('[auth] Tenant discovery returned neutral response.');
         setStep('password');
         setIsLoading(false);
         return;
@@ -147,7 +147,7 @@ export function LoginPage() {
       toast.success('Login realizado com sucesso!');
       
       // Navegar para home
-      window.location.href = '/';
+      navigate('/', { replace: true });
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('[auth] Tenant login failed', error);
@@ -222,6 +222,7 @@ export function LoginPage() {
                       className={`h-11 pl-10 bg-muted/30 border-muted-foreground/20 focus:border-primary focus:ring-primary ${errors.email ? 'border-destructive' : ''}`}
                       aria-invalid={!!errors.email}
                       aria-describedby={errors.email ? 'email-error' : undefined}
+                      autoComplete="username"
                       autoFocus
                     />
                   </div>
@@ -292,6 +293,7 @@ export function LoginPage() {
                       className={`h-11 pl-10 pr-10 bg-muted/30 border-muted-foreground/20 focus:border-primary focus:ring-primary ${errors.password ? 'border-destructive' : ''}`}
                       aria-invalid={!!errors.password}
                       aria-describedby={errors.password ? 'password-error' : undefined}
+                      autoComplete="current-password"
                       autoFocus
                     />
                     <Button

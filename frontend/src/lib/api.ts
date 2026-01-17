@@ -10,7 +10,7 @@
  * - Cookie-based authentication (HttpOnly)
  */
 
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, AxiosHeaders, InternalAxiosRequestConfig } from 'axios';
 import { getTenantApiUrl, getTenantFromHostname } from './tenant';
 import { getAuthSnapshot } from '@/store/useAuthStore';
 import { appStorage } from './storage';
@@ -27,6 +27,48 @@ const shouldLogError = (key: string): boolean => {
   errorLogTimestamps.set(key, now);
   return true;
 };
+
+const getTenantSchema = (): string | null => {
+  const authTenant = getAuthSnapshot().tenant;
+  if (authTenant?.schema_name) {
+    return authTenant.schema_name;
+  }
+  if (authTenant?.slug) {
+    return authTenant.slug;
+  }
+  return getTenantFromHostname();
+};
+
+const shouldSendTenantHeader = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname;
+  const hostParts = hostname.split('.');
+  const hasSubdomain =
+    hostParts.length > 1 && hostParts[0] !== 'www' && hostParts[0] !== 'localhost';
+  return !hasSubdomain;
+};
+
+const setHeader = (
+  headers: InternalAxiosRequestConfig['headers'],
+  name: string,
+  value: string
+): InternalAxiosRequestConfig['headers'] => {
+  if (!headers) {
+    return { [name]: value };
+  }
+  if (headers instanceof AxiosHeaders) {
+    headers.set(name, value);
+    return headers;
+  }
+  const withSet = headers as AxiosHeaders;
+  if (typeof withSet.set === 'function') {
+    withSet.set(name, value);
+    return headers;
+  }
+  (headers as Record<string, string>)[name] = value;
+  return headers;
+};
+
 
 // Base URL da API (dinâmica por tenant)
 const getApiBaseUrl = (): string => {
@@ -102,17 +144,9 @@ api.interceptors.request.use(
     
     // 🏢 MULTI-TENANT: Add X-Tenant header only when not on a tenant subdomain
     // Subdomain routing is preferred when available.
-    const authTenant = getAuthSnapshot().tenant;
-    const tenantSchema = authTenant?.schema_name || getTenantFromHostname();
-    if (tenantSchema && typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      const hostParts = hostname.split('.');
-      const hasSubdomain =
-        hostParts.length > 1 && hostParts[0] !== 'www' && hostParts[0] !== 'localhost';
-
-      if (!hasSubdomain) {
-        config.headers['X-Tenant'] = tenantSchema;
-      }
+    const tenantSchema = getTenantSchema();
+    if (tenantSchema && shouldSendTenantHeader()) {
+      config.headers = setHeader(config.headers, 'X-Tenant', tenantSchema);
     }
     
     return config;
@@ -212,19 +246,9 @@ api.interceptors.response.use(
         // Tentar refresh do token (cookie-based)
         // O refresh_token tamb?m ? um cookie HttpOnly
         const refreshHeaders: Record<string, string> = {};
-        const authTenant = getAuthSnapshot().tenant;
-        const tenantSchema = authTenant?.schema_name || getTenantFromHostname();
-        if (tenantSchema && typeof window !== 'undefined') {
-          const hostname = window.location.hostname;
-          const hostParts = hostname.split('.');
-          const hasSubdomain =
-            hostParts.length > 1 &&
-            hostParts[0] !== 'www' &&
-            hostParts[0] !== 'localhost';
-
-          if (!hasSubdomain) {
-            refreshHeaders['X-Tenant'] = tenantSchema;
-          }
+        const tenantSchema = getTenantSchema();
+        if (tenantSchema && shouldSendTenantHeader()) {
+          refreshHeaders['X-Tenant'] = tenantSchema;
         }
 
         await axios.post(
