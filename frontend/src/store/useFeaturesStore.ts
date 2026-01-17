@@ -53,8 +53,12 @@ interface FeaturesState {
 
 const STORAGE_KEY = STORAGE_KEYS.TENANT_FEATURES;
 
+type PersistedFeaturesState = {
+  features: FeaturesMap;
+};
+
 export const useFeaturesStore = create<FeaturesState>()(
-  persist(
+  persist<FeaturesState, [], [], PersistedFeaturesState>(
     (set, get) => ({
       features: { ...DEFAULT_FEATURES },
       isLoading: false,
@@ -93,7 +97,7 @@ export const useFeaturesStore = create<FeaturesState>()(
     }),
     {
       name: STORAGE_KEY,
-      storage: createZustandStorage(),
+      storage: createZustandStorage<PersistedFeaturesState>(),
       partialize: (state) => ({ features: state.features }),
     }
   )

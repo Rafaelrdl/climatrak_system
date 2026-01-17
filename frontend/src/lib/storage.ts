@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { createJSONStorage } from 'zustand/middleware';
 import { getAuthSnapshot } from '@/store/useAuthStore';
 import { getTenantSlug } from './tenantStorage';
 
@@ -47,6 +48,14 @@ type StorageDefinition = {
   schema: z.ZodTypeAny;
   demoOnly?: boolean;
 };
+
+type TourState = {
+  completed: Record<string, boolean>;
+  skipped: Record<string, boolean>;
+  step: Record<string, number>;
+};
+
+type OnboardingState = Record<string, boolean>;
 
 const idSchema = z.union([z.string(), z.number()]);
 const arrayOfRecords = z.array(z.record(z.unknown()));
@@ -429,20 +438,21 @@ export const appStorage = {
   },
 };
 
-export const createZustandStorage = () => ({
-  getItem: (name: string) => {
-    if (!isAllowedKey(name)) return null;
-    return appStorage.getSerialized(name);
-  },
-  setItem: (name: string, value: string) => {
-    if (!isAllowedKey(name)) return;
-    appStorage.setSerialized(name, value);
-  },
-  removeItem: (name: string) => {
-    if (!isAllowedKey(name)) return;
-    appStorage.remove(name);
-  },
-});
+export const createZustandStorage = <S>() =>
+  createJSONStorage<S>(() => ({
+    getItem: (name: string) => {
+      if (!isAllowedKey(name)) return null;
+      return appStorage.getSerialized(name);
+    },
+    setItem: (name: string, value: string) => {
+      if (!isAllowedKey(name)) return;
+      appStorage.setSerialized(name, value);
+    },
+    removeItem: (name: string) => {
+      if (!isAllowedKey(name)) return;
+      appStorage.remove(name);
+    },
+  }));
 
 const migrateLegacyKey = (
   legacyKey: string,
@@ -559,11 +569,12 @@ export const migrateLegacyStorage = (): void => {
     }
   }
 
-  const tourState = appStorage.get(STORAGE_KEYS.TOUR_STATE, userScope) ?? {
-    completed: {},
-    skipped: {},
-    step: {},
-  };
+  const tourState =
+    appStorage.get<TourState>(STORAGE_KEYS.TOUR_STATE, userScope) ?? {
+      completed: {},
+      skipped: {},
+      step: {},
+    };
 
   for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
     const key = window.localStorage.key(i);
@@ -587,7 +598,8 @@ export const migrateLegacyStorage = (): void => {
   }
   appStorage.set(STORAGE_KEYS.TOUR_STATE, tourState, userScope);
 
-  const onboardingState = appStorage.get(STORAGE_KEYS.ONBOARDING_STATE, userScope) ?? {};
+  const onboardingState =
+    appStorage.get<OnboardingState>(STORAGE_KEYS.ONBOARDING_STATE, userScope) ?? {};
   const onboardingKeyMatch = /^onboarding:([^:]+):([^:]+):(.+)$/;
   for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
     const key = window.localStorage.key(i);
