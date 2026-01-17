@@ -224,6 +224,8 @@ export interface FinanceSummary {
 
 // ==================== Filters ====================
 
+export type SourceCategory = 'entries' | 'operations';
+
 export interface LedgerFilters {
   start_date?: string;
   end_date?: string;
@@ -235,6 +237,7 @@ export interface LedgerFilters {
   work_order_id?: string;
   category?: TransactionCategory;
   type?: TransactionType;
+  source_category?: SourceCategory;
   page?: number;
   page_size?: number;
 }

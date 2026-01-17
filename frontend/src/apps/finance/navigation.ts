@@ -12,6 +12,7 @@ import {
   CheckSquare,
   TrendingUp,
   Settings,
+  Activity,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
@@ -29,6 +30,7 @@ export const financeNavigation: NavItem[] = [
   { name: 'Painel', href: '/finance', icon: LayoutDashboard, exact: true },
   { name: 'Orçamentos', href: '/finance/budgets', icon: Wallet },
   { name: 'Lançamentos', href: '/finance/ledger', icon: FileText },
+  { name: 'Operação', href: '/finance/operations', icon: Activity },
   { name: 'Compromissos', href: '/finance/commitments', icon: CheckSquare },
   { name: 'Economia', href: '/finance/savings', icon: TrendingUp },
   { name: 'Cadastros', href: '/finance/settings', icon: Settings },

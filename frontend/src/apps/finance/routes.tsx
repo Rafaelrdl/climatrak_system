@@ -21,6 +21,10 @@ const FinanceLedger = lazy(async () => {
   const mod = await import('./pages/FinanceLedger');
   return { default: mod.FinanceLedger };
 });
+const FinanceOperations = lazy(async () => {
+  const mod = await import('./pages/FinanceOperations');
+  return { default: mod.FinanceOperations };
+});
 const FinanceCommitments = lazy(async () => {
   const mod = await import('./pages/FinanceCommitments');
   return { default: mod.FinanceCommitments };
@@ -59,12 +63,22 @@ export function FinanceRoutes() {
             } 
           />
           
-          {/* Ledger - requer permissão finance_ledger */}
+          {/* Lançamentos - requer permissão finance_ledger */}
           <Route 
             path="ledger" 
             element={
               <FinanceGuard subject="finance_ledger" action="view">
                 <FinanceLedger />
+              </FinanceGuard>
+            } 
+          />
+          
+          {/* Operação (custos operacionais) - requer permissão finance_ledger */}
+          <Route 
+            path="operations" 
+            element={
+              <FinanceGuard subject="finance_ledger" action="view">
+                <FinanceOperations />
               </FinanceGuard>
             } 
           />

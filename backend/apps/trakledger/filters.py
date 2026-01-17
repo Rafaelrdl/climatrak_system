@@ -5,6 +5,7 @@ Filtros para os ViewSets do módulo Finance.
 """
 
 import django_filters
+from django.db.models import Q
 
 from .models import (
     BudgetEnvelope,
@@ -192,6 +193,10 @@ class CostTransactionFilter(django_filters.FilterSet):
     - Por tipo e categoria
     - Por centro de custo, ativo, OS
     - Por status de lock
+    - Por source_category: 'entries' (lançamentos financeiros) ou 'operations' (custos operacionais)
+
+    source_category='entries': Commitments aprovados + Entradas de estoque (compras)
+    source_category='operations': Saídas de estoque (consumo) + Mão de obra de OS
     """
 
     # Filtros de texto
@@ -203,6 +208,12 @@ class CostTransactionFilter(django_filters.FilterSet):
         choices=CostTransaction.TransactionType.choices
     )
     category = django_filters.ChoiceFilter(choices=CostTransaction.Category.choices)
+
+    # Filtro especial: source_category (entries vs operations)
+    source_category = django_filters.ChoiceFilter(
+        choices=[("entries", "Lançamentos"), ("operations", "Operações")],
+        method="filter_source_category",
+    )
 
     # Filtros de relacionamento
     cost_center = django_filters.UUIDFilter(field_name="cost_center_id")
@@ -265,6 +276,7 @@ class CostTransactionFilter(django_filters.FilterSet):
             "created_at_gte",
             "created_at_lte",
             "created_by",
+            "source_category",
         ]
 
     def filter_year(self, queryset, name, value):
@@ -274,6 +286,32 @@ class CostTransactionFilter(django_filters.FilterSet):
     def filter_month(self, queryset, name, value):
         """Filtra por mês da ocorrência."""
         return queryset.filter(occurred_at__month=value)
+
+    def filter_source_category(self, queryset, name, value):
+        """
+        Filtra por categoria de origem:
+        - 'entries': Lançamentos financeiros (commitments aprovados + compras de estoque)
+            - meta.source = 'commitment' OU
+            - meta.source = 'inventory_movement' E meta.movement_type = 'IN'
+            - EXCLUI transaction_type = 'labor' (sempre vai para operations)
+        - 'operations': Custos operacionais (saídas de estoque + mão de obra)
+            - transaction_type = 'labor' OU
+            - meta.source = 'inventory_movement' E meta.movement_type = 'OUT'
+        """
+        if value == "entries":
+            # Lançamentos: commitments + inventory IN (compras)
+            # Exclui explicitamente labor que SEMPRE vai para operações
+            return queryset.filter(
+                Q(meta__source="commitment")
+                | (Q(meta__source="inventory_movement") & Q(meta__movement_type="IN"))
+            ).exclude(transaction_type=CostTransaction.TransactionType.LABOR)
+        elif value == "operations":
+            # Operações: labor + inventory OUT (consumo)
+            return queryset.filter(
+                Q(transaction_type=CostTransaction.TransactionType.LABOR)
+                | (Q(meta__source="inventory_movement") & Q(meta__movement_type="OUT"))
+            )
+        return queryset
 
 
 class LedgerAdjustmentFilter(django_filters.FilterSet):
