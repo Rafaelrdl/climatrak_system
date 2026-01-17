@@ -559,6 +559,17 @@ def _environment_title_prefix(request):
     return "[DEV] "
 
 
+def _is_tenant_schema(request):
+    """Check if current request is in a tenant schema (not public)."""
+    try:
+        tenant = getattr(request, 'tenant', None)
+        if tenant:
+            return tenant.schema_name != 'public'
+    except Exception:
+        pass
+    return False
+
+
 UNFOLD = {
     # ==========================================================================
     # Branding ClimaTrak
@@ -653,13 +664,15 @@ UNFOLD = {
     # ==========================================================================
     "STYLES": [
         lambda request: static("admin/css/climatrak_unfold.css"),
+        lambda request: static("admin/css/climatrak_dashboard.css"),
+        # lambda request: static("admin/css/debug.css"),  # DEBUG - Disabled after analysis
     ],
     # ==========================================================================
     # Sidebar Navigation - Organized by Business Domain
     # ==========================================================================
     "SIDEBAR": {
         "show_search": True,
-        "show_all_applications": True,
+        "show_all_applications": False,  # Disable to avoid "Not available for global schema" noise
         "navigation": [
             # ──────────────────────────────────────────────────────────────────
             # Dashboard
@@ -682,7 +695,7 @@ UNFOLD = {
                 ],
             },
             # ──────────────────────────────────────────────────────────────────
-            # Plataforma (Tenants, Users)
+            # Plataforma (Tenants, Users) - Visible in public schema
             # ──────────────────────────────────────────────────────────────────
             {
                 "title": _("Platform"),
@@ -716,12 +729,13 @@ UNFOLD = {
                 ],
             },
             # ──────────────────────────────────────────────────────────────────
-            # CMMS (Manutenção)
+            # CMMS (Manutenção) - Hidden in public schema
             # ──────────────────────────────────────────────────────────────────
             {
                 "title": _("CMMS"),
                 "separator": True,
                 "collapsible": True,
+                "permission": "config.settings.base._is_tenant_schema",
                 "items": [
                     {
                         "title": _("Work Orders"),
@@ -746,12 +760,13 @@ UNFOLD = {
                 ],
             },
             # ──────────────────────────────────────────────────────────────────
-            # Inventário
+            # Inventário - Hidden in public schema
             # ──────────────────────────────────────────────────────────────────
             {
                 "title": _("Inventory"),
                 "separator": True,
                 "collapsible": True,
+                "permission": "config.settings.base._is_tenant_schema",
                 "items": [
                     {
                         "title": _("Items"),
@@ -782,6 +797,7 @@ UNFOLD = {
                 "title": _("Locations"),
                 "separator": True,
                 "collapsible": True,
+                "permission": "config.settings.base._is_tenant_schema",
                 "items": [
                     {
                         "title": _("Companies"),
@@ -806,12 +822,13 @@ UNFOLD = {
                 ],
             },
             # ──────────────────────────────────────────────────────────────────
-            # Alertas
+            # Alertas - Hidden in public schema
             # ──────────────────────────────────────────────────────────────────
             {
                 "title": _("Alerts"),
                 "separator": True,
                 "collapsible": True,
+                "permission": "config.settings.base._is_tenant_schema",
                 "items": [
                     {
                         "title": _("Alerts"),
@@ -831,12 +848,13 @@ UNFOLD = {
                 ],
             },
             # ──────────────────────────────────────────────────────────────────
-            # TrakLedger (Finance)
+            # TrakLedger (Finance) - Hidden in public schema
             # ──────────────────────────────────────────────────────────────────
             {
                 "title": _("Finance"),
                 "separator": True,
                 "collapsible": True,
+                "permission": "config.settings.base._is_tenant_schema",
                 "items": [
                     {
                         "title": _("Budget Plans"),
@@ -866,12 +884,13 @@ UNFOLD = {
                 ],
             },
             # ──────────────────────────────────────────────────────────────────
-            # TrakService (Field Service)
+            # TrakService (Field Service) - Hidden in public schema
             # ──────────────────────────────────────────────────────────────────
             {
                 "title": _("Field Service"),
                 "separator": True,
                 "collapsible": True,
+                "permission": "config.settings.base._is_tenant_schema",
                 "items": [
                     {
                         "title": _("Technicians"),

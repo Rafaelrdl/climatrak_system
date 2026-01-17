@@ -1,85 +1,81 @@
-{% extends "admin/base_site.html" %}
+{% extends "admin/base.html" %}
 {% load i18n %}
 
 {% block title %}{% trans "Dashboard" %} | {{ site_title }}{% endblock %}
 
 {% block breadcrumbs %}
-<div class="container mb-6 mx-auto px-4 lg:px-8">
-    <div class="flex items-center gap-2 text-sm text-base-500 dark:text-base-400">
-        <span class="material-symbols-outlined text-base">home</span>
-        <span>{% trans "Dashboard" %}</span>
-    </div>
+<div class="breadcrumbs">
+    <span class="material-symbols-outlined" style="font-size: 1rem;">home</span>
+    <span>{% trans "Dashboard" %}</span>
 </div>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 pb-12 lg:px-8">
+<div>
     {% if is_public_schema %}
         {# ============================================= #}
         {# PUBLIC SCHEMA VIEW - Global Administration   #}
         {# ============================================= #}
 
         {# Welcome Card #}
-        <div class="border flex flex-col flex-grow overflow-hidden p-6 relative rounded shadow-sm dark:border-base-800 mb-8">
-            <h2 class="bg-base-50 border-b font-semibold mb-6 -mt-6 -mx-6 py-4 px-6 text-font-important-light dark:text-font-important-dark dark:border-base-800 dark:bg-white/[.02]">
+        <div class="dashboard-card" style="margin-bottom: 2rem;">
+            <div class="dashboard-card-header">
                 {% trans "Administração Global" %}
-            </h2>
-            <div class="flex flex-col gap-4 text-center py-8">
-                <span class="material-symbols-outlined text-6xl text-primary-500">admin_panel_settings</span>
-                <h2 class="text-xl font-semibold text-base-700 dark:text-base-200">
+            </div>
+            <div class="welcome-card-content">
+                <span class="material-symbols-outlined welcome-icon">admin_panel_settings</span>
+                <h2 class="welcome-title">
                     {% trans "Bem-vindo ao painel administrativo global" %}
                 </h2>
-                <p class="text-base-500 dark:text-base-400 max-w-xl mx-auto">
+                <p class="welcome-description">
                     {% trans "Você está no schema público. Selecione um tenant no menu lateral ou gerencie recursos globais abaixo." %}
                 </p>
             </div>
         </div>
 
         {# Global Management Cards #}
-        <div class="grid gap-6 mb-8 md:grid-cols-2 lg:grid-cols-3">
+        <div class="dashboard-grid grid-3">
             {# Tenants Card #}
-            <a href="/admin/tenants/tenant/" class="border flex flex-col flex-grow overflow-hidden p-6 relative rounded shadow-sm dark:border-base-800 hover:shadow-md transition-shadow">
-                <div class="flex-grow relative pl-6">
-                    <div class="flex flex-col">
-                        <span class="text-3xl font-bold text-base-900 dark:text-white">{{ tenant_count|default:"0" }}</span>
-                        <span class="text-sm text-base-500 dark:text-base-400">{% trans "Tenants Ativos" %}</span>
+            <a href="/admin/tenants/tenant/" class="dashboard-card clickable" style="text-decoration: none;">
+                <div class="dashboard-card-content">
+                    <span class="material-symbols-outlined dashboard-card-icon">apartment</span>
+                    <div>
+                        <span class="kpi-value primary">{{ tenant_count|default:"0" }}</span>
+                        <p class="kpi-label">{% trans "Tenants Ativos" %}</p>
                     </div>
-                    <span class="material-symbols-outlined absolute -left-6 text-base-300 top-1/2 -translate-x-1/3 -translate-y-1/2 !text-6xl dark:text-base-500">apartment</span>
                 </div>
-                <div class="border-t flex items-center -mb-6 -mx-6 mt-6 pb-2 pt-2 px-6 text-sm dark:border-base-800">
-                    <span class="text-primary-600 dark:text-primary-400 hover:underline text-sm">
-                        {% trans "Gerenciar tenants" %} →
-                    </span>
+                <div class="dashboard-card-footer">
+                    <span>{% trans "Gerenciar tenants" %} →</span>
                 </div>
             </a>
 
             {# Domains Card #}
-            <a href="/admin/tenants/domain/" class="border flex flex-col flex-grow overflow-hidden p-6 relative rounded shadow-sm dark:border-base-800 hover:shadow-md transition-shadow">
-                <div class="flex-grow relative pl-6">
-                    <div class="flex flex-col">
-                        <span class="text-3xl font-bold text-base-900 dark:text-white">{{ domain_count|default:"0" }}</span>
-                        <span class="text-sm text-base-500 dark:text-base-400">{% trans "Domínios Configurados" %}</span>
+            <a href="/admin/tenants/domain/" class="dashboard-card clickable" style="text-decoration: none;">
+                <div class="dashboard-card-content">
+                    <span class="material-symbols-outlined dashboard-card-icon">domain</span>
+                    <div>
+                        <span class="kpi-value primary">{{ domain_count|default:"0" }}</span>
+                        <p class="kpi-label">{% trans "Domínios Configurados" %}</p>
                     </div>
-                    <span class="material-symbols-outlined absolute -left-6 text-base-300 top-1/2 -translate-x-1/3 -translate-y-1/2 !text-6xl dark:text-base-500">domain</span>
                 </div>
-                <div class="border-t flex items-center -mb-6 -mx-6 mt-6 pb-2 pt-2 px-6 text-sm dark:border-base-800">
-                    <span class="text-primary-600 dark:text-primary-400 hover:underline text-sm">
-                        {% trans "Ver domínios" %} →
-                    </span>
+                <div class="dashboard-card-footer">
+                    <span>{% trans "Ver domínios" %} →</span>
                 </div>
             </a>
 
             {# Settings Card #}
-            <div class="border flex flex-col flex-grow overflow-hidden p-6 relative rounded shadow-sm dark:border-base-800">
-                <div class="flex-grow relative pl-6">
-                    <div class="flex flex-col">
-                        <span class="material-symbols-outlined text-3xl text-base-900 dark:text-white">build</span>
-                        <span class="text-sm text-base-500 dark:text-base-400">{% trans "Configurações do Sistema" %}</span>
+            <div class="dashboard-card">
+                <div class="dashboard-card-content">
+                    <span class="material-symbols-outlined dashboard-card-icon">settings</span>
+                    <div>
+                        <span class="kpi-value" style="font-size: 1.875rem;">
+                            <span class="material-symbols-outlined">build</span>
+                        </span>
+                        <p class="kpi-label">{% trans "Configurações do Sistema" %}</p>
                     </div>
-                    <span class="material-symbols-outlined absolute -left-6 text-base-300 top-1/2 -translate-x-1/3 -translate-y-1/2 !text-6xl dark:text-base-500">settings</span>
                 </div>
-                <div class="border-t flex items-center -mb-6 -mx-6 mt-6 pb-2 pt-2 px-6 text-sm dark:border-base-800">
-                    <span class="text-base-400 text-sm">{% trans "Acesso restrito" %}</span>
+                <div class="dashboard-card-footer" style="color: var(--color-font-subtle);">
+                    <span>{% trans "Acesso restrito" %}</span>
                 </div>
             </div>
         </div>
@@ -90,22 +86,19 @@
         {# ============================================= #}
 
         {# Dashboard Header #}
-        <div class="mb-8">
-            <h1 class="text-2xl font-bold text-base-900 dark:text-white mb-2">
-                {% trans "Dashboard" %}
-            </h1>
-            <p class="text-base-500 dark:text-base-400">
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">{% trans "Dashboard" %}</h1>
+            <p class="dashboard-subtitle">
                 {% blocktrans with tenant=tenant_name %}Visão geral do tenant {{ tenant }}{% endblocktrans %}
             </p>
         </div>
 
         {# Quick Actions Bar #}
         {% if quick_links %}
-        <div class="flex flex-wrap gap-3 mb-8">
+        <div class="quick-actions">
             {% for link in quick_links %}
-                <a href="{{ link.url }}"
-                   class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors">
-                    <span class="material-symbols-outlined text-lg">{{ link.icon }}</span>
+                <a href="{{ link.url }}" class="quick-action-btn">
+                    <span class="material-symbols-outlined">{{ link.icon }}</span>
                     {{ link.title }}
                 </a>
             {% endfor %}
@@ -114,26 +107,23 @@
 
         {# KPI Cards Grid #}
         {% if dashboard_cards %}
-        <div class="grid gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
+        <div class="dashboard-grid grid-4">
             {% for card in dashboard_cards %}
-            <div class="border flex flex-col flex-grow overflow-hidden p-6 relative rounded shadow-sm dark:border-base-800">
-                <div class="flex-grow relative pl-6">
-                    <div class="flex flex-col">
-                        <span class="text-3xl font-bold {% if card.color == 'danger' %}text-red-600 dark:text-red-400{% elif card.color == 'warning' %}text-orange-600 dark:text-orange-400{% elif card.color == 'success' %}text-green-600 dark:text-green-400{% elif card.color == 'info' %}text-blue-600 dark:text-blue-400{% else %}text-primary-600 dark:text-primary-400{% endif %}">
-                            {{ card.metric }}
-                        </span>
-                        <span class="text-sm text-base-500 dark:text-base-400">{{ card.title }}</span>
-                    </div>
+            <div class="dashboard-card">
+                <div class="dashboard-card-content">
                     {% if card.icon %}
-                    <span class="material-symbols-outlined absolute -left-6 text-base-300 top-1/2 -translate-x-1/3 -translate-y-1/2 !text-6xl dark:text-base-500">{{ card.icon }}</span>
+                    <span class="material-symbols-outlined dashboard-card-icon">{{ card.icon }}</span>
                     {% endif %}
+                    <div>
+                        <span class="kpi-value {{ card.color|default:'primary' }}">{{ card.metric }}</span>
+                        <p class="kpi-label">{{ card.title }}</p>
+                    </div>
                 </div>
                 {% if card.footer %}
-                <div class="border-t flex items-center -mb-6 -mx-6 mt-6 pb-2 pt-2 px-6 text-sm dark:border-base-800">
-                    <a href="{{ card.footer.link|default:'#' }}" 
-                       class="{% if card.color == 'danger' %}text-red-600 dark:text-red-400{% else %}text-primary-600 dark:text-primary-400{% endif %} hover:underline text-sm inline-flex items-center gap-1">
+                <div class="dashboard-card-footer">
+                    <a href="{{ card.footer.link|default:'#' }}">
                         {{ card.footer.label }}
-                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                        <span class="material-symbols-outlined" style="font-size: 0.875rem;">arrow_forward</span>
                     </a>
                 </div>
                 {% endif %}
@@ -144,23 +134,23 @@
 
         {# Budget Utilization Progress #}
         {% if budget_utilization is not None %}
-        <div class="border flex flex-col flex-grow overflow-hidden p-6 relative rounded shadow-sm dark:border-base-800 mb-8">
-            <h2 class="bg-base-50 border-b font-semibold mb-6 -mt-6 -mx-6 py-4 px-6 text-font-important-light dark:text-font-important-dark dark:border-base-800 dark:bg-white/[.02]">
+        <div class="dashboard-card" style="margin-bottom: 2rem;">
+            <div class="dashboard-card-header">
                 {% trans "Utilização do Orçamento Mensal" %}
-            </h2>
-            <div class="flex flex-col gap-2">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="font-medium text-base-700 dark:text-base-200">{{ budget_month_name }}</span>
-                    <span class="text-sm {% if budget_utilization > 90 %}text-red-600{% elif budget_utilization > 75 %}text-orange-600{% else %}text-green-600{% endif %}">
+            </div>
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span class="progress-title">{{ budget_month_name }}</span>
+                    <span class="progress-value {% if budget_utilization > 90 %}danger{% elif budget_utilization > 75 %}warning{% else %}success{% endif %}">
                         {{ budget_utilization }}%
                     </span>
                 </div>
-                <div class="w-full bg-base-200 dark:bg-base-700 rounded-full h-3">
-                    <div class="h-3 rounded-full {% if budget_utilization > 90 %}bg-red-500{% elif budget_utilization > 75 %}bg-orange-500{% else %}bg-green-500{% endif %}" 
-                         style="width: {{ budget_utilization }}%"></div>
+                <div class="progress-bar">
+                    <div class="progress-bar-fill {% if budget_utilization > 90 %}danger{% elif budget_utilization > 75 %}warning{% else %}success{% endif %}" 
+                         style="width: {{ budget_utilization }}%;"></div>
                 </div>
                 {% if budget_description %}
-                <p class="text-sm text-base-500 dark:text-base-400 mt-2">{{ budget_description }}</p>
+                <p class="progress-description">{{ budget_description }}</p>
                 {% endif %}
             </div>
         </div>
@@ -168,24 +158,24 @@
 
         {# Operations Overview Table #}
         {% if table_data.rows %}
-        <div class="border flex flex-col flex-grow overflow-hidden p-6 relative rounded shadow-sm dark:border-base-800 mb-8">
-            <h2 class="bg-base-50 border-b font-semibold mb-6 -mt-6 -mx-6 py-4 px-6 text-font-important-light dark:text-font-important-dark dark:border-base-800 dark:bg-white/[.02]">
+        <div class="dashboard-card" style="margin-bottom: 2rem;">
+            <div class="dashboard-card-header">
                 {% trans "Visão Geral de Operações" %}
-            </h2>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left">
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="dashboard-table">
                     <thead>
-                        <tr class="border-b dark:border-base-700">
+                        <tr>
                             {% for header in table_data.headers %}
-                            <th class="py-3 px-4 font-semibold text-base-600 dark:text-base-300">{{ header }}</th>
+                            <th>{{ header }}</th>
                             {% endfor %}
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in table_data.rows %}
-                        <tr class="border-b dark:border-base-800 {% cycle '' 'bg-base-50 dark:bg-base-900/50' %}">
+                        <tr>
                             {% for cell in row %}
-                            <td class="py-3 px-4 text-base-700 dark:text-base-300">{{ cell }}</td>
+                            <td>{{ cell }}</td>
                             {% endfor %}
                         </tr>
                         {% endfor %}
@@ -197,28 +187,22 @@
 
         {# Recent Activity #}
         {% if recent_activity %}
-        <div class="border flex flex-col flex-grow overflow-hidden p-6 relative rounded shadow-sm dark:border-base-800 mb-8">
-            <h2 class="bg-base-50 border-b font-semibold mb-6 -mt-6 -mx-6 py-4 px-6 text-font-important-light dark:text-font-important-dark dark:border-base-800 dark:bg-white/[.02]">
+        <div class="dashboard-card" style="margin-bottom: 2rem;">
+            <div class="dashboard-card-header">
                 {% trans "Atividade Recente" %}
-            </h2>
-            <div class="divide-y divide-base-200 dark:divide-base-700">
+            </div>
+            <div class="activity-feed">
                 {% for activity in recent_activity %}
-                <div class="flex items-center gap-4 py-3 {% if forloop.first %}pt-0{% endif %} {% if forloop.last %}pb-0{% endif %}">
-                    <span class="material-symbols-outlined text-xl
-                        {% if activity.type == 'alert' %}text-red-500
-                        {% elif activity.type == 'workorder' %}text-blue-500
-                        {% elif activity.type == 'inventory' %}text-amber-500
-                        {% else %}text-base-400{% endif %}">
+                <div class="activity-item">
+                    <span class="material-symbols-outlined activity-icon {% if activity.type == 'alert' %}alert{% elif activity.type == 'workorder' %}workorder{% elif activity.type == 'inventory' %}inventory{% else %}default{% endif %}">
                         {{ activity.icon }}
                     </span>
-                    <div class="flex-grow">
-                        <p class="text-sm font-medium text-base-700 dark:text-base-200">{{ activity.message }}</p>
-                        <p class="text-xs text-base-400">{{ activity.timestamp }}</p>
+                    <div class="activity-content">
+                        <p class="activity-message">{{ activity.message }}</p>
+                        <p class="activity-timestamp">{{ activity.timestamp }}</p>
                     </div>
                     {% if activity.link %}
-                    <a href="{{ activity.link }}" class="text-primary-600 dark:text-primary-400 hover:underline text-sm">
-                        {% trans "Ver" %}
-                    </a>
+                    <a href="{{ activity.link }}" class="activity-link">{% trans "Ver" %}</a>
                     {% endif %}
                 </div>
                 {% endfor %}
@@ -228,13 +212,13 @@
 
         {# Empty State #}
         {% if not dashboard_cards and not table_data.rows %}
-        <div class="border flex flex-col flex-grow overflow-hidden p-6 relative rounded shadow-sm dark:border-base-800">
-            <div class="flex flex-col items-center justify-center py-12 text-center">
-                <span class="material-symbols-outlined text-6xl text-base-300 dark:text-base-600 mb-4">dashboard</span>
-                <h3 class="text-lg font-medium text-base-700 dark:text-base-200 mb-2">
+        <div class="dashboard-card">
+            <div class="empty-state">
+                <span class="material-symbols-outlined empty-state-icon">dashboard</span>
+                <h3 class="empty-state-title">
                     {% trans "Nenhum dado disponível" %}
                 </h3>
-                <p class="text-base-500 dark:text-base-400 max-w-md">
+                <p class="empty-state-description">
                     {% trans "Comece criando ordens de serviço, registrando movimentações de estoque ou configurando alertas para ver estatísticas aqui." %}
                 </p>
             </div>
