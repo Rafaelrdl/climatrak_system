@@ -34,6 +34,8 @@ urlpatterns = [
     path("api/", include("apps.assets.urls")),
     # Telemetry API (tenant-specific data)
     path("api/telemetry/", include("apps.ingest.api_urls")),
+    # EMQX Webhook (tenant or public schema)
+    path("ingest", include("apps.ingest.urls")),
     # Alerts & Rules API (tenant-specific data)
     path("api/alerts/", include("apps.alerts.urls")),
     # Locations API (Company, Sector, Subsection hierarchy)
