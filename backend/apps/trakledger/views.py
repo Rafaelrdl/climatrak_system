@@ -1268,17 +1268,25 @@ class BudgetSummaryViewSet(viewsets.ViewSet):
             "0.00"
         )
 
-        # 2. Committed: Commitments ativos (SUBMITTED + APPROVED)
-        committed_statuses = [Commitment.Status.SUBMITTED, Commitment.Status.APPROVED]
-        committed_qs = Commitment.objects.filter(
-            budget_month=month_date, status__in=committed_statuses
+        # 2. Committed: Separar em aprovados e pendentes
+        # 2a. Committed Approved
+        committed_approved_qs = Commitment.objects.filter(
+            budget_month=month_date, status=Commitment.Status.APPROVED
         )
         if cost_center_id:
-            committed_qs = committed_qs.filter(cost_center_id=cost_center_id)
+            committed_approved_qs = committed_approved_qs.filter(cost_center_id=cost_center_id)
+        committed_approved = committed_approved_qs.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
 
-        committed = committed_qs.aggregate(total=Sum("amount"))["total"] or Decimal(
-            "0.00"
+        # 2b. Committed Pending (SUBMITTED)
+        committed_pending_qs = Commitment.objects.filter(
+            budget_month=month_date, status=Commitment.Status.SUBMITTED
         )
+        if cost_center_id:
+            committed_pending_qs = committed_pending_qs.filter(cost_center_id=cost_center_id)
+        committed_pending = committed_pending_qs.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+
+        # Total committed (para compatibilidade)
+        committed = committed_approved + committed_pending
 
         # 3. Actual: CostTransaction do período
         actual_qs = CostTransaction.objects.filter(
@@ -1327,6 +1335,8 @@ class BudgetSummaryViewSet(viewsets.ViewSet):
                 "cost_center_name": cost_center_name,
                 "planned": planned,
                 "committed": committed,
+                "committed_approved": committed_approved,
+                "committed_pending": committed_pending,
                 "actual": actual,
                 "savings": savings,
                 "variance": variance,

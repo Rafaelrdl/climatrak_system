@@ -308,17 +308,18 @@ class InventoryFinanceIntegrationService:
         """
         Determina se um movimento deve gerar lançamento em Finance.
         
-        Apenas ENTRADAS (compras) geram custo:
-        - IN: Entrada/compra = momento em que se GASTA dinheiro
+        Movimentações que GERAM lançamento:
+        - IN: Entrada/compra = momento em que se GASTA dinheiro (vai para Lançamentos)
+        - OUT: Saída/consumo = uso operacional das peças (vai para Operação)
         - ADJUSTMENT: Ajuste de inventário (pode representar perda/ganho)
         
-        NÃO geram custo (custo já foi registrado na compra):
-        - OUT: Saída/consumo (o item já foi pago na entrada)
+        NÃO geram lançamento:
         - RETURN: Devolução ao fornecedor (pode gerar crédito, tratado separadamente)
         - TRANSFER: Transferência interna (sem impacto financeiro)
         """
         return movement.type in [
-            InventoryMovement.MovementType.IN,  # Compra = custo
+            InventoryMovement.MovementType.IN,  # Compra = custo (Lançamentos)
+            InventoryMovement.MovementType.OUT,  # Consumo = uso operacional (Operação)
             InventoryMovement.MovementType.ADJUSTMENT,  # Ajustes (perdas/achados)
         ]
 

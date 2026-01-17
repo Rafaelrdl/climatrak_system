@@ -216,6 +216,8 @@ export interface FinanceSummary {
   month: string; // YYYY-MM
   planned: number;
   committed: number;
+  committed_approved: number;
+  committed_pending: number;
   actual: number;
   savings: number;
   variance: number;

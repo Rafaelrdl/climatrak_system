@@ -23,6 +23,8 @@ import {
   Plus,
   FileText,
   CheckSquare,
+  Clock,
+  CheckCircle2,
   AlertTriangle,
   Sparkles,
 } from 'lucide-react';
@@ -357,7 +359,7 @@ export function FinanceDashboard() {
       )}
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatCard
           title="Planejado"
           value={<MoneyCell value={summary?.planned ?? 0} size="lg" className="text-2xl font-bold" />}
@@ -377,17 +379,31 @@ export function FinanceDashboard() {
         />
 
         <StatCard
-          title="Comprometido"
-          value={<MoneyCell value={summary?.committed ?? 0} size="lg" className="text-2xl font-bold" />}
-          icon={<TrendingUp className="h-5 w-5" />}
-          description="Pedidos aprovados/pendentes"
-          trend={trends.committed > 0 ? 'up' : trends.committed < 0 ? 'down' : undefined}
-          trendValue={trends.committed !== 0 ? `${Math.abs(trends.committed).toFixed(1)}%` : undefined}
+          title="Aprovado"
+          value={<MoneyCell value={summary?.committed_approved ?? 0} size="lg" className="text-2xl font-bold" />}
+          icon={<CheckCircle2 className="h-5 w-5" />}
+          description="Compromissos aprovados"
+          variant="success"
+          action={(
+            <Button variant="link" size="sm" className="px-0" asChild>
+              <Link to="/finance/commitments?status=approved">
+                Ver aprovados
+                <ArrowRight className="ml-1 h-3 w-3" />
+              </Link>
+            </Button>
+          )}
+        />
+
+        <StatCard
+          title="Pendente"
+          value={<MoneyCell value={summary?.committed_pending ?? 0} size="lg" className="text-2xl font-bold" />}
+          icon={<Clock className="h-5 w-5" />}
+          description="Aguardando aprovacao"
           variant="warning"
           action={(
             <Button variant="link" size="sm" className="px-0" asChild>
-              <Link to="/finance/commitments">
-                Ver compromissos
+              <Link to="/finance/commitments?status=submitted">
+                Ver pendentes
                 <ArrowRight className="ml-1 h-3 w-3" />
               </Link>
             </Button>
