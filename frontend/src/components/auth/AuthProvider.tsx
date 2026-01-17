@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -33,13 +34,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearSession = useAuthStore((state) => state.clearSession);
   const setFeatures = useFeaturesStore((state) => state.setFeatures);
   const [tenantValidated, setTenantValidated] = useState(false);
+  const [sessionBlocked, setSessionBlocked] = useState(false);
 
   const isPublicRoute = PUBLIC_ROUTES.some((route) =>
     location.pathname.startsWith(route)
   );
 
   const hydrateSession = useCallback(async () => {
-    if (isHydrated || isHydrating) return;
+    if (sessionBlocked || isHydrated || isHydrating) return;
     startHydration();
     try {
       const session = await getCurrentSession();
@@ -47,12 +49,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session.tenant.features) {
         setFeatures(session.tenant.features);
       }
-    } catch {
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        setSessionBlocked(true);
+      }
       clearSession();
     } finally {
       finishHydration();
     }
   }, [
+    sessionBlocked,
     isHydrated,
     isHydrating,
     startHydration,
@@ -68,16 +74,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     void hydrateSession();
-  }, [hydrateSession]);
+  }, [hydrateSession, sessionBlocked]);
 
   useEffect(() => {
     const handleAuthChange = () => {
+      if (sessionBlocked) {
+        setSessionBlocked(false);
+      }
       void hydrateSession();
     };
 
     const handleStorage = (event: StorageEvent) => {
       if (!event.key) return;
       if (event.key.includes(':auth.event')) {
+        if (sessionBlocked) {
+          setSessionBlocked(false);
+        }
         void hydrateSession();
       }
     };
@@ -138,6 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     tenantValidated,
     tenant,
     clearSession,
+    sessionBlocked,
   ]);
 
   if (isLoading) {

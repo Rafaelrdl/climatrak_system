@@ -38,28 +38,24 @@ export default defineConfig({
         secure: false,
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq, req) => {
-            const xTenant = req.headers['x-tenant'];
-            
-            // Detectar tenant do hostname (e.g., umc.localhost:5173 -> umc)
             const hostname = req.headers.host || '';
             const subdomain = hostname.split('.')[0];
-            const isSubdomain = hostname.includes('.') && subdomain !== 'www' && subdomain !== 'localhost';
-            
-            if (xTenant && typeof xTenant === 'string') {
-              // Use X-Tenant header
-              const tenantHost = `${xTenant.toLowerCase()}.localhost:8000`;
-              proxyReq.setHeader('Host', tenantHost);
-              console.log(`[Vite Proxy] X-Tenant: ${xTenant} -> Host: ${tenantHost}`);
-            } else if (isSubdomain) {
-              // Use subdomain from URL
-              const tenantHost = `${subdomain.toLowerCase()}.localhost:8000`;
-              proxyReq.setHeader('Host', tenantHost);
-              console.log(`[Vite Proxy] Subdomain: ${subdomain} -> Host: ${tenantHost}`);
-            } else {
-              // Public schema (localhost sem subdomain)
-              proxyReq.setHeader('Host', 'localhost:8000');
-              console.log(`[Vite Proxy] No tenant -> Host: localhost:8000 (public)`);
+            const isSubdomain =
+              hostname.includes('.') && subdomain !== 'www' && subdomain !== 'localhost';
+
+            const headerTenant =
+              typeof req.headers['x-tenant'] === 'string' ? req.headers['x-tenant'] : undefined;
+            const tenant = headerTenant || (isSubdomain ? subdomain : undefined);
+
+            if (tenant) {
+              proxyReq.setHeader('X-Tenant', tenant);
             }
+
+            // Always proxy via public schema and use X-Tenant for dev routing.
+            proxyReq.setHeader('Host', 'localhost:8000');
+            console.log(
+              `[Vite Proxy] Host: localhost:8000, X-Tenant: ${tenant ?? 'none'}`
+            );
           });
         },
       }

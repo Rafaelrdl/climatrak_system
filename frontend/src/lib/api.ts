@@ -15,6 +15,19 @@ import { getTenantApiUrl, getTenantFromHostname } from './tenant';
 import { getAuthSnapshot } from '@/store/useAuthStore';
 import { appStorage } from './storage';
 
+const LOG_THROTTLE_MS = 30000;
+const errorLogTimestamps = new Map<string, number>();
+
+const shouldLogError = (key: string): boolean => {
+  const now = Date.now();
+  const last = errorLogTimestamps.get(key);
+  if (last && now - last < LOG_THROTTLE_MS) {
+    return false;
+  }
+  errorLogTimestamps.set(key, now);
+  return true;
+};
+
 // Base URL da API (dinâmica por tenant)
 const getApiBaseUrl = (): string => {
   // 🔧 DEV MODE: Use relative URL to enable Vite proxy (cookies work)
@@ -196,7 +209,12 @@ api.interceptors.response.use(
 
     // Log outros erros
     if (import.meta.env.DEV) {
-      console.error('❌ Response Error:', error.response?.status, error.message);
+      const url = originalRequest?.url || '';
+      const status = error.response?.status ?? 'unknown';
+      const logKey = `${status}:${url}`;
+      if (shouldLogError(logKey)) {
+        console.error('❌ Response Error:', status, error.message);
+      }
     }
 
     return Promise.reject(error);
