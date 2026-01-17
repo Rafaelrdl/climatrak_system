@@ -5,6 +5,8 @@ Admin para Inventory
 from django.contrib import admin
 from django.utils.html import format_html
 
+from apps.common.admin_base import BaseAdmin, BaseTabularInline
+
 from .models import (
     InventoryCategory,
     InventoryCount,
@@ -15,7 +17,7 @@ from .models import (
 
 
 @admin.register(InventoryCategory)
-class InventoryCategoryAdmin(admin.ModelAdmin):
+class InventoryCategoryAdmin(BaseAdmin):
     list_display = ["name", "code", "parent", "item_count", "is_active"]
     list_filter = ["is_active", "parent"]
     search_fields = ["name", "code", "description"]
@@ -27,7 +29,7 @@ class InventoryCategoryAdmin(admin.ModelAdmin):
     item_count.short_description = "Itens"
 
 
-class InventoryMovementInline(admin.TabularInline):
+class InventoryMovementInline(BaseTabularInline):
     model = InventoryMovement
     extra = 0
     readonly_fields = [
@@ -48,7 +50,7 @@ class InventoryMovementInline(admin.TabularInline):
 
 
 @admin.register(InventoryItem)
-class InventoryItemAdmin(admin.ModelAdmin):
+class InventoryItemAdmin(BaseAdmin):
     list_display = [
         "code",
         "name",
@@ -151,7 +153,7 @@ class InventoryItemAdmin(admin.ModelAdmin):
 
 
 @admin.register(InventoryMovement)
-class InventoryMovementAdmin(admin.ModelAdmin):
+class InventoryMovementAdmin(BaseAdmin):
     list_display = [
         "id",
         "item",
@@ -192,7 +194,7 @@ class InventoryMovementAdmin(admin.ModelAdmin):
         return False
 
 
-class InventoryCountItemInline(admin.TabularInline):
+class InventoryCountItemInline(BaseTabularInline):
     model = InventoryCountItem
     extra = 0
     readonly_fields = ["expected_quantity", "difference", "has_discrepancy"]
@@ -200,7 +202,7 @@ class InventoryCountItemInline(admin.TabularInline):
 
 
 @admin.register(InventoryCount)
-class InventoryCountAdmin(admin.ModelAdmin):
+class InventoryCountAdmin(BaseAdmin):
     list_display = [
         "name",
         "status_badge",

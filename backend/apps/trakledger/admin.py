@@ -1,10 +1,12 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
+from apps.common.admin_base import BaseAdmin, BaseTabularInline
+
 from .models import BudgetEnvelope, BudgetMonth, BudgetPlan, CostCenter, RateCard
 
 
-class CostCenterChildInline(admin.TabularInline):
+class CostCenterChildInline(BaseTabularInline):
     model = CostCenter
     fk_name = "parent"
     extra = 0
@@ -16,7 +18,7 @@ class CostCenterChildInline(admin.TabularInline):
 
 
 @admin.register(CostCenter)
-class CostCenterAdmin(admin.ModelAdmin):
+class CostCenterAdmin(BaseAdmin):
     list_display = ["code", "name", "parent", "level", "is_active", "created_at"]
     list_filter = ["is_active", "created_at"]
     search_fields = ["code", "name", "description"]
@@ -49,7 +51,7 @@ class CostCenterAdmin(admin.ModelAdmin):
 
 
 @admin.register(RateCard)
-class RateCardAdmin(admin.ModelAdmin):
+class RateCardAdmin(BaseAdmin):
     list_display = [
         "role",
         "role_code",
@@ -78,7 +80,7 @@ class RateCardAdmin(admin.ModelAdmin):
     )
 
 
-class BudgetEnvelopeInline(admin.TabularInline):
+class BudgetEnvelopeInline(BaseTabularInline):
     model = BudgetEnvelope
     extra = 0
     fields = ["name", "category", "cost_center", "amount", "is_active"]
@@ -87,7 +89,7 @@ class BudgetEnvelopeInline(admin.TabularInline):
 
 
 @admin.register(BudgetPlan)
-class BudgetPlanAdmin(admin.ModelAdmin):
+class BudgetPlanAdmin(BaseAdmin):
     list_display = [
         "code",
         "name",
@@ -117,7 +119,7 @@ class BudgetPlanAdmin(admin.ModelAdmin):
     )
 
 
-class BudgetMonthInline(admin.TabularInline):
+class BudgetMonthInline(BaseTabularInline):
     model = BudgetMonth
     extra = 0
     fields = ["month", "planned_amount", "is_locked", "locked_at", "locked_by"]
@@ -125,7 +127,7 @@ class BudgetMonthInline(admin.TabularInline):
 
 
 @admin.register(BudgetEnvelope)
-class BudgetEnvelopeAdmin(admin.ModelAdmin):
+class BudgetEnvelopeAdmin(BaseAdmin):
     list_display = [
         "name",
         "budget_plan",
@@ -152,7 +154,7 @@ class BudgetEnvelopeAdmin(admin.ModelAdmin):
 
 
 @admin.register(BudgetMonth)
-class BudgetMonthAdmin(admin.ModelAdmin):
+class BudgetMonthAdmin(BaseAdmin):
     """
     Admin para BudgetMonth com proteção de meses bloqueados.
     

@@ -11,11 +11,13 @@ Dados do usuário (nome, etc.) ficam APENAS no schema do tenant.
 from django.contrib import admin
 from django.utils.html import format_html
 
+from apps.common.admin_base import BaseAdmin
+
 from .models import TenantInvite, TenantMembership, TenantUserIndex
 
 
 @admin.register(TenantMembership)
-class TenantMembershipAdmin(admin.ModelAdmin):
+class TenantMembershipAdmin(BaseAdmin):
     """Admin for TenantMembership (public schema)."""
 
     list_display = [
@@ -102,7 +104,7 @@ class TenantMembershipAdmin(admin.ModelAdmin):
 
 
 @admin.register(TenantUserIndex)
-class TenantUserIndexAdmin(admin.ModelAdmin):
+class TenantUserIndexAdmin(BaseAdmin):
     """Admin for TenantUserIndex - read-only for security.
 
     Este model armazena APENAS email_hash + tenant para descoberta de tenants no login.
@@ -154,7 +156,7 @@ class TenantUserIndexAdmin(admin.ModelAdmin):
 
 
 @admin.register(TenantInvite)
-class TenantInviteAdmin(admin.ModelAdmin):
+class TenantInviteAdmin(BaseAdmin):
     """Admin for TenantInvite."""
 
     list_display = [

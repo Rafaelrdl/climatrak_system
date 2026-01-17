@@ -6,11 +6,13 @@ Admin interfaces for TrakService models.
 
 from django.contrib import admin
 
+from apps.common.admin_base import BaseAdmin
+
 from .models import ServiceAssignment, TechnicianProfile
 
 
 @admin.register(TechnicianProfile)
-class TechnicianProfileAdmin(admin.ModelAdmin):
+class TechnicianProfileAdmin(BaseAdmin):
     """Admin for TechnicianProfile model."""
 
     list_display = [
@@ -40,7 +42,7 @@ class TechnicianProfileAdmin(admin.ModelAdmin):
 
 
 @admin.register(ServiceAssignment)
-class ServiceAssignmentAdmin(admin.ModelAdmin):
+class ServiceAssignmentAdmin(BaseAdmin):
     """Admin for ServiceAssignment model."""
 
     list_display = [

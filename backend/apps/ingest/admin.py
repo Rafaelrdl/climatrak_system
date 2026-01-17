@@ -4,6 +4,8 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
+from apps.common.admin_base import BaseAdmin
+
 # NOTE: TelemetryAdmin is NOT registered in the centralized admin (public schema)
 # Reason: Telemetry is a TENANT_APPS model, exists only in tenant schemas.
 # The centralized admin in public schema should only manage:
@@ -14,7 +16,7 @@ from django.utils.safestring import mark_safe
 
 
 # @admin.register(Telemetry)  # DISABLED - Not available in public schema
-class TelemetryAdmin(admin.ModelAdmin):
+class TelemetryAdmin(BaseAdmin):
     """
     Admin interface for Telemetry (MQTT ingested data).
     Read-only: data comes from EMQX via /ingest endpoint.

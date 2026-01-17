@@ -69,7 +69,10 @@ SHARED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "jazzmin",  # Must be before django.contrib.admin
+    "unfold",  # Must be before django.contrib.admin
+    "unfold.contrib.filters",  # Enhanced filters
+    "unfold.contrib.forms",  # Enhanced forms
+    "unfold.contrib.inlines",  # Enhanced inlines
     "django.contrib.admin",  # Admin only in public schema
     # Third-party
     "rest_framework",
@@ -167,6 +170,12 @@ DATABASE_ROUTERS = ["django_tenants.routers.TenantSyncRouter"]
 TENANT_MODEL = "tenants.Tenant"
 TENANT_DOMAIN_MODEL = "tenants.Domain"
 PUBLIC_SCHEMA_NAME = os.getenv("PUBLIC_SCHEMA_NAME", "public")
+# Fallback to public schema when hostname is unknown (useful for EMQX in dev)
+_show_public_fallback = os.getenv("SHOW_PUBLIC_IF_NO_TENANT_FOUND")
+if _show_public_fallback is None:
+    SHOW_PUBLIC_IF_NO_TENANT_FOUND = DEBUG
+else:
+    SHOW_PUBLIC_IF_NO_TENANT_FOUND = _show_public_fallback == "True"
 
 # URLConf settings for multi-tenant
 PUBLIC_SCHEMA_URLCONF = "config.urls_public"  # Used when schema == 'public'
@@ -486,245 +495,392 @@ DEFAULT_FROM_EMAIL = os.getenv("MAIL_FROM_ADDRESS", "noreply@climatrak.com.br")
 EMAIL_TIMEOUT = 10  # Timeout de 10 segundos para conexão SMTP
 
 # ============================================================================
-# DJANGO JAZZMIN - Modern Admin Interface (ClimaTrak)
+# DJANGO UNFOLD - Modern Admin Interface (ClimaTrak)
 # ============================================================================
+# Documentation: https://unfoldadmin.com/docs/configuration/settings/
+# Primary color derived from frontend design system: oklch(0.45 0.15 200) (teal/verde-petróleo)
+# Color scale generated to match frontend primary color hue (200° = teal)
+
+from django.templatetags.static import static
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 
 # Environment detection for admin badge
-import os as _env_os
+_IS_PRODUCTION = os.getenv("DJANGO_ENV", "development") == "production"
 
-_IS_PRODUCTION = _env_os.getenv("DJANGO_ENV", "development") == "production"
-_ENV_BADGE = "" if _IS_PRODUCTION else " [DEV]"
-_ENV_COLOR = "danger" if _IS_PRODUCTION else "warning"
 
-JAZZMIN_SETTINGS = {
+def _environment_callback(request):
+    """Return environment badge for admin header."""
+    if _IS_PRODUCTION:
+        return ["Production", "danger"]
+    return ["Development", "warning"]
+
+
+def _environment_title_prefix(request):
+    """Prefix for browser tab title."""
+    if _IS_PRODUCTION:
+        return ""
+    return "[DEV] "
+
+
+UNFOLD = {
     # ==========================================================================
     # Branding ClimaTrak
     # ==========================================================================
-    "site_title": f"ClimaTrak Admin{_ENV_BADGE}",
-    "site_header": f"ClimaTrak{_ENV_BADGE}",
-    "site_brand": "ClimaTrak Platform",
-    "site_logo": None,  # TODO: Add /static/images/logo.png
-    "login_logo": None,
-    "site_icon": None,  # TODO: Add favicon
-    "welcome_sign": "Bem-vindo ao ClimaTrak Admin",
-    "copyright": "ClimaTrak © 2025",
-    # ==========================================================================
-    # Search
-    # ==========================================================================
-    "search_model": [
-        "accounts.User",
-        "tenants.Tenant",
-        "cmms.WorkOrder",
-        "inventory.InventoryItem",
-    ],
-    # ==========================================================================
-    # Top Menu
-    # ==========================================================================
-    "topmenu_links": [
-        {"name": "🏠 Home", "url": "admin:index", "permissions": ["accounts.view_user"]},
-        {"name": "📊 Ops Panel", "url": "/ops/", "new_window": False},
-        {"name": "📖 API Docs", "url": "/api/docs/", "new_window": True},
-    ],
-    # ==========================================================================
-    # User Menu
-    # ==========================================================================
-    "usermenu_links": [
-        {"name": "📋 Meu Perfil", "model": "accounts.user"},
-    ],
-    # ==========================================================================
-    # Sidebar Navigation
-    # ==========================================================================
-    "show_sidebar": True,
-    "navigation_expanded": False,
-    "hide_apps": [],
-    "hide_models": [
-        "auth.Group",  # Usar grupos customizados se necessário
-    ],
-    # ==========================================================================
-    # Custom App/Model Ordering (por domínio de negócio)
-    # ==========================================================================
-    "order_with_respect_to": [
-        # 🏢 Plataforma
-        "tenants",
-        "accounts",
-        "public_identity",
-        # 🔧 CMMS (Manutenção)
-        "cmms",
-        # 📦 Inventário
-        "inventory",
-        # 📍 Localizações
-        "locations",
-        # 🚨 Alertas
-        "alerts",
-        # 💰 Finance (TrakLedger)
-        "trakledger",
-        # 🚗 Field Service (TrakService)
-        "trakservice",
-        # ⚙️ Sistema
-        "ops",
-        "core_events",
-        "marketing",
-        "auth",
-    ],
-    # ==========================================================================
-    # Icons (FontAwesome 5)
-    # ==========================================================================
-    "icons": {
-        # Plataforma
-        "tenants": "fas fa-building",
-        "tenants.Tenant": "fas fa-building",
-        "tenants.Domain": "fas fa-globe",
-        "tenants.TenantFeature": "fas fa-toggle-on",
-        "accounts": "fas fa-users",
-        "accounts.User": "fas fa-user",
-        "public_identity": "fas fa-id-card",
-        "public_identity.TenantMembership": "fas fa-user-tag",
-        "public_identity.TenantUserIndex": "fas fa-user-check",
-        "public_identity.TenantInvite": "fas fa-envelope",
-        # CMMS
-        "cmms": "fas fa-tools",
-        "cmms.WorkOrder": "fas fa-clipboard-list",
-        "cmms.Request": "fas fa-hand-paper",
-        "cmms.MaintenancePlan": "fas fa-calendar-alt",
-        "cmms.ChecklistTemplate": "fas fa-tasks",
-        "cmms.TimeEntry": "fas fa-clock",
-        "cmms.ExternalCost": "fas fa-file-invoice-dollar",
-        "cmms.PartUsage": "fas fa-cogs",
-        # Inventário
-        "inventory": "fas fa-boxes",
-        "inventory.InventoryItem": "fas fa-box",
-        "inventory.InventoryCategory": "fas fa-folder",
-        "inventory.InventoryMovement": "fas fa-exchange-alt",
-        "inventory.InventoryCount": "fas fa-clipboard-check",
-        # Localizações
-        "locations": "fas fa-map-marker-alt",
-        "locations.Company": "fas fa-city",
-        "locations.Unit": "fas fa-warehouse",
-        "locations.Sector": "fas fa-layer-group",
-        "locations.Subsection": "fas fa-th",
-        "locations.LocationContact": "fas fa-address-book",
-        # Alertas
-        "alerts": "fas fa-bell",
-        "alerts.Alert": "fas fa-exclamation-triangle",
-        "alerts.Rule": "fas fa-cog",
-        "alerts.RuleParameter": "fas fa-sliders-h",
-        "alerts.NotificationPreference": "fas fa-envelope-open",
-        # TrakLedger (Finance)
-        "trakledger": "fas fa-coins",
-        "trakledger.CostCenter": "fas fa-sitemap",
-        "trakledger.RateCard": "fas fa-dollar-sign",
-        "trakledger.BudgetPlan": "fas fa-chart-pie",
-        "trakledger.BudgetEnvelope": "fas fa-envelope-open-text",
-        "trakledger.BudgetMonth": "fas fa-calendar-day",
-        # TrakService (Field Service)
-        "trakservice": "fas fa-truck",
-        "trakservice.TechnicianProfile": "fas fa-hard-hat",
-        "trakservice.ServiceAssignment": "fas fa-calendar-check",
-        # Sistema
-        "ops": "fas fa-cogs",
-        "ops.ExportJob": "fas fa-file-export",
-        "ops.AuditLog": "fas fa-history",
-        "core_events": "fas fa-broadcast-tower",
-        "core_events.OutboxEvent": "fas fa-paper-plane",
-        "marketing": "fas fa-bullhorn",
-        "marketing.BlogPost": "fas fa-newspaper",
-        "auth": "fas fa-shield-alt",
-        "auth.Group": "fas fa-users-cog",
+    "SITE_TITLE": "ClimaTrak Admin",
+    "SITE_HEADER": "ClimaTrak",
+    "SITE_SUBHEADER": "Multi-Tenant Asset Management Platform",
+    "SITE_URL": "/",
+    # Logo and icons (using lambdas for static file resolution)
+    "SITE_ICON": lambda request: static("admin/brand/favicon.svg"),
+    "SITE_LOGO": {
+        "light": lambda request: static("admin/brand/logo-light.svg"),
+        "dark": lambda request: static("admin/brand/logo-dark.svg"),
     },
-    "default_icon_parents": "fas fa-chevron-circle-right",
-    "default_icon_children": "fas fa-circle",
+    "SITE_SYMBOL": "speed",  # Material icon for compact views
+    "SITE_FAVICONS": [
+        {
+            "rel": "icon",
+            "sizes": "32x32",
+            "type": "image/svg+xml",
+            "href": lambda request: static("admin/brand/favicon.svg"),
+        },
+    ],
     # ==========================================================================
-    # UI Settings
+    # Environment & Theme
     # ==========================================================================
-    "show_ui_builder": False,
-    "changeform_format": "horizontal_tabs",
-    "changeform_format_overrides": {
-        "accounts.user": "collapsible",
-        "auth.group": "vertical_tabs",
-        "cmms.workorder": "horizontal_tabs",
-        "trakledger.budgetplan": "horizontal_tabs",
+    "ENVIRONMENT": "config.settings.base._environment_callback",
+    "ENVIRONMENT_TITLE_PREFIX": "config.settings.base._environment_title_prefix",
+    # "THEME": "dark",  # Uncomment to force dark mode (disables toggle)
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "SHOW_BACK_BUTTON": True,
+    # ==========================================================================
+    # Login Page
+    # ==========================================================================
+    "LOGIN": {
+        "image": lambda request: static("admin/brand/login-bg.jpg"),
+        "redirect_after": lambda request: reverse_lazy("admin:index"),
     },
     # ==========================================================================
-    # Custom CSS/JS
+    # Styling
     # ==========================================================================
-    "custom_css": "admin/css/climatrak_admin.css",
-    "custom_js": None,
-    "use_google_fonts_cdn": True,
+    "BORDER_RADIUS": "8px",
     # ==========================================================================
-    # Related Modal
+    # Colors - ClimaTrak Verde Petróleo (Teal)
+    # Primary derived from frontend: oklch(0.45 0.15 200)
+    # Generated scale maintaining hue 200 (teal/verde-petróleo)
     # ==========================================================================
-    "related_modal_active": True,
+    "COLORS": {
+        "base": {
+            # Using Unfold defaults (neutral gray scale)
+            "50": "oklch(98.5% .002 247.839)",
+            "100": "oklch(96.7% .003 264.542)",
+            "200": "oklch(92.8% .006 264.531)",
+            "300": "oklch(87.2% .01 258.338)",
+            "400": "oklch(70.7% .022 261.325)",
+            "500": "oklch(55.1% .027 264.364)",
+            "600": "oklch(44.6% .03 256.802)",
+            "700": "oklch(37.3% .034 259.733)",
+            "800": "oklch(27.8% .033 256.848)",
+            "900": "oklch(21% .034 264.665)",
+            "950": "oklch(13% .028 261.692)",
+        },
+        "primary": {
+            # Teal/Verde-Petróleo scale (hue 200)
+            # Generated from frontend primary: oklch(0.45 0.15 200)
+            "50": "oklch(97% .02 200)",
+            "100": "oklch(93% .04 200)",
+            "200": "oklch(87% .07 200)",
+            "300": "oklch(78% .11 200)",
+            "400": "oklch(65% .14 200)",
+            "500": "oklch(52% .15 200)",  # Base (close to frontend primary)
+            "600": "oklch(45% .15 200)",  # Frontend primary: oklch(0.45 0.15 200)
+            "700": "oklch(38% .13 200)",
+            "800": "oklch(32% .11 200)",
+            "900": "oklch(26% .09 200)",
+            "950": "oklch(18% .06 200)",
+        },
+        "font": {
+            "subtle-light": "var(--color-base-500)",
+            "subtle-dark": "var(--color-base-400)",
+            "default-light": "var(--color-base-600)",
+            "default-dark": "var(--color-base-300)",
+            "important-light": "var(--color-base-900)",
+            "important-dark": "var(--color-base-100)",
+        },
+    },
     # ==========================================================================
-    # Custom Links (per app)
+    # Custom Styles
     # ==========================================================================
-    "custom_links": {
-        "tenants": [
+    "STYLES": [
+        lambda request: static("admin/css/climatrak_unfold.css"),
+    ],
+    # ==========================================================================
+    # Sidebar Navigation - Organized by Business Domain
+    # ==========================================================================
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+        "navigation": [
+            # ──────────────────────────────────────────────────────────────────
+            # Dashboard
+            # ──────────────────────────────────────────────────────────────────
             {
-                "name": "📊 Ops Panel",
-                "url": "/ops/",
-                "icon": "fas fa-chart-line",
-                "permissions": ["accounts.view_user"],
-            }
-        ],
-        "trakledger": [
+                "title": _("Dashboard"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Home"),
+                        "icon": "home",
+                        "link": reverse_lazy("admin:index"),
+                    },
+                    {
+                        "title": _("Ops Panel"),
+                        "icon": "monitoring",
+                        "link": "/ops/",
+                        "permission": lambda request: request.user.is_superuser,
+                    },
+                ],
+            },
+            # ──────────────────────────────────────────────────────────────────
+            # Plataforma (Tenants, Users)
+            # ──────────────────────────────────────────────────────────────────
             {
-                "name": "📈 Relatório Financeiro",
-                "url": "/ops/finance/",
-                "icon": "fas fa-chart-bar",
-                "permissions": ["trakledger.view_budgetplan"],
-            }
+                "title": _("Platform"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Tenants"),
+                        "icon": "apartment",
+                        "link": reverse_lazy("admin:tenants_tenant_changelist"),
+                        "permission": lambda request: request.user.is_superuser,
+                    },
+                    {
+                        "title": _("Domains"),
+                        "icon": "language",
+                        "link": reverse_lazy("admin:tenants_domain_changelist"),
+                        "permission": lambda request: request.user.is_superuser,
+                    },
+                    {
+                        "title": _("Users"),
+                        "icon": "person",
+                        "link": reverse_lazy("admin:accounts_user_changelist"),
+                        "permission": lambda request: request.user.has_perm("accounts.view_user"),
+                    },
+                    {
+                        "title": _("Memberships"),
+                        "icon": "badge",
+                        "link": reverse_lazy("admin:public_identity_tenantmembership_changelist"),
+                        "permission": lambda request: request.user.is_superuser,
+                    },
+                ],
+            },
+            # ──────────────────────────────────────────────────────────────────
+            # CMMS (Manutenção)
+            # ──────────────────────────────────────────────────────────────────
+            {
+                "title": _("CMMS"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Work Orders"),
+                        "icon": "assignment",
+                        "link": reverse_lazy("admin:cmms_workorder_changelist"),
+                    },
+                    {
+                        "title": _("Requests"),
+                        "icon": "help",
+                        "link": reverse_lazy("admin:cmms_request_changelist"),
+                    },
+                    {
+                        "title": _("Maintenance Plans"),
+                        "icon": "event_repeat",
+                        "link": reverse_lazy("admin:cmms_maintenanceplan_changelist"),
+                    },
+                    {
+                        "title": _("Checklists"),
+                        "icon": "checklist",
+                        "link": reverse_lazy("admin:cmms_checklisttemplate_changelist"),
+                    },
+                ],
+            },
+            # ──────────────────────────────────────────────────────────────────
+            # Inventário
+            # ──────────────────────────────────────────────────────────────────
+            {
+                "title": _("Inventory"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Items"),
+                        "icon": "inventory_2",
+                        "link": reverse_lazy("admin:inventory_inventoryitem_changelist"),
+                    },
+                    {
+                        "title": _("Categories"),
+                        "icon": "category",
+                        "link": reverse_lazy("admin:inventory_inventorycategory_changelist"),
+                    },
+                    {
+                        "title": _("Movements"),
+                        "icon": "swap_horiz",
+                        "link": reverse_lazy("admin:inventory_inventorymovement_changelist"),
+                    },
+                    {
+                        "title": _("Counts"),
+                        "icon": "inventory",
+                        "link": reverse_lazy("admin:inventory_inventorycount_changelist"),
+                    },
+                ],
+            },
+            # ──────────────────────────────────────────────────────────────────
+            # Localizações
+            # ──────────────────────────────────────────────────────────────────
+            {
+                "title": _("Locations"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Companies"),
+                        "icon": "business",
+                        "link": reverse_lazy("admin:locations_company_changelist"),
+                    },
+                    {
+                        "title": _("Units"),
+                        "icon": "location_city",
+                        "link": reverse_lazy("admin:locations_unit_changelist"),
+                    },
+                    {
+                        "title": _("Sectors"),
+                        "icon": "layers",
+                        "link": reverse_lazy("admin:locations_sector_changelist"),
+                    },
+                    {
+                        "title": _("Subsections"),
+                        "icon": "grid_view",
+                        "link": reverse_lazy("admin:locations_subsection_changelist"),
+                    },
+                ],
+            },
+            # ──────────────────────────────────────────────────────────────────
+            # Alertas
+            # ──────────────────────────────────────────────────────────────────
+            {
+                "title": _("Alerts"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Alerts"),
+                        "icon": "notifications",
+                        "link": reverse_lazy("admin:alerts_alert_changelist"),
+                    },
+                    {
+                        "title": _("Rules"),
+                        "icon": "rule",
+                        "link": reverse_lazy("admin:alerts_rule_changelist"),
+                    },
+                    {
+                        "title": _("Notification Preferences"),
+                        "icon": "tune",
+                        "link": reverse_lazy("admin:alerts_notificationpreference_changelist"),
+                    },
+                ],
+            },
+            # ──────────────────────────────────────────────────────────────────
+            # TrakLedger (Finance)
+            # ──────────────────────────────────────────────────────────────────
+            {
+                "title": _("Finance"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Budget Plans"),
+                        "icon": "pie_chart",
+                        "link": reverse_lazy("admin:trakledger_budgetplan_changelist"),
+                    },
+                    {
+                        "title": _("Envelopes"),
+                        "icon": "mail",
+                        "link": reverse_lazy("admin:trakledger_budgetenvelope_changelist"),
+                    },
+                    {
+                        "title": _("Months"),
+                        "icon": "calendar_month",
+                        "link": reverse_lazy("admin:trakledger_budgetmonth_changelist"),
+                    },
+                    {
+                        "title": _("Cost Centers"),
+                        "icon": "account_tree",
+                        "link": reverse_lazy("admin:trakledger_costcenter_changelist"),
+                    },
+                    {
+                        "title": _("Rate Cards"),
+                        "icon": "payments",
+                        "link": reverse_lazy("admin:trakledger_ratecard_changelist"),
+                    },
+                ],
+            },
+            # ──────────────────────────────────────────────────────────────────
+            # TrakService (Field Service)
+            # ──────────────────────────────────────────────────────────────────
+            {
+                "title": _("Field Service"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Technicians"),
+                        "icon": "engineering",
+                        "link": reverse_lazy("admin:trakservice_technicianprofile_changelist"),
+                    },
+                    {
+                        "title": _("Assignments"),
+                        "icon": "event_available",
+                        "link": reverse_lazy("admin:trakservice_serviceassignment_changelist"),
+                    },
+                ],
+            },
+            # ──────────────────────────────────────────────────────────────────
+            # Sistema (Ops, Events)
+            # ──────────────────────────────────────────────────────────────────
+            {
+                "title": _("System"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Export Jobs"),
+                        "icon": "download",
+                        "link": reverse_lazy("admin:ops_exportjob_changelist"),
+                        "permission": lambda request: request.user.is_superuser,
+                    },
+                    {
+                        "title": _("Audit Logs"),
+                        "icon": "history",
+                        "link": reverse_lazy("admin:ops_auditlog_changelist"),
+                        "permission": lambda request: request.user.is_superuser,
+                    },
+                    {
+                        "title": _("Outbox Events"),
+                        "icon": "send",
+                        "link": reverse_lazy("admin:core_events_outboxevent_changelist"),
+                        "permission": lambda request: request.user.is_superuser,
+                    },
+                    {
+                        "title": _("Blog Posts"),
+                        "icon": "article",
+                        "link": reverse_lazy("admin:marketing_blogpost_changelist"),
+                        "permission": lambda request: request.user.is_superuser,
+                    },
+                ],
+            },
         ],
     },
-    "language_chooser": False,
-}
-
-JAZZMIN_UI_TWEAKS = {
-    # ==========================================================================
-    # Text Size
-    # ==========================================================================
-    "navbar_small_text": False,
-    "footer_small_text": True,
-    "body_small_text": False,
-    "brand_small_text": False,
-    # ==========================================================================
-    # Colors & Theme
-    # ==========================================================================
-    "brand_colour": "navbar-primary",
-    "accent": "accent-primary",
-    "navbar": "navbar-dark navbar-primary",
-    "no_navbar_border": True,
-    "navbar_fixed": True,
-    "layout_boxed": False,
-    "footer_fixed": False,
-    "sidebar_fixed": True,
-    "sidebar": "sidebar-dark-primary",
-    # ==========================================================================
-    # Sidebar Navigation
-    # ==========================================================================
-    "sidebar_nav_small_text": False,
-    "sidebar_disable_expand": False,
-    "sidebar_nav_legacy_style": False,
-    "sidebar_nav_compact_style": True,  # Mais compacto
-    "sidebar_nav_child_indent": True,  # Indentação filhos
-    "sidebar_nav_flat_style": False,
-    # ==========================================================================
-    # Theme Variants
-    # ==========================================================================
-    "theme": "cyborg",  # Dark theme profissional
-    "dark_mode_theme": "cyborg",
-    # ==========================================================================
-    # Button Classes
-    # ==========================================================================
-    "button_classes": {
-        "primary": "btn-primary",
-        "secondary": "btn-secondary",
-        "info": "btn-info",
-        "warning": "btn-warning",
-        "danger": "btn-danger",
-        "success": "btn-success",
-    },
-    # ==========================================================================
-    # Actions & Links
-    # ==========================================================================
-    "actions_sticky_top": True,  # Ações fixas no topo
 }

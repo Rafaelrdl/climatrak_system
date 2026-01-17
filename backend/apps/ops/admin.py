@@ -5,6 +5,8 @@ Django Admin configuration for Control Center (ops app).
 from django.contrib import admin, messages
 from django.utils.html import format_html
 
+from apps.common.admin_base import BaseAdmin
+
 from .models import AuditLog, ExportJob
 from .utils import invalidate_tenants_cache
 
@@ -22,7 +24,7 @@ clear_tenants_cache_action.short_description = "🗑️ Limpar cache de tenants"
 
 
 @admin.register(ExportJob)
-class ExportJobAdmin(admin.ModelAdmin):
+class ExportJobAdmin(BaseAdmin):
     """Admin interface for Export Jobs."""
 
     list_display = [
@@ -91,7 +93,7 @@ class ExportJobAdmin(admin.ModelAdmin):
 
 
 @admin.register(AuditLog)
-class AuditLogAdmin(admin.ModelAdmin):
+class AuditLogAdmin(BaseAdmin):
     """Admin interface for Audit Logs."""
 
     list_display = [

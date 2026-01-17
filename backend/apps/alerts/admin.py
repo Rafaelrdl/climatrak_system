@@ -4,10 +4,12 @@ Admin para o sistema de Alertas e Regras
 
 from django.contrib import admin
 
+from apps.common.admin_base import BaseAdmin, BaseTabularInline
+
 from .models import Alert, NotificationPreference, Rule, RuleParameter
 
 
-class RuleParameterInline(admin.TabularInline):
+class RuleParameterInline(BaseTabularInline):
     """Inline para editar parâmetros da regra"""
 
     model = RuleParameter
@@ -27,7 +29,7 @@ class RuleParameterInline(admin.TabularInline):
 
 
 @admin.register(Rule)
-class RuleAdmin(admin.ModelAdmin):
+class RuleAdmin(BaseAdmin):
     list_display = ["name", "equipment", "enabled", "parameters_count", "created_at"]
     list_filter = ["enabled", "created_at"]
     search_fields = ["name", "description", "equipment__name", "equipment__tag"]
@@ -73,7 +75,7 @@ class RuleAdmin(admin.ModelAdmin):
 
 
 @admin.register(RuleParameter)
-class RuleParameterAdmin(admin.ModelAdmin):
+class RuleParameterAdmin(BaseAdmin):
     list_display = [
         "rule",
         "parameter_key",
@@ -89,7 +91,7 @@ class RuleParameterAdmin(admin.ModelAdmin):
 
 
 @admin.register(Alert)
-class AlertAdmin(admin.ModelAdmin):
+class AlertAdmin(BaseAdmin):
     list_display = [
         "asset_tag",
         "severity",
@@ -129,7 +131,7 @@ class AlertAdmin(admin.ModelAdmin):
 
 
 @admin.register(NotificationPreference)
-class NotificationPreferenceAdmin(admin.ModelAdmin):
+class NotificationPreferenceAdmin(BaseAdmin):
     list_display = [
         "user",
         "email_enabled",

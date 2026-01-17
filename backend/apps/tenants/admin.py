@@ -14,12 +14,13 @@ from django.utils.html import format_html
 
 from django_tenants.admin import TenantAdminMixin
 from django_tenants.utils import get_public_schema_name, schema_context
+from unfold.admin import ModelAdmin
 
 from .models import Domain, Tenant
 
 
 @admin.register(Tenant)
-class TenantAdmin(TenantAdminMixin, admin.ModelAdmin):
+class TenantAdmin(TenantAdminMixin, ModelAdmin):
     """
     Admin interface for Tenant model.
 
@@ -922,7 +923,7 @@ Equipe Climatrak
 
 
 @admin.register(Domain)
-class DomainAdmin(admin.ModelAdmin):
+class DomainAdmin(ModelAdmin):
     """Admin interface for Domain model."""
 
     list_display = ["domain", "tenant_link", "schema_badge", "primary_badge"]
@@ -984,7 +985,7 @@ from .features import DEFAULT_FEATURES, TenantFeature
 
 
 @admin.register(TenantFeature)
-class TenantFeatureAdmin(admin.ModelAdmin):
+class TenantFeatureAdmin(ModelAdmin):
     """Admin interface for TenantFeature model."""
 
     list_display = ["tenant_name", "feature_key", "enabled_badge", "updated_at"]

@@ -7,11 +7,13 @@ Interface administrativa para visualização e gestão de eventos.
 from django.contrib import admin
 from django.utils.html import format_html
 
+from apps.common.admin_base import BaseAdmin
+
 from .models import OutboxEvent, OutboxEventStatus
 
 
 @admin.register(OutboxEvent)
-class OutboxEventAdmin(admin.ModelAdmin):
+class OutboxEventAdmin(BaseAdmin):
     """Admin para visualização e gestão de eventos da Outbox."""
 
     list_display = [

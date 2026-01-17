@@ -6,10 +6,12 @@ Hierarquia: Company > Unit > Sector > Subsection
 
 from django.contrib import admin
 
+from apps.common.admin_base import BaseAdmin, BaseTabularInline
+
 from .models import Company, LocationContact, Sector, Subsection, Unit
 
 
-class LocationContactInline(admin.TabularInline):
+class LocationContactInline(BaseTabularInline):
     model = LocationContact
     extra = 0
     fields = ["type", "name", "phone", "email"]
@@ -35,21 +37,21 @@ class SubsectionContactInline(LocationContactInline):
     fk_name = "subsection"
 
 
-class UnitInline(admin.TabularInline):
+class UnitInline(BaseTabularInline):
     model = Unit
     extra = 0
     fields = ["name", "code", "city", "state", "is_active"]
     show_change_link = True
 
 
-class SectorInline(admin.TabularInline):
+class SectorInline(BaseTabularInline):
     model = Sector
     extra = 0
     fields = ["name", "code", "building", "floor", "is_active"]
     show_change_link = True
 
 
-class SubsectionInline(admin.TabularInline):
+class SubsectionInline(BaseTabularInline):
     model = Subsection
     extra = 0
     fields = ["name", "code", "position", "is_active"]
@@ -57,7 +59,7 @@ class SubsectionInline(admin.TabularInline):
 
 
 @admin.register(Company)
-class CompanyAdmin(admin.ModelAdmin):
+class CompanyAdmin(BaseAdmin):
     list_display = ["name", "code", "city", "state", "unit_count", "is_active"]
     list_filter = ["is_active", "state", "city"]
     search_fields = ["name", "code", "cnpj", "city"]
@@ -87,7 +89,7 @@ class CompanyAdmin(admin.ModelAdmin):
 
 
 @admin.register(Unit)
-class UnitAdmin(admin.ModelAdmin):
+class UnitAdmin(BaseAdmin):
     list_display = [
         "name",
         "company",
@@ -131,7 +133,7 @@ class UnitAdmin(admin.ModelAdmin):
 
 
 @admin.register(Sector)
-class SectorAdmin(admin.ModelAdmin):
+class SectorAdmin(BaseAdmin):
     list_display = [
         "name",
         "unit",
@@ -179,7 +181,7 @@ class SectorAdmin(admin.ModelAdmin):
 
 
 @admin.register(Subsection)
-class SubsectionAdmin(admin.ModelAdmin):
+class SubsectionAdmin(BaseAdmin):
     list_display = ["name", "sector", "code", "position", "is_active"]
     list_filter = ["is_active", "sector__unit__company", "sector__unit", "sector"]
     search_fields = [
@@ -205,7 +207,7 @@ class SubsectionAdmin(admin.ModelAdmin):
 
 
 @admin.register(LocationContact)
-class LocationContactAdmin(admin.ModelAdmin):
+class LocationContactAdmin(BaseAdmin):
     list_display = ["name", "type", "location_display", "phone", "email"]
     list_filter = ["type", "created_at"]
     search_fields = ["name", "email", "phone"]

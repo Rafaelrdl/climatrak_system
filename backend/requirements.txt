@@ -3,12 +3,13 @@ Django==5.2.9
 djangorestframework==3.15.2
 django-filter==24.3
 djangorestframework-simplejwt==5.5.1
+pytz==2024.1
 
 # Multi-tenancy
 django-tenants==3.9.0
 
-# Admin Interface
-django-jazzmin==3.0.1
+# Admin Interface (Unfold - Modern Django Admin)
+django-unfold==0.47.0
 
 # Static Files (Production)
 whitenoise==6.8.2

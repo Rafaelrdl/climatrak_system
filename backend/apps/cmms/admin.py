@@ -5,6 +5,8 @@ Admin para CMMS
 from django.contrib import admin
 from django.utils.html import format_html
 
+from apps.common.admin_base import BaseAdmin, BaseTabularInline
+
 from .models import (
     ChecklistTemplate,
     ExternalCost,
@@ -21,7 +23,7 @@ from .models import (
 
 
 @admin.register(ChecklistTemplate)
-class ChecklistTemplateAdmin(admin.ModelAdmin):
+class ChecklistTemplateAdmin(BaseAdmin):
     list_display = ["name", "item_count", "is_active", "created_at"]
     list_filter = ["is_active", "created_at"]
     search_fields = ["name", "description"]
@@ -33,13 +35,13 @@ class ChecklistTemplateAdmin(admin.ModelAdmin):
     item_count.short_description = "Itens"
 
 
-class WorkOrderPhotoInline(admin.TabularInline):
+class WorkOrderPhotoInline(BaseTabularInline):
     model = WorkOrderPhoto
     extra = 0
     readonly_fields = ["uploaded_at", "uploaded_by"]
 
 
-class WorkOrderItemInline(admin.TabularInline):
+class WorkOrderItemInline(BaseTabularInline):
     model = WorkOrderItem
     extra = 0
     readonly_fields = ["total_cost"]
@@ -51,7 +53,7 @@ class WorkOrderItemInline(admin.TabularInline):
 
 
 @admin.register(WorkOrder)
-class WorkOrderAdmin(admin.ModelAdmin):
+class WorkOrderAdmin(BaseAdmin):
     list_display = [
         "number",
         "asset",
@@ -162,13 +164,13 @@ class WorkOrderAdmin(admin.ModelAdmin):
         self.message_user(request, f"{updated} ordem(s) cancelada(s).")
 
 
-class RequestItemInline(admin.TabularInline):
+class RequestItemInline(BaseTabularInline):
     model = RequestItem
     extra = 0
 
 
 @admin.register(Request)
-class RequestAdmin(admin.ModelAdmin):
+class RequestAdmin(BaseAdmin):
     list_display = [
         "number",
         "sector",
@@ -202,7 +204,7 @@ class RequestAdmin(admin.ModelAdmin):
 
 
 @admin.register(MaintenancePlan)
-class MaintenancePlanAdmin(admin.ModelAdmin):
+class MaintenancePlanAdmin(BaseAdmin):
     list_display = [
         "name",
         "frequency",
@@ -238,7 +240,7 @@ class MaintenancePlanAdmin(admin.ModelAdmin):
 # ============================================
 
 
-class TimeEntryInline(admin.TabularInline):
+class TimeEntryInline(BaseTabularInline):
     """Inline de TimeEntry para WorkOrder."""
 
     model = TimeEntry
@@ -263,7 +265,7 @@ class TimeEntryInline(admin.TabularInline):
     total_cost.short_description = "Custo Total"
 
 
-class PartUsageInline(admin.TabularInline):
+class PartUsageInline(BaseTabularInline):
     """Inline de PartUsage para WorkOrder."""
 
     model = PartUsage
@@ -289,7 +291,7 @@ class PartUsageInline(admin.TabularInline):
     total_cost.short_description = "Custo Total"
 
 
-class ExternalCostAttachmentInline(admin.TabularInline):
+class ExternalCostAttachmentInline(BaseTabularInline):
     """Inline de anexos para ExternalCost."""
 
     model = ExternalCostAttachment
@@ -305,7 +307,7 @@ class ExternalCostAttachmentInline(admin.TabularInline):
     ]
 
 
-class ExternalCostInline(admin.TabularInline):
+class ExternalCostInline(BaseTabularInline):
     """Inline de ExternalCost para WorkOrder."""
 
     model = ExternalCost
@@ -322,7 +324,7 @@ class ExternalCostInline(admin.TabularInline):
 
 
 @admin.register(TimeEntry)
-class TimeEntryAdmin(admin.ModelAdmin):
+class TimeEntryAdmin(BaseAdmin):
     """Admin para TimeEntry."""
 
     list_display = [
@@ -383,7 +385,7 @@ class TimeEntryAdmin(admin.ModelAdmin):
 
 
 @admin.register(PartUsage)
-class PartUsageAdmin(admin.ModelAdmin):
+class PartUsageAdmin(BaseAdmin):
     """Admin para PartUsage."""
 
     list_display = [
@@ -453,7 +455,7 @@ class PartUsageAdmin(admin.ModelAdmin):
 
 
 @admin.register(ExternalCost)
-class ExternalCostAdmin(admin.ModelAdmin):
+class ExternalCostAdmin(BaseAdmin):
     """Admin para ExternalCost."""
 
     list_display = [
@@ -515,7 +517,7 @@ class ExternalCostAdmin(admin.ModelAdmin):
 
 
 @admin.register(ExternalCostAttachment)
-class ExternalCostAttachmentAdmin(admin.ModelAdmin):
+class ExternalCostAttachmentAdmin(BaseAdmin):
     """Admin para ExternalCostAttachment."""
 
     list_display = [

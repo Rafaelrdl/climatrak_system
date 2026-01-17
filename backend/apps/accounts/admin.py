@@ -3,14 +3,15 @@ Admin configuration for User models.
 """
 
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from unfold.admin import ModelAdmin
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 
 from .models import User
 
 
 @admin.register(User)
-class UserAdmin(BaseUserAdmin):
-    """Admin interface for User model."""
+class UserAdmin(DjangoUserAdmin, ModelAdmin):
+    """Admin interface for User model using Unfold."""
 
     list_display = [
         "username",

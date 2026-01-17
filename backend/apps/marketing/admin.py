@@ -1,10 +1,12 @@
 ﻿from django.contrib import admin
 
+from apps.common.admin_base import BaseAdmin
+
 from .models import BlogPost
 
 
 @admin.register(BlogPost)
-class BlogPostAdmin(admin.ModelAdmin):
+class BlogPostAdmin(BaseAdmin):
     list_display = ("title", "status", "category", "published_at", "updated_at")
     list_filter = ("status", "category")
     search_fields = ("title", "excerpt", "content", "slug")
