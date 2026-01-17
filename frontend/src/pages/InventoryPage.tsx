@@ -149,6 +149,7 @@ export function InventoryPage() {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [movingItem, setMovingItem] = useState<InventoryItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null);
+  const [activeTab, setActiveTab] = useState<'table' | 'cards' | 'analysis' | 'history'>('table');
 
   // Handlers
   const handleItemCreated = () => {
@@ -299,8 +300,8 @@ export function InventoryPage() {
               )}
             </CardTitle>
             
-            {/* Filters */}
-            {!loadingItems && !itemsError && (
+            {/* Filters - Show only for table and cards tabs */}
+            {!loadingItems && !itemsError && (activeTab === 'table' || activeTab === 'cards') && (
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               {/* Search */}
               <div className="relative min-w-0 flex-1 sm:flex-initial sm:w-64">
@@ -360,7 +361,7 @@ export function InventoryPage() {
             </div>
           )}
           
-          {!loadingItems && !itemsError && <InventoryTabs tabs={tabs} />}
+          {!loadingItems && !itemsError && <InventoryTabs tabs={tabs} onTabChange={setActiveTab} />}
         </CardContent>
       </Card>
 

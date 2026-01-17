@@ -13,11 +13,12 @@ interface InventoryTabsProps {
   tabs: Tab[];
   defaultValue?: TabValue;
   className?: string;
+  onTabChange?: (tab: TabValue) => void;
 }
 
 const STORAGE_KEY = 'inventory:lastTab';
 
-export function InventoryTabs({ tabs, defaultValue = 'table', className = '' }: InventoryTabsProps) {
+export function InventoryTabs({ tabs, defaultValue = 'table', className = '', onTabChange }: InventoryTabsProps) {
   const [activeTab, setActiveTab] = useState<TabValue>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -30,10 +31,11 @@ export function InventoryTabs({ tabs, defaultValue = 'table', className = '' }: 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, activeTab);
+      onTabChange?.(activeTab);
     } catch (error) {
       console.warn('Failed to save tab preference:', error);
     }
-  }, [activeTab]);
+  }, [activeTab, onTabChange]);
 
   const handleTabClick = (value: TabValue) => {
     setActiveTab(value);

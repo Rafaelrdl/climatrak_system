@@ -41,28 +41,28 @@ export function InventoryCards({ items, categories, onEdit, onMove }: InventoryC
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
       {items.map((item) => (
         <Card key={item.id} className="location-card overflow-hidden">
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             {/* Image */}
-            <div className="aspect-square mb-3 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+            <div className="h-28 mb-2 rounded-md overflow-hidden bg-muted/50 flex items-center justify-center">
               {(item.photo_url || item.image_url) ? (
                 <img 
                   src={item.photo_url || item.image_url || ''} 
                   alt={item.name}
-                  className="w-full h-full object-cover"
+                  className="max-h-full max-w-full object-contain"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                   }}
                 />
               ) : (
-                <Package className="h-8 w-8 text-muted-foreground" />
+                <Package className="h-6 w-6 text-muted-foreground" />
               )}
             </div>
 
             {/* Content */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-start justify-between gap-2">
                 <h3 className="font-medium text-sm leading-tight line-clamp-2" title={item.name}>
                   {item.name}
@@ -88,7 +88,7 @@ export function InventoryCards({ items, categories, onEdit, onMove }: InventoryC
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-lg font-semibold">
+                    <span className="text-base font-semibold">
                       {item.qty_on_hand ?? item.quantity ?? 0}
                     </span>
                     <span className="text-xs text-muted-foreground">
@@ -97,14 +97,14 @@ export function InventoryCards({ items, categories, onEdit, onMove }: InventoryC
                   </div>
                   {isLowStock(item) && (
                     <span className="text-xs text-destructive font-medium">
-                      Abaixo do ponto de reposição
+                      Repor estoque
                     </span>
                   )}
                 </div>
                 
                 {item.location_name && (
                   <div className="text-right">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground truncate max-w-[80px]">
                       {item.location_name}
                     </p>
                   </div>
@@ -112,7 +112,7 @@ export function InventoryCards({ items, categories, onEdit, onMove }: InventoryC
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-1.5 pt-1.5">
                 <Button 
                   variant="outline" 
                   size="sm" 
