@@ -251,7 +251,15 @@ export function LoginPage() {
             ) : (
               // STEP 2: Password (email pre-filled)
               <form onSubmit={handlePasswordSubmit} className="space-y-5">
-                {/* Email Field (disabled/readonly) */}
+                <input
+                  type="email"
+                  name="username"
+                  value={formData.email}
+                  autoComplete="username"
+                  readOnly
+                  className="sr-only"
+                />
+                {/* Email Field (disabled/readonly) */} 
                 <div className="space-y-2">
                   <Label htmlFor="email-display" className="text-sm font-medium text-foreground">
                     E-mail

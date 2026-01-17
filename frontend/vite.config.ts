@@ -45,21 +45,22 @@ export default defineConfig({
               hostnameOnly.includes('.') && subdomain !== 'www' && subdomain !== 'localhost';
 
             const headerTenant =
-              typeof req.headers['x-tenant'] === 'string' ? req.headers['x-tenant'] : undefined;
+              typeof req.headers['x-tenant'] === 'string'
+                ? req.headers['x-tenant'].trim()
+                : undefined;
             const tenant = headerTenant || (isSubdomain ? subdomain : undefined);
+            const normalizedTenant = tenant ? tenant.trim().toLowerCase() : undefined;
 
-            if (tenant) {
-              proxyReq.setHeader('X-Tenant', tenant);
+            if (normalizedTenant) {
+              proxyReq.setHeader('X-Tenant', normalizedTenant);
             }
 
             const hostTarget = isSubdomain
               ? `${hostnameOnly}:8000`
-              : tenant
-              ? `${tenant}.localhost:8000`
               : 'localhost:8000';
             proxyReq.setHeader('Host', hostTarget);
             console.log(
-              `[Vite Proxy] Host: ${hostTarget}, X-Tenant: ${tenant ?? 'none'}`
+              `[Vite Proxy] Host: ${hostTarget}, X-Tenant: ${normalizedTenant ?? 'none'}`
             );
           });
         },
