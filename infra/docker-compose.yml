@@ -106,6 +106,8 @@ services:
       DJANGO_SETTINGS_MODULE: config.settings.development
       DEBUG: "True"
       GUNICORN_LOG_REQUESTS: "false"
+      METRICS_ENABLED: "True"
+      METRICS_ALLOW_ALL: "True"
       DB_NAME: app
       DB_USER: app
       DB_PASSWORD: app
@@ -167,6 +169,8 @@ services:
         condition: service_healthy
     networks:
       - climatrak
+    ports:
+      - "9187:9187"
 
   # Celery Beat (Scheduler)
   scheduler:
@@ -180,6 +184,8 @@ services:
     environment:
       DJANGO_SECRET_KEY: dev-secret-key-change-in-production-minimum-50-characters-long
       DJANGO_SETTINGS_MODULE: config.settings.development
+      CELERY_METRICS_ENABLED: "True"
+      CELERY_METRICS_PORT: "9187"
       DB_NAME: app
       DB_USER: app
       DB_PASSWORD: app
@@ -193,6 +199,57 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - climatrak
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: climatrak-prometheus
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - climatrak
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: climatrak-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - ./observability/grafana/dashboards:/etc/grafana/dashboards
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - climatrak
+
+  # OpenTelemetry Collector (optional tracing)
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    container_name: climatrak-otel-collector
+    command: ["--config=/etc/otel-collector.yml"]
+    volumes:
+      - ./observability/otel-collector.yml:/etc/otel-collector.yml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - climatrak
+
+  # Jaeger (tracing UI)
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: climatrak-jaeger
+    ports:
+      - "16686:16686"
     networks:
       - climatrak
 
@@ -215,6 +272,7 @@ volumes:
   minio_data:
   emqx_data:
   emqx_log:
+  grafana_data:
 
 networks:
   climatrak:

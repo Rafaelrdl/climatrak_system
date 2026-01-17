@@ -64,7 +64,10 @@ class TenantLoginView(APIView):
         email = request.data.get("email", "").strip().lower()
         password = request.data.get("password")
 
-        logger.info("Login attempt for tenant schema %s", connection.tenant.schema_name if connection.tenant else "unknown")
+        logger.info(
+            "Login attempt for tenant schema %s",
+            connection.tenant.schema_name if connection.tenant else "unknown",
+        )
 
         if not email or not password:
             return Response(

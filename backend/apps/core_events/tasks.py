@@ -19,6 +19,7 @@ from django_tenants.utils import get_public_schema_name, schema_context
 
 from .models import OutboxEvent, OutboxEventStatus
 from apps.common.tenancy import iter_tenants
+from apps.common.observability.metrics import observe_outbox_event
 
 logger = logging.getLogger(__name__)
 
@@ -166,6 +167,7 @@ def process_outbox_event(self, event_id: str, tenant_schema: str | None = None):
                     logger.warning(error_msg)
                     # Marcar como failed se não há handler
                     event.mark_failed(error_msg)
+                    observe_outbox_event("failed")
                     return
 
                 # Tentar processar
@@ -180,6 +182,7 @@ def process_outbox_event(self, event_id: str, tenant_schema: str | None = None):
                         f"celery-{self.request.id}" if self.request.id else "unknown"
                     )
                     event.mark_processed(processed_by=worker_id)
+                    observe_outbox_event("processed")
 
                     logger.info(f"Event {event_id} processed successfully")
                     return
@@ -195,6 +198,8 @@ def process_outbox_event(self, event_id: str, tenant_schema: str | None = None):
                         logger.error(
                             f"Event {event_id} marked as failed after {event.attempts} attempts"
                         )
+
+                        observe_outbox_event("failed")
 
                     error_to_raise = e
 

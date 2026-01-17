@@ -18,6 +18,8 @@ from drf_spectacular.views import (
 )
 
 urlpatterns = [
+    # Observability endpoints (no auth required)
+    path("", include("apps.common.observability.urls")),
     # NOTE: Admin is NOT included here - it's only in public schema
     # Admin URL: http://localhost:8000/admin (public schema)
     # API Documentation

@@ -95,7 +95,11 @@ def setup_celery_observability():
         if request is not None and hasattr(request, "_observability_start_time"):
             duration = time.perf_counter() - request._observability_start_time
 
-        observe_celery_task(task_name=task_name or "unknown", status=status, duration_seconds=duration)
+        observe_celery_task(
+            task_name=task_name or "unknown",
+            status=status,
+            duration_seconds=duration,
+        )
         clear_context()
 
     @worker_ready.connect
