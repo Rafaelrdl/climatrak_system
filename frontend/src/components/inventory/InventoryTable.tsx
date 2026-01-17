@@ -3,7 +3,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertTriangle, Edit, Eye, Package, Trash2, ArrowUpDown } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertTriangle, Edit, Eye, Package, Trash2, ArrowUpDown, MoreHorizontal } from 'lucide-react';
 import type { InventoryItem, InventoryCategory } from '@/models/inventory';
 
 interface InventoryTableProps {
@@ -65,6 +66,14 @@ export function InventoryTable({ items, categories, onView, onEdit, onMove, onDe
     return <Badge variant="outline">Normal</Badge>;
   };
 
+  const formatCurrency = (value?: number | null) => {
+    if (value == null || value === 0) return '-';
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
+
   const formatLastUpdate = (dateString?: string) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('pt-BR', {
@@ -85,174 +94,244 @@ export function InventoryTable({ items, categories, onView, onEdit, onMove, onDe
 
   return (
     <div className="rounded-md border overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead scope="col">Foto</TableHead>
-            <TableHead scope="col">Item/Fabricante</TableHead>
-            <TableHead scope="col">SKU</TableHead>
-            <TableHead scope="col">Categoria</TableHead>
-            <TableHead scope="col">Unid.</TableHead>
-            <TableHead scope="col" className="text-right">Estoque</TableHead>
-            <TableHead scope="col" className="text-right">Ponto de Reposição</TableHead>
-            <TableHead scope="col">Local</TableHead>
-            <TableHead scope="col">Status</TableHead>
-            <TableHead scope="col">Atualizado em</TableHead>
-            <TableHead scope="col" className="text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((item) => (
-            <TableRow 
-              key={item.id}
-              className={isLowStock(item) ? 'bg-destructive/5' : ''}
-            >
-              <TableCell>
-                <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                  {(item.photo_url || item.image_url) ? (
-                    <img 
-                      src={item.photo_url || item.image_url || ''} 
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="space-y-1">
-                  <div className="font-medium">
-                    {item.name}{item.manufacturer && <span className="text-muted-foreground">/{item.manufacturer}</span>}
-                  </div>
-                  {item.location_name && (
-                    <div className="text-xs text-muted-foreground">
-                      {item.location_name}
-                    </div>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                <span className="font-mono text-sm">
-                  {item.sku || '-'}
-                </span>
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline" className="text-xs">
-                  {getCategoryName(item.category_id)}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm text-muted-foreground">
-                  {item.unit}
-                </span>
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex items-center justify-end gap-2">
-                  <span className="font-medium">
-                    {item.qty_on_hand ?? item.quantity ?? 0}
-                  </span>
-                  {isLowStock(item) && (
-                    <AlertTriangle 
-                      className="h-4 w-4 text-destructive" 
-                      aria-label="Abaixo do ponto de reposição"
-                    />
-                  )}
-                </div>
-                {isLowStock(item) && (
-                  <div className="text-xs text-destructive mt-1">
-                    Abaixo do ponto de reposição
-                  </div>
-                )}
-              </TableCell>
-              <TableCell className="text-right">
-                <span className="font-medium">
-                  {item.reorder_point ?? item.min_qty ?? '-'}
-                </span>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm">
-                  {item.location_name || '-'}
-                </span>
-              </TableCell>
-              <TableCell>
-                {getStockBadge(item)}
-              </TableCell>
-              <TableCell>
-                <span className="text-sm text-muted-foreground">
-                  {formatLastUpdate(item.last_movement_at || item.updated_at)}
-                </span>
-              </TableCell>
-              <TableCell className="text-right">
-                <TooltipProvider>
-                  <div className="flex items-center justify-end gap-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => onView(item)}
-                          aria-label={`Visualizar ${item.name}`}
-                          data-testid="inventory-view"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Visualizar detalhes</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => onMove(item)}
-                          aria-label={`Movimentar ${item.name}`}
-                          data-testid="inventory-move"
-                        >
-                          <ArrowUpDown className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Movimentar estoque</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => onEdit(item)}
-                          aria-label={`Editar ${item.name}`}
-                          data-testid="inventory-edit"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Editar item</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => onDelete(item)}
-                          aria-label={`Excluir ${item.name}`}
-                          className="text-destructive hover:text-destructive"
-                          data-testid="inventory-delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Excluir item</TooltipContent>
-                    </Tooltip>
-                  </div>
-                </TooltipProvider>
-              </TableCell>
+      <div className="overflow-x-auto">
+        <Table className="table-fixed w-full min-w-[900px]">
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              {/* Foto - esconde em mobile */}
+              <TableHead scope="col" className="hidden md:table-cell w-14">Foto</TableHead>
+              {/* Item/SKU - sempre visível, flex grow */}
+              <TableHead scope="col" className="w-[22%] min-w-[160px]">Item</TableHead>
+              {/* Categoria - esconde em mobile */}
+              <TableHead scope="col" className="hidden lg:table-cell w-[12%] min-w-[100px]">Categoria</TableHead>
+              {/* Estoque - sempre visível */}
+              <TableHead scope="col" className="text-right w-[10%] min-w-[80px]">Estoque</TableHead>
+              {/* Mínimo - esconde em mobile */}
+              <TableHead scope="col" className="hidden sm:table-cell text-right w-[7%] min-w-[60px]">Mín.</TableHead>
+              {/* Valor - esconde em mobile pequeno */}
+              <TableHead scope="col" className="hidden sm:table-cell text-right w-[10%] min-w-[90px]">Valor (un.)</TableHead>
+              {/* Status - sempre visível */}
+              <TableHead scope="col" className="w-[9%] min-w-[80px]">Status</TableHead>
+              {/* Local - esconde em mobile, mais espaço */}
+              <TableHead scope="col" className="hidden xl:table-cell w-[18%] min-w-[140px]">Local</TableHead>
+              {/* Atualizado - esconde em tablet e menor */}
+              <TableHead scope="col" className="hidden xl:table-cell w-[9%] min-w-[85px]">Atualizado</TableHead>
+              {/* Ações - sticky à direita, sempre visível */}
+              <TableHead 
+                scope="col" 
+                className="text-right w-[100px] sticky right-0 bg-muted/50 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]"
+              >
+                Ações
+              </TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {items.map((item) => (
+              <TableRow 
+                key={item.id}
+                className={isLowStock(item) ? 'bg-destructive/5' : ''}
+              >
+                {/* Foto */}
+                <TableCell className="hidden md:table-cell p-2">
+                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
+                    {(item.photo_url || item.image_url) ? (
+                      <img 
+                        src={item.photo_url || item.image_url || ''} 
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                </TableCell>
+                
+                {/* Item (Nome + SKU/Código) */}
+                <TableCell className="py-2.5">
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="font-medium leading-tight truncate" title={item.name}>
+                      {item.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1.5 min-w-0">
+                      <span className="font-mono flex-shrink-0">{item.sku || item.code || '-'}</span>
+                      {item.manufacturer && (
+                        <span className="truncate text-muted-foreground/70" title={item.manufacturer}>
+                          • {item.manufacturer}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </TableCell>
+
+                {/* Categoria */}
+                <TableCell className="hidden lg:table-cell">
+                  <span className="text-sm truncate block" title={getCategoryName(item.category_id)}>
+                    {getCategoryName(item.category_id)}
+                  </span>
+                </TableCell>
+
+                {/* Estoque */}
+                <TableCell className="text-right py-2.5">
+                  <div className="flex items-center justify-end gap-1">
+                    <span className="font-semibold tabular-nums">
+                      {item.qty_on_hand ?? item.quantity ?? 0}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{item.unit}</span>
+                    {isLowStock(item) && (
+                      <AlertTriangle 
+                        className="h-3.5 w-3.5 text-destructive flex-shrink-0" 
+                        aria-label="Abaixo do ponto de reposição"
+                      />
+                    )}
+                  </div>
+                </TableCell>
+
+                {/* Mínimo */}
+                <TableCell className="hidden sm:table-cell text-right">
+                  <span className="text-sm tabular-nums text-muted-foreground">
+                    {item.reorder_point ?? item.min_qty ?? '-'}
+                  </span>
+                </TableCell>
+
+                {/* Valor (un.) */}
+                <TableCell className="hidden sm:table-cell text-right">
+                  <span className="text-sm tabular-nums">
+                    {formatCurrency(item.unit_cost)}
+                  </span>
+                </TableCell>
+
+                {/* Status */}
+                <TableCell className="py-2.5">
+                  {getStockBadge(item)}
+                </TableCell>
+
+                {/* Local */}
+                <TableCell className="hidden xl:table-cell">
+                  <span className="text-sm text-muted-foreground truncate block" title={item.location_name}>
+                    {item.location_name || '-'}
+                  </span>
+                </TableCell>
+
+                {/* Atualizado */}
+                <TableCell className="hidden xl:table-cell">
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {formatLastUpdate(item.last_movement_at || item.updated_at)}
+                  </span>
+                </TableCell>
+
+                {/* Ações - sticky à direita */}
+                <TableCell className="text-right sticky right-0 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
+                  {/* Desktop: botões inline */}
+                  <TooltipProvider>
+                    <div className="hidden sm:flex items-center justify-end gap-0.5">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => onView(item)}
+                            aria-label={`Visualizar ${item.name}`}
+                            data-testid="inventory-view"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Visualizar</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => onMove(item)}
+                            aria-label={`Movimentar ${item.name}`}
+                            data-testid="inventory-move"
+                          >
+                            <ArrowUpDown className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Movimentar</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => onEdit(item)}
+                            aria-label={`Editar ${item.name}`}
+                            data-testid="inventory-edit"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Editar</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => onDelete(item)}
+                            aria-label={`Excluir ${item.name}`}
+                            data-testid="inventory-delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Excluir</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TooltipProvider>
+                  
+                  {/* Mobile: dropdown menu compacto */}
+                  <div className="sm:hidden">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-8 w-8"
+                          aria-label="Ações"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onView(item)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Visualizar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onMove(item)}>
+                          <ArrowUpDown className="h-4 w-4 mr-2" />
+                          Movimentar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onEdit(item)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => onDelete(item)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
