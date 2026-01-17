@@ -171,12 +171,13 @@ export function WorkOrderDetailView({
 
   return (
     <div className={cn("flex flex-col h-full bg-background", className)}>
-      <div className="px-6 py-4 border-b bg-background shrink-0">
-        <div className="flex items-start justify-between gap-4">
+      {/* Header responsivo */}
+      <div className="px-3 sm:px-6 py-3 sm:py-4 border-b bg-background shrink-0">
+        <div className="flex items-start justify-between gap-2 sm:gap-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <ClipboardList className="h-5 w-5 text-primary flex-shrink-0" />
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <h2 className="text-base sm:text-xl font-semibold flex items-center gap-2">
+                <ClipboardList className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
                 <span className="truncate">OS #{workOrder.number}</span>
               </h2>
               <StatusBadge
@@ -195,21 +196,21 @@ export function WorkOrderDetailView({
             </div>
           </div>
           
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             {isDirty && !readOnly && (
-              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 hidden sm:flex">
                 <AlertCircle className="h-3 w-3 mr-1" />
                 Não salvo
               </Badge>
             )}
-            <Button variant="outline" size="sm" onClick={handlePrint}>
-              <FileText className="h-4 w-4 mr-2" />
-              Imprimir
+            <Button variant="outline" size="sm" onClick={handlePrint} className="h-8 w-8 p-0 sm:h-9 sm:w-auto sm:px-3">
+              <FileText className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Imprimir</span>
             </Button>
             {!readOnly && (
-              <Button size="sm" onClick={handleSave} disabled={!isDirty}>
-                <Save className="h-4 w-4 mr-2" />
-                Salvar
+              <Button size="sm" onClick={handleSave} disabled={!isDirty} className="h-8 w-8 p-0 sm:h-9 sm:w-auto sm:px-3">
+                <Save className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Salvar</span>
               </Button>
             )}
           </div>
@@ -218,30 +219,33 @@ export function WorkOrderDetailView({
 
       <div className="flex-1 overflow-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-          <TabsList className="mx-6 mt-4 shrink-0">
-            <TabsTrigger value="details" className="flex items-center gap-2">
-              <ClipboardList className="h-4 w-4" />
-              Detalhes
-            </TabsTrigger>
-            <TabsTrigger value="materials" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Materiais
-            </TabsTrigger>
-            {formData.status !== 'OPEN' && (
-              <TabsTrigger value="execution" className="flex items-center gap-2">
-                <Wrench className="h-4 w-4" />
-                Execução
+          {/* Tabs responsivas com scroll horizontal */}
+          <div className="mx-3 sm:mx-6 mt-3 sm:mt-4 shrink-0 overflow-x-auto">
+            <TabsList className="w-full sm:w-auto inline-flex">
+              <TabsTrigger value="details" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                <ClipboardList className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline sm:inline">Detalhes</span>
               </TabsTrigger>
-            )}
-            <TabsTrigger value="costs" className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              Custos
-            </TabsTrigger>
-          </TabsList>
+              <TabsTrigger value="materials" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline sm:inline">Materiais</span>
+              </TabsTrigger>
+              {formData.status !== 'OPEN' && (
+                <TabsTrigger value="execution" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                  <Wrench className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline sm:inline">Execução</span>
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="costs" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline sm:inline">Custos</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <ScrollArea className="flex-1">
-            <div className="px-6 pb-6">
-              <TabsContent value="details" className="mt-6">
+          <ScrollArea className="flex-1 h-full">
+            <div className="px-3 sm:px-6 py-4 pb-20">
+              <TabsContent value="details" className="mt-0 space-y-5">
                 <div className="space-y-5">
                   <Card>
                     <CardHeader className="pb-3">
@@ -260,7 +264,7 @@ export function WorkOrderDetailView({
                             </p>
                           </div>
                           <Separator />
-                          <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 text-sm">
                             <div>
                               <span className="text-muted-foreground">Tipo:</span>
                               <p className="font-medium">{selectedEquipment.type}</p>
@@ -342,7 +346,7 @@ export function WorkOrderDetailView({
                       <CardTitle className="text-sm">Informações Básicas</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="type">Tipo</Label>
                           <Select 
@@ -400,7 +404,7 @@ export function WorkOrderDetailView({
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label>Data Programada</Label>
                           <DatePicker
@@ -426,7 +430,7 @@ export function WorkOrderDetailView({
                 </div>
               </TabsContent>
 
-              <TabsContent value="materials" className="mt-6">
+              <TabsContent value="materials" className="mt-0">
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">Materiais Utilizados</CardTitle>
@@ -460,7 +464,7 @@ export function WorkOrderDetailView({
               </TabsContent>
 
               {formData.status !== 'OPEN' && (
-                <TabsContent value="execution" className="mt-6">
+                <TabsContent value="execution" className="mt-0">
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-base">Detalhes da Execução</CardTitle>
@@ -514,7 +518,7 @@ export function WorkOrderDetailView({
               )}
 
               {/* Costs Tab */}
-              <TabsContent value="costs" className="mt-6">
+              <TabsContent value="costs" className="mt-0">
                 {workOrder?.id && (
                   <WorkOrderCostsTab
                     workOrderId={workOrder.id}

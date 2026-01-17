@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SingleDatePicker } from '@/components/ui/date-range-picker';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -518,12 +519,12 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
                   Data de Instalação
                   <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
                 </Label>
-                <Input 
+                <SingleDatePicker
                   id="edit-installDate"
-                  type="date"
-                  value={formData.installDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, installDate: e.target.value }))}
-                  className="h-10"
+                  date={formData.installDate}
+                  onDateChange={(date) => setFormData(prev => ({ ...prev, installDate: date || '' }))}
+                  placeholder="Selecione a data"
+                  allowFutureDates={false}
                 />
               </div>
               
@@ -533,12 +534,12 @@ export function EquipmentEditModal({ equipment, open, onOpenChange }: EquipmentE
                   Garantia até
                   <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
                 </Label>
-                <Input 
+                <SingleDatePicker
                   id="edit-warrantyExpiry"
-                  type="date"
-                  value={formData.warrantyExpiry}
-                  onChange={(e) => setFormData(prev => ({ ...prev, warrantyExpiry: e.target.value }))}
-                  className="h-10"
+                  date={formData.warrantyExpiry}
+                  onDateChange={(date) => setFormData(prev => ({ ...prev, warrantyExpiry: date || '' }))}
+                  placeholder="Selecione a data"
+                  allowFutureDates={true}
                 />
               </div>
               

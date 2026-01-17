@@ -36,6 +36,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SingleDatePicker } from '@/components/ui/date-range-picker';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -451,10 +452,9 @@ function CreateCommitmentDialog({ open, onOpenChange }: CreateCommitmentDialogPr
 
           <div className="space-y-2">
             <Label>Data de Vencimento</Label>
-            <Input
-              type="date"
+            <SingleDatePicker
               value={formData.due_date ?? ''}
-              onChange={(e) => handleFieldChange('due_date', e.target.value)}
+              onChange={(date) => handleFieldChange('due_date', date ?? '')}
             />
           </div>
 

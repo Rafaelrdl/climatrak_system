@@ -22,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SingleDatePicker } from '@/components/ui/date-range-picker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -320,11 +321,10 @@ export function PMOCDataModal({ open, onOpenChange, data, onSave }: PMOCDataModa
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="qai_date">Data da Última Coleta</Label>
-                    <Input
-                      id="qai_date"
-                      type="date"
+                    <SingleDatePicker
                       value={formData.qai.last_sampled_at}
-                      onChange={(e) => updateField('qai.last_sampled_at', e.target.value)}
+                      onChange={(date) => updateField('qai.last_sampled_at', date ?? '')}
+                      disableFuture
                     />
                   </div>
                   <div className="space-y-2">

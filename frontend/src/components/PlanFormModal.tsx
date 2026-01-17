@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SingleDatePicker } from '@/components/ui/date-range-picker';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -541,11 +542,12 @@ export function PlanFormModal({ open, onOpenChange, plan, onSave }: PlanFormModa
                 
                 <div className="space-y-2">
                   <Label htmlFor="start-date">Data de Início *</Label>
-                  <Input
+                  <SingleDatePicker
                     id="start-date"
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
+                    date={formData.start_date}
+                    onDateChange={(date) => setFormData(prev => ({ ...prev, start_date: date || '' }))}
+                    placeholder="Selecione a data"
+                    allowFutureDates={true}
                     className={!formData.start_date ? 'border-yellow-400' : ''}
                   />
                   <p className="text-xs text-muted-foreground">

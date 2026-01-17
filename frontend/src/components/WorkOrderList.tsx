@@ -177,7 +177,7 @@ export function WorkOrderList({
             Ordens de Serviço ({workOrders.length})
           </h3>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1">
           <div className="divide-y divide-border/60" role="listbox" aria-label="Ordens de serviço">
             {workOrders.map((wo) => {
             const eq = equipment.find(e => e.id === wo.equipmentId);

@@ -3,14 +3,29 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Play, Edit, User, Calendar, AlertCircle, CheckCircle2, Clock, GripVertical, XCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { 
+  Play, 
+  Edit, 
+  Calendar, 
+  AlertCircle, 
+  CheckCircle2, 
+  Clock, 
+  GripVertical, 
+  XCircle,
+  Wrench,
+  AlertTriangle,
+  Zap,
+  HelpCircle,
+  Settings
+} from 'lucide-react';
+import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
-import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
-import { StatusBadge } from '@/shared/ui';
 import type { WorkOrder, Equipment } from '@/types';
-import { getPriorityDotClass, getPriorityLabel } from '@/shared/ui/statusBadgeUtils';
+import { getPriorityLabel } from '@/shared/ui/statusBadgeUtils';
 import {
   DndContext,
   DragOverlay,
@@ -55,8 +70,6 @@ function WorkOrderCard({
   onStartWorkOrder, 
   onEditWorkOrder 
 }: WorkOrderCardProps) {
-  const { settings } = useWorkOrderSettingsStore();
-  
   const {
     attributes,
     listeners,
@@ -81,134 +94,291 @@ function WorkOrderCard({
     return new Date(year, month - 1, day);
   };
   
-  const formattedDate = workOrder.scheduledDate 
-    ? format(parseLocalDate(workOrder.scheduledDate), "dd/MM", { locale: ptBR })
+  const scheduledDate = workOrder.scheduledDate 
+    ? parseLocalDate(workOrder.scheduledDate) 
+    : null;
+  
+  const formattedDate = scheduledDate 
+    ? format(scheduledDate, "dd/MM", { locale: ptBR })
     : '';
 
-  const priorityDotClass = getPriorityDotClass(workOrder.priority);
+  const isOverdue = scheduledDate && isPast(scheduledDate) && !isToday(scheduledDate) && workOrder.status !== 'COMPLETED' && workOrder.status !== 'CANCELLED';
+  const isDueToday = scheduledDate && isToday(scheduledDate);
+
   const priorityLabel = getPriorityLabel(workOrder.priority);
 
+  // Configuração visual por tipo de OS
+  const getTypeConfig = () => {
+    switch (workOrder.type) {
+      case 'PREVENTIVE':
+        return { icon: Settings, color: 'text-blue-600', bgColor: 'bg-blue-50', label: 'Preventiva' };
+      case 'CORRECTIVE':
+        return { icon: Wrench, color: 'text-orange-600', bgColor: 'bg-orange-50', label: 'Corretiva' };
+      case 'EMERGENCY':
+        return { icon: Zap, color: 'text-red-600', bgColor: 'bg-red-50', label: 'Emergência' };
+      case 'REQUEST':
+        return { icon: HelpCircle, color: 'text-purple-600', bgColor: 'bg-purple-50', label: 'Solicitação' };
+      default:
+        return { icon: Wrench, color: 'text-gray-600', bgColor: 'bg-gray-50', label: workOrder.type };
+    }
+  };
+
+  // Configuração visual por prioridade
+  const getPriorityConfig = () => {
+    switch (workOrder.priority) {
+      case 'LOW':
+        return { color: 'bg-blue-100 text-blue-700 border-blue-200', dotColor: 'bg-blue-500' };
+      case 'MEDIUM':
+        return { color: 'bg-yellow-100 text-yellow-700 border-yellow-200', dotColor: 'bg-yellow-500' };
+      case 'HIGH':
+        return { color: 'bg-orange-100 text-orange-700 border-orange-200', dotColor: 'bg-orange-500' };
+      case 'CRITICAL':
+        return { color: 'bg-red-100 text-red-700 border-red-200', dotColor: 'bg-red-500' };
+      default:
+        return { color: 'bg-gray-100 text-gray-700 border-gray-200', dotColor: 'bg-gray-500' };
+    }
+  };
+
+  // Configuração visual por status (borda lateral)
+  const getStatusBorderColor = () => {
+    switch (workOrder.status) {
+      case 'OPEN':
+        return 'border-l-blue-500';
+      case 'IN_PROGRESS':
+        return 'border-l-orange-500';
+      case 'COMPLETED':
+        return 'border-l-green-500';
+      case 'CANCELLED':
+        return 'border-l-gray-400';
+      default:
+        return 'border-l-gray-300';
+    }
+  };
+
+  const typeConfig = getTypeConfig();
+  const priorityConfig = getPriorityConfig();
+  const TypeIcon = typeConfig.icon;
+
+  // Gerar iniciais do responsável
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="touch-none mb-3"
-    >
-      <Card className="group hover:shadow-lg transition-all duration-200 border hover:border-primary/50">
-        <CardContent className="p-3">
-          {/* Header com número, tipo e drag handle */}
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div 
-                {...attributes}
-                {...listeners}
-                className="cursor-grab active:cursor-grabbing opacity-40 hover:opacity-100 transition-opacity"
-              >
-                <GripVertical className="h-4 w-4 text-muted-foreground" />
+    <TooltipProvider>
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="touch-none mb-3"
+      >
+        <Card className={cn(
+          "group hover:shadow-lg transition-all duration-200 border-l-4",
+          "hover:border-primary/50 overflow-hidden",
+          getStatusBorderColor()
+        )}>
+          <CardContent className="p-3">
+            {/* Header: Drag handle + Número + Tipo + Ações */}
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex items-start gap-2 flex-1 min-w-0">
+                {/* Drag Handle */}
+                <div 
+                  {...attributes}
+                  {...listeners}
+                  className="cursor-grab active:cursor-grabbing opacity-30 hover:opacity-100 transition-opacity mt-0.5"
+                >
+                  <GripVertical className="h-4 w-4 text-muted-foreground" />
+                </div>
+                
+                <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                  {/* Número da OS */}
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-foreground truncate" title={workOrder.number}>
+                      {workOrder.number}
+                    </span>
+                    
+                    {/* Badge de prioridade */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge 
+                          variant="outline" 
+                          className={cn(
+                            "text-[9px] px-1.5 py-0 h-4 font-medium border",
+                            priorityConfig.color
+                          )}
+                        >
+                          {priorityLabel}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs">
+                        Prioridade: {priorityLabel}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  
+                  {/* Tipo de manutenção */}
+                  {workOrder.type && (
+                    <div className={cn(
+                      "flex items-center gap-1.5 w-fit px-2 py-0.5 rounded-full text-[10px] font-medium",
+                      typeConfig.bgColor,
+                      typeConfig.color
+                    )}>
+                      <TypeIcon className="h-3 w-3" />
+                      <span>{typeConfig.label}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex flex-col gap-1 flex-1 min-w-0">
-                <span className="font-semibold text-sm truncate" title={workOrder.number}>
-                  {workOrder.number}
-                </span>
-                {workOrder.type && (
-                  <StatusBadge
-                    status={workOrder.type}
-                    type="maintenanceType"
-                    cmmsSettings={settings}
-                    className="w-fit text-[10px] px-1.5 py-0"
-                  />
+              
+              {/* Ações (visíveis no hover) */}
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                {workOrder.status === 'OPEN' && onStartWorkOrder && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 w-7 p-0 hover:bg-green-100 hover:text-green-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onStartWorkOrder(workOrder.id);
+                        }}
+                      >
+                        <Play className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      Iniciar OS
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                
+                {onEditWorkOrder && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 w-7 p-0 hover:bg-blue-100 hover:text-blue-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditWorkOrder(workOrder);
+                        }}
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      Editar OS
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </div>
             </div>
-            
-            {/* Ações */}
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {workOrder.status === 'OPEN' && onStartWorkOrder && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 w-7 p-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onStartWorkOrder(workOrder.id);
-                  }}
-                  title="Iniciar OS"
+
+            {/* Descrição */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p 
+                  className="text-xs text-muted-foreground mb-2.5 leading-relaxed line-clamp-2"
                 >
-                  <Play className="h-3.5 w-3.5" />
-                </Button>
+                  {workOrder.description || 'Sem descrição'}
+                </p>
+              </TooltipTrigger>
+              {workOrder.description && workOrder.description.length > 60 && (
+                <TooltipContent side="bottom" className="max-w-[280px] text-xs">
+                  {workOrder.description}
+                </TooltipContent>
               )}
-              
-              {onEditWorkOrder && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 w-7 p-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEditWorkOrder(workOrder);
-                  }}
-                  title="Editar OS"
-                >
-                  <Edit className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
-          </div>
+            </Tooltip>
 
-          {/* Descrição */}
-          <p 
-            className="text-xs text-muted-foreground mb-2 leading-relaxed"
-            title={workOrder.description}
-            style={{
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden'
-            }}
-          >
-            {workOrder.description}
-          </p>
-
-          {/* Equipamento */}
-          {eq && (
-            <div className="flex items-center gap-1.5 text-xs mb-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
-              <span className="font-medium truncate" title={eq.tag}>
-                {eq.tag}
-              </span>
-            </div>
-          )}
-
-          {/* Footer com prioridade, data e responsável */}
-          <div className="flex items-center justify-between gap-2 pt-2 border-t">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              {/* Prioridade */}
-              <div className="flex items-center gap-1">
-                <div className={`h-2 w-2 rounded-full ${priorityDotClass}`} title={priorityLabel}></div>
+            {/* Equipamento */}
+            {eq && (
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/50 rounded-md text-xs">
+                  <Settings className="h-3 w-3 text-primary" />
+                  <span className="font-medium truncate max-w-[180px]" title={eq.tag}>
+                    {eq.tag}
+                  </span>
+                </div>
               </div>
-              
+            )}
+
+            {/* Footer: Data + Responsável */}
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50">
               {/* Data programada */}
-              {formattedDate && (
-                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              {formattedDate ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={cn(
+                      "flex items-center gap-1.5 text-xs px-2 py-1 rounded-md",
+                      isOverdue && "bg-red-100 text-red-700",
+                      isDueToday && !isOverdue && "bg-amber-100 text-amber-700",
+                      !isOverdue && !isDueToday && "text-muted-foreground"
+                    )}>
+                      {isOverdue ? (
+                        <AlertTriangle className="h-3 w-3" />
+                      ) : (
+                        <Calendar className="h-3 w-3" />
+                      )}
+                      <span className="font-medium">{formattedDate}</span>
+                      {isOverdue && <span className="text-[10px]">Atrasada</span>}
+                      {isDueToday && !isOverdue && <span className="text-[10px]">Hoje</span>}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">
+                    {isOverdue 
+                      ? `OS atrasada - agendada para ${format(scheduledDate!, "dd/MM/yyyy", { locale: ptBR })}`
+                      : isDueToday 
+                        ? 'Agendada para hoje'
+                        : `Agendada para ${format(scheduledDate!, "dd/MM/yyyy", { locale: ptBR })}`
+                    }
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
                   <Calendar className="h-3 w-3" />
-                  <span>{formattedDate}</span>
+                  <span className="italic">Sem data</span>
+                </div>
+              )}
+
+              {/* Responsável */}
+              {workOrder.assignedToName ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1.5">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-medium">
+                          {getInitials(workOrder.assignedToName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs text-muted-foreground truncate max-w-[80px]">
+                        {workOrder.assignedToName.split(' ')[0]}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">
+                    Responsável: {workOrder.assignedToName}
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
+                      --
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs text-muted-foreground/60 italic">Não atribuída</span>
                 </div>
               )}
             </div>
-
-            {/* Responsável */}
-            {workOrder.assignedToName && (
-              <div className="flex items-center gap-1 text-[10px] text-muted-foreground max-w-[120px]">
-                <User className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate" title={workOrder.assignedToName}>
-                  {workOrder.assignedToName.split(' ')[0]}
-                </span>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+      </div>
+    </TooltipProvider>
   );
 }
 

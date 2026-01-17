@@ -9,6 +9,7 @@ import { LocationFormModal } from '@/components/LocationFormModal';
 import { EquipmentSearch } from '@/components/EquipmentSearch';
 import { EquipmentEditModal } from '@/components/EquipmentEditModal';
 import { Input } from '@/components/ui/input';
+import { SingleDatePicker } from '@/components/ui/date-range-picker';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -1330,12 +1331,12 @@ function AssetsContent() {
                     Data de Instalação
                     <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
                   </Label>
-                  <Input 
+                  <SingleDatePicker
                     id="installDate"
-                    type="date"
-                    value={newEquipment.installDate}
-                    onChange={(e) => setNewEquipment(prev => ({ ...prev, installDate: e.target.value }))}
-                    className="h-10"
+                    date={newEquipment.installDate}
+                    onDateChange={(date) => setNewEquipment(prev => ({ ...prev, installDate: date || '' }))}
+                    placeholder="Selecione a data"
+                    allowFutureDates={false}
                   />
                 </div>
                 
@@ -1345,12 +1346,12 @@ function AssetsContent() {
                     Fim da Garantia
                     <span className="text-xs text-muted-foreground ml-2 font-normal">(opcional)</span>
                   </Label>
-                  <Input 
+                  <SingleDatePicker
                     id="warrantyExpiry"
-                    type="date"
-                    value={newEquipment.warrantyExpiry}
-                    onChange={(e) => setNewEquipment(prev => ({ ...prev, warrantyExpiry: e.target.value }))}
-                    className="h-10"
+                    date={newEquipment.warrantyExpiry}
+                    onDateChange={(date) => setNewEquipment(prev => ({ ...prev, warrantyExpiry: date || '' }))}
+                    placeholder="Selecione a data"
+                    allowFutureDates={true}
                   />
                 </div>
                 

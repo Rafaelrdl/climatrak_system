@@ -29,6 +29,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DateRangePicker, SingleDatePicker, type DateRange } from '@/components/ui/date-range-picker';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -539,12 +540,9 @@ function ManualAdjustmentDialog({ open, onOpenChange }: ManualAdjustmentDialogPr
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="occurred_at">Data da Ocorrência *</Label>
-              <Input
-                id="occurred_at"
-                type="date"
+              <SingleDatePicker
                 value={formData.occurred_at}
-                onChange={(e) => setFormData(prev => ({ ...prev, occurred_at: e.target.value }))}
-                className="w-40"
+                onChange={(date) => setFormData(prev => ({ ...prev, occurred_at: date ?? '' }))}
               />
             </div>
             <div className="grid gap-2">
@@ -943,24 +941,25 @@ export function FinanceLedger() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Date Range */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
-                <Label className="text-sm whitespace-nowrap">De:</Label>
-                <Input
-                  type="date"
-                  className="w-[140px]"
-                  value={filters.start_date ?? ''}
-                  onChange={(e) => handleFiltersChange({ ...filters, start_date: e.target.value })}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Label className="text-sm whitespace-nowrap">Até:</Label>
-                <Input
-                  type="date"
-                  className="w-[140px]"
-                  value={filters.end_date ?? ''}
-                  onChange={(e) => handleFiltersChange({ ...filters, end_date: e.target.value })}
-                />
-              </div>
+              <Label className="text-sm whitespace-nowrap">Período:</Label>
+              <DateRangePicker
+                dateRange={{
+                  from: filters.start_date ? new Date(filters.start_date + 'T00:00:00') : undefined,
+                  to: filters.end_date ? new Date(filters.end_date + 'T00:00:00') : undefined,
+                }}
+                onDateRangeChange={(range) => {
+                  const formatDate = (d: Date | undefined) => {
+                    if (!d) return undefined;
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                  };
+                  handleFiltersChange({
+                    ...filters,
+                    start_date: formatDate(range?.from) ?? undefined,
+                    end_date: formatDate(range?.to) ?? undefined,
+                  });
+                }}
+                className="w-[280px]"
+              />
             </div>
 
             {/* Filter Panel */}

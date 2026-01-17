@@ -30,6 +30,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SingleDatePicker } from '@/components/ui/date-range-picker';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -349,12 +350,9 @@ function RateCardDialog({ open, onOpenChange, editingRateCard }: RateCardDialogP
               <Calendar className="h-4 w-4 text-muted-foreground" />
               Vigência a partir de <span className="text-red-500">*</span>
             </Label>
-            <Input
-              id="rc-effective"
-              type="date"
+            <SingleDatePicker
               value={effectiveFrom}
-              onChange={(e) => setEffectiveFrom(e.target.value)}
-              className="transition-all hover:border-primary focus-visible:ring-primary"
+              onChange={(date) => setEffectiveFrom(date ?? '')}
             />
           </div>
         </div>

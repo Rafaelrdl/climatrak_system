@@ -34,6 +34,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DateRangePicker, type DateRange } from '@/components/ui/date-range-picker';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -292,23 +293,26 @@ function FilterPanel({ filters, onFiltersChange, onClear }: FilterPanelProps) {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-2">
-                <Label>De</Label>
-                <Input
-                  type="date"
-                  value={filters.from ?? ''}
-                  onChange={(e) => onFiltersChange({ ...filters, from: e.target.value || undefined })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Até</Label>
-                <Input
-                  type="date"
-                  value={filters.to ?? ''}
-                  onChange={(e) => onFiltersChange({ ...filters, to: e.target.value || undefined })}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>Período</Label>
+              <DateRangePicker
+                dateRange={{
+                  from: filters.from ? new Date(filters.from + 'T00:00:00') : undefined,
+                  to: filters.to ? new Date(filters.to + 'T00:00:00') : undefined,
+                }}
+                onDateRangeChange={(range) => {
+                  const formatDate = (d: Date | undefined) => {
+                    if (!d) return undefined;
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                  };
+                  onFiltersChange({
+                    ...filters,
+                    from: formatDate(range?.from) ?? undefined,
+                    to: formatDate(range?.to) ?? undefined,
+                  });
+                }}
+                className="w-full"
+              />
             </div>
           </div>
         </div>

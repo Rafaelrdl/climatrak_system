@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { WorkOrderList } from '@/components/WorkOrderList';
@@ -233,15 +234,15 @@ function WorkOrderPanelComponent({
                 </div>
               )}
               
-              {/* Lista */}
-              <div className="flex-1 overflow-hidden">
+              {/* Lista com ScrollArea */}
+              <ScrollArea className="flex-1 h-full">
                 <WorkOrderList
                   workOrders={workOrders}
                   compact
                   onStartWorkOrder={onStartWorkOrder}
                   onEditWorkOrder={onEditWorkOrder}
                 />
-              </div>
+              </ScrollArea>
             </div>
           </ResizablePanel>
 

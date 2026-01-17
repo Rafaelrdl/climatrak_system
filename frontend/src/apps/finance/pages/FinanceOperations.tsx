@@ -28,6 +28,7 @@ import {
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DateRangePicker, type DateRange } from '@/components/ui/date-range-picker';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -590,24 +591,25 @@ export function FinanceOperations() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Date Range */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
-                <Label className="text-sm whitespace-nowrap">De:</Label>
-                <Input
-                  type="date"
-                  className="w-[140px]"
-                  value={filters.start_date ?? ''}
-                  onChange={(e) => handleFiltersChange({ ...filters, start_date: e.target.value })}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Label className="text-sm whitespace-nowrap">Até:</Label>
-                <Input
-                  type="date"
-                  className="w-[140px]"
-                  value={filters.end_date ?? ''}
-                  onChange={(e) => handleFiltersChange({ ...filters, end_date: e.target.value })}
-                />
-              </div>
+              <Label className="text-sm whitespace-nowrap">Período:</Label>
+              <DateRangePicker
+                dateRange={{
+                  from: filters.start_date ? new Date(filters.start_date + 'T00:00:00') : undefined,
+                  to: filters.end_date ? new Date(filters.end_date + 'T00:00:00') : undefined,
+                }}
+                onDateRangeChange={(range) => {
+                  const formatDate = (d: Date | undefined) => {
+                    if (!d) return undefined;
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                  };
+                  handleFiltersChange({
+                    ...filters,
+                    start_date: formatDate(range?.from) ?? undefined,
+                    end_date: formatDate(range?.to) ?? undefined,
+                  });
+                }}
+                className="w-[280px]"
+              />
             </div>
 
             {/* Filter Panel */}
