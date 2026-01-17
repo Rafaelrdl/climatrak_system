@@ -6,4 +6,7 @@
 ## Frontend
 - [Documentação Frontend](frontend/README.md)
 
+## Backend
+- [EMQX and Sensors Setup](backend/EMQX_SENSORS_SETUP.md)
+
 ---
