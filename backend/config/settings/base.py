@@ -377,9 +377,11 @@ if not INGESTION_SECRET and not DEBUG:
     raise ValueError("INGESTION_SECRET must be set in production environment")
 
 # Ingest HMAC settings
-INGEST_ALLOW_GLOBAL_SECRET = (
-    os.getenv("INGEST_ALLOW_GLOBAL_SECRET", "False") == "True"
-)
+_ingest_allow_global = os.getenv("INGEST_ALLOW_GLOBAL_SECRET")
+if _ingest_allow_global is None:
+    INGEST_ALLOW_GLOBAL_SECRET = DEBUG
+else:
+    INGEST_ALLOW_GLOBAL_SECRET = _ingest_allow_global.strip().lower() == "true"
 INGEST_SIGNATURE_MAX_SKEW_SECONDS = int(
     os.getenv("INGEST_SIGNATURE_MAX_SKEW_SECONDS", "300")
 )

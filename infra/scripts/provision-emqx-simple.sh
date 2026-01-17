@@ -23,6 +23,10 @@ read -r -d '' ACTION_BODY_TEMPLATE <<'EOF' || true
 }
 EOF
 
+# Optional dev token for ingest auth
+INGEST_DEVICE_TOKEN="${INGEST_DEVICE_TOKEN:-${INGESTION_SECRET:-}}"
+DEVICE_TOKEN_HEADER_KEY="${DEVICE_TOKEN_HEADER_KEY:-x-device-token}"
+
 # 1. Criar Connector
 CONN_NAME="http_ingest_${TENANT}"
 echo ">>> Criando connector: $CONN_NAME"
@@ -42,6 +46,8 @@ ACTION_PAYLOAD="$(jq -nc \
   --arg connector "http:$CONN_NAME" \
   --arg tenant "$TENANT" \
   --arg body "$ACTION_BODY_TEMPLATE" \
+  --arg dtk "$DEVICE_TOKEN_HEADER_KEY" \
+  --arg dtv "$INGEST_DEVICE_TOKEN" \
   '{
     type: "http",
     name: $name,
@@ -49,10 +55,10 @@ ACTION_PAYLOAD="$(jq -nc \
     parameters: {
       path: "/ingest",
       method: "post",
-      headers: {
-        "content-type": "application/json",
-        "x-tenant": $tenant
-      },
+      headers: (
+        {"content-type": "application/json", "x-tenant": $tenant}
+        + ( ($dtv | length) > 0 ? {($dtk): $dtv} : {} )
+      ),
       body: $body
     }
   }'

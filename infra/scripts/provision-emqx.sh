@@ -32,6 +32,10 @@ INGEST_BASE_URL_DEFAULT="http://api:8000"
 INGEST_BASE_URL="${INGEST_BASE_URL:-$INGEST_BASE_URL_DEFAULT}"
 INGEST_PATH="${INGEST_PATH:-/ingest}"
 
+# Optional dev token for ingest auth
+INGEST_DEVICE_TOKEN="${INGEST_DEVICE_TOKEN:-${INGESTION_SECRET:-}}"
+DEVICE_TOKEN_HEADER_KEY="${DEVICE_TOKEN_HEADER_KEY:-x-device-token}"
+
 # Body template (nao expandir ${...} no bash)
 read -r -d '' ACTION_BODY_TEMPLATE <<'EOF' || true
 {
@@ -126,6 +130,8 @@ if [[ "$(get_ok_or_404 "${EMQX_BASE_URL}/api/v5/actions/http:${ACTION_NAME}")" =
     --arg path "$INGEST_PATH" \
     --arg tenant "$TENANT_SLUG" \
     --arg body "$ACTION_BODY_TEMPLATE" \
+    --arg dtk "$DEVICE_TOKEN_HEADER_KEY" \
+    --arg dtv "$INGEST_DEVICE_TOKEN" \
     '{
       type: "http",
       name: $name,
@@ -133,10 +139,10 @@ if [[ "$(get_ok_or_404 "${EMQX_BASE_URL}/api/v5/actions/http:${ACTION_NAME}")" =
       parameters: {
         method: "POST",
         path: $path,
-        headers: {
-          "content-type": "application/json",
-          "x-tenant": $tenant
-        },
+        headers: (
+          {"content-type": "application/json", "x-tenant": $tenant}
+          + ( ($dtv | length) > 0 ? {($dtk): $dtv} : {} )
+        ),
         body: $body,
         max_retries: 5,
         retry_interval: "5s",

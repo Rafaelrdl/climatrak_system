@@ -26,6 +26,8 @@ ACTION_PAYLOAD="$(jq -nc \
   --arg connector "http:$CONN_NAME" \
   --arg tenant "$TENANT" \
   --arg body "$ACTION_BODY_TEMPLATE" \
+  --arg dtk "${DEVICE_TOKEN_HEADER_KEY:-x-device-token}" \
+  --arg dtv "${DEVICE_TOKEN_HEADER_VAL:-${INGEST_DEVICE_TOKEN:-${INGESTION_SECRET:-}}}" \
   '{
     type: "http",
     name: $name,
@@ -33,10 +35,10 @@ ACTION_PAYLOAD="$(jq -nc \
     parameters: {
       path: "/ingest",
       method: "post",
-      headers: {
-        "content-type": "application/json",
-        "x-tenant": $tenant
-      },
+      headers: (
+        {"content-type": "application/json", "x-tenant": $tenant}
+        + ( ($dtv | length) > 0 ? {($dtk): $dtv} : {} )
+      ),
       body: $body,
       max_retries: 3
     },

@@ -36,6 +36,9 @@ HEADER_CONTENT_TYPE_VAL="${HEADER_CONTENT_TYPE_VAL:-application/json}"
 TENANT_HEADER_KEY="${TENANT_HEADER_KEY:-x-tenant}"
 TENANT_HEADER_VAL="${TENANT_HEADER_VAL:-${TENANT}}"
 
+DEVICE_TOKEN_HEADER_KEY="${DEVICE_TOKEN_HEADER_KEY:-x-device-token}"
+DEVICE_TOKEN_HEADER_VAL="${DEVICE_TOKEN_HEADER_VAL:-${INGEST_DEVICE_TOKEN:-${INGESTION_SECRET:-}}}"
+
 # Body template (IMPORTANTE: manter literais ${...} sem expandir no bash)
 # Obs: este formato segue exatamente o que você pediu.
 read -r -d '' ACTION_BODY_TEMPLATE <<'EOF' || true
@@ -172,6 +175,7 @@ ACTION_PAYLOAD="$(jq -nc \
   --arg body "$ACTION_BODY_TEMPLATE" \
   --arg ctk "$HEADER_CONTENT_TYPE_KEY" --arg ctv "$HEADER_CONTENT_TYPE_VAL" \
   --arg tkey "$TENANT_HEADER_KEY"       --arg tval "$TENANT_HEADER_VAL" \
+  --arg dtk "$DEVICE_TOKEN_HEADER_KEY"  --arg dtv "$DEVICE_TOKEN_HEADER_VAL" \
   '{
     type: $type,
     name: $name,
@@ -180,7 +184,11 @@ ACTION_PAYLOAD="$(jq -nc \
     parameters: {
       method: $method,
       path: $path,
-      headers: ({($ctk): $ctv} + {($tkey): $tval}),
+      headers: (
+        {($ctk): $ctv}
+        + {($tkey): $tval}
+        + ( ($dtv | length) > 0 ? {($dtk): $dtv} : {} )
+      ),
       body: $body
     }
   }'

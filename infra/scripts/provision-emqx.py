@@ -18,6 +18,9 @@ def main():
     emqx_pass = os.getenv('EMQX_DASHBOARD_PASS', 'public')
     ingest_base_url = os.getenv('INGEST_BASE_URL', 'http://api:8000')
     ingest_path = os.getenv('INGEST_PATH', '/ingest')
+    ingest_device_token = (
+        os.getenv("INGEST_DEVICE_TOKEN") or os.getenv("INGESTION_SECRET") or ""
+    )
     
     connector_name = f"http_ingest_{tenant_slug}"
     action_name = f"http_ingest_{tenant_slug}"
@@ -97,6 +100,13 @@ def main():
     # Verificar se existe
     check_action = requests.get(f"{emqx_base_url}/api/v5/actions/{action_id}", headers=headers)
     
+    action_headers = {
+        "content-type": "application/json",
+        "x-tenant": tenant_slug,
+    }
+    if ingest_device_token:
+        action_headers["x-device-token"] = ingest_device_token
+
     action_payload = {
         "type": "http",
         "name": action_name,
@@ -105,10 +115,7 @@ def main():
         "parameters": {
             "path": ingest_path,
             "method": "post",
-            "headers": {
-                "content-type": "application/json",
-                "x-tenant": tenant_slug
-            },
+            "headers": action_headers,
             "body": action_body,
             "max_retries": 3
         },
