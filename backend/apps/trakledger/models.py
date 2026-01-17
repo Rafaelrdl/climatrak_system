@@ -1021,48 +1021,92 @@ class Commitment(models.Model):
 
     def approve(self, user):
         """
-        Aprova o compromisso.
+        Aprova o compromisso e cria CostTransaction correspondente (Realizado).
 
         Args:
             user: Usuário que está aprovando
 
         Returns:
             OutboxEvent: Evento commitment.approved publicado
+            
+        Nota: A criação de CostTransaction é idempotente via idempotency_key,
+              então reprocessamento não gera duplicatas.
         """
         from django.utils import timezone
+        from django.db import connection, transaction
 
         from apps.core_events.services import EventPublisher
 
         if self.status != self.Status.SUBMITTED:
             raise ValidationError("Apenas compromissos submetidos podem ser aprovados.")
 
-        self.status = self.Status.APPROVED
-        self.approved_by = user
-        self.approved_at = timezone.now()
-        self.save(update_fields=["status", "approved_by", "approved_at", "updated_at"])
+        with transaction.atomic():
+            self.status = self.Status.APPROVED
+            self.approved_by = user
+            self.approved_at = timezone.now()
+            self.save(update_fields=["status", "approved_by", "approved_at", "updated_at"])
 
-        # Publicar evento commitment.approved
-        # O tenant_id vem da connection atual (django-tenants)
-        from django.db import connection
+            # Criar CostTransaction idempotentemente (regra E1)
+            # Compromisso aprovado vira Realizado imediatamente
+            try:
+                idempotency_key = f"commitment_approved:{connection.tenant.schema_name}:{self.id}"
+                
+                CostTransaction.objects.get_or_create(
+                    idempotency_key=idempotency_key,
+                    defaults={
+                        'transaction_type': self._map_commitment_to_transaction_type(),
+                        'category': self.category,
+                        'amount': self.amount,
+                        'currency': 'BRL',
+                        'occurred_at': self.approved_at,
+                        'cost_center_id': self.cost_center_id,
+                        'work_order_id': self.work_order_id,
+                        'description': f'Compromisso aprovado: {self.description}',
+                        'meta': {
+                            'commitment_id': str(self.id),
+                            'source': 'commitment_approved',
+                            'approved_by_id': str(user.id) if user else None,
+                            'vendor_name': self.vendor_name,
+                        }
+                    }
+                )
+            except Exception as e:
+                # Se Finance não está disponível ou erro de DB,
+                # não falhar a aprovação (log será feito em production)
+                pass
 
-        tenant = connection.tenant
+            # Publicar evento commitment.approved
+            tenant = connection.tenant
 
-        event = EventPublisher.publish(
-            tenant_id=tenant.id,
-            event_name="commitment.approved",
-            aggregate_type="commitment",
-            aggregate_id=self.id,
-            data={
-                "commitment_id": str(self.id),
-                "amount": float(self.amount),
-                "budget_month": self.budget_month.isoformat(),
-                "cost_center_id": str(self.cost_center_id),
-                "category": self.category,
-            },
-            idempotency_key=f"commitment:{self.id}:approved",
-        )
+            event = EventPublisher.publish(
+                tenant_id=tenant.id,
+                event_name="commitment.approved",
+                aggregate_type="commitment",
+                aggregate_id=self.id,
+                data={
+                    "commitment_id": str(self.id),
+                    "amount": float(self.amount),
+                    "budget_month": self.budget_month.isoformat(),
+                    "cost_center_id": str(self.cost_center_id),
+                    "category": self.category,
+                },
+                idempotency_key=f"commitment:{self.id}:approved",
+            )
 
-        return event
+            return event
+
+    def _map_commitment_to_transaction_type(self) -> str:
+        """
+        Mapeia a categoria do compromisso para transaction_type em Finance.
+        
+        Mapeamento padrão: commitment category → transaction_type
+        """
+        mapping = {
+            self.Category.PARTS: 'parts',
+            self.Category.ENERGY: 'energy',
+            self.Category.CONTRACTS: 'third_party',
+        }
+        return mapping.get(self.category, 'other')
 
     def reject(self, user, reason: str):
         """

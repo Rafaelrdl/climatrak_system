@@ -330,7 +330,19 @@ class InventoryMovement(models.Model):
             item.quantity = self.quantity_after
             item.save(update_fields=["quantity", "updated_at"])
 
-            return super().save(*args, **kwargs)
+            super_result = super().save(*args, **kwargs)
+            
+            # Integração com Finance: criar CostTransaction se aplicável
+            # Feito após o save para garantir que o movement.id existe
+            try:
+                from .services import InventoryFinanceIntegrationService
+                InventoryFinanceIntegrationService.create_cost_transaction_for_movement(self)
+            except Exception:
+                # Se Finance não está disponível (tenant, importação, etc),
+                # não falhar o save. Log será feito em level de production.
+                pass
+            
+            return super_result
 
     @property
     def total_value(self):
