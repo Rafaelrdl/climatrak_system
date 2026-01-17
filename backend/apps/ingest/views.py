@@ -1,5 +1,7 @@
+import hashlib
 import hmac
 import logging
+import time
 from datetime import datetime
 from datetime import timezone as dt_timezone
 
@@ -13,6 +15,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 import pytz
+
+from django_tenants.utils import get_public_schema_name, schema_context
 
 from apps.tenants.models import Tenant
 
@@ -40,11 +44,13 @@ class IngestView(APIView):
 
     Headers expected:
     - x-tenant: tenant slug (e.g., "umc")
-    - x-device-token: HMAC signature or device API token (for authentication)
+    - x-ingest-timestamp: unix timestamp (seconds)
+    - x-ingest-signature: HMAC-SHA256(device_secret, f"{timestamp}.{body}")
+    - x-device-token: legacy global token (optional, only if INGEST_ALLOW_GLOBAL_SECRET=True)
     - content-type: application/json
 
     Security:
-    - Validates x-device-token against INGESTION_SECRET or registered device tokens
+    - Validates HMAC signature with per-device secret + anti-replay
     - Validates tenant slug from topic matches x-tenant header
     - Rejects requests with invalid authentication
     """
@@ -54,53 +60,19 @@ class IngestView(APIView):
     permission_classes = []
 
     def post(self, request, *args, **kwargs):
+        
         """
         Process incoming telemetry data from EMQX.
-
-        🔒 SECURITY: Requires valid device authentication via:
-        - x-device-token header with HMAC signature OR
-        - Registered device API token
         """
-        # 🔒 SECURITY: Validate device authentication FIRST
-        device_token = request.headers.get("x-device-token")
-        if not device_token:
-            logger.warning("Missing x-device-token header in ingest request")
-            return Response(
-                {"error": "Missing x-device-token header"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        # Validate device token
         from django.conf import settings
 
-        # SECURITY: Check if token matches INGESTION_SECRET (global token for EMQX)
-        ingestion_secret = getattr(settings, "INGESTION_SECRET", None)
-        if ingestion_secret and hmac.compare_digest(device_token, ingestion_secret):
-            logger.info(
-                f"✅ Authenticated via INGESTION_SECRET from {request.META.get('REMOTE_ADDR')}"
-            )
-        else:
-            # Token inválido
-            request_id = request.headers.get("X-Request-ID") or request.headers.get(
-                "X-Request-Id"
-            )
-            logger.error(
-                "🚨 SECURITY: Invalid device token from %s (request_id=%s)",
-                request.META.get("REMOTE_ADDR"),
-                request_id or "n/a",
-            )
-            return Response(
-                {"error": "Invalid device token"}, status=status.HTTP_401_UNAUTHORIZED
-            )
-
-        # Continue with tenant validation and processing...
-        # 🔧 Only log verbose details in DEBUG mode
+        # Only log verbose details in DEBUG mode
         if settings.DEBUG:
             logger.info("=" * 60)
-            logger.info("🔵 INGEST POST INICIADO")
+            logger.info("INGEST POST INICIADO")
             logger.info(f"Headers: {dict(request.headers)}")
             logger.info(f"Content-Type: {request.content_type}")
-            logger.info(f"📏 Body tamanho: {len(request.body)} bytes")
+            logger.info(f"Body tamanho: {len(request.body)} bytes")
             logger.info(f"Body COMPLETO: {request.body.decode('utf-8')}")
             logger.info("=" * 60)
 
@@ -120,7 +92,8 @@ class IngestView(APIView):
             import json
 
             try:
-                raw_body = request.body.decode("utf-8")
+                raw_body_bytes = request.body
+                raw_body = raw_body_bytes.decode("utf-8")
                 if settings.DEBUG:
                     logger.info(f"📏 Body completo ({len(raw_body)} chars): {raw_body}")
                 data = json.loads(raw_body)
@@ -181,6 +154,35 @@ class IngestView(APIView):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
+            device_id = data.get("client_id")
+            if not device_id:
+                logger.warning("Missing required field: client_id")
+                return Response(
+                    {"error": "Missing required field: client_id"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            with schema_context(get_public_schema_name()):
+                tenant = Tenant.objects.filter(slug=tenant_slug).first()
+
+            if not tenant:
+                logger.warning(
+                    f"Tenant not found: {tenant_slug} (client misconfiguration)"
+                )
+                return Response(
+                    {"error": "Tenant not found", "tenant": tenant_slug},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            auth_response = self._authenticate_ingest_request(
+                request=request,
+                tenant=tenant,
+                device_id=device_id,
+                raw_body=raw_body_bytes,
+            )
+            if auth_response:
+                return auth_response
+
         except Exception as e:
             logger.error(f"❌ Erro ao validar payload: {e}", exc_info=True)
             return Response(
@@ -189,20 +191,12 @@ class IngestView(APIView):
 
         # NOW we can safely access the database with validated tenant
         try:
-            connection.set_schema_to_public()
-            tenant = Tenant.objects.get(slug=tenant_slug)
             connection.set_tenant(tenant)
-        except Tenant.DoesNotExist:
-            # 🔧 INGESTION FIX (Nov 2025): Return 404/403 for invalid tenant, not 500
-            # Audit finding: "Quando o tenant slug é inválido, retorna 500 — isso faz
-            # o EMQX ficar em loop de reenvio."
-            # 404 indicates client misconfiguration, EMQX won't retry
-            logger.warning(
-                f"⚠️ Tenant not found: {tenant_slug} (client misconfiguration)"
-            )
+        except Exception as exc:
+            logger.error(f"Failed to set tenant schema: {exc}", exc_info=True)
             return Response(
-                {"error": "Tenant not found", "tenant": tenant_slug},
-                status=status.HTTP_404_NOT_FOUND,  # Changed from 500
+                {"error": "Failed to resolve tenant"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         def ensure_aware_timestamp(value, fallback):
@@ -606,6 +600,97 @@ class IngestView(APIView):
 
         finally:
             connection.set_schema_to_public()
+
+    def _authenticate_ingest_request(self, request, tenant, device_id, raw_body):
+        """
+        Validate ingest request using per-device HMAC signature + anti-replay.
+        """
+        from django.conf import settings
+
+        timestamp_header = request.headers.get("x-ingest-timestamp")
+        signature = request.headers.get("x-ingest-signature")
+        allow_global = getattr(settings, "INGEST_ALLOW_GLOBAL_SECRET", False)
+
+        if not timestamp_header or not signature:
+            if not allow_global:
+                return Response(
+                    {"error": "Missing ingest signature"},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
+            device_token = request.headers.get("x-device-token")
+            if not device_token:
+                return Response(
+                    {"error": "Missing x-device-token header"},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
+            ingestion_secret = getattr(settings, "INGESTION_SECRET", None)
+            if ingestion_secret and hmac.compare_digest(
+                device_token, ingestion_secret
+            ):
+                return None
+
+            return Response(
+                {"error": "Invalid device token"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        try:
+            timestamp = int(timestamp_header)
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "Invalid ingest timestamp"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        if abs(timestamp) > 1e12:
+            timestamp = int(timestamp / 1000)
+
+        max_skew = getattr(settings, "INGEST_SIGNATURE_MAX_SKEW_SECONDS", 300)
+        now_ts = int(time.time())
+        if abs(now_ts - timestamp) > max_skew:
+            return Response(
+                {"error": "Ingest signature expired"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        from apps.assets.models import Device
+
+        with schema_context(tenant.schema_name):
+            device = (
+                Device.objects.filter(mqtt_client_id=device_id, is_active=True)
+                .only("ingest_secret")
+                .first()
+            )
+
+        if not device or not device.ingest_secret:
+            return Response(
+                {"error": "Device not authorized"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        message = f"{timestamp}.".encode("utf-8") + raw_body
+        expected = hmac.new(
+            device.ingest_secret.encode("utf-8"), message, hashlib.sha256
+        ).hexdigest()
+
+        if not hmac.compare_digest(signature, expected):
+            return Response(
+                {"error": "Invalid ingest signature"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        replay_ttl = getattr(settings, "INGEST_REPLAY_TTL_SECONDS", max_skew)
+        replay_key = f"ingest:replay:{tenant.schema_name}:{device_id}:{timestamp}:{signature}"
+        if cache.get(replay_key):
+            return Response(
+                {"error": "Replay detected"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        cache.set(replay_key, True, timeout=replay_ttl)
+        return None
 
     def _extract_site_and_asset_from_topic(self, topic):
         """

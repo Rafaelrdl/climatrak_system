@@ -67,6 +67,10 @@ function getCategoryLabel(category: string): string {
     preventive: 'Preventiva',
     corrective: 'Corretiva',
     predictive: 'Preditiva',
+    improvement: 'Melhorias',
+    contracts: 'Contratos',
+    parts: 'Peças e Materiais',
+    energy: 'Energia',
     other: 'Outros',
   };
   return labels[category] || category;

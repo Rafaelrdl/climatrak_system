@@ -8,48 +8,9 @@ membership, because connection.tenant may be a FakeTenant object when inside
 a tenant context.
 """
 
-from django.db import connection
 from rest_framework import permissions
 
-from django_tenants.utils import schema_context
-
-
-def get_current_tenant():
-    """
-    Get the actual Tenant object for the current connection.
-
-    Must be called OUTSIDE of schema_context('public') because
-    connection.tenant may be FakeTenant inside tenant context.
-    """
-    from apps.tenants.models import Tenant
-
-    current_schema = connection.schema_name
-    if current_schema == "public":
-        return None
-
-    # Get the real Tenant object from public schema
-    with schema_context("public"):
-        try:
-            return Tenant.objects.get(schema_name=current_schema)
-        except Tenant.DoesNotExist:
-            return None
-
-
-def get_public_membership(user, tenant):
-    """
-    Get membership from public_identity using email hash.
-    """
-    if not user or not tenant:
-        return None
-
-    from apps.public_identity.models import TenantMembership as PublicTenantMembership
-    from apps.public_identity.models import compute_email_hash
-
-    with schema_context("public"):
-        email_hash = compute_email_hash(user.email)
-        return PublicTenantMembership.objects.filter(
-            email_hash=email_hash, tenant=tenant, status="active"
-        ).first()
+from apps.common.services.membership import get_current_tenant, get_public_membership
 
 
 class IsTenantMember(permissions.BasePermission):

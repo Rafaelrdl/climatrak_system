@@ -14,8 +14,10 @@ from django.db import transaction
 from django.utils import timezone
 
 from celery import shared_task
+from django_tenants.utils import schema_context
 
 from .models import OutboxEvent, OutboxEventStatus
+from apps.common.tenancy import iter_tenants
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +79,7 @@ def get_registered_events() -> list[str]:
     max_retries=5,
     acks_late=True,  # Acknowledge após processamento
 )
-def process_outbox_event(self, event_id: str):
+def process_outbox_event(self, event_id: str, tenant_schema: str | None = None):
     """
     Processa um evento individual da Outbox.
 
@@ -93,58 +95,67 @@ def process_outbox_event(self, event_id: str):
     error_to_raise = None
     can_retry = False
 
-    try:
-        with transaction.atomic():
-            event = OutboxEvent.objects.select_for_update().get(id=event_id)
+    def _process_event():
+        nonlocal error_to_raise, can_retry
 
-            # Verificar se ainda está pendente
-            if event.status != OutboxEventStatus.PENDING:
-                logger.info(f"Event {event_id} already processed/failed, skipping")
-                return
+        try:
+            with transaction.atomic():
+                event = OutboxEvent.objects.select_for_update().get(id=event_id)
 
-            # Buscar handler
-            handler = get_event_handler(event.event_name)
+                # Verificar se ainda está pendente
+                if event.status != OutboxEventStatus.PENDING:
+                    logger.info(f"Event {event_id} already processed/failed, skipping")
+                    return
 
-            if not handler:
-                error_msg = f"No handler registered for event: {event.event_name}"
-                logger.warning(error_msg)
-                # Marcar como failed se não há handler
-                event.mark_failed(error_msg)
-                return
+                # Buscar handler
+                handler = get_event_handler(event.event_name)
 
-            # Tentar processar
-            try:
-                logger.info(f"Processing event {event_id}: {event.event_name}")
+                if not handler:
+                    error_msg = f"No handler registered for event: {event.event_name}"
+                    logger.warning(error_msg)
+                    # Marcar como failed se não há handler
+                    event.mark_failed(error_msg)
+                    return
 
-                # Executar handler
-                handler(event)
+                # Tentar processar
+                try:
+                    logger.info(f"Processing event {event_id}: {event.event_name}")
 
-                # Marcar como processado
-                worker_id = (
-                    f"celery-{self.request.id}" if self.request.id else "unknown"
-                )
-                event.mark_processed(processed_by=worker_id)
+                    # Executar handler
+                    handler(event)
 
-                logger.info(f"Event {event_id} processed successfully")
-                return
-
-            except Exception as e:
-                error_msg = f"{type(e).__name__}: {str(e)}"
-                logger.error(f"Error processing event {event_id}: {error_msg}")
-
-                # Incrementar tentativas
-                can_retry = event.increment_attempt(error_msg)
-
-                if not can_retry:
-                    logger.error(
-                        f"Event {event_id} marked as failed after {event.attempts} attempts"
+                    # Marcar como processado
+                    worker_id = (
+                        f"celery-{self.request.id}" if self.request.id else "unknown"
                     )
+                    event.mark_processed(processed_by=worker_id)
 
-                error_to_raise = e
+                    logger.info(f"Event {event_id} processed successfully")
+                    return
 
-    except OutboxEvent.DoesNotExist:
-        logger.error(f"Event not found: {event_id}")
-        return
+                except Exception as e:
+                    error_msg = f"{type(e).__name__}: {str(e)}"
+                    logger.error(f"Error processing event {event_id}: {error_msg}")
+
+                    # Incrementar tentativas
+                    can_retry = event.increment_attempt(error_msg)
+
+                    if not can_retry:
+                        logger.error(
+                            f"Event {event_id} marked as failed after {event.attempts} attempts"
+                        )
+
+                    error_to_raise = e
+
+        except OutboxEvent.DoesNotExist:
+            logger.error(f"Event not found: {event_id}")
+            return
+
+    if tenant_schema:
+        with schema_context(tenant_schema):
+            _process_event()
+    else:
+        _process_event()
 
     if error_to_raise and can_retry:
         # Re-raise para Celery fazer retry após persistir o estado
@@ -155,7 +166,12 @@ def process_outbox_event(self, event_id: str):
     bind=True,
     acks_late=True,
 )
-def dispatch_pending_events(self, batch_size: int = 100, tenant_id: str = None):
+def dispatch_pending_events(
+    self,
+    batch_size: int = 100,
+    tenant_id: str = None,
+    tenant_schema: str | None = None,
+):
     """
     Dispatcher principal: busca eventos pendentes e agenda processamento.
 
@@ -167,31 +183,51 @@ def dispatch_pending_events(self, batch_size: int = 100, tenant_id: str = None):
         batch_size: Número máximo de eventos a processar por execução
         tenant_id: Filtrar por tenant específico (opcional)
     """
-    queryset = OutboxEvent.objects.filter(status=OutboxEventStatus.PENDING).order_by(
-        "created_at"
-    )
+    def _dispatch_for_schema(schema_name: str, tenant_id_filter: str | None):
+        with schema_context(schema_name):
+            queryset = OutboxEvent.objects.filter(
+                status=OutboxEventStatus.PENDING
+            ).order_by("created_at")
+            if tenant_id_filter:
+                queryset = queryset.filter(tenant_id=tenant_id_filter)
 
-    if tenant_id:
-        queryset = queryset.filter(tenant_id=tenant_id)
+            pending_events = list(queryset[:batch_size])
 
-    # Buscar batch de eventos pendentes
-    pending_events = list(queryset[:batch_size])
+        if not pending_events:
+            return 0
 
-    if not pending_events:
+        dispatched = 0
+        for event in pending_events:
+            try:
+                process_outbox_event.delay(str(event.id), tenant_schema=schema_name)
+                dispatched += 1
+            except Exception as e:
+                logger.error(f"Failed to dispatch event {event.id}: {e}")
+
+        return dispatched
+
+    if tenant_schema:
+        dispatched = _dispatch_for_schema(tenant_schema, tenant_id)
+        if dispatched == 0:
+            logger.debug("No pending events to dispatch")
+        else:
+            logger.info(f"Dispatched {dispatched} events for processing")
+        return {"dispatched": dispatched, "tenants": 1}
+
+    total_dispatched = 0
+    tenant_count = 0
+    for tenant in iter_tenants():
+        if tenant_id and str(tenant.id) != str(tenant_id):
+            continue
+        tenant_count += 1
+        total_dispatched += _dispatch_for_schema(tenant.schema_name, str(tenant.id))
+
+    if total_dispatched == 0:
         logger.debug("No pending events to dispatch")
-        return {"dispatched": 0}
+    else:
+        logger.info(f"Dispatched {total_dispatched} events for processing")
 
-    dispatched = 0
-    for event in pending_events:
-        try:
-            # Agendar processamento individual
-            process_outbox_event.delay(str(event.id))
-            dispatched += 1
-        except Exception as e:
-            logger.error(f"Failed to dispatch event {event.id}: {e}")
-
-    logger.info(f"Dispatched {dispatched} events for processing")
-    return {"dispatched": dispatched}
+    return {"dispatched": total_dispatched, "tenants": tenant_count}
 
 
 @shared_task(bind=True)

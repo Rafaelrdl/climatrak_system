@@ -104,6 +104,10 @@ const CATEGORIES: { value: TransactionCategory; label: string }[] = [
   { value: 'preventive', label: 'Preventiva' },
   { value: 'corrective', label: 'Corretiva' },
   { value: 'predictive', label: 'Preditiva' },
+  { value: 'improvement', label: 'Melhorias' },
+  { value: 'contracts', label: 'Contratos' },
+  { value: 'parts', label: 'Peças e Materiais' },
+  { value: 'energy', label: 'Energia' },
   { value: 'other', label: 'Outros' },
 ];
 

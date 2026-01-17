@@ -1,0 +1,3 @@
+"""
+Public identity app tests.
+"""

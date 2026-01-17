@@ -2,6 +2,7 @@
 Serializers para CMMS - Gestão de Manutenção
 """
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
@@ -232,6 +233,25 @@ class WorkOrderPhotoSerializer(serializers.ModelSerializer):
             "uploaded_at",
         ]
         read_only_fields = ["id", "uploaded_by", "uploaded_by_name", "uploaded_at"]
+
+    def validate_file(self, value):
+        max_size = getattr(settings, "UPLOAD_MAX_SIZE_BYTES", 5 * 1024 * 1024)
+        allowed_types = getattr(
+            settings,
+            "UPLOAD_ALLOWED_CONTENT_TYPES",
+            ["image/jpeg", "image/png", "image/webp"],
+        )
+
+        if value.size > max_size:
+            raise serializers.ValidationError(
+                f"Arquivo excede o limite de {max_size // (1024 * 1024)}MB."
+            )
+
+        content_type = getattr(value, "content_type", None)
+        if content_type not in allowed_types:
+            raise serializers.ValidationError("Tipo de arquivo nao permitido.")
+
+        return value
 
 
 class WorkOrderItemSerializer(serializers.ModelSerializer):

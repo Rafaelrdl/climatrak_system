@@ -618,10 +618,15 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                 {"error": "Arquivo não fornecido"}, status=status.HTTP_400_BAD_REQUEST
             )
 
+        serializer = WorkOrderPhotoSerializer(
+            data={"file": file, "caption": request.data.get("caption", "")}
+        )
+        serializer.is_valid(raise_exception=True)
+
         photo = WorkOrderPhoto.objects.create(
             work_order=work_order,
-            file=file,
-            caption=request.data.get("caption", ""),
+            file=serializer.validated_data["file"],
+            caption=serializer.validated_data.get("caption", ""),
             uploaded_by=request.user,
         )
 

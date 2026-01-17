@@ -90,8 +90,24 @@ class CostCenterViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def tree(self, request):
         """Retorna árvore hierárquica de centros de custo."""
-        roots = self.queryset.filter(parent__isnull=True, is_active=True)
-        serializer = CostCenterTreeSerializer(roots, many=True)
+        from collections import defaultdict
+
+        centers = list(
+            CostCenter.objects.filter(is_active=True)
+            .select_related("parent")
+            .order_by("code")
+        )
+        children_map = defaultdict(list)
+        roots = []
+        for center in centers:
+            if center.parent_id:
+                children_map[center.parent_id].append(center)
+            else:
+                roots.append(center)
+
+        context = self.get_serializer_context()
+        context["children_map"] = children_map
+        serializer = CostCenterTreeSerializer(roots, many=True, context=context)
         return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
@@ -336,6 +352,10 @@ class BudgetEnvelopeViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "description"]
     ordering_fields = ["name", "category", "amount", "created_at"]
     ordering = ["budget_plan", "category", "name"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.annotate(months_total=Sum("months__planned_amount"))
 
     def get_serializer_class(self):
         if self.action in ["create", "update", "partial_update"]:

@@ -214,6 +214,16 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Upload validation
+UPLOAD_MAX_SIZE_BYTES = int(os.getenv("UPLOAD_MAX_SIZE_BYTES", "5242880"))
+UPLOAD_ALLOWED_CONTENT_TYPES = [
+    item.strip()
+    for item in os.getenv(
+        "UPLOAD_ALLOWED_CONTENT_TYPES", "image/jpeg,image/png,image/webp"
+    ).split(",")
+    if item.strip()
+]
+
 # WhiteNoise configuration for serving static files
 STORAGES = {
     "default": {
@@ -257,6 +267,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    "DEFAULT_THROTTLE_RATES": {
+        "tenant_discovery": os.getenv("TENANT_DISCOVERY_THROTTLE", "10/min"),
+    },
 }
 
 # drf-spectacular settings
@@ -342,6 +355,15 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 INGESTION_SECRET = os.getenv("INGESTION_SECRET", None)
 if not INGESTION_SECRET and not DEBUG:
     raise ValueError("INGESTION_SECRET must be set in production environment")
+
+# Ingest HMAC settings
+INGEST_ALLOW_GLOBAL_SECRET = (
+    os.getenv("INGEST_ALLOW_GLOBAL_SECRET", "False") == "True"
+)
+INGEST_SIGNATURE_MAX_SKEW_SECONDS = int(
+    os.getenv("INGEST_SIGNATURE_MAX_SKEW_SECONDS", "300")
+)
+INGEST_REPLAY_TTL_SECONDS = int(os.getenv("INGEST_REPLAY_TTL_SECONDS", "600"))
 
 # Celery Configuration
 CELERY_BROKER_URL = REDIS_URL

@@ -171,22 +171,10 @@ def _upload_to_storage(job, csv_content):
         str: Public URL to download file
     """
     try:
-        from minio import Minio
+        from apps.common.storage import ensure_bucket_exists, get_minio_client
 
-        # MinIO client
-        client = Minio(
-            settings.MINIO_ENDPOINT,
-            access_key=settings.MINIO_ACCESS_KEY,
-            secret_key=settings.MINIO_SECRET_KEY,
-            secure=settings.MINIO_USE_SSL,
-        )
-
-        bucket_name = "exports"
-
-        # Ensure bucket exists
-        if not client.bucket_exists(bucket_name):
-            client.make_bucket(bucket_name)
-            logger.info(f"Created MinIO bucket: {bucket_name}")
+        client = get_minio_client()
+        bucket_name = ensure_bucket_exists("exports")
 
         # Generate filename
         timestamp_str = timezone.now().strftime("%Y%m%d_%H%M%S")

@@ -19,10 +19,10 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.throttling import ScopedRateThrottle
 
 from django_tenants.utils import schema_context
 
-from apps.tenants.models import Domain
 
 from .models import TenantMembership, TenantUserIndex, compute_email_hash
 from .serializers import LoginSerializer, SelectTenantSerializer
@@ -92,6 +92,8 @@ class TenantDiscoveryView(APIView):
     """
 
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "tenant_discovery"
 
     def post(self, request):
         email = request.data.get("email", "").strip().lower()
@@ -103,63 +105,19 @@ class TenantDiscoveryView(APIView):
 
         with schema_context("public"):
             email_hash = compute_email_hash(email)
-            memberships = list(
-                TenantMembership.objects.filter(email_hash=email_hash)
-                .select_related("tenant")
-                .order_by("-joined_at")
-            )
-            active_memberships = [m for m in memberships if m.status == "active"]
+            TenantMembership.objects.filter(email_hash=email_hash).exists()
+            TenantUserIndex.find_tenants_for_email(email).exists()
 
-            if active_memberships:
-                entries = active_memberships
-            elif memberships:
-                return Response(
-                    {
-                        "found": False,
-                        "email": email,
-                        "message": "Nenhuma conta encontrada com este email.",
-                    }
-                )
-            else:
-                index_entries = list(
-                    TenantUserIndex.find_tenants_for_email(email)
-                    .select_related("tenant")
-                    .order_by("-updated_at", "-created_at")
-                )
-                if not index_entries:
-                    return Response(
-                        {
-                            "found": False,
-                            "email": email,
-                            "message": "Nenhuma conta encontrada com este email.",
-                        }
-                    )
-                entries = index_entries
-
-            primary_entry = entries[0]
-            primary_tenant = primary_entry.tenant
-            primary_domain = (
-                Domain.objects.filter(tenant=primary_tenant)
-                .order_by("-is_primary", "domain")
-                .values_list("domain", flat=True)
-                .first()
-            )
-
-            primary_tenant_data = {
-                "schema_name": primary_tenant.schema_name,
-                "slug": primary_tenant.slug,
-                "name": primary_tenant.name,
-                "domain": primary_domain,
+        # Neutral response to avoid email enumeration
+        return Response(
+            {
+                "found": True,
+                "email": email,
+                "primary_tenant": None,
+                "has_multiple_tenants": False,
+                "message": "Se o email existir, voce recebera instrucoes para continuar.",
             }
-
-            return Response(
-                {
-                    "found": True,
-                    "email": email,
-                    "primary_tenant": primary_tenant_data,
-                    "has_multiple_tenants": len(entries) > 1,
-                }
-            )
+        )
 
 
 class CentralizedLoginView(APIView):
@@ -784,3 +742,4 @@ class MobileSelectTenantView(APIView):
         set_auth_cookies(response, result.access_token, result.refresh_token)
 
         return response
+

@@ -20,12 +20,20 @@ Usage:
     'apps.common.authentication.JWTCookieAuthentication'
 """
 
+import logging
+
 from django.conf import settings
 from django.db import connection
 
 from django_tenants.utils import get_public_schema_name, schema_context
+from rest_framework import permissions
+from rest_framework.authentication import CSRFCheck
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
+
+from apps.common.services.membership import has_active_membership
+
+logger = logging.getLogger(__name__)
 
 
 class JWTCookieAuthentication(JWTAuthentication):
@@ -93,7 +101,7 @@ class JWTCookieAuthentication(JWTAuthentication):
                 raise AuthenticationFailed("User is inactive", code="user_inactive")
 
             if request_schema != public_schema:
-                if not self._has_active_membership(user, request_schema):
+                if not has_active_membership(user, request_schema):
                     raise AuthenticationFailed(
                         "User is not a member of this tenant",
                         code="no_tenant_membership",
@@ -131,8 +139,11 @@ class JWTCookieAuthentication(JWTAuthentication):
             self._token_schema = validated_token.get("tenant_schema")
             user = self.get_user(validated_token)
 
+            if request.method not in permissions.SAFE_METHODS:
+                self._enforce_csrf(request)
+
             if settings.DEBUG:
-                print(f"🔐 Authenticated via cookie: {user.username}")
+                logger.debug("Authenticated via cookie: %s", user.username)
 
             return (user, validated_token)
 
@@ -154,28 +165,17 @@ class JWTCookieAuthentication(JWTAuthentication):
         user = self.get_user(validated_token)
 
         if settings.DEBUG:
-            print(
-                f"⚠️ Authenticated via header: {user.username} (use cookies in production)"
-            )
+            logger.debug("Authenticated via header: %s (use cookies in production)", user.username)
 
         return (user, validated_token)
 
-    def _has_active_membership(self, user, schema_name: str) -> bool:
-        from apps.public_identity.models import (
-            TenantMembership as PublicTenantMembership,
-        )
-        from apps.public_identity.models import (
-            compute_email_hash,
-        )
-        from apps.tenants.models import Tenant
+    def _enforce_csrf(self, request):
+        """
+        Enforce CSRF validation for cookie-based authentication.
+        """
+        check = CSRFCheck(lambda req: None)
+        check.process_request(request)
+        reason = check.process_view(request, None, (), {})
+        if reason:
+            raise AuthenticationFailed(f"CSRF Failed: {reason}", code="csrf_failed")
 
-        public_schema = get_public_schema_name()
-
-        with schema_context(public_schema):
-            tenant = Tenant.objects.filter(schema_name=schema_name).first()
-            if not tenant:
-                return False
-            email_hash = compute_email_hash(user.email)
-            return PublicTenantMembership.objects.filter(
-                email_hash=email_hash, tenant=tenant, status="active"
-            ).exists()

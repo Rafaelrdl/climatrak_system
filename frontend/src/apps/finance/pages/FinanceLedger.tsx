@@ -81,6 +81,10 @@ const CATEGORIES: { value: TransactionCategory; label: string }[] = [
   { value: 'preventive', label: 'Preventiva' },
   { value: 'corrective', label: 'Corretiva' },
   { value: 'predictive', label: 'Preditiva' },
+  { value: 'improvement', label: 'Melhorias' },
+  { value: 'contracts', label: 'Contratos' },
+  { value: 'parts', label: 'Peças e Materiais' },
+  { value: 'energy', label: 'Energia' },
   { value: 'other', label: 'Outros' },
 ];
 
@@ -92,6 +96,23 @@ function getTypeInfo(type: TransactionType) {
 
 function getCategoryLabel(category: TransactionCategory): string {
   return CATEGORIES.find(c => c.value === category)?.label ?? category;
+}
+
+// Mapear reasons de movimentos de inventário para labels amigáveis
+function getReasonLabel(reason: string | undefined): string {
+  if (!reason) return '-';
+  const labels: Record<string, string> = {
+    PURCHASE: 'Compra/Recebimento',
+    RETURN_STOCK: 'Retorno ao Estoque',
+    RETURN_SUPPLIER: 'Devolução ao Fornecedor',
+    ADJUSTMENT: 'Ajuste de Inventário',
+    WORK_ORDER: 'Ordem de Serviço',
+    TRANSFER: 'Transferência',
+    DAMAGE: 'Avaria',
+    EXPIRY: 'Vencimento',
+    OTHER: 'Outro',
+  };
+  return labels[reason] || reason;
 }
 
 function formatDate(dateStr: string): string {
@@ -364,7 +385,13 @@ function TransactionDetailDialog({ transaction, open, onOpenChange }: Transactio
                   {Boolean(transaction.meta.reason) && (
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">Motivo</p>
-                      <p className="text-sm leading-relaxed">{String(transaction.meta.reason)}</p>
+                      <p className="text-sm leading-relaxed">{getReasonLabel(transaction.meta.reason as string)}</p>
+                    </div>
+                  )}
+                  {Boolean(transaction.meta.inventory_category_name) && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Categoria do Item</p>
+                      <p className="text-sm font-medium">{String(transaction.meta.inventory_category_name)}</p>
                     </div>
                   )}
                   {Boolean(transaction.meta.invoice) && (
@@ -374,7 +401,7 @@ function TransactionDetailDialog({ transaction, open, onOpenChange }: Transactio
                     </div>
                   )}
                   {Object.entries(transaction.meta)
-                    .filter(([key]) => !['reason', 'invoice'].includes(key))
+                    .filter(([key]) => !['reason', 'invoice', 'inventory_category_name', 'inventory_category_id', 'source'].includes(key))
                     .map(([key, value]) => (
                       <div key={key} className="space-y-1">
                         <p className="text-xs text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</p>
@@ -756,7 +783,7 @@ export function FinanceLedger() {
       header: 'Motivo',
       cell: (row) => (
         <span className="text-sm text-muted-foreground truncate max-w-[150px]">
-          {row.meta?.reason ? String(row.meta.reason) : '-'}
+          {getReasonLabel(row.meta?.reason as string | undefined)}
         </span>
       ),
       width: 150,

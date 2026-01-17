@@ -158,6 +158,11 @@ class SiteViewSet(viewsets.ModelViewSet):
         if asset_type:
             assets = assets.filter(asset_type=asset_type)
 
+        page = self.paginate_queryset(assets)
+        if page is not None:
+            serializer = AssetListSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         serializer = AssetListSerializer(assets, many=True)
         return Response(serializer.data)
 
@@ -191,6 +196,16 @@ class SiteViewSet(viewsets.ModelViewSet):
         if is_online is not None:
             is_online_bool = is_online.lower() == "true"
             devices = devices.filter(is_online=is_online_bool)
+
+        page = self.paginate_queryset(devices)
+        if page is not None:
+            serializer = DeviceListSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        page = self.paginate_queryset(devices)
+        if page is not None:
+            serializer = DeviceListSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
         serializer = DeviceListSerializer(devices, many=True)
         return Response(serializer.data)
@@ -231,6 +246,11 @@ class SiteViewSet(viewsets.ModelViewSet):
         status_filter = request.query_params.get("status")
         if status_filter:
             devices = devices.filter(status=status_filter)
+
+        page = self.paginate_queryset(devices)
+        if page is not None:
+            serializer = DeviceSummarySerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
         serializer = DeviceSummarySerializer(devices, many=True)
         return Response(serializer.data)
@@ -484,6 +504,11 @@ class AssetViewSet(viewsets.ModelViewSet):
             is_online_bool = is_online.lower() == "true"
             sensors = sensors.filter(is_online=is_online_bool)
 
+        page = self.paginate_queryset(sensors)
+        if page is not None:
+            serializer = SensorListSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         serializer = SensorListSerializer(sensors, many=True)
         return Response(serializer.data)
 
@@ -535,7 +560,8 @@ class AssetViewSet(viewsets.ModelViewSet):
 
         Response: Lista de assets com dados completos
         """
-        from django.db.models import Count, OuterRef, Prefetch, Subquery
+        from django.db.models import Count, IntegerField, OuterRef, Prefetch, Q, Subquery
+        from django.db.models.functions import Coalesce
 
         from .serializers import AssetCompleteSerializer
 
@@ -562,6 +588,17 @@ class AssetViewSet(viewsets.ModelViewSet):
             )
         )
 
+        queryset = queryset.annotate(
+            total_device_count=Count(
+                "devices", filter=Q(devices__is_active=True), distinct=True
+            ),
+            total_sensor_count=Count(
+                "devices__sensors",
+                filter=Q(devices__sensors__is_active=True),
+                distinct=True,
+            ),
+        )
+
         # Annotate counts usando subqueries para evitar problemas com joins
         # Online devices (status='ONLINE')
         online_devices_subquery = (
@@ -581,18 +618,59 @@ class AssetViewSet(viewsets.ModelViewSet):
             .values("cnt")
         )
 
+        from apps.alerts.models import Alert
+
+        active_alerts_subquery = (
+            Alert.objects.filter(
+                asset_tag=OuterRef("tag"), resolved=False, acknowledged=False
+            )
+            .values("asset_tag")
+            .annotate(cnt=Count("id"))
+            .values("cnt")
+        )
+
         queryset = queryset.annotate(
             online_device_count=Subquery(online_devices_subquery),
             online_sensor_count=Subquery(online_sensors_subquery),
+            alert_count=Coalesce(Subquery(active_alerts_subquery), 0, output_field=IntegerField()),
         )
+
+        def _build_latest_readings_map(assets):
+            from apps.ingest.models import Reading
+
+            sensors = []
+            for asset in assets:
+                devices = getattr(asset, "devices", None)
+                if devices is None:
+                    continue
+                for device in devices.all():
+                    sensors.extend(list(device.sensors.all()))
+
+            sensor_tags = [sensor.tag for sensor in sensors if sensor.tag]
+            if not sensor_tags:
+                return {}
+
+            latest_readings = (
+                Reading.objects.filter(sensor_id__in=sensor_tags)
+                .order_by("sensor_id", "-ts")
+                .distinct("sensor_id")
+            )
+            return {str(reading.sensor_id): reading for reading in latest_readings}
 
         # Paginação
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = AssetCompleteSerializer(page, many=True)
+            latest_by_sensor = _build_latest_readings_map(page)
+            context = self.get_serializer_context()
+            context["latest_readings_by_sensor"] = latest_by_sensor
+            serializer = AssetCompleteSerializer(page, many=True, context=context)
             return self.get_paginated_response(serializer.data)
 
-        serializer = AssetCompleteSerializer(queryset, many=True)
+        assets = list(queryset)
+        latest_by_sensor = _build_latest_readings_map(assets)
+        context = self.get_serializer_context()
+        context["latest_readings_by_sensor"] = latest_by_sensor
+        serializer = AssetCompleteSerializer(assets, many=True, context=context)
         return Response(serializer.data)
 
 
@@ -671,6 +749,11 @@ class DeviceViewSet(viewsets.ModelViewSet):
         if is_online is not None:
             is_online_bool = is_online.lower() == "true"
             sensors = sensors.filter(is_online=is_online_bool)
+
+        page = self.paginate_queryset(sensors)
+        if page is not None:
+            serializer = SensorListSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
         serializer = SensorListSerializer(sensors, many=True)
         return Response(serializer.data)

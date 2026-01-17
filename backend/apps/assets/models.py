@@ -14,6 +14,8 @@ Note: Tenant isolation é automático via django-tenants (PostgreSQL schemas).
       Todos os models herdam de models.Model e são isolados por schema.
 """
 
+import secrets
+
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
@@ -598,6 +600,13 @@ class Device(models.Model):
         db_index=True,
         help_text="Client ID único para autenticação no EMQX (ex: iot-chiller-001)",
     )
+    ingest_secret = models.CharField(
+        "Segredo de Ingest",
+        max_length=64,
+        blank=True,
+        null=True,
+        help_text="Segredo exclusivo para assinatura HMAC do ingest",
+    )
 
     # Tipo de device
     device_type = models.CharField(
@@ -661,6 +670,11 @@ class Device(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.mqtt_client_id})"
+
+    def save(self, *args, **kwargs):
+        if not self.ingest_secret:
+            self.ingest_secret = secrets.token_hex(32)
+        super().save(*args, **kwargs)
 
     def update_status(self, new_status, timestamp=None):
         """

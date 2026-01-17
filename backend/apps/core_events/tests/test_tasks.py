@@ -15,6 +15,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from django_tenants.test.cases import TenantTestCase
+from django_tenants.utils import schema_context
 
 from apps.core_events.models import OutboxEvent, OutboxEventStatus
 from apps.core_events.tasks import (
@@ -27,6 +28,7 @@ from apps.core_events.tasks import (
     register_event_handler,
     retry_failed_events,
 )
+from apps.tenants.models import Tenant
 
 
 class EventHandlerRegistryTest(TestCase):
@@ -83,7 +85,29 @@ class ProcessOutboxEventTaskTest(TenantTestCase):
     def setUp(self):
         """Setup comum para os testes."""
         super().setUp()
-        self.tenant_id = uuid.uuid4()
+        self.tenant_id = self.tenant.id
+
+    def _create_tenant(self, slug: str):
+        with schema_context("public"):
+            return Tenant.objects.create(name=slug.upper(), slug=slug)
+
+    def _create_event_in_schema(
+        self,
+        schema_name: str,
+        tenant_id: uuid.UUID,
+        status: str = OutboxEventStatus.PENDING,
+    ):
+        with schema_context(schema_name):
+            return OutboxEvent.objects.create(
+                tenant_id=tenant_id,
+                event_name="test.event",
+                aggregate_type="test",
+                aggregate_id=uuid.uuid4(),
+                occurred_at=timezone.now(),
+                payload={"data": {}},
+                idempotency_key=str(uuid.uuid4()),
+                status=status,
+            )
         # Salvar handlers originais
         self._original_handlers = _event_handlers.copy()
         _event_handlers.clear()
@@ -249,17 +273,39 @@ class DispatchPendingEventsTaskTest(TenantTestCase):
     @patch("apps.core_events.tasks.process_outbox_event.delay")
     def test_dispatch_filters_by_tenant(self, mock_delay):
         """Testa filtro por tenant."""
-        tenant_1 = uuid.uuid4()
-        tenant_2 = uuid.uuid4()
+        tenant_b = self._create_tenant("tenant-b")
 
-        # Criar eventos em tenants diferentes
-        self._create_event(tenant_id=tenant_1)
-        self._create_event(tenant_id=tenant_1)
-        self._create_event(tenant_id=tenant_2)
+        # Criar eventos em schemas diferentes
+        self._create_event_in_schema(self.tenant.schema_name, self.tenant.id)
+        self._create_event_in_schema(self.tenant.schema_name, self.tenant.id)
+        self._create_event_in_schema(tenant_b.schema_name, tenant_b.id)
 
-        result = dispatch_pending_events(batch_size=10, tenant_id=str(tenant_1))
+        result = dispatch_pending_events(batch_size=10, tenant_id=str(tenant_b.id))
+
+        self.assertEqual(result["dispatched"], 1)
+        self.assertEqual(mock_delay.call_count, 1)
+        self.assertEqual(
+            mock_delay.call_args.kwargs.get("tenant_schema"), tenant_b.schema_name
+        )
+
+    @patch("apps.core_events.tasks.process_outbox_event.delay")
+    def test_dispatch_handles_multiple_schemas(self, mock_delay):
+        """Testa que o dispatcher cobre múltiplos schemas."""
+        tenant_b = self._create_tenant("tenant-b-2")
+
+        self._create_event_in_schema(self.tenant.schema_name, self.tenant.id)
+        self._create_event_in_schema(tenant_b.schema_name, tenant_b.id)
+
+        result = dispatch_pending_events(batch_size=10)
 
         self.assertEqual(result["dispatched"], 2)
+        self.assertEqual(result["tenants"], 2)
+        schemas = {
+            call.kwargs.get("tenant_schema") for call in mock_delay.call_args_list
+        }
+        self.assertSetEqual(
+            schemas, {self.tenant.schema_name, tenant_b.schema_name}
+        )
 
     @patch("apps.core_events.tasks.process_outbox_event.delay")
     def test_dispatch_returns_zero_when_no_pending(self, mock_delay):

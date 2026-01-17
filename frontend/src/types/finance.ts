@@ -6,7 +6,7 @@
 // ==================== Enums ====================
 
 export type TransactionType = 'labor' | 'parts' | 'third_party' | 'adjustment';
-export type TransactionCategory = 'preventive' | 'corrective' | 'predictive' | 'other';
+export type TransactionCategory = 'preventive' | 'corrective' | 'predictive' | 'improvement' | 'contracts' | 'parts' | 'energy' | 'other';
 export type CommitmentStatus = 'draft' | 'submitted' | 'approved' | 'cancelled' | 'converted';
 export type SavingsConfidence = 'high' | 'med' | 'low';
 export type SavingsEventType = 'avoided_failure' | 'energy_saving' | 'lifespan_extension' | 'other';

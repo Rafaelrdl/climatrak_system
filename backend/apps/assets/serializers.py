@@ -15,6 +15,13 @@ Classes:
 from rest_framework import serializers
 
 from .models import Asset, AssetType, Device, Sensor, Site
+from .serializers_mixins import (
+    AssetTypeDisplayMixin,
+    company_id_from_asset,
+    company_name_from_asset,
+    device_display_name,
+    device_display_name_from_device,
+)
 
 
 class AssetTypeSerializer(serializers.ModelSerializer):
@@ -91,7 +98,7 @@ class SiteSerializer(serializers.ModelSerializer):
         return obj.assets.filter(status__in=["OK", "MAINTENANCE", "ALERT"]).count()
 
 
-class AssetListSerializer(serializers.ModelSerializer):
+class AssetListSerializer(AssetTypeDisplayMixin, serializers.ModelSerializer):
     """
     Serializer simplificado para listagem de Assets.
 
@@ -164,20 +171,6 @@ class AssetListSerializer(serializers.ModelSerializer):
             "subsection_name",
         ]
 
-    def get_asset_type_display(self, obj):
-        """
-        Retorna o nome legível do tipo de ativo.
-        Busca na tabela AssetType pelo código, se não encontrar usa o código direto.
-        """
-        if not obj.asset_type:
-            return None
-        # Tenta buscar na tabela de tipos
-        asset_type = AssetType.objects.filter(code=obj.asset_type).first()
-        if asset_type:
-            return asset_type.name
-        # Fallback para o display do choices do modelo
-        return obj.get_asset_type_display()
-
     def get_device_count(self, obj):
         """Retorna o número de dispositivos conectados a este ativo."""
         if hasattr(obj, "total_device_count"):
@@ -186,14 +179,10 @@ class AssetListSerializer(serializers.ModelSerializer):
 
     def get_company_id(self, obj):
         """Retorna o ID da empresa via setor."""
-        if obj.sector and obj.sector.company:
-            return obj.sector.company.id
-        if obj.subsection and obj.subsection.sector and obj.subsection.sector.company:
-            return obj.subsection.sector.company.id
-        return None
+        return company_id_from_asset(obj)
 
 
-class AssetSerializer(serializers.ModelSerializer):
+class AssetSerializer(AssetTypeDisplayMixin, serializers.ModelSerializer):
     """
     Serializer completo para o modelo Asset.
 
@@ -310,25 +299,7 @@ class AssetSerializer(serializers.ModelSerializer):
 
     def get_company_id(self, obj):
         """Retorna o ID da empresa via setor."""
-        if obj.sector and obj.sector.company:
-            return obj.sector.company.id
-        if obj.subsection and obj.subsection.sector and obj.subsection.sector.company:
-            return obj.subsection.sector.company.id
-        return None
-
-    def get_asset_type_display(self, obj):
-        """
-        Retorna o nome legível do tipo de ativo.
-        Busca na tabela AssetType pelo código, se não encontrar usa o código direto.
-        """
-        if not obj.asset_type:
-            return None
-        # Tenta buscar na tabela de tipos
-        asset_type = AssetType.objects.filter(code=obj.asset_type).first()
-        if asset_type:
-            return asset_type.name
-        # Fallback para o display do choices do modelo
-        return obj.get_asset_type_display()
+        return company_id_from_asset(obj)
 
     def get_device_count(self, obj):
         """
@@ -502,19 +473,11 @@ class AssetCompleteSerializer(serializers.ModelSerializer):
 
     def get_company_id(self, obj):
         """Obtém o ID da empresa do setor"""
-        if obj.sector and obj.sector.company:
-            return obj.sector.company.id
-        if obj.subsection and obj.subsection.sector and obj.subsection.sector.company:
-            return obj.subsection.sector.company.id
-        return None
+        return company_id_from_asset(obj)
 
     def get_company_name(self, obj):
         """Obtém o nome da empresa do setor"""
-        if obj.sector and obj.sector.company:
-            return obj.sector.company.name
-        if obj.subsection and obj.subsection.sector and obj.subsection.sector.company:
-            return obj.subsection.sector.company.name
-        return None
+        return company_name_from_asset(obj)
 
     def get_device_count(self, obj):
         """Total de dispositivos ativos."""
@@ -557,31 +520,35 @@ class AssetCompleteSerializer(serializers.ModelSerializer):
 
         readings = {}
 
-        # Buscar sensores ativos do asset
-        sensors = list(
-            Sensor.objects.filter(device__asset=obj, is_active=True).select_related(
-                "device"
+        sensors = []
+        devices = getattr(obj, "devices", None)
+        if devices is not None:
+            for device in devices.all():
+                sensors.extend(list(device.sensors.all()))
+        if not sensors:
+            sensors = list(
+                Sensor.objects.filter(device__asset=obj, is_active=True).select_related(
+                    "device"
+                )
             )
-        )
 
         if not sensors:
             return readings
 
-        sensor_ids = [str(sensor.id) for sensor in sensors]
-
-        # Buscar a última leitura de cada sensor em uma única query
-        latest_readings = (
-            Reading.objects.filter(sensor_id__in=sensor_ids)
-            .order_by("sensor_id", "-ts")
-            .distinct("sensor_id")
-        )
-
-        latest_by_sensor = {
-            str(reading.sensor_id): reading for reading in latest_readings
-        }
+        sensor_tags = [sensor.tag for sensor in sensors if sensor.tag]
+        latest_by_sensor = self.context.get("latest_readings_by_sensor")
+        if latest_by_sensor is None:
+            latest_readings = (
+                Reading.objects.filter(sensor_id__in=sensor_tags)
+                .order_by("sensor_id", "-ts")
+                .distinct("sensor_id")
+            )
+            latest_by_sensor = {
+                str(reading.sensor_id): reading for reading in latest_readings
+            }
 
         for sensor in sensors:
-            last_reading = latest_by_sensor.get(str(sensor.id))
+            last_reading = latest_by_sensor.get(sensor.tag)
 
             if last_reading:
                 metric_key = (
@@ -606,6 +573,11 @@ class AssetCompleteSerializer(serializers.ModelSerializer):
         """Número de alertas ativos (não resolvidos e não reconhecidos)."""
         from apps.alerts.models import Alert
 
+        if hasattr(obj, "alert_count") and obj.alert_count is not None:
+            return obj.alert_count
+        alert_map = self.context.get("alert_count_by_asset_tag")
+        if alert_map is not None:
+            return alert_map.get(obj.tag, 0)
         return Alert.objects.filter(
             asset_tag=obj.tag, resolved=False, acknowledged=False
         ).count()
@@ -668,9 +640,7 @@ class DeviceListSerializer(serializers.ModelSerializer):
 
         Regra: Últimos 4 caracteres do serial_number
         """
-        if obj.serial_number and len(obj.serial_number) > 4:
-            return f"Device {obj.serial_number[-4:]}"
-        return obj.name or obj.serial_number
+        return device_display_name(obj.serial_number, obj.name)
 
 
 class DeviceSerializer(serializers.ModelSerializer):
@@ -816,12 +786,7 @@ class SensorListSerializer(serializers.ModelSerializer):
 
         Regra: Últimos 4 caracteres do serial_number
         """
-        if obj.device and obj.device.serial_number:
-            serial = obj.device.serial_number
-            if len(serial) > 4:
-                return f"Device {serial[-4:]}"
-            return serial
-        return obj.device.name if obj.device else "N/A"
+        return device_display_name_from_device(obj.device)
 
 
 class SensorSerializer(serializers.ModelSerializer):
@@ -913,12 +878,7 @@ class SensorSerializer(serializers.ModelSerializer):
 
         Regra: Últimos 4 caracteres do serial_number
         """
-        if obj.device and obj.device.serial_number:
-            serial = obj.device.serial_number
-            if len(serial) > 4:
-                return f"Device {serial[-4:]}"
-            return serial
-        return obj.device.name if obj.device else "N/A"
+        return device_display_name_from_device(obj.device)
 
     def validate(self, data):
         """Validações adicionais do modelo."""
@@ -1137,9 +1097,7 @@ class DeviceSummarySerializer(serializers.ModelSerializer):
 
         Regra: Últimos 4 caracteres do serial_number
         """
-        if obj.serial_number and len(obj.serial_number) > 4:
-            return f"Device {obj.serial_number[-4:]}"
-        return obj.name or obj.serial_number
+        return device_display_name(obj.serial_number, obj.name)
 
     def get_total_variables_count(self, obj):
         """Retorna o número total de variáveis/sensores."""

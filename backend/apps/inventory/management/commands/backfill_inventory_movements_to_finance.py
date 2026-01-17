@@ -82,10 +82,11 @@ class Command(BaseCommand):
                 self.style.WARNING(f"\n📍 Processando tenant: {tenant.schema_name} ({tenant.name})")
             )
 
-            # Filtrar movimentações (apenas ENTRADAS geram custo)
+            # Filtrar movimentações (IN, OUT, ADJUSTMENT geram transação)
             queryset = InventoryMovement.objects.filter(
                 type__in=[
-                    InventoryMovement.MovementType.IN,  # Compras = custo
+                    InventoryMovement.MovementType.IN,  # Compras = custo (Lançamentos)
+                    InventoryMovement.MovementType.OUT,  # Consumo = uso operacional (Operação)
                     InventoryMovement.MovementType.ADJUSTMENT,  # Ajustes
                 ]
             )

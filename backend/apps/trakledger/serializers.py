@@ -92,8 +92,15 @@ class CostCenterTreeSerializer(serializers.ModelSerializer):
         fields = ["id", "code", "name", "is_active", "children"]
 
     def get_children(self, obj):
+        children_map = self.context.get("children_map")
+        if children_map is not None:
+            children = children_map.get(obj.id, [])
+            return CostCenterTreeSerializer(
+                children, many=True, context=self.context
+            ).data
+
         children = obj.children.filter(is_active=True)
-        return CostCenterTreeSerializer(children, many=True).data
+        return CostCenterTreeSerializer(children, many=True, context=self.context).data
 
 
 class RateCardSerializer(serializers.ModelSerializer):
@@ -224,6 +231,8 @@ class BudgetEnvelopeSerializer(serializers.ModelSerializer):
         """Soma do planejado nos meses."""
         from django.db.models import Sum
 
+        if hasattr(obj, "months_total") and obj.months_total is not None:
+            return obj.months_total or 0
         return obj.months.aggregate(total=Sum("planned_amount"))["total"] or 0
 
 

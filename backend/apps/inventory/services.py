@@ -273,6 +273,13 @@ class InventoryFinanceIntegrationService:
             # TrakLedger não disponível neste tenant
             return None
         
+        # Obter informações da categoria de inventário
+        inventory_category_id = None
+        inventory_category_name = None
+        if movement.item.category:
+            inventory_category_id = str(movement.item.category.id)
+            inventory_category_name = movement.item.category.name
+        
         cost_transaction, created = CostTransaction.objects.get_or_create(
             idempotency_key=idempotency_key,
             defaults={
@@ -290,6 +297,8 @@ class InventoryFinanceIntegrationService:
                     'item_id': movement.item_id,
                     'item_code': movement.item.code,
                     'item_name': movement.item.name,
+                    'inventory_category_id': inventory_category_id,
+                    'inventory_category_name': inventory_category_name,
                     'quantity': str(movement.quantity),
                     'unit_cost': str(movement.unit_cost or 0),
                     'unit': movement.item.unit,
@@ -331,10 +340,8 @@ class InventoryFinanceIntegrationService:
         Mapeamento:
         - Se tem WorkOrder → preventive/corrective (conforme WO.type)
         - Se reason == WORK_ORDER → preventive (default)
-        - Outros → other
+        - Para movimentos de inventário sem OS → parts
         """
-        from apps.trakledger.models import CostTransaction
-        
         if movement.work_order:
             # Mapear tipo de OS para categoria Finance
             # Exemplo: WO.type = 'preventive' → 'preventive'
@@ -345,8 +352,8 @@ class InventoryFinanceIntegrationService:
         if movement.reason == InventoryMovement.Reason.WORK_ORDER:
             return 'preventive'  # Default para consumos ligados a OS
         
-        # Default
-        return 'other'
+        # Para movimentos de inventário sem OS, usar 'parts'
+        return 'parts'
 
     @classmethod
     def _get_cost_center_for_movement(cls, movement: InventoryMovement) -> Optional[str]:
