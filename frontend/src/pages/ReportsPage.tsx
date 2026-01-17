@@ -124,14 +124,6 @@ const reportTemplates: ReportTemplate[] = [
     topicLabel: 'Conformidade',
   },
   {
-    id: 'conformidade-anvisa',
-    name: 'Conformidade ANVISA',
-    description: 'Relatório de conformidade com normas da ANVISA para ambientes climatizados',
-    icon: Shield,
-    topic: 'conformidade',
-    topicLabel: 'Conformidade',
-  },
-  {
     id: 'qualidade-ar',
     name: 'Qualidade do Ar Interior (QAI)',
     description: 'Análise de parâmetros de qualidade do ar conforme ABNT NBR 16401',
