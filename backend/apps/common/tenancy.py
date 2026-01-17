@@ -32,5 +32,6 @@ def get_tenant_by_schema(schema_name: str) -> Tenant | None:
     if not schema_name:
         return None
     public_schema = get_public_schema_name()
+    normalized = schema_name.strip().lower().replace("-", "_")
     with schema_context(public_schema):
-        return Tenant.objects.filter(schema_name=schema_name).first()
+        return Tenant.objects.filter(schema_name__iexact=normalized).first()

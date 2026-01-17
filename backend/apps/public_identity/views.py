@@ -397,10 +397,21 @@ class CurrentUserView(APIView):
 
         if not tenant or connection.schema_name == "public":
             token = getattr(request, "auth", None)
-            token_schema = token.get("tenant_schema") if isinstance(token, dict) else None
+            token_schema = None
+            if token is not None:
+                token_schema = getattr(token, "get", lambda _key: None)(
+                    "tenant_schema"
+                )
             tenant = get_tenant_by_schema(token_schema) if token_schema else None
 
         if not tenant:
+            logger.warning(
+                "CurrentUserView: tenant not identified",
+                extra={
+                    "request_schema": connection.schema_name,
+                    "token_schema": token_schema,
+                },
+            )
             return Response(
                 {"error": "Tenant nao identificado"}, status=status.HTTP_400_BAD_REQUEST
             )
