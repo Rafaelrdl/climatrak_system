@@ -4,6 +4,7 @@ Serializers para Inventory
 
 from decimal import Decimal
 
+from django.db import models
 from rest_framework import serializers
 
 from .models import (
@@ -399,13 +400,21 @@ class InventoryCountSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_by", "started_at", "completed_at"]
 
     def get_item_count(self, obj):
+        if hasattr(obj, "item_count"):
+            return obj.item_count
         return obj.items.count()
 
     def get_counted_count(self, obj):
+        if hasattr(obj, "counted_count"):
+            return obj.counted_count
         return obj.items.filter(is_counted=True).count()
 
     def get_discrepancy_count(self, obj):
-        return sum(1 for item in obj.items.all() if item.has_discrepancy)
+        if hasattr(obj, "discrepancy_count"):
+            return obj.discrepancy_count
+        return obj.items.filter(
+            counted_quantity__isnull=False
+        ).exclude(counted_quantity=models.F("expected_quantity")).count()
 
 
 class InventoryCountListSerializer(serializers.ModelSerializer):
