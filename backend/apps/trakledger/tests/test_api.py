@@ -188,7 +188,8 @@ class CostCenterAPITests(BaseFinanceAPITestCase):
         request = self.factory.get("/api/finance/cost-centers/tree/")
         force_authenticate(request, user=self.user)
         view = CostCenterViewSet.as_view({"get": "tree"})
-        response = view(request)
+        with self.assertNumQueries(1):
+            response = view(request)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)

@@ -4,12 +4,20 @@ Celery configuration for TrakSense backend.
 This module sets up Celery for async tasks, workers, and schedulers.
 """
 
+import logging
 import os
 
 from celery import Celery
 
-# Set default Django settings module
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
+logger = logging.getLogger(__name__)
+
+settings_module = os.getenv("DJANGO_SETTINGS_MODULE")
+if not settings_module:
+    raise RuntimeError(
+        "DJANGO_SETTINGS_MODULE is not set. "
+        "Export it before starting Celery (e.g. config.settings.production)."
+    )
+os.environ["DJANGO_SETTINGS_MODULE"] = settings_module
 
 app = Celery("traksense")
 
@@ -24,4 +32,4 @@ app.autodiscover_tasks()
 @app.task(bind=True, ignore_result=True)
 def debug_task(self):
     """Debug task for testing Celery setup."""
-    print(f"Request: {self.request!r}")
+    logger.debug("Request: %r", self.request)

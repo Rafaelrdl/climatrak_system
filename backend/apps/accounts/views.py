@@ -2,6 +2,7 @@
 Authentication and user profile views.
 """
 
+import logging
 import uuid
 
 from django.conf import settings
@@ -30,6 +31,8 @@ COOKIE_HTTPONLY = True
 COOKIE_SAMESITE = "Lax"
 COOKIE_PATH = "/"
 COOKIE_DOMAIN = getattr(settings, "AUTH_COOKIE_DOMAIN", None)
+
+logger = logging.getLogger(__name__)
 
 
 class RegisterView(generics.CreateAPIView):
@@ -274,7 +277,7 @@ class CookieTokenRefreshView(TokenRefreshView):
                 }
 
                 if settings.DEBUG:
-                    print("✅ Token refresh successful (cookie-based)")
+                    logger.debug("Token refresh successful (cookie-based)")
 
         return response
 
@@ -464,7 +467,7 @@ class AvatarUploadView(APIView):
                         minio_client.remove_object(bucket_name, old_object_key)
                 except Exception as cleanup_error:
                     # Não falhar se a limpeza falhar
-                    print(f"Warning: Failed to delete old avatar: {cleanup_error}")
+                    logger.warning("Failed to delete old avatar: %s", cleanup_error)
 
             # Generate unique filename
             file_extension = avatar_file.name.split(".")[-1]
@@ -521,7 +524,9 @@ class AvatarUploadView(APIView):
                     minio_client.remove_object(bucket_name, old_object_key)
             except Exception as cleanup_error:
                 # Log mas não falhar a operação
-                print(f"Warning: Failed to delete avatar from storage: {cleanup_error}")
+                logger.warning(
+                    "Failed to delete avatar from storage: %s", cleanup_error
+                )
 
         request.user.avatar = None
         request.user.save(update_fields=["avatar"])

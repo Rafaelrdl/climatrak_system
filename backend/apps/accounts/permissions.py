@@ -8,6 +8,7 @@ membership, because connection.tenant may be a FakeTenant object when inside
 a tenant context.
 """
 
+from django.db import connection
 from rest_framework import permissions
 
 from apps.common.services.membership import get_current_tenant, get_public_membership

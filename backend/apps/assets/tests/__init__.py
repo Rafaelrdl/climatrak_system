@@ -1,0 +1,3 @@
+"""
+Assets app tests.
+"""

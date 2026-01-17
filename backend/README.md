@@ -319,6 +319,19 @@ tenants/{tenant_slug}/devices/{device_id}/sensors/{sensor_type}
 - `tenants/umc/devices/hvac-001/sensors/humidity`
 - `tenants/acme/devices/chiller-42/sensors/pressure`
 
+### Autenticacao do /ingest (HMAC)
+
+Cada device possui um segredo exclusivo (`Device.ingest_secret`). O cliente que envia
+telemetria para o endpoint `/ingest` deve incluir os headers:
+
+- `X-Tenant`: slug do tenant (ex: `umc`)
+- `X-Ingest-Timestamp`: unix timestamp (segundos)
+- `X-Ingest-Signature`: `HMAC-SHA256(secret, f\"{timestamp}.{raw_body}\")`
+
+O backend rejeita replay (janela configuravel via `INGEST_SIGNATURE_MAX_SKEW_SECONDS`
+e TTL de cache via `INGEST_REPLAY_TTL_SECONDS`). O segredo global legado so e aceito
+quando `INGEST_ALLOW_GLOBAL_SECRET=True` (dev/test).
+
 ### Publicando Mensagens (Teste)
 
 Você pode testar a ingestão usando qualquer cliente MQTT:
@@ -474,6 +487,19 @@ Todos os formulários incluem `{% csrf_token %}` e o middleware `CsrfViewMiddlew
     <!-- campos do formulário -->
 </form>
 ```
+
+#### JWT em cookies + CSRF (API)
+
+Quando o access token JWT vem de cookie (`access_token`), requisicoes mutantes
+(POST/PUT/PATCH/DELETE) exigem CSRF. Envie o cookie `csrftoken` e o header
+`X-CSRFToken` com o mesmo valor. Para SPAs, execute um GET inicial para receber
+o cookie CSRF antes de chamadas mutantes.
+
+#### Uploads
+
+Uploads de imagem sao validados no backend. Tipos permitidos e tamanho maximo
+sao controlados por `UPLOAD_ALLOWED_CONTENT_TYPES` e `UPLOAD_MAX_SIZE_BYTES`
+em `backend/.env.example`.
 
 ### Fluxo de Uso
 

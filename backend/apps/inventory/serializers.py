@@ -436,6 +436,8 @@ class InventoryCountListSerializer(serializers.ModelSerializer):
         ]
 
     def get_item_count(self, obj):
+        if hasattr(obj, "item_count"):
+            return obj.item_count
         return obj.items.count()
 
 
