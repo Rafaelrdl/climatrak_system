@@ -27,6 +27,7 @@ from django_tenants.utils import schema_context
 from .models import TenantMembership, TenantUserIndex, compute_email_hash
 from .serializers import LoginSerializer, SelectTenantSerializer
 from .services import TenantAuthService
+from apps.common.tenancy import get_tenant_by_schema
 
 logger = logging.getLogger(__name__)
 
@@ -395,8 +396,13 @@ class CurrentUserView(APIView):
         tenant = getattr(connection, "tenant", None)
 
         if not tenant or connection.schema_name == "public":
+            token = getattr(request, "auth", None)
+            token_schema = token.get("tenant_schema") if isinstance(token, dict) else None
+            tenant = get_tenant_by_schema(token_schema) if token_schema else None
+
+        if not tenant:
             return Response(
-                {"error": "Tenant não identificado"}, status=status.HTTP_400_BAD_REQUEST
+                {"error": "Tenant nao identificado"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         # Get role from TenantMembership

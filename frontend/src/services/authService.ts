@@ -1,7 +1,7 @@
 import { api } from '@/lib';
 import { updateTenantSlugCache } from '@/lib/tenantStorage';
 import { appStorage } from '@/lib/storage';
-import { getTenantConfig } from '@/lib/tenant';
+import { getTenantConfig, getTenantFromHostname } from '@/lib/tenant';
 import { useAuthStore } from '@/store/useAuthStore';
 import type { ApiUser } from '@/types/api';
 import type { User, UserRole } from '@/models/user';
@@ -172,7 +172,10 @@ export async function getCurrentSession(): Promise<{
     features?: TenantFeatures;
   };
 }> {
-  const { data } = await api.get('/auth/me/');
+  const authSnapshot = useAuthStore.getState();
+  const tenantSchema = authSnapshot.tenant?.schema_name || getTenantFromHostname();
+  const endpoint = tenantSchema ? '/auth/me/' : '/v2/auth/me/';
+  const { data } = await api.get(endpoint);
   const role = mapApiRoleToAppRole(data.tenant?.role);
   const user = mapApiUserToUser({ ...data.user, role });
   return {
