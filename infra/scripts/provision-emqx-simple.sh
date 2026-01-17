@@ -13,6 +13,16 @@ TOKEN=$(curl -sS -X POST 'http://emqx:18083/api/v5/login' \
 
 AUTH="Authorization: Bearer $TOKEN"
 
+# Body template (nao expandir ${...} no bash)
+read -r -d '' ACTION_BODY_TEMPLATE <<'EOF' || true
+{
+  "client_id": "${client_id}",
+  "topic": "${topic}",
+  "ts": ${ts},
+  "payload": ${payload}
+}
+EOF
+
 # 1. Criar Connector
 CONN_NAME="http_ingest_${TENANT}"
 echo ">>> Criando connector: $CONN_NAME"
@@ -27,24 +37,32 @@ curl -sS -X POST "http://emqx:18083/api/v5/connectors" \
 
 # 2. Criar Action
 ACTION_NAME="http_ingest_${TENANT}"
+ACTION_PAYLOAD="$(jq -nc \
+  --arg name "$ACTION_NAME" \
+  --arg connector "http:$CONN_NAME" \
+  --arg tenant "$TENANT" \
+  --arg body "$ACTION_BODY_TEMPLATE" \
+  '{
+    type: "http",
+    name: $name,
+    connector: $connector,
+    parameters: {
+      path: "/ingest",
+      method: "post",
+      headers: {
+        "content-type": "application/json",
+        "x-tenant": $tenant
+      },
+      body: $body
+    }
+  }'
+)"
+
 echo ">>> Criando action: $ACTION_NAME"
 curl -sS -X POST "http://emqx:18083/api/v5/actions" \
   -H "$AUTH" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"type\": \"http\",
-    \"name\": \"$ACTION_NAME\",
-    \"connector\": \"http:$CONN_NAME\",
-    \"parameters\": {
-      \"path\": \"/ingest\",
-      \"method\": \"post\",
-      \"headers\": {
-        \"content-type\": \"application/json\",
-        \"x-tenant\": \"$TENANT\"
-      },
-      \"body\": \"\${payload}\"
-    }
-  }" | jq -r '.name // .message'
+  -d "$ACTION_PAYLOAD" | jq -r '.name // .message'
 
 # 3. Criar Rule
 RULE_ID="r_${TENANT}_ingest"

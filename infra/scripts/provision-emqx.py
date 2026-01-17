@@ -22,6 +22,12 @@ def main():
     connector_name = f"http_ingest_{tenant_slug}"
     action_name = f"http_ingest_{tenant_slug}"
     rule_id = f"r_{tenant_slug}_ingest"
+    action_body = """{
+  "client_id": "${client_id}",
+  "topic": "${topic}",
+  "ts": ${ts},
+  "payload": ${payload}
+}"""
     
     # Login para obter token
     print(f">> Fazendo login no EMQX em {emqx_base_url}...")
@@ -103,7 +109,7 @@ def main():
                 "content-type": "application/json",
                 "x-tenant": tenant_slug
             },
-            "body": "${payload}",
+            "body": action_body,
             "max_retries": 3
         },
         "resource_opts": {

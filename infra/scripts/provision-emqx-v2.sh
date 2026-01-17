@@ -40,8 +40,8 @@ TENANT_HEADER_VAL="${TENANT_HEADER_VAL:-${TENANT}}"
 # Obs: este formato segue exatamente o que você pediu.
 read -r -d '' ACTION_BODY_TEMPLATE <<'EOF' || true
 {
-  "client_id": ${client_id},
-  "topic": ${topic},
+  "client_id": "${client_id}",
+  "topic": "${topic}",
   "ts": ${ts},
   "payload": ${payload}
 }

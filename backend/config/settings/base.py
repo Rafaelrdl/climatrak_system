@@ -6,6 +6,7 @@ https://docs.djangoproject.com/en/5.0/topics/settings/
 """
 
 import os
+import importlib.util
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -69,10 +70,17 @@ SHARED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "unfold",  # Must be before django.contrib.admin
-    "unfold.contrib.filters",  # Enhanced filters
-    "unfold.contrib.forms",  # Enhanced forms
-    "unfold.contrib.inlines",  # Enhanced inlines
+]
+
+if importlib.util.find_spec("unfold"):
+    SHARED_APPS += [
+        "unfold",  # Must be before django.contrib.admin
+        "unfold.contrib.filters",  # Enhanced filters
+        "unfold.contrib.forms",  # Enhanced forms
+        "unfold.contrib.inlines",  # Enhanced inlines
+    ]
+
+SHARED_APPS += [
     "django.contrib.admin",  # Admin only in public schema
     # Third-party
     "rest_framework",
@@ -555,6 +563,8 @@ UNFOLD = {
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": True,
     "SHOW_BACK_BUTTON": True,
+    # Dashboard customizado com cards por domínio
+    "DASHBOARD_CALLBACK": "apps.ops.admin_dashboard.dashboard_callback",
     # ==========================================================================
     # Login Page
     # ==========================================================================

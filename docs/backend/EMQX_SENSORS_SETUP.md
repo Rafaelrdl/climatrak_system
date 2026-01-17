@@ -106,7 +106,15 @@ Se preferir configuração manual no Dashboard do EMQX (http://localhost:18083):
      x-ingest-signature: ${signature}
      ```
    
-   - **Body**: `${payload}`
+   - **Body**:
+     ```json
+     {
+       "client_id": "${client_id}",
+       "topic": "${topic}",
+       "ts": ${ts},
+       "payload": ${payload}
+     }
+     ```
    - **Body Type**: `Plain Text`
 
 5. Clique em **Create**
@@ -285,4 +293,3 @@ mosquitto_pub \
 - Verifique a URL base do connector (http://api:8000 no Docker)
 - Teste se o backend está acessível: `docker exec -it climatrak-emqx curl http://api:8000/health`
 - Verifique os logs da Action no Dashboard do EMQX
-

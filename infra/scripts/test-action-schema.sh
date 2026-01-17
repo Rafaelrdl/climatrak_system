@@ -21,6 +21,6 @@ curl -sS -X POST "http://emqx:18083/api/v5/actions" \
         "content-type": "application/json",
         "x-tenant": "COMG"
       },
-      "body": "${payload}"
+      "body": "{\n  \"client_id\": \"${client_id}\",\n  \"topic\": \"${topic}\",\n  \"ts\": ${ts},\n  \"payload\": ${payload}\n}"
     }
   }' | jq '.'

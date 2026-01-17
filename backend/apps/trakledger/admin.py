@@ -1,7 +1,14 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 
-from apps.common.admin_base import BaseAdmin, BaseTabularInline
+from apps.common.admin_base import (
+    BaseAdmin,
+    BaseTabularInline,
+    TimestampedAdminMixin,
+    get_status_color,
+    status_badge,
+)
 
 from .models import BudgetEnvelope, BudgetMonth, BudgetPlan, CostCenter, RateCard
 
@@ -13,25 +20,26 @@ class CostCenterChildInline(BaseTabularInline):
     fields = ["code", "name", "is_active"]
     readonly_fields = ["code", "name"]
     show_change_link = True
-    verbose_name = "Centro de Custo Filho"
-    verbose_name_plural = "Centros de Custo Filhos"
+    verbose_name = _("Centro de Custo Filho")
+    verbose_name_plural = _("Centros de Custo Filhos")
 
 
 @admin.register(CostCenter)
-class CostCenterAdmin(BaseAdmin):
-    list_display = ["code", "name", "parent", "level", "is_active", "created_at"]
+class CostCenterAdmin(TimestampedAdminMixin, BaseAdmin):
+    list_display = ["code", "name", "parent_link", "level", "active_badge", "created_at"]
     list_filter = ["is_active", "created_at"]
     search_fields = ["code", "name", "description"]
+    list_select_related = ["parent", "created_by"]
     readonly_fields = ["id", "created_at", "updated_at", "level", "full_path"]
     autocomplete_fields = ["parent", "created_by"]
     inlines = [CostCenterChildInline]
 
     fieldsets = (
         (None, {"fields": ("id", "code", "name", "description")}),
-        ("Hierarquia", {"fields": ("parent", "level", "full_path")}),
-        ("Classificação", {"fields": ("tags", "is_active")}),
+        (_("Hierarquia"), {"fields": ("parent", "level", "full_path")}),
+        (_("Classificação"), {"fields": ("tags", "is_active")}),
         (
-            "Auditoria",
+            _("Auditoria"),
             {
                 "fields": ("created_by", "created_at", "updated_at"),
                 "classes": ("collapse",),
@@ -39,19 +47,39 @@ class CostCenterAdmin(BaseAdmin):
         ),
     )
 
+    def parent_link(self, obj):
+        if obj.parent:
+            return format_html(
+                '<a href="/admin/trakledger/costcenter/{}/change/">{}</a>',
+                obj.parent.pk,
+                obj.parent.code,
+            )
+        return "-"
+
+    parent_link.short_description = _("Pai")
+    parent_link.admin_order_field = "parent__code"
+
+    def active_badge(self, obj):
+        if obj.is_active:
+            return status_badge(_("Ativo"), get_status_color("active"), "✓")
+        return status_badge(_("Inativo"), get_status_color("inactive"), "✗")
+
+    active_badge.short_description = _("Status")
+    active_badge.admin_order_field = "is_active"
+
     def level(self, obj):
         return obj.level
 
-    level.short_description = "Nível"
+    level.short_description = _("Nível")
 
     def full_path(self, obj):
         return obj.full_path
 
-    full_path.short_description = "Caminho Completo"
+    full_path.short_description = _("Caminho Completo")
 
 
 @admin.register(RateCard)
-class RateCardAdmin(BaseAdmin):
+class RateCardAdmin(TimestampedAdminMixin, BaseAdmin):
     list_display = [
         "role",
         "role_code",
@@ -59,25 +87,34 @@ class RateCardAdmin(BaseAdmin):
         "currency",
         "effective_from",
         "effective_to",
-        "is_active",
+        "active_badge",
     ]
     list_filter = ["is_active", "currency", "effective_from"]
     search_fields = ["role", "role_code", "description"]
+    list_select_related = ["created_by"]
     readonly_fields = ["id", "created_at", "updated_at"]
     autocomplete_fields = ["created_by"]
 
     fieldsets = (
         (None, {"fields": ("id", "role", "role_code", "description")}),
-        ("Custo", {"fields": ("cost_per_hour", "currency")}),
-        ("Vigência", {"fields": ("effective_from", "effective_to", "is_active")}),
+        (_("Custo"), {"fields": ("cost_per_hour", "currency")}),
+        (_("Vigência"), {"fields": ("effective_from", "effective_to", "is_active")}),
         (
-            "Auditoria",
+            _("Auditoria"),
             {
                 "fields": ("created_by", "created_at", "updated_at"),
                 "classes": ("collapse",),
             },
         ),
     )
+
+    def active_badge(self, obj):
+        if obj.is_active:
+            return status_badge(_("Ativo"), get_status_color("active"), "✓")
+        return status_badge(_("Inativo"), get_status_color("inactive"), "✗")
+
+    active_badge.short_description = _("Status")
+    active_badge.admin_order_field = "is_active"
 
 
 class BudgetEnvelopeInline(BaseTabularInline):
@@ -89,34 +126,48 @@ class BudgetEnvelopeInline(BaseTabularInline):
 
 
 @admin.register(BudgetPlan)
-class BudgetPlanAdmin(BaseAdmin):
+class BudgetPlanAdmin(TimestampedAdminMixin, BaseAdmin):
     list_display = [
         "code",
         "name",
         "year",
-        "status",
+        "status_badge",
         "total_planned",
         "currency",
         "created_at",
     ]
     list_filter = ["status", "year", "created_at"]
     search_fields = ["code", "name", "description"]
+    list_select_related = ["created_by"]
     readonly_fields = ["id", "total_planned", "created_at", "updated_at"]
     autocomplete_fields = ["created_by"]
     inlines = [BudgetEnvelopeInline]
 
     fieldsets = (
         (None, {"fields": ("id", "code", "name", "description")}),
-        ("Período", {"fields": ("year", "start_date", "end_date")}),
-        ("Valores", {"fields": ("total_planned", "currency", "status")}),
+        (_("Período"), {"fields": ("year", "start_date", "end_date")}),
+        (_("Valores"), {"fields": ("total_planned", "currency", "status")}),
         (
-            "Auditoria",
+            _("Auditoria"),
             {
                 "fields": ("created_by", "created_at", "updated_at"),
                 "classes": ("collapse",),
             },
         ),
     )
+
+    def status_badge(self, obj):
+        colors = {
+            "draft": "neutral",
+            "approved": "success",
+            "active": "info",
+            "closed": "warning",
+        }
+        color = get_status_color(colors.get(obj.status, "neutral"))
+        return status_badge(obj.get_status_display(), color)
+
+    status_badge.short_description = _("Status")
+    status_badge.admin_order_field = "status"
 
 
 class BudgetMonthInline(BaseTabularInline):
@@ -127,42 +178,76 @@ class BudgetMonthInline(BaseTabularInline):
 
 
 @admin.register(BudgetEnvelope)
-class BudgetEnvelopeAdmin(BaseAdmin):
+class BudgetEnvelopeAdmin(TimestampedAdminMixin, BaseAdmin):
     list_display = [
         "name",
-        "budget_plan",
-        "cost_center",
+        "budget_plan_link",
+        "cost_center_link",
         "category",
         "amount",
-        "is_active",
+        "active_badge",
     ]
     list_filter = ["category", "is_active", "budget_plan__year"]
     search_fields = ["name", "description", "cost_center__name", "budget_plan__name"]
+    list_select_related = ["budget_plan", "cost_center"]
     readonly_fields = ["id", "created_at", "updated_at"]
     autocomplete_fields = ["budget_plan", "cost_center"]
     inlines = [BudgetMonthInline]
 
     fieldsets = (
         (None, {"fields": ("id", "name", "description")}),
-        ("Relacionamentos", {"fields": ("budget_plan", "cost_center", "category")}),
-        ("Valores", {"fields": ("amount", "currency", "is_active")}),
+        (_("Relacionamentos"), {"fields": ("budget_plan", "cost_center", "category")}),
+        (_("Valores"), {"fields": ("amount", "currency", "is_active")}),
         (
-            "Auditoria",
+            _("Auditoria"),
             {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
         ),
     )
 
+    def budget_plan_link(self, obj):
+        if obj.budget_plan:
+            return format_html(
+                '<a href="/admin/trakledger/budgetplan/{}/change/">{}</a>',
+                obj.budget_plan.pk,
+                obj.budget_plan.name,
+            )
+        return "-"
+
+    budget_plan_link.short_description = _("Plano")
+    budget_plan_link.admin_order_field = "budget_plan__name"
+
+    def cost_center_link(self, obj):
+        if obj.cost_center:
+            return format_html(
+                '<a href="/admin/trakledger/costcenter/{}/change/">{}</a>',
+                obj.cost_center.pk,
+                obj.cost_center.code,
+            )
+        return "-"
+
+    cost_center_link.short_description = _("Centro de Custo")
+    cost_center_link.admin_order_field = "cost_center__code"
+
+    def active_badge(self, obj):
+        if obj.is_active:
+            return status_badge(_("Ativo"), get_status_color("active"), "✓")
+        return status_badge(_("Inativo"), get_status_color("inactive"), "✗")
+
+    active_badge.short_description = _("Status")
+    active_badge.admin_order_field = "is_active"
+
 
 @admin.register(BudgetMonth)
-class BudgetMonthAdmin(BaseAdmin):
+class BudgetMonthAdmin(TimestampedAdminMixin, BaseAdmin):
     """
     Admin para BudgetMonth com proteção de meses bloqueados.
-    
+
     IMPORTANTE: Meses bloqueados (is_locked=True) não podem ser editados.
     Para correções, use o mecanismo de ajustes/adjustments.
     """
+
     list_display = [
-        "envelope",
+        "envelope_link",
         "month",
         "planned_amount",
         "lock_status_badge",
@@ -179,36 +264,44 @@ class BudgetMonthAdmin(BaseAdmin):
 
     fieldsets = (
         (None, {"fields": ("id", "envelope", "month")}),
-        ("Valores", {"fields": ("planned_amount",)}),
+        (_("Valores"), {"fields": ("planned_amount",)}),
         (
-            "🔒 Lock (Fechamento Mensal)",
+            _("🔒 Lock (Fechamento Mensal)"),
             {
                 "fields": ("is_locked", "locked_at", "locked_by"),
-                "description": "⚠️ ATENÇÃO: Meses bloqueados não podem ser editados. "
-                "Use ajustes para correções.",
+                "description": _(
+                    "⚠️ ATENÇÃO: Meses bloqueados não podem ser editados. "
+                    "Use ajustes para correções."
+                ),
             },
         ),
         (
-            "Auditoria",
+            _("Auditoria"),
             {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
         ),
     )
 
     actions = ["lock_months", "unlock_months"]
 
+    def envelope_link(self, obj):
+        if obj.envelope:
+            return format_html(
+                '<a href="/admin/trakledger/budgetenvelope/{}/change/">{}</a>',
+                obj.envelope.pk,
+                obj.envelope.name,
+            )
+        return "-"
+
+    envelope_link.short_description = _("Envelope")
+    envelope_link.admin_order_field = "envelope__name"
+
     def lock_status_badge(self, obj):
         """Badge visual para status de lock."""
         if obj.is_locked:
-            return format_html(
-                '<span style="background-color: #ef4444; color: white; padding: 4px 8px; '
-                'border-radius: 4px; font-size: 11px;">🔒 BLOQUEADO</span>'
-            )
-        return format_html(
-            '<span style="background-color: #10b981; color: white; padding: 4px 8px; '
-            'border-radius: 4px; font-size: 11px;">✅ ABERTO</span>'
-        )
+            return status_badge(_("BLOQUEADO"), get_status_color("locked"), "🔒")
+        return status_badge(_("ABERTO"), get_status_color("success"), "✅")
 
-    lock_status_badge.short_description = "Status"
+    lock_status_badge.short_description = _("Status")
     lock_status_badge.admin_order_field = "is_locked"
 
     def get_readonly_fields(self, request, obj=None):
@@ -231,7 +324,7 @@ class BudgetMonthAdmin(BaseAdmin):
             return False
         return super().has_delete_permission(request, obj)
 
-    @admin.action(description="🔒 Bloquear meses selecionados")
+    @admin.action(description=_("🔒 Bloquear meses selecionados"))
     def lock_months(self, request, queryset):
         locked_count = 0
         for month in queryset:
@@ -240,20 +333,20 @@ class BudgetMonthAdmin(BaseAdmin):
                 locked_count += 1
         self.message_user(
             request,
-            f"✅ {locked_count} mês(es) bloqueado(s) com sucesso.",
+            _("✅ %(count)d mês(es) bloqueado(s) com sucesso.") % {"count": locked_count},
             level="success" if locked_count > 0 else "warning",
         )
 
-    @admin.action(description="🔓 Desbloquear meses (requer superuser)")
+    @admin.action(description=_("🔓 Desbloquear meses (requer superuser)"))
     def unlock_months(self, request, queryset):
         if not request.user.is_superuser:
             self.message_user(
                 request,
-                "❌ Apenas superusuários podem desbloquear meses.",
+                _("❌ Apenas superusuários podem desbloquear meses."),
                 level="error",
             )
             return
-        
+
         unlocked_count = 0
         for month in queryset:
             if month.is_locked:
@@ -261,7 +354,10 @@ class BudgetMonthAdmin(BaseAdmin):
                 unlocked_count += 1
         self.message_user(
             request,
-            f"⚠️ {unlocked_count} mês(es) desbloqueado(s). "
-            "Lembre-se: alterações em meses já fechados podem afetar relatórios.",
+            _(
+                "⚠️ %(count)d mês(es) desbloqueado(s). "
+                "Lembre-se: alterações em meses já fechados podem afetar relatórios."
+            )
+            % {"count": unlocked_count},
             level="warning",
         )

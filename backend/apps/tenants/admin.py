@@ -14,7 +14,10 @@ from django.utils.html import format_html
 
 from django_tenants.admin import TenantAdminMixin
 from django_tenants.utils import get_public_schema_name, schema_context
-from unfold.admin import ModelAdmin
+try:
+    from unfold.admin import ModelAdmin
+except ModuleNotFoundError:
+    from django.contrib.admin import ModelAdmin
 
 from .models import Domain, Tenant
 
@@ -982,17 +985,18 @@ class DomainAdmin(ModelAdmin):
 # =============================================================================
 
 from .features import DEFAULT_FEATURES, TenantFeature
+from apps.common.admin_base import BaseAdmin, TimestampedAdminMixin, get_status_color, status_badge
 
 
 @admin.register(TenantFeature)
-class TenantFeatureAdmin(ModelAdmin):
+class TenantFeatureAdmin(TimestampedAdminMixin, BaseAdmin):
     """Admin interface for TenantFeature model."""
 
     list_display = ["tenant_name", "feature_key", "enabled_badge", "updated_at"]
     list_filter = ["enabled", "feature_key", "tenant"]
     search_fields = ["tenant__name", "tenant__slug", "feature_key"]
-    list_editable = ["enabled_badge"]
-    raw_id_fields = ["tenant"]
+    list_select_related = ["tenant"]
+    autocomplete_fields = ["tenant"]
     list_per_page = 50
     ordering = ["tenant__name", "feature_key"]
 
@@ -1014,9 +1018,6 @@ class TenantFeatureAdmin(ModelAdmin):
     )
     readonly_fields = ["created_at", "updated_at"]
 
-    # Remove list_editable and use custom action instead
-    list_editable = []
-
     def tenant_name(self, obj):
         """Display tenant name with link."""
         return format_html(
@@ -1032,10 +1033,8 @@ class TenantFeatureAdmin(ModelAdmin):
     def enabled_badge(self, obj):
         """Display enabled status as badge."""
         if obj.enabled:
-            return format_html(
-                '<span style="color: #28a745; font-weight: bold;">✓ Enabled</span>'
-            )
-        return format_html('<span style="color: #dc3545;">✗ Disabled</span>')
+            return status_badge("Enabled", get_status_color("active"), "✓")
+        return status_badge("Disabled", get_status_color("inactive"), "✗")
 
     enabled_badge.short_description = "Status"
     enabled_badge.admin_order_field = "enabled"

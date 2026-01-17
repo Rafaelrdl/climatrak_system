@@ -32,6 +32,16 @@ INGEST_BASE_URL_DEFAULT="http://api:8000"
 INGEST_BASE_URL="${INGEST_BASE_URL:-$INGEST_BASE_URL_DEFAULT}"
 INGEST_PATH="${INGEST_PATH:-/ingest}"
 
+# Body template (nao expandir ${...} no bash)
+read -r -d '' ACTION_BODY_TEMPLATE <<'EOF' || true
+{
+  "client_id": "${client_id}",
+  "topic": "${topic}",
+  "ts": ${ts},
+  "payload": ${payload}
+}
+EOF
+
 # Nomes (com prefixo por tenant)
 CONNECTOR_NAME="http_ingest_${TENANT_SLUG}"
 ACTION_NAME="http_ingest_${TENANT_SLUG}"
@@ -115,6 +125,7 @@ if [[ "$(get_ok_or_404 "${EMQX_BASE_URL}/api/v5/actions/http:${ACTION_NAME}")" =
     --arg connector "http:${CONNECTOR_NAME}" \
     --arg path "$INGEST_PATH" \
     --arg tenant "$TENANT_SLUG" \
+    --arg body "$ACTION_BODY_TEMPLATE" \
     '{
       type: "http",
       name: $name,
@@ -126,7 +137,7 @@ if [[ "$(get_ok_or_404 "${EMQX_BASE_URL}/api/v5/actions/http:${ACTION_NAME}")" =
           "content-type": "application/json",
           "x-tenant": $tenant
         },
-        body: "${payload}",               # encaminha payload puro
+        body: $body,
         max_retries: 5,
         retry_interval: "5s",
         timeout: "10s"
