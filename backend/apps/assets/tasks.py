@@ -10,7 +10,7 @@ from django.utils import timezone
 from celery import shared_task
 from django_tenants.utils import schema_context
 
-from apps.tenants.models import Tenant
+from apps.common.tenancy import iter_tenants
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +49,7 @@ def check_sensors_online_status(self):
     }
 
     # Processar cada tenant
-    tenants = Tenant.objects.exclude(slug="public").all()
-
-    for tenant in tenants:
+    for tenant in iter_tenants():
         try:
             logger.info(f"  📊 Verificando tenant: {tenant.slug}")
 
@@ -140,9 +138,7 @@ def update_device_online_status(self):
         "errors": [],
     }
 
-    tenants = Tenant.objects.exclude(slug="public").all()
-
-    for tenant in tenants:
+    for tenant in iter_tenants():
         try:
             logger.info(f"  📊 Verificando tenant: {tenant.slug}")
 
@@ -221,9 +217,9 @@ def update_device_online_status(self):
 )
 def calculate_device_availability(self):
     """
-    Calcula a disponibilidade (%) de cada device nas últimas 24h.
+    Calcula a disponibilidade (%) de cada device nas ultimas 24h.
 
-    Fórmula simplificada baseada em status e last_seen:
+    Formula simplificada baseada em status e last_seen:
     - Se ONLINE e last_seen < 1h: 100%
     - Se ONLINE e last_seen < 6h: 95%
     - Se ONLINE e last_seen < 12h: 90%
@@ -231,15 +227,15 @@ def calculate_device_availability(self):
     - Se OFFLINE e last_seen < 24h: baseado no tempo offline
     - Se sem last_seen ou > 24h: 0%
 
-    Esta é uma aproximação. Para precisão total, seria necessário
-    um log histórico de mudanças de status.
+    Esta e uma aproximacao. Para precisao total, seria necessario
+    um log historico de mudancas de status.
 
-    Execução: A cada 1 hora (após update_device_online_status)
+    Execucao: A cada 1 hora (apos update_device_online_status)
 
     Returns:
-        dict: Estatísticas da execução
+        dict: Estatisticas da execucao
     """
-    logger.info("📊 Iniciando cálculo de disponibilidade de devices...")
+    logger.info("Iniciando calculo de disponibilidade de devices...")
 
     stats = {
         "total_tenants": 0,
@@ -247,24 +243,27 @@ def calculate_device_availability(self):
         "errors": [],
     }
 
-    tenants = Tenant.objects.exclude(slug="public").all()
     now = timezone.now()
 
-    for tenant in tenants:
+    for tenant in iter_tenants():
         try:
-            logger.info(f"  📊 Calculando disponibilidade para tenant: {tenant.slug}")
+            logger.info("  Calculando disponibilidade para tenant: %s", tenant.slug)
 
             with schema_context(tenant.schema_name):
                 from apps.assets.models import Device
 
-                devices = Device.objects.filter(is_active=True)
-                tenant_total = devices.count()
+                devices = list(
+                    Device.objects.filter(is_active=True).only(
+                        "id", "status", "last_seen", "availability"
+                    )
+                )
+                tenant_total = len(devices)
 
                 if tenant_total == 0:
-                    logger.info(f"    ℹ️  Nenhum device encontrado em {tenant.slug}")
+                    logger.info("    Nenhum device encontrado em %s", tenant.slug)
                     continue
 
-                updated_count = 0
+                updated_devices = []
 
                 for device in devices:
                     availability = 0.0
@@ -274,7 +273,6 @@ def calculate_device_availability(self):
                         hours_since_seen = time_since_seen.total_seconds() / 3600
 
                         if device.status == "ONLINE":
-                            # Device online - boa disponibilidade
                             if hours_since_seen < 1:
                                 availability = 100.0
                             elif hours_since_seen < 6:
@@ -286,9 +284,8 @@ def calculate_device_availability(self):
                             else:
                                 availability = 70.0
                         else:
-                            # Device offline - calcular baseado em tempo offline
                             if hours_since_seen < 1:
-                                availability = 95.0  # Acabou de cair
+                                availability = 95.0
                             elif hours_since_seen < 6:
                                 availability = 80.0
                             elif hours_since_seen < 12:
@@ -298,20 +295,29 @@ def calculate_device_availability(self):
                             else:
                                 availability = 0.0
                     else:
-                        # Sem histórico de last_seen
                         if device.status == "ONLINE":
-                            availability = 100.0  # Assumir online recente
+                            availability = 100.0
                         else:
                             availability = 0.0
 
-                    # Atualizar apenas se mudou
                     if device.availability != availability:
                         device.availability = availability
-                        device.save(update_fields=["availability", "updated_at"])
-                        updated_count += 1
+                        device.updated_at = now
+                        updated_devices.append(device)
+
+                if updated_devices:
+                    Device.objects.bulk_update(
+                        updated_devices,
+                        ["availability", "updated_at"],
+                        batch_size=500,
+                    )
+                updated_count = len(updated_devices)
 
                 logger.info(
-                    f"    ✅ {tenant.slug}: {updated_count}/{tenant_total} devices atualizados"
+                    "    %s: %s/%s devices atualizados",
+                    tenant.slug,
+                    updated_count,
+                    tenant_total,
                 )
 
                 stats["total_tenants"] += 1
@@ -319,13 +325,14 @@ def calculate_device_availability(self):
 
         except Exception as e:
             error_msg = f"Erro ao processar tenant {tenant.slug}: {str(e)}"
-            logger.error(f"    ❌ {error_msg}")
+            logger.error("    %s", error_msg)
             stats["errors"].append(error_msg)
             continue
 
     logger.info(
-        f"✅ Cálculo concluído: "
-        f"{stats['total_devices_updated']} devices atualizados em {stats['total_tenants']} tenants"
+        "Atualizacao concluida: %s devices em %s tenants",
+        stats["total_devices_updated"],
+        stats["total_tenants"],
     )
 
     return stats

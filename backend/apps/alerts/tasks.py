@@ -15,6 +15,8 @@ from django.utils import timezone
 
 from celery import shared_task
 
+from apps.common.tenancy import get_tenant_by_schema, iter_tenants
+
 logger = logging.getLogger(__name__)
 
 
@@ -118,145 +120,141 @@ def check_alert_cooldown(rule, parameter_key: str) -> Tuple[bool, str]:
     return True, "OK"
 
 
-@shared_task(name="alerts.evaluate_rules")
-def evaluate_rules_task():
-    """
-    Periodic task that evaluates all enabled rules against current telemetry data.
-
-    ⚠️ KNOWN LIMITATION (Nov 2025):
-    This task evaluates ALL tenants sequentially in a single Celery worker.
-    A slow tenant can block others. Audit recommendation: "Dividir em tarefas por
-    tenant ou processar em blocos (chunking)."
-
-    FUTURE ENHANCEMENT:
-    - Split into per-tenant Celery tasks: evaluate_rules_for_tenant.delay(tenant_id)
-    - Use Celery groups/chords for parallel execution
-    - Add timeout per tenant (e.g., 30s max)
-
-    For each rule:
-    1. Get the latest telemetry data for the equipment
-    2. Check if the condition is met (threshold exceeded)
-    3. Check if enough time has passed since last alert (cooldown)
-    4. Create alert if condition is met
-    5. Send notifications to users
-    """
+def _evaluate_rules_for_tenant(tenant_schema: str, tenant_slug: str):
     import time
 
     from django_tenants.utils import schema_context
 
     from apps.alerts.models import Rule
     from apps.alerts.services import NotificationService
-    from apps.tenants.models import Tenant
 
-    logger.info("Starting rule evaluation task...")
-
+    tenant_start_time = time.time()
     evaluated_count = 0
     triggered_count = 0
     error_count = 0
 
-    # 🔒 PERFORMANCE FIX #6: Prefetch to avoid N+1 queries
-    # Previously: Looped tenants synchronously, N+1 queries for parameters/readings
-    # Now: Prefetch related data and prepare for parallel execution
-    tenants = Tenant.objects.exclude(slug="public").all()
-
-    for tenant in tenants:
-        # 🔧 MONITORING: Track per-tenant execution time to identify bottlenecks
-        tenant_start_time = time.time()
-
-        try:
-            # 🔧 Usar schema_name (não slug) - suporta tenants com hífen
-            with schema_context(tenant.schema_name):
-                # 🔒 PREFETCH parameters and equipment to avoid N+1 queries
-                rules = (
-                    Rule.objects.filter(enabled=True)
-                    .select_related("equipment", "equipment__site")
-                    .prefetch_related(
-                        "parameters",  # Prefetch all rule parameters at once
-                        "equipment__devices",  # Prefetch devices
-                        "equipment__devices__sensors",  # Prefetch sensors
-                    )
+    try:
+        with schema_context(tenant_schema):
+            rules = (
+                Rule.objects.filter(enabled=True)
+                .select_related("equipment", "equipment__site")
+                .prefetch_related(
+                    "parameters",
+                    "equipment__devices",
+                    "equipment__devices__sensors",
                 )
+            )
 
-                if not rules.exists():
-                    logger.debug(f"No enabled rules found for tenant {tenant.slug}")
-                    continue
+            if not rules.exists():
+                logger.debug("No enabled rules found for tenant %s", tenant_slug)
+                return {
+                    "tenant": tenant_slug,
+                    "evaluated": 0,
+                    "triggered": 0,
+                    "errors": 0,
+                }
 
-                enabled_rule_ids = list(rules.values_list("id", "name", "enabled"))
-                logger.info(
-                    f"📋 Evaluating {rules.count()} ENABLED rules for tenant {tenant.slug}: "
-                    f"{', '.join([f'#{r[0]} {r[1]} (enabled={r[2]})' for r in enabled_rule_ids])}"
-                )
+            enabled_rule_ids = list(rules.values_list("id", "name", "enabled"))
+            logger.info(
+                "Evaluating %s enabled rules for tenant %s: %s",
+                rules.count(),
+                tenant_slug,
+                ", ".join(
+                    [f"#{r[0]} {r[1]} (enabled={r[2]})" for r in enabled_rule_ids]
+                ),
+            )
 
-                # 🔒 OPTIMIZATION: Reuse NotificationService instance (avoid recreating per rule)
-                notification_service = NotificationService()
+            notification_service = NotificationService()
 
-                for rule in rules:
-                    try:
-                        evaluated_count += 1
+            for rule in rules:
+                try:
+                    evaluated_count += 1
 
-                        # Evaluate the rule
-                        alert = evaluate_single_rule(rule)
+                    alert = evaluate_single_rule(rule)
 
-                        if alert:
-                            triggered_count += 1
-                            logger.info(
-                                f"Alert {alert.id} triggered for rule {rule.id} "
-                                f"({rule.name}) on equipment {rule.equipment.tag} "
-                                f"in tenant {tenant.slug}"
-                            )
-
-                            # Send notifications
-                            try:
-                                results = notification_service.send_alert_notifications(
-                                    alert
-                                )
-                                logger.info(
-                                    f"Notifications sent for alert {alert.id}: "
-                                    f"{len(results['sent'])} sent, "
-                                    f"{len(results['failed'])} failed, "
-                                    f"{len(results['skipped'])} skipped"
-                                )
-                            except Exception as e:
-                                logger.error(
-                                    f"Failed to send notifications for alert {alert.id}: {str(e)}"
-                                )
-                                error_count += 1
-
-                    except Exception as e:
-                        logger.error(
-                            f"Error evaluating rule {rule.id} in tenant {tenant.slug}: {str(e)}"
+                    if alert:
+                        triggered_count += 1
+                        logger.info(
+                            "Alert %s triggered for rule %s (%s) on equipment %s in tenant %s",
+                            alert.id,
+                            rule.id,
+                            rule.name,
+                            rule.equipment.tag,
+                            tenant_slug,
                         )
-                        error_count += 1
 
-        except Exception as e:
-            logger.error(f"Error processing tenant {tenant.slug}: {str(e)}")
-            error_count += 1
-            continue
-        finally:
-            # 🔧 MONITORING: Log per-tenant execution time (identify slow tenants)
-            tenant_duration = time.time() - tenant_start_time
-            if tenant_duration > 5.0:  # Warn if tenant takes >5s
-                logger.warning(
-                    f"⚠️ Slow tenant detected: {tenant.slug} took {tenant_duration:.2f}s "
-                    f"to evaluate {rules.count() if 'rules' in locals() else 0} rules"
-                )
-            else:
-                logger.debug(
-                    f"Tenant {tenant.slug} evaluated in {tenant_duration:.2f}s"
-                )
+                        try:
+                            results = notification_service.send_alert_notifications(
+                                alert
+                            )
+                            logger.info(
+                                "Notifications sent for alert %s: %s sent, %s failed, %s skipped",
+                                alert.id,
+                                len(results["sent"]),
+                                len(results["failed"]),
+                                len(results["skipped"]),
+                            )
+                        except Exception as e:
+                            logger.error(
+                                "Failed to send notifications for alert %s: %s",
+                                alert.id,
+                                str(e),
+                            )
+                            error_count += 1
 
-    logger.info(
-        f"Rule evaluation completed: "
-        f"{evaluated_count} evaluated, "
-        f"{triggered_count} triggered, "
-        f"{error_count} errors"
-    )
+                except Exception as e:
+                    logger.error(
+                        "Error evaluating rule %s in tenant %s: %s",
+                        rule.id,
+                        tenant_slug,
+                        str(e),
+                    )
+                    error_count += 1
+
+    except Exception as e:
+        logger.error("Error processing tenant %s: %s", tenant_slug, str(e))
+        error_count += 1
+
+    tenant_duration = time.time() - tenant_start_time
+    if tenant_duration > 5.0:
+        logger.warning(
+            "Slow tenant detected: %s took %.2fs to evaluate %s rules",
+            tenant_slug,
+            tenant_duration,
+            evaluated_count,
+        )
+    else:
+        logger.debug("Tenant %s evaluated in %.2fs", tenant_slug, tenant_duration)
 
     return {
+        "tenant": tenant_slug,
         "evaluated": evaluated_count,
         "triggered": triggered_count,
         "errors": error_count,
     }
+
+
+@shared_task(name="alerts.evaluate_rules_for_tenant", bind=True)
+def evaluate_rules_for_tenant(self, tenant_schema: str):
+    tenant = get_tenant_by_schema(tenant_schema)
+    if not tenant:
+        logger.error("Tenant not found for schema: %s", tenant_schema)
+        return {"tenant": tenant_schema, "evaluated": 0, "triggered": 0, "errors": 1}
+
+    return _evaluate_rules_for_tenant(tenant.schema_name, tenant.slug)
+
+
+@shared_task(name="alerts.evaluate_rules")
+def evaluate_rules_task():
+    """
+    Schedule per-tenant rule evaluations to avoid blocking other tenants.
+    """
+    tenants = list(iter_tenants())
+    for tenant in tenants:
+        evaluate_rules_for_tenant.delay(tenant.schema_name)
+
+    logger.info("Scheduled rule evaluation for %s tenants", len(tenants))
+    return {"scheduled": len(tenants), "tenants": len(tenants)}
 
 
 def evaluate_single_rule(rule):

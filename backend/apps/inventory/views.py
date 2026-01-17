@@ -431,6 +431,19 @@ class InventoryCountViewSet(viewsets.ModelViewSet):
     ordering_fields = ["name", "scheduled_date", "created_at"]
     ordering = ["-created_at"]
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        discrepancy_filter = Q(items__counted_quantity__isnull=False) & ~Q(
+            items__counted_quantity=F("items__expected_quantity")
+        )
+        return queryset.annotate(
+            item_count=Count("items", distinct=True),
+            counted_count=Count(
+                "items", filter=Q(items__is_counted=True), distinct=True
+            ),
+            discrepancy_count=Count("items", filter=discrepancy_filter, distinct=True),
+        )
+
     def get_serializer_class(self):
         if self.action == "list":
             return InventoryCountListSerializer
