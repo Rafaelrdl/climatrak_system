@@ -81,8 +81,10 @@ function WorkOrderPanelComponent({
 
     if (urlWorkOrderId) {
       const workOrder = getWorkOrderById(urlWorkOrderId);
-      if (workOrder && selectedWorkOrder !== workOrder) {
-        setSelectedWorkOrderRef.current(workOrder);
+      if (workOrder) {
+        if (selectedWorkOrder !== workOrder) {
+          setSelectedWorkOrderRef.current(workOrder);
+        }
       } else if (selectedWorkOrderId) {
         clearSelectionRef.current();
       }
@@ -92,8 +94,10 @@ function WorkOrderPanelComponent({
 
     if (selectedWorkOrderId) {
       const workOrder = getWorkOrderById(selectedWorkOrderId);
-      if (workOrder && selectedWorkOrder !== workOrder) {
-        setSelectedWorkOrderRef.current(workOrder);
+      if (workOrder) {
+        if (selectedWorkOrder !== workOrder) {
+          setSelectedWorkOrderRef.current(workOrder);
+        }
         return;
       }
 
