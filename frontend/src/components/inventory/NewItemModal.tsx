@@ -157,9 +157,9 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-5">
             {/* Nome */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 space-y-1.5">
               <Label htmlFor="name">Nome *</Label>
               <Input
                 id="name"
@@ -171,7 +171,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             </div>
 
             {/* Fabricante */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 space-y-1.5">
               <Label htmlFor="manufacturer">Fabricante</Label>
               <Input
                 id="manufacturer"
@@ -182,7 +182,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             </div>
 
             {/* Código */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="code">Código *</Label>
               <Input
                 id="code"
@@ -194,7 +194,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             </div>
 
             {/* Categoria */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="category">Categoria</Label>
               <Select value={formData.category_id} onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}>
                 <SelectTrigger id="category">
@@ -211,7 +211,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             </div>
 
             {/* Unidade */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="unit">Unidade *</Label>
               <Select value={formData.unit} onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}>
                 <SelectTrigger id="unit">
@@ -231,7 +231,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             </div>
 
             {/* Quantidade Inicial */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="quantity">Quantidade Inicial</Label>
               <Input
                 id="quantity"
@@ -244,7 +244,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             </div>
 
             {/* Quantidade Mínima */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="min-qty">Quantidade Mínima *</Label>
               <Input
                 id="min-qty"
@@ -258,7 +258,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             </div>
 
             {/* Quantidade Máxima */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="max-qty">Quantidade Máxima</Label>
               <Input
                 id="max-qty"
@@ -272,7 +272,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             </div>
 
             {/* Custo Unitário */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="unit-cost">Custo Unitário (R$)</Label>
               <Input
                 id="unit-cost"
@@ -286,7 +286,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             </div>
 
             {/* Local */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="location">Local</Label>
               <Input
                 id="location"
@@ -297,7 +297,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             </div>
 
             {/* Prateleira */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="shelf">Prateleira</Label>
               <Input
                 id="shelf"
@@ -308,7 +308,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             </div>
 
             {/* Posição */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="bin">Posição</Label>
               <Input
                 id="bin"
@@ -319,7 +319,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             </div>
 
             {/* Fornecedor */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="supplier">Fornecedor</Label>
               <Input
                 id="supplier"
@@ -330,7 +330,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             </div>
 
             {/* Descrição */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 space-y-1.5">
               <Label htmlFor="description">Descrição</Label>
               <Input
                 id="description"
@@ -341,7 +341,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             </div>
 
             {/* URL da Imagem */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 space-y-1.5">
               <Label htmlFor="image">URL da Imagem</Label>
               <Input
                 id="image"

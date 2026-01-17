@@ -145,9 +145,9 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-5">
             {/* Nome */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 space-y-1.5">
               <Label htmlFor="edit-name">Nome *</Label>
               <Input
                 id="edit-name"
@@ -159,7 +159,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             </div>
 
             {/* Fabricante */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 space-y-1.5">
               <Label htmlFor="edit-manufacturer">Fabricante</Label>
               <Input
                 id="edit-manufacturer"
@@ -170,7 +170,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             </div>
 
             {/* Código */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="edit-code">Código</Label>
               <Input
                 id="edit-code"
@@ -181,7 +181,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             </div>
 
             {/* Categoria */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="edit-category">Categoria</Label>
               <Select value={formData.category_id} onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}>
                 <SelectTrigger id="edit-category">
@@ -198,7 +198,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             </div>
 
             {/* Unidade */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="edit-unit">Unidade</Label>
               <Select value={formData.unit} onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}>
                 <SelectTrigger id="edit-unit">
@@ -218,7 +218,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             </div>
 
             {/* Estoque Atual (readonly) */}
-            <div>
+            <div className="space-y-1.5">
               <Label>Estoque Atual</Label>
               <div className="flex items-center gap-2 h-10 px-3 bg-muted rounded-md">
                 <span className="font-medium">{currentQty}</span>
@@ -230,7 +230,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             </div>
 
             {/* Quantidade Mínima */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="edit-min-qty">Quantidade Mínima *</Label>
               <Input
                 id="edit-min-qty"
@@ -244,7 +244,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             </div>
 
             {/* Quantidade Máxima */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="edit-max-qty">Quantidade Máxima</Label>
               <Input
                 id="edit-max-qty"
@@ -258,7 +258,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             </div>
 
             {/* Custo Unitário */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="edit-unit-cost">Custo Unitário (R$)</Label>
               <Input
                 id="edit-unit-cost"
@@ -272,7 +272,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             </div>
 
             {/* Local */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="edit-location">Local</Label>
               <Input
                 id="edit-location"
@@ -283,7 +283,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             </div>
 
             {/* Prateleira */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="edit-shelf">Prateleira</Label>
               <Input
                 id="edit-shelf"
@@ -294,7 +294,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             </div>
 
             {/* Posição */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="edit-bin">Posição</Label>
               <Input
                 id="edit-bin"
@@ -305,7 +305,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             </div>
 
             {/* Fornecedor */}
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="edit-supplier">Fornecedor</Label>
               <Input
                 id="edit-supplier"
@@ -316,7 +316,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             </div>
 
             {/* Descrição */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 space-y-1.5">
               <Label htmlFor="edit-description">Descrição</Label>
               <Input
                 id="edit-description"
@@ -327,7 +327,7 @@ export function EditItemModal({ item, categories, open, onOpenChange, onItemUpda
             </div>
 
             {/* URL da Imagem */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 space-y-1.5">
               <Label htmlFor="edit-image">URL da Imagem</Label>
               <Input
                 id="edit-image"

@@ -138,7 +138,7 @@ export function MoveItemModal({ item, open, onOpenChange, onItemMoved }: MoveIte
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Current Stock Info */}
           <div className="bg-muted/50 rounded-lg p-3">
             <div className="text-sm text-muted-foreground">Estoque atual</div>
@@ -156,7 +156,7 @@ export function MoveItemModal({ item, open, onOpenChange, onItemMoved }: MoveIte
           </div>
 
           {/* Movement Type */}
-          <div>
+          <div className="space-y-1.5">
             <Label htmlFor="move-type">Tipo de Movimentação *</Label>
             <Select 
               value={formData.type} 
@@ -183,7 +183,7 @@ export function MoveItemModal({ item, open, onOpenChange, onItemMoved }: MoveIte
           </div>
 
           {/* Reason */}
-          <div>
+          <div className="space-y-1.5">
             <Label htmlFor="move-reason">Motivo *</Label>
             <Select 
               value={formData.reason} 
@@ -201,7 +201,7 @@ export function MoveItemModal({ item, open, onOpenChange, onItemMoved }: MoveIte
           </div>
 
           {/* Quantity */}
-          <div>
+          <div className="space-y-1.5">
             <Label htmlFor="move-qty">Quantidade *</Label>
             <Input
               id="move-qty"
@@ -226,7 +226,7 @@ export function MoveItemModal({ item, open, onOpenChange, onItemMoved }: MoveIte
 
           {/* Unit Cost (only for entries) */}
           {formData.type === 'IN' && (
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="move-unit-cost">Custo Unitário (R$)</Label>
               <Input
                 id="move-unit-cost"
@@ -241,7 +241,7 @@ export function MoveItemModal({ item, open, onOpenChange, onItemMoved }: MoveIte
           )}
 
           {/* Reference */}
-          <div>
+          <div className="space-y-1.5">
             <Label htmlFor="move-reference">Referência</Label>
             <Input
               id="move-reference"
@@ -252,7 +252,7 @@ export function MoveItemModal({ item, open, onOpenChange, onItemMoved }: MoveIte
           </div>
 
           {/* Note */}
-          <div>
+          <div className="space-y-1.5">
             <Label htmlFor="move-note">Observação</Label>
             <Textarea
               id="move-note"
