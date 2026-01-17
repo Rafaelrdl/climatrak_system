@@ -50,8 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setFeatures(session.tenant.features);
       }
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
-        setSessionBlocked(true);
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        if (status === 401 || status === 404) {
+          setSessionBlocked(true);
+        }
       }
       clearSession();
     } finally {

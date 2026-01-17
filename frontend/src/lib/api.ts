@@ -125,6 +125,7 @@ api.interceptors.request.use(
 
 // Queue de requests pendentes durante refresh
 let isRefreshing = false;
+let refreshUnavailable = false;
 let failedQueue: Array<{
   resolve: (token: string | null) => void;
   reject: (error: AxiosError) => void;
@@ -139,6 +140,28 @@ const processQueue = (error: AxiosError | null, token: string | null = null) => 
     }
   });
   failedQueue = [];
+};
+
+const isAuthEndpoint = (url: string): boolean =>
+  url.includes('/v2/auth/') ||
+  url.includes('/auth/login/') ||
+  url.includes('/auth/token/refresh/') ||
+  url.includes('/auth/password-reset/');
+
+const handleUnauthenticated = () => {
+  const authSnapshot = getAuthSnapshot();
+  if (authSnapshot.tenant?.schema_name) {
+    appStorage.clearByScope({ tenant: authSnapshot.tenant.schema_name });
+  }
+  authSnapshot.clearSession();
+  appStorage.emitAuthEvent(
+    authSnapshot.tenant?.schema_name
+      ? { tenant: authSnapshot.tenant.schema_name }
+      : undefined
+  );
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('authChange'));
+  }
 };
 
 /**
@@ -158,8 +181,16 @@ api.interceptors.response.use(
       _retry?: boolean;
     };
 
+    const status = error.response?.status;
+    const requestUrl = originalRequest?.url ?? '';
+
     // 401 Unauthorized - Tentar refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      status === 401 &&
+      !originalRequest._retry &&
+      !refreshUnavailable &&
+      !isAuthEndpoint(requestUrl)
+    ) {
       if (isRefreshing) {
         // Aguardar refresh em andamento
         return new Promise((resolve, reject) => {
@@ -178,35 +209,49 @@ api.interceptors.response.use(
 
       try {
         // Tentar refresh do token (cookie-based)
-        // O refresh_token também é um cookie HttpOnly
-        const { data } = await axios.post(
+        // O refresh_token tamb?m ? um cookie HttpOnly
+        const refreshHeaders: Record<string, string> = {};
+        const authTenant = getAuthSnapshot().tenant;
+        const tenantSchema = authTenant?.schema_name || getTenantFromHostname();
+        if (tenantSchema && typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          const hostParts = hostname.split('.');
+          const hasSubdomain =
+            hostParts.length > 1 &&
+            hostParts[0] !== 'www' &&
+            hostParts[0] !== 'localhost';
+
+          if (!hasSubdomain) {
+            refreshHeaders['X-Tenant'] = tenantSchema;
+          }
+        }
+
+        await axios.post(
           `${api.defaults.baseURL}/auth/token/refresh/`,
           {},
-          { withCredentials: true }
+          { withCredentials: true, headers: refreshHeaders }
         );
 
-        processQueue(null, data.access);
+        processQueue(null, null);
         return api(originalRequest);
       } catch (refreshError) {
         // Refresh falhou - limpar tudo e redirecionar para login
         processQueue(refreshError as AxiosError, null);
-        
-        const authTenant = getAuthSnapshot().tenant;
-        if (authTenant?.schema_name) {
-          appStorage.clearByScope({ tenant: authTenant.schema_name });
+        const refreshStatus = (refreshError as AxiosError).response?.status;
+        if (refreshStatus === 404) {
+          refreshUnavailable = true;
         }
-        
-        // Redirecionar para login
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
-        
+        handleUnauthenticated();
+
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
 
+    if (status === 401 && !isAuthEndpoint(requestUrl)) {
+      handleUnauthenticated();
+    }
     // Log outros erros
     if (import.meta.env.DEV) {
       const url = originalRequest?.url || '';

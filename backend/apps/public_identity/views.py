@@ -36,6 +36,7 @@ COOKIE_SECURE = not settings.DEBUG
 COOKIE_HTTPONLY = True
 COOKIE_SAMESITE = "Lax"
 COOKIE_PATH = "/"
+COOKIE_DOMAIN = getattr(settings, "AUTH_COOKIE_DOMAIN", None)
 
 # Token lifetimes
 ACCESS_TOKEN_LIFETIME = timedelta(minutes=15)
@@ -48,30 +49,36 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
 
     Uses HttpOnly cookies for security (prevents XSS attacks).
     """
+    cookie_kwargs = {
+        "httponly": COOKIE_HTTPONLY,
+        "secure": COOKIE_SECURE,
+        "samesite": COOKIE_SAMESITE,
+        "path": COOKIE_PATH,
+    }
+    if COOKIE_DOMAIN:
+        cookie_kwargs["domain"] = COOKIE_DOMAIN
+
     response.set_cookie(
         key="access_token",
         value=access_token,
         max_age=int(ACCESS_TOKEN_LIFETIME.total_seconds()),
-        httponly=COOKIE_HTTPONLY,
-        secure=COOKIE_SECURE,
-        samesite=COOKIE_SAMESITE,
-        path=COOKIE_PATH,
+        **cookie_kwargs,
     )
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         max_age=int(REFRESH_TOKEN_LIFETIME.total_seconds()),
-        httponly=COOKIE_HTTPONLY,
-        secure=COOKIE_SECURE,
-        samesite=COOKIE_SAMESITE,
-        path=COOKIE_PATH,
+        **cookie_kwargs,
     )
 
 
 def clear_auth_cookies(response: Response):
     """Clear authentication cookies."""
-    response.delete_cookie("access_token", path=COOKIE_PATH)
-    response.delete_cookie("refresh_token", path=COOKIE_PATH)
+    delete_kwargs = {"path": COOKIE_PATH}
+    if COOKIE_DOMAIN:
+        delete_kwargs["domain"] = COOKIE_DOMAIN
+    response.delete_cookie("access_token", **delete_kwargs)
+    response.delete_cookie("refresh_token", **delete_kwargs)
 
 
 class TenantDiscoveryView(APIView):
@@ -494,14 +501,20 @@ class RefreshTokenView(APIView):
                 }
             )
 
+            cookie_kwargs = {
+                "httponly": COOKIE_HTTPONLY,
+                "secure": COOKIE_SECURE,
+                "samesite": COOKIE_SAMESITE,
+                "path": COOKIE_PATH,
+            }
+            if COOKIE_DOMAIN:
+                cookie_kwargs["domain"] = COOKIE_DOMAIN
+
             response.set_cookie(
                 key="access_token",
                 value=access_token,
                 max_age=int(ACCESS_TOKEN_LIFETIME.total_seconds()),
-                httponly=COOKIE_HTTPONLY,
-                secure=COOKIE_SECURE,
-                samesite=COOKIE_SAMESITE,
-                path=COOKIE_PATH,
+                **cookie_kwargs,
             )
 
             return response

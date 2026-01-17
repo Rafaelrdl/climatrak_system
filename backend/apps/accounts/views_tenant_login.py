@@ -16,6 +16,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.accounts.serializers import UserSerializer
 
+COOKIE_SECURE = not settings.DEBUG
+COOKIE_HTTPONLY = True
+COOKIE_SAMESITE = "Lax"
+COOKIE_PATH = "/"
+COOKIE_DOMAIN = getattr(settings, "AUTH_COOKIE_DOMAIN", None)
+
 
 @method_decorator(csrf_exempt, name="dispatch")
 class TenantLoginView(APIView):
@@ -125,21 +131,26 @@ class TenantLoginView(APIView):
         response = Response(response_data, status=status.HTTP_200_OK)
 
         # Set HttpOnly cookies
+        cookie_kwargs = {
+            "httponly": COOKIE_HTTPONLY,
+            "secure": COOKIE_SECURE,
+            "samesite": COOKIE_SAMESITE,
+            "path": COOKIE_PATH,
+        }
+        if COOKIE_DOMAIN:
+            cookie_kwargs["domain"] = COOKIE_DOMAIN
+
         response.set_cookie(
             key="access_token",
             value=str(refresh.access_token),
-            httponly=True,
-            secure=not settings.DEBUG,
-            samesite="Lax",
             max_age=3600,  # 1 hour
+            **cookie_kwargs,
         )
         response.set_cookie(
             key="refresh_token",
             value=str(refresh),
-            httponly=True,
-            secure=not settings.DEBUG,
-            samesite="Lax",
             max_age=604800,  # 7 days
+            **cookie_kwargs,
         )
 
         return response

@@ -58,7 +58,6 @@ class TenantHeaderMiddleware:
     EXEMPT_PATHS = [
         "/api/auth/login/",
         "/api/auth/register/",
-        "/api/auth/token/refresh/",
         "/api/auth/password-reset/",
         "/api/v2/auth/",
         "/api/health/",

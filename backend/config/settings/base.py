@@ -53,6 +53,11 @@ DEBUG = os.getenv("DEBUG", "False") == "True"
 # Allow X-Tenant header override only in dev/test.
 ALLOW_X_TENANT_HEADER = DEBUG and os.getenv("ALLOW_X_TENANT_HEADER", "False") == "True"
 
+# Domain for auth cookies (set to ".localhost" in dev to share across subdomains).
+AUTH_COOKIE_DOMAIN = os.getenv("AUTH_COOKIE_DOMAIN")
+if AUTH_COOKIE_DOMAIN == "":
+    AUTH_COOKIE_DOMAIN = None
+
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
 
 # Application definition

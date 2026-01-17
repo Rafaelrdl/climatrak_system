@@ -24,6 +24,13 @@ from apps.accounts.serializers import (
 )
 from apps.common.storage import get_minio_client
 
+# Cookie settings
+COOKIE_SECURE = not settings.DEBUG
+COOKIE_HTTPONLY = True
+COOKIE_SAMESITE = "Lax"
+COOKIE_PATH = "/"
+COOKIE_DOMAIN = getattr(settings, "AUTH_COOKIE_DOMAIN", None)
+
 
 class RegisterView(generics.CreateAPIView):
     """
@@ -138,8 +145,11 @@ class LogoutView(APIView):
             )
 
             # Clear cookies
-            response.delete_cookie("access_token")
-            response.delete_cookie("refresh_token")
+            delete_kwargs = {"path": COOKIE_PATH}
+            if COOKIE_DOMAIN:
+                delete_kwargs["domain"] = COOKIE_DOMAIN
+            response.delete_cookie("access_token", **delete_kwargs)
+            response.delete_cookie("refresh_token", **delete_kwargs)
 
             return response
 
@@ -241,13 +251,20 @@ class CookieTokenRefreshView(TokenRefreshView):
 
             if new_access_token:
                 # 🔐 Set new access token as HttpOnly cookie (not JSON)
+                cookie_kwargs = {
+                    "httponly": COOKIE_HTTPONLY,
+                    "secure": COOKIE_SECURE,
+                    "samesite": COOKIE_SAMESITE,
+                    "path": COOKIE_PATH,
+                }
+                if COOKIE_DOMAIN:
+                    cookie_kwargs["domain"] = COOKIE_DOMAIN
+
                 response.set_cookie(
                     key="access_token",
                     value=new_access_token,
-                    httponly=True,
-                    secure=not settings.DEBUG,
-                    samesite="Lax",
                     max_age=3600,  # 1 hour
+                    **cookie_kwargs,
                 )
 
                 # Remove token from JSON response (cookies only)

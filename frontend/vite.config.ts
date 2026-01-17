@@ -39,9 +39,10 @@ export default defineConfig({
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq, req) => {
             const hostname = req.headers.host || '';
-            const subdomain = hostname.split('.')[0];
+            const hostnameOnly = hostname.split(':')[0];
+            const subdomain = hostnameOnly.split('.')[0];
             const isSubdomain =
-              hostname.includes('.') && subdomain !== 'www' && subdomain !== 'localhost';
+              hostnameOnly.includes('.') && subdomain !== 'www' && subdomain !== 'localhost';
 
             const headerTenant =
               typeof req.headers['x-tenant'] === 'string' ? req.headers['x-tenant'] : undefined;
@@ -51,10 +52,14 @@ export default defineConfig({
               proxyReq.setHeader('X-Tenant', tenant);
             }
 
-            // Always proxy via public schema and use X-Tenant for dev routing.
-            proxyReq.setHeader('Host', 'localhost:8000');
+            const hostTarget = isSubdomain
+              ? `${hostnameOnly}:8000`
+              : tenant
+              ? `${tenant}.localhost:8000`
+              : 'localhost:8000';
+            proxyReq.setHeader('Host', hostTarget);
             console.log(
-              `[Vite Proxy] Host: localhost:8000, X-Tenant: ${tenant ?? 'none'}`
+              `[Vite Proxy] Host: ${hostTarget}, X-Tenant: ${tenant ?? 'none'}`
             );
           });
         },
