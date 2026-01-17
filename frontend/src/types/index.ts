@@ -148,7 +148,7 @@ export interface WorkOrder {
   id: string;
   number: string;
   equipmentId: string;
-  type: 'PREVENTIVE' | 'CORRECTIVE' | 'EMERGENCY' | 'REQUEST';
+  type: 'PREVENTIVE' | 'CORRECTIVE' | 'PREDICTIVE' | 'EMERGENCY' | 'REQUEST';
   status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   scheduledDate: string;
   assignedTo?: string;
@@ -262,7 +262,7 @@ export interface MaintenanceHistory {
   id: string;
   equipmentId: string;
   workOrderId: string;
-  type: 'PREVENTIVE' | 'CORRECTIVE' | 'EMERGENCY' | 'REQUEST';
+  type: 'PREVENTIVE' | 'CORRECTIVE' | 'PREDICTIVE' | 'EMERGENCY' | 'REQUEST';
   performedBy: string;
   date: string;
   description: string;

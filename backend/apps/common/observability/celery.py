@@ -5,7 +5,7 @@ Celery observability hooks for logging context and Prometheus metrics.
 import logging
 import time
 
-from celery.signals import before_task_publish, task_postrun, task_prerun, worker_ready
+from celery.signals import before_task_publish, task_postrun, task_prerun, worker_init
 from django.conf import settings
 from django.db import connection
 
@@ -39,7 +39,7 @@ def setup_celery_observability():
         return
     _SETUP_COMPLETE = True
 
-    @before_task_publish.connect
+    @before_task_publish.connect(weak=False)
     def _inject_context(headers=None, **_kwargs):
         if headers is None:
             return
@@ -51,7 +51,7 @@ def setup_celery_observability():
         if ctx.get("tenant_slug"):
             headers.setdefault("tenant_slug", ctx["tenant_slug"])
 
-    @task_prerun.connect
+    @task_prerun.connect(weak=False)
     def _task_start(sender=None, task_id=None, task=None, args=None, kwargs=None, **_rest):
         request = getattr(task, "request", None)
         headers = getattr(request, "headers", None) or {}
@@ -77,7 +77,7 @@ def setup_celery_observability():
         if request is not None:
             request._observability_start_time = time.perf_counter()
 
-    @task_postrun.connect
+    @task_postrun.connect(weak=False)
     def _task_finish(
         sender=None,
         task_id=None,
@@ -102,7 +102,7 @@ def setup_celery_observability():
         )
         clear_context()
 
-    @worker_ready.connect
+    @worker_init.connect(weak=False)
     def _start_metrics_server(**_kwargs):
         global _METRICS_SERVER_STARTED
         if _METRICS_SERVER_STARTED:

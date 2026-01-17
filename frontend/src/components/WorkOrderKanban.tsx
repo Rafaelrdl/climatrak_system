@@ -114,6 +114,8 @@ function WorkOrderCard({
         return { icon: Settings, color: 'text-blue-600', bgColor: 'bg-blue-50', label: 'Preventiva' };
       case 'CORRECTIVE':
         return { icon: Wrench, color: 'text-orange-600', bgColor: 'bg-orange-50', label: 'Corretiva' };
+      case 'PREDICTIVE':
+        return { icon: Settings, color: 'text-green-600', bgColor: 'bg-green-50', label: 'Preditiva' };
       case 'EMERGENCY':
         return { icon: Zap, color: 'text-red-600', bgColor: 'bg-red-50', label: 'Emergência' };
       case 'REQUEST':

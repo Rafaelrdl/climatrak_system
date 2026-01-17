@@ -141,11 +141,11 @@ export default function AlertDetailScreen() {
 
     try {
       const result = await alertService.createWorkOrder(id!, {
-        title: `Correção: ${alert.rule_name || 'Alerta do Sistema'}`,
+        title: `Manutenção Preditiva: ${alert.rule_name || 'Alerta do Sistema'}`,
         description: alert.message || '',
         priority: alert.severity === 'CRITICAL' ? 'urgent' : 
                   alert.severity === 'HIGH' ? 'high' : 'medium',
-        type: 'corrective',
+        type: 'predictive', // OS criada a partir de alerta é sempre Preditiva
       });
 
       RNAlert.alert(

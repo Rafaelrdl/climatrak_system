@@ -360,6 +360,7 @@ export function WorkOrderDetailView({
                             <SelectContent>
                               <SelectItem value="PREVENTIVE">Preventiva</SelectItem>
                               <SelectItem value="CORRECTIVE">Corretiva</SelectItem>
+                              <SelectItem value="PREDICTIVE">Preditiva</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>

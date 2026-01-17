@@ -198,6 +198,7 @@ export function WorkOrderCalendarPage() {
                   <SelectItem value="ALL">Todos Tipos</SelectItem>
                   <SelectItem value="PREVENTIVE">Preventiva</SelectItem>
                   <SelectItem value="CORRECTIVE">Corretiva</SelectItem>
+                  <SelectItem value="PREDICTIVE">Preditiva</SelectItem>
                 </SelectContent>
               </Select>
 

@@ -176,6 +176,7 @@ class WorkOrder(models.Model):
     class Type(models.TextChoices):
         PREVENTIVE = "PREVENTIVE", "Preventiva"
         CORRECTIVE = "CORRECTIVE", "Corretiva"
+        PREDICTIVE = "PREDICTIVE", "Preditiva"
         EMERGENCY = "EMERGENCY", "Emergência"
         REQUEST = "REQUEST", "Solicitação"
 

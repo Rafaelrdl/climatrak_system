@@ -68,6 +68,7 @@ export function generateWorkOrderPrintContent({
     switch (type) {
       case 'PREVENTIVE': return { label: 'Preventiva', bgColor: 'rgba(59, 130, 246, 0.15)', textColor: '#3b82f6', borderColor: 'rgba(59, 130, 246, 0.3)' };
       case 'CORRECTIVE': return { label: 'Corretiva', bgColor: 'rgba(239, 68, 68, 0.15)', textColor: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' };
+      case 'PREDICTIVE': return { label: 'Preditiva', bgColor: 'rgba(16, 185, 129, 0.15)', textColor: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)' };
       case 'REQUEST': return { label: 'Solicitação', bgColor: 'rgba(139, 92, 246, 0.15)', textColor: '#8b5cf6', borderColor: 'rgba(139, 92, 246, 0.3)' };
       default: return { label: type, bgColor: 'rgba(107, 114, 128, 0.15)', textColor: '#6b7280', borderColor: 'rgba(107, 114, 128, 0.3)' };
     }

@@ -52,7 +52,7 @@ const normalizeFileUrl = (url: string | undefined | null): string => {
 
 export interface WorkOrderFilters {
   status?: ('OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED')[];
-  type?: ('PREVENTIVE' | 'CORRECTIVE' | 'EMERGENCY' | 'REQUEST')[];
+  type?: ('PREVENTIVE' | 'CORRECTIVE' | 'PREDICTIVE' | 'EMERGENCY' | 'REQUEST')[];
   priority?: ('LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL')[];
   asset?: string;
   assigned_to?: string;

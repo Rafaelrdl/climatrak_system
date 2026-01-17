@@ -287,7 +287,7 @@ export interface ApiWorkOrder {
   asset_tag: string;
   asset_name: string;
   site_name: string;
-  type: 'PREVENTIVE' | 'CORRECTIVE' | 'EMERGENCY' | 'REQUEST';
+  type: 'PREVENTIVE' | 'CORRECTIVE' | 'PREDICTIVE' | 'EMERGENCY' | 'REQUEST';
   status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   description: string;

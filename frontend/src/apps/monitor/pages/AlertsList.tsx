@@ -248,7 +248,7 @@ export function AlertsList() {
       // Cria a OS
       const workOrderData = {
         equipmentId: equipment.id,
-        type: 'CORRECTIVE' as const,
+        type: 'PREDICTIVE' as const, // OS criada a partir de alerta é sempre Preditiva
         priority: priorityMap[alert.severity] || 'MEDIUM',
         scheduledDate: new Date().toISOString().split('T')[0],
         description: `Alerta: ${formatMessageNumbers(alert.message)}\n\nParâmetro: ${alert.parameter_key}\nValor: ${formatNumber(alert.parameter_value)}\nLimite: ${formatNumber(alert.threshold)}\nEquipamento: ${alert.equipment_name || alert.asset_tag}`,

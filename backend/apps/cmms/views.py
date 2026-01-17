@@ -455,6 +455,43 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                 exc_info=True,
             )
 
+        # === Resolver alertas vinculados automaticamente ===
+        self._resolve_linked_alerts(work_order)
+
+    def _resolve_linked_alerts(self, work_order, user=None):
+        """Resolve automaticamente alertas vinculados quando a OS é concluída."""
+        try:
+            from apps.alerts.models import Alert
+
+            linked_alerts = Alert.objects.filter(work_order=work_order, resolved=False)
+            alerts_resolved = 0
+
+            for alert in linked_alerts:
+                alert.resolved = True
+                alert.resolved_at = timezone.now()
+                alert.resolved_by = user
+
+                # Atualiza notas com informação da resolução automática
+                resolution_note = (
+                    f"[Resolução Automática] Resolvido via conclusão da OS #{work_order.number}"
+                )
+                alert.notes = (
+                    f"{alert.notes}\n{resolution_note}" if alert.notes else resolution_note
+                )
+                alert.save()
+                alerts_resolved += 1
+
+            if alerts_resolved > 0:
+                logger.info(
+                    f"✅ {alerts_resolved} alerta(s) resolvido(s) automaticamente após conclusão da OS {work_order.number}"
+                )
+
+        except Exception as e:
+            logger.error(
+                f"❌ Erro ao resolver alertas automaticamente para OS {work_order.number}: {str(e)}",
+                exc_info=True,
+            )
+
     @action(detail=True, methods=["post"])
     def start(self, request, pk=None):
         """Inicia a execução de uma OS."""
@@ -578,6 +615,9 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
                 f"❌ Erro ao processar custos automaticamente para OS {work_order.number}: {str(e)}",
                 exc_info=True,
             )
+
+        # === Resolver alertas vinculados automaticamente ===
+        self._resolve_linked_alerts(work_order, request.user)
 
         serializer = self.get_serializer(work_order)
         return Response(serializer.data)
