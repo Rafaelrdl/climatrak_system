@@ -16,7 +16,7 @@ import logging
 
 from django.db.models.signals import post_save, pre_delete
 
-from django_tenants.utils import schema_context
+from django_tenants.utils import get_tenant_model, schema_context
 
 from .models import TenantMembership, TenantUserIndex, compute_email_hash
 
@@ -32,13 +32,28 @@ def get_current_tenant():
     try:
         from django.db import connection
 
+        schema_name = getattr(connection, "schema_name", None)
         # If schema is 'public', there's no tenant
-        if connection.schema_name == "public":
+        if not schema_name or schema_name == "public":
             return None
 
         # Get the tenant from the connection
         tenant = getattr(connection, "tenant", None)
-        return tenant
+        if tenant is not None:
+            try:
+                TenantModel = get_tenant_model()
+                if isinstance(tenant, TenantModel) and tenant.pk:
+                    return tenant
+            except Exception as e:
+                logger.debug(f"Could not validate current tenant type: {e}")
+
+        try:
+            TenantModel = get_tenant_model()
+            with schema_context("public"):
+                return TenantModel.objects.filter(schema_name=schema_name).first()
+        except Exception as e:
+            logger.debug(f"Could not resolve tenant from schema: {e}")
+            return None
     except Exception as e:
         logger.debug(f"Could not get current tenant: {e}")
         return None

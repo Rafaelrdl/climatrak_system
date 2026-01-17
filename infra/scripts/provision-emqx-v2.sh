@@ -36,14 +36,22 @@ HEADER_CONTENT_TYPE_VAL="${HEADER_CONTENT_TYPE_VAL:-application/json}"
 TENANT_HEADER_KEY="${TENANT_HEADER_KEY:-x-tenant}"
 TENANT_HEADER_VAL="${TENANT_HEADER_VAL:-${TENANT}}"
 
-# IMPORTANTE: manter literal ${payload} (não expandir no bash)
-ACTION_BODY_TEMPLATE='${payload}'
+# Body template (IMPORTANTE: manter literais ${...} sem expandir no bash)
+# Obs: este formato segue exatamente o que você pediu.
+read -r -d '' ACTION_BODY_TEMPLATE <<'EOF' || true
+{
+  "client_id": ${client_id},
+  "topic": ${topic},
+  "ts": ${ts},
+  "payload": ${payload}
+}
+EOF
 
 # Rule
 RULE_ID="${RULE_ID:-r_${TENANT}_ingest}"
 TOPIC_FILTER="${TOPIC_FILTER:-tenants/${TENANT}/#}"
 
-# SQL multi-linha (com aspas) -> usar jq --arg para escapar corretamente
+# SQL multi-linha -> usar jq --arg para escapar corretamente
 read -r -d '' RULE_SQL <<EOF || true
 SELECT
   clientid as client_id,
@@ -228,3 +236,6 @@ echo "   Rule:      ${RULE_ID}"
 echo
 echo "SQL aplicado:"
 echo "$RULE_SQL"
+echo
+echo "Body aplicado na Action:"
+echo "$ACTION_BODY_TEMPLATE"

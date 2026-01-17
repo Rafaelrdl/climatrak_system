@@ -8,13 +8,14 @@ Referência: docs/events/01-contrato-eventos.md
 """
 
 import logging
+import uuid
 from typing import Callable, Dict, Optional
 
 from django.db import transaction
 from django.utils import timezone
 
 from celery import shared_task
-from django_tenants.utils import schema_context
+from django_tenants.utils import get_public_schema_name, schema_context
 
 from .models import OutboxEvent, OutboxEventStatus
 from apps.common.tenancy import iter_tenants
@@ -68,6 +69,56 @@ def get_event_handler(event_name: str) -> Optional[Callable[[OutboxEvent], None]
 def get_registered_events() -> list[str]:
     """Retorna lista de eventos com handlers registrados."""
     return list(_event_handlers.keys())
+
+
+def _tenant_uuid_from_schema(schema_name: str) -> uuid.UUID:
+    return uuid.uuid5(uuid.NAMESPACE_DNS, f"tenant:{schema_name}")
+
+
+def _normalize_tenant_uuid(
+    tenant_id_filter: str | uuid.UUID | None, schema_name: str
+) -> uuid.UUID | None:
+    if tenant_id_filter is None:
+        return _tenant_uuid_from_schema(schema_name)
+
+    if isinstance(tenant_id_filter, uuid.UUID):
+        return tenant_id_filter
+
+    value = str(tenant_id_filter)
+    try:
+        return uuid.UUID(value)
+    except ValueError:
+        pass
+
+    if value.isdigit():
+        try:
+            from apps.tenants.models import Tenant
+
+            with schema_context(get_public_schema_name()):
+                tenant = Tenant.objects.filter(id=int(value)).first()
+            if tenant:
+                return _tenant_uuid_from_schema(tenant.schema_name)
+        except Exception as exc:
+            logger.warning("Could not resolve tenant id %s: %s", value, exc)
+
+    return _tenant_uuid_from_schema(value)
+
+
+def _tenant_matches_filter(tenant, tenant_id_filter: str | None) -> bool:
+    if not tenant_id_filter:
+        return True
+
+    value = str(tenant_id_filter)
+    if value == str(tenant.id):
+        return True
+
+    if value.lower() == tenant.schema_name.lower():
+        return True
+
+    try:
+        return uuid.UUID(value) == _tenant_uuid_from_schema(tenant.schema_name)
+    except ValueError:
+        return False
 
 
 @shared_task(
@@ -184,12 +235,13 @@ def dispatch_pending_events(
         tenant_id: Filtrar por tenant específico (opcional)
     """
     def _dispatch_for_schema(schema_name: str, tenant_id_filter: str | None):
+        tenant_uuid = _normalize_tenant_uuid(tenant_id_filter, schema_name)
         with schema_context(schema_name):
             queryset = OutboxEvent.objects.filter(
                 status=OutboxEventStatus.PENDING
             ).order_by("created_at")
-            if tenant_id_filter:
-                queryset = queryset.filter(tenant_id=tenant_id_filter)
+            if tenant_uuid:
+                queryset = queryset.filter(tenant_id=tenant_uuid)
 
             pending_events = list(queryset[:batch_size])
 
@@ -217,10 +269,12 @@ def dispatch_pending_events(
     total_dispatched = 0
     tenant_count = 0
     for tenant in iter_tenants():
-        if tenant_id and str(tenant.id) != str(tenant_id):
+        if not _tenant_matches_filter(tenant, tenant_id):
             continue
         tenant_count += 1
-        total_dispatched += _dispatch_for_schema(tenant.schema_name, str(tenant.id))
+        total_dispatched += _dispatch_for_schema(
+            tenant.schema_name, _tenant_uuid_from_schema(tenant.schema_name)
+        )
 
     if total_dispatched == 0:
         logger.debug("No pending events to dispatch")

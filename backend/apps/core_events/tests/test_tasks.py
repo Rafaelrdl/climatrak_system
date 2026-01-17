@@ -31,6 +31,34 @@ from apps.core_events.tasks import (
 from apps.tenants.models import Tenant
 
 
+def _tenant_uuid(schema_name: str) -> uuid.UUID:
+    return uuid.uuid5(uuid.NAMESPACE_DNS, f"tenant:{schema_name}")
+
+
+class TenantEventTestMixin:
+    def _create_tenant(self, slug: str):
+        with schema_context("public"):
+            return Tenant.objects.create(name=slug.upper(), slug=slug)
+
+    def _create_event_in_schema(
+        self,
+        schema_name: str,
+        tenant_id: uuid.UUID,
+        status: str = OutboxEventStatus.PENDING,
+    ):
+        with schema_context(schema_name):
+            return OutboxEvent.objects.create(
+                tenant_id=tenant_id,
+                event_name="test.event",
+                aggregate_type="test",
+                aggregate_id=uuid.uuid4(),
+                occurred_at=timezone.now(),
+                payload={"data": {}},
+                idempotency_key=str(uuid.uuid4()),
+                status=status,
+            )
+
+
 class EventHandlerRegistryTest(TestCase):
     """Testes para o registro de handlers de eventos.
 
@@ -79,36 +107,13 @@ class EventHandlerRegistryTest(TestCase):
         self.assertIn("event.two", events)
 
 
-class ProcessOutboxEventTaskTest(TenantTestCase):
+class ProcessOutboxEventTaskTest(TenantEventTestMixin, TenantTestCase):
     """Testes para a task process_outbox_event."""
 
     def setUp(self):
         """Setup comum para os testes."""
         super().setUp()
-        self.tenant_id = self.tenant.id
-
-    def _create_tenant(self, slug: str):
-        with schema_context("public"):
-            return Tenant.objects.create(name=slug.upper(), slug=slug)
-
-    def _create_event_in_schema(
-        self,
-        schema_name: str,
-        tenant_id: uuid.UUID,
-        status: str = OutboxEventStatus.PENDING,
-    ):
-        with schema_context(schema_name):
-            return OutboxEvent.objects.create(
-                tenant_id=tenant_id,
-                event_name="test.event",
-                aggregate_type="test",
-                aggregate_id=uuid.uuid4(),
-                occurred_at=timezone.now(),
-                payload={"data": {}},
-                idempotency_key=str(uuid.uuid4()),
-                status=status,
-            )
-        # Salvar handlers originais
+        self.tenant_id = _tenant_uuid(self.tenant.schema_name)
         self._original_handlers = _event_handlers.copy()
         _event_handlers.clear()
 
@@ -212,13 +217,13 @@ class ProcessOutboxEventTaskTest(TenantTestCase):
         process_outbox_event(fake_id)
 
 
-class DispatchPendingEventsTaskTest(TenantTestCase):
+class DispatchPendingEventsTaskTest(TenantEventTestMixin, TenantTestCase):
     """Testes para a task dispatch_pending_events."""
 
     def setUp(self):
         """Setup comum para os testes."""
         super().setUp()
-        self.tenant_id = uuid.uuid4()
+        self.tenant_id = _tenant_uuid(self.tenant.schema_name)
 
     def _create_event(self, status=OutboxEventStatus.PENDING, **kwargs):
         """Helper para criar evento."""
@@ -276,9 +281,15 @@ class DispatchPendingEventsTaskTest(TenantTestCase):
         tenant_b = self._create_tenant("tenant-b")
 
         # Criar eventos em schemas diferentes
-        self._create_event_in_schema(self.tenant.schema_name, self.tenant.id)
-        self._create_event_in_schema(self.tenant.schema_name, self.tenant.id)
-        self._create_event_in_schema(tenant_b.schema_name, tenant_b.id)
+        self._create_event_in_schema(
+            self.tenant.schema_name, _tenant_uuid(self.tenant.schema_name)
+        )
+        self._create_event_in_schema(
+            self.tenant.schema_name, _tenant_uuid(self.tenant.schema_name)
+        )
+        self._create_event_in_schema(
+            tenant_b.schema_name, _tenant_uuid(tenant_b.schema_name)
+        )
 
         result = dispatch_pending_events(batch_size=10, tenant_id=str(tenant_b.id))
 
@@ -293,8 +304,12 @@ class DispatchPendingEventsTaskTest(TenantTestCase):
         """Testa que o dispatcher cobre múltiplos schemas."""
         tenant_b = self._create_tenant("tenant-b-2")
 
-        self._create_event_in_schema(self.tenant.schema_name, self.tenant.id)
-        self._create_event_in_schema(tenant_b.schema_name, tenant_b.id)
+        self._create_event_in_schema(
+            self.tenant.schema_name, _tenant_uuid(self.tenant.schema_name)
+        )
+        self._create_event_in_schema(
+            tenant_b.schema_name, _tenant_uuid(tenant_b.schema_name)
+        )
 
         result = dispatch_pending_events(batch_size=10)
 

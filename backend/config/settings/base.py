@@ -497,15 +497,15 @@ JAZZMIN_SETTINGS = {
     "welcome_sign": "Bem-vindo ao TrakSense Admin",
     "copyright": "TrakSense © 2025",
     # Search model
-    "search_model": ["auth.User", "tenants.Tenant", "tenants.Domain"],
+    "search_model": ["accounts.User", "tenants.Tenant", "tenants.Domain"],
     # Top menu
     "topmenu_links": [
-        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Home", "url": "admin:index", "permissions": ["accounts.view_user"]},
         {"name": "API Docs", "url": "/api/schema/swagger-ui/", "new_window": True},
         {"model": "tenants.Tenant"},
     ],
     # User menu
-    "usermenu_links": [{"model": "auth.user"}],
+    "usermenu_links": [{"model": "accounts.user"}],
     # Side menu
     "show_sidebar": True,
     "navigation_expanded": True,
@@ -514,7 +514,7 @@ JAZZMIN_SETTINGS = {
     # Icons (FontAwesome)
     "icons": {
         "auth": "fas fa-users-cog",
-        "auth.user": "fas fa-user",
+        "accounts.user": "fas fa-user",
         "auth.Group": "fas fa-users",
         "tenants.Tenant": "fas fa-building",
         "tenants.Domain": "fas fa-globe",
@@ -527,7 +527,7 @@ JAZZMIN_SETTINGS = {
     "show_ui_builder": False,
     "changeform_format": "horizontal_tabs",
     "changeform_format_overrides": {
-        "auth.user": "collapsible",
+        "accounts.user": "collapsible",
         "auth.group": "vertical_tabs",
     },
     # Custom CSS/JS
@@ -543,7 +543,7 @@ JAZZMIN_SETTINGS = {
                 "name": "🎛️ Control Center",
                 "url": "/ops/",
                 "icon": "fas fa-chart-line",
-                "permissions": ["auth.view_user"],
+                "permissions": ["accounts.view_user"],
             }
         ],
         "tenants": [
