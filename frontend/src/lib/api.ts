@@ -13,7 +13,7 @@
 import axios, { AxiosError, AxiosHeaders, InternalAxiosRequestConfig } from 'axios';
 import { getTenantApiUrl, getTenantFromHostname } from './tenant';
 import { getAuthSnapshot } from '@/store/useAuthStore';
-import { appStorage } from './storage';
+import { appStorage, STORAGE_KEYS } from './storage';
 
 const LOG_THROTTLE_MS = 30000;
 const errorLogTimestamps = new Map<string, number>();
@@ -186,7 +186,10 @@ const isAuthEndpoint = (url: string): boolean =>
 const handleUnauthenticated = () => {
   const authSnapshot = getAuthSnapshot();
   if (authSnapshot.tenant?.schema_name) {
-    appStorage.clearByScope({ tenant: authSnapshot.tenant.schema_name });
+    appStorage.clearByScope(
+      { tenant: authSnapshot.tenant.schema_name },
+      { preserveKeys: [STORAGE_KEYS.ONBOARDING_STATE, STORAGE_KEYS.TOUR_STATE] }
+    );
   }
   authSnapshot.clearSession();
   appStorage.emitAuthEvent(

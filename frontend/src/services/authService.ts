@@ -1,6 +1,6 @@
 import { api } from '@/lib';
 import { updateTenantSlugCache } from '@/lib/tenantStorage';
-import { appStorage } from '@/lib/storage';
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
 import { getTenantConfig, getTenantFromHostname } from '@/lib/tenant';
 import { useAuthStore } from '@/store/useAuthStore';
 import type { ApiUser } from '@/types/api';
@@ -63,7 +63,10 @@ export async function logout() {
   } finally {
     const authSnapshot = useAuthStore.getState();
     if (authSnapshot.tenant?.schema_name) {
-      appStorage.clearByScope({ tenant: authSnapshot.tenant.schema_name });
+      appStorage.clearByScope(
+        { tenant: authSnapshot.tenant.schema_name },
+        { preserveKeys: [STORAGE_KEYS.ONBOARDING_STATE, STORAGE_KEYS.TOUR_STATE] }
+      );
     }
     useAuthStore.getState().clearSession();
     updateTenantSlugCache(null);

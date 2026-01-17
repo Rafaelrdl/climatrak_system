@@ -411,15 +411,24 @@ export const appStorage = {
     }
   },
 
-  clearByScope(scope: { tenant: string; userId?: string | number }): void {
+  clearByScope(
+    scope: { tenant: string; userId?: string | number },
+    options?: { preserveKeys?: StorageKey[] }
+  ): void {
     const tenant = normalizeTenant(scope.tenant);
     const userId = scope.userId ? normalizeUserId(scope.userId) : null;
     const prefix = userId
       ? `${STORAGE_PREFIX}:${tenant}:${userId}:`
       : `${STORAGE_PREFIX}:${tenant}:`;
+    const preserveKeys = new Set(options?.preserveKeys ?? []);
+    const shouldPreserve = (storageKey: string): boolean => {
+      if (preserveKeys.size === 0) return false;
+      const keyName = storageKey.slice(storageKey.lastIndexOf(':') + 1);
+      return preserveKeys.has(keyName as StorageKey);
+    };
 
     memoryStore.forEach((_value, key) => {
-      if (key.startsWith(prefix)) {
+      if (key.startsWith(prefix) && !shouldPreserve(key)) {
         memoryStore.delete(key);
       }
     });
@@ -427,7 +436,7 @@ export const appStorage = {
     if (!hasLocalStorage()) return;
     for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
       const key = window.localStorage.key(i);
-      if (key && key.startsWith(prefix)) {
+      if (key && key.startsWith(prefix) && !shouldPreserve(key)) {
         window.localStorage.removeItem(key);
       }
     }
