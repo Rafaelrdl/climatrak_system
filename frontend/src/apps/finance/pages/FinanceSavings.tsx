@@ -35,10 +35,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { KpiCard, KpiGrid } from '@/components/kpi';
 import {
   Select,
   SelectContent,
@@ -323,75 +323,34 @@ function SummaryCards() {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const { data: summary, isLoading } = useFinanceSummary(currentMonth);
 
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[1, 2, 3].map(i => (
-          <Card key={i}>
-            <CardContent className="pt-4">
-              <Skeleton className="h-4 w-20 mb-2" />
-              <Skeleton className="h-6 w-24" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  const cards = [
-    { 
-      label: 'Economia Total (Mês)', 
-      value: summary?.savings ?? 0, 
-      icon: TrendingDown,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100 dark:bg-green-900/30',
-    },
-    { 
-      label: 'Custos Evitados', 
-      value: summary?.savings ?? 0, 
-      icon: ShieldCheck,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100 dark:bg-blue-900/30',
-    },
-    { 
-      label: 'ROI Manutenção', 
-      value: summary?.actual && summary.actual > 0 
-        ? (((summary?.savings ?? 0) / summary.actual) * 100) 
-        : 0, 
-      icon: Sparkles,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100 dark:bg-purple-900/30',
-      isPercentage: true,
-    },
-  ];
+  const roi = summary?.actual && summary.actual > 0 
+    ? (((summary?.savings ?? 0) / summary.actual) * 100) 
+    : 0;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {cards.map((card) => {
-        const Icon = card.icon;
-        return (
-          <Card key={card.label}>
-            <CardContent className="pt-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">{card.label}</p>
-                  {card.isPercentage ? (
-                    <p className={cn('text-2xl font-bold mt-1', card.color)}>
-                      {card.value.toFixed(1)}%
-                    </p>
-                  ) : (
-                    <MoneyCell value={card.value} size="lg" className={card.color} />
-                  )}
-                </div>
-                <div className={cn('p-2 rounded-lg', card.bgColor)}>
-                  <Icon className={cn('h-5 w-5', card.color)} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+    <KpiGrid columns={3}>
+      <KpiCard
+        title="Economia Total (Mês)"
+        value={<MoneyCell value={summary?.savings ?? 0} size="lg" className="text-2xl font-bold" />}
+        icon={<TrendingDown className="h-4 w-4" />}
+        variant="success"
+        loading={isLoading}
+      />
+      <KpiCard
+        title="Custos Evitados"
+        value={<MoneyCell value={summary?.savings ?? 0} size="lg" className="text-2xl font-bold" />}
+        icon={<ShieldCheck className="h-4 w-4" />}
+        variant="primary"
+        loading={isLoading}
+      />
+      <KpiCard
+        title="ROI Manutenção"
+        value={`${roi.toFixed(1)}%`}
+        icon={<Sparkles className="h-4 w-4" />}
+        variant="info"
+        loading={isLoading}
+      />
+    </KpiGrid>
   );
 }
 

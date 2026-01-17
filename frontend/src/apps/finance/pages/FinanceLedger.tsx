@@ -25,7 +25,7 @@ import {
   Package,
   Receipt,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,6 +33,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { KpiCard, KpiGrid } from '@/components/kpi';
 import {
   Select,
   SelectContent,
@@ -118,37 +119,6 @@ function getLastDayOfMonth(): string {
   const now = new Date();
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   return lastDay.toISOString().split('T')[0];
-}
-
-// ==================== KPI Card ====================
-
-interface KPICardProps {
-  title: string;
-  value: number;
-  icon: React.ReactNode;
-  description?: string;
-  isCurrency?: boolean;
-}
-
-function KPICard({ title, value, icon, description, isCurrency = false }: KPICardProps) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-          {icon}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">
-          {isCurrency ? <MoneyCell value={value} size="lg" /> : value.toLocaleString('pt-BR')}
-        </div>
-        {description && (
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
-        )}
-      </CardContent>
-    </Card>
-  );
 }
 
 // ==================== Filter Panel ====================
@@ -896,35 +866,39 @@ export function FinanceLedger() {
       </div>
 
       {/* KPIs */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <KPICard
+      <KpiGrid columns={4}>
+        <KpiCard
           title="Total Lançado"
-          value={kpis.totalAmount}
-          icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
+          value={<MoneyCell value={kpis.totalAmount} size="lg" className="text-2xl font-bold" />}
+          icon={<TrendingUp className="h-4 w-4" />}
           description="No período selecionado"
-          isCurrency
+          variant="primary"
+          loading={isLoading}
         />
-        <KPICard
+        <KpiCard
           title="Compromissos"
-          value={kpis.commitmentAmount}
-          icon={<FileCheck className="h-4 w-4 text-blue-500" />}
+          value={<MoneyCell value={kpis.commitmentAmount} size="lg" className="text-2xl font-bold" />}
+          icon={<FileCheck className="h-4 w-4" />}
           description={`${kpis.commitmentCount} aprovados`}
-          isCurrency
+          variant="info"
+          loading={isLoading}
         />
-        <KPICard
+        <KpiCard
           title="Compras de Estoque"
-          value={kpis.inventoryAmount}
-          icon={<Package className="h-4 w-4 text-purple-500" />}
+          value={<MoneyCell value={kpis.inventoryAmount} size="lg" className="text-2xl font-bold" />}
+          icon={<Package className="h-4 w-4" />}
           description={`${kpis.inventoryCount} entradas`}
-          isCurrency
+          variant="success"
+          loading={isLoading}
         />
-        <KPICard
+        <KpiCard
           title="Lançamentos"
           value={kpis.totalCount}
-          icon={<Receipt className="h-4 w-4 text-emerald-500" />}
+          icon={<Receipt className="h-4 w-4" />}
           description="Total de registros"
+          loading={isLoading}
         />
-      </div>
+      </KpiGrid>
 
       {/* Error State */}
       {error && (

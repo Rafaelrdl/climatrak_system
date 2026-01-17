@@ -27,16 +27,20 @@ import {
   Paperclip,
   ExternalLink,
   TrendingUp,
+  DollarSign,
+  AlertTriangle,
+  CheckCircle,
+  Wallet,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { KpiCard, KpiGrid } from '@/components/kpi';
 import {
   Select,
   SelectContent,
@@ -251,41 +255,41 @@ function SummaryCards({ filters }: SummaryCardsProps) {
   const month = filters.budget_month?.slice(0, 7) ?? new Date().toISOString().slice(0, 7);
   const { data: summary, isLoading } = useFinanceSummary(month, filters.cost_center_id);
 
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map(i => (
-          <Card key={i}>
-            <CardContent className="pt-4">
-              <Skeleton className="h-4 w-20 mb-2" />
-              <Skeleton className="h-6 w-24" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
+  if (!summary && !isLoading) return null;
 
-  if (!summary) return null;
-
-  const cards = [
-    { label: 'Planejado', value: summary.planned, color: 'text-blue-600' },
-    { label: 'Comprometido', value: summary.committed, color: 'text-amber-600' },
-    { label: 'Realizado', value: summary.actual, color: 'text-green-600' },
-    { label: 'Disponível', value: summary.planned - summary.committed - summary.actual, color: 'text-gray-600' },
-  ];
+  const disponivel = summary ? summary.planned - summary.committed - summary.actual : 0;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      {cards.map((card) => (
-        <Card key={card.label}>
-          <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">{card.label}</p>
-            <MoneyCell value={card.value} size="lg" className={card.color} />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+    <KpiGrid columns={4}>
+      <KpiCard
+        title="Planejado"
+        value={<MoneyCell value={summary?.planned ?? 0} size="lg" className="text-2xl font-bold" />}
+        icon={<DollarSign className="h-4 w-4" />}
+        variant="primary"
+        loading={isLoading}
+      />
+      <KpiCard
+        title="Comprometido"
+        value={<MoneyCell value={summary?.committed ?? 0} size="lg" className="text-2xl font-bold" />}
+        icon={<AlertTriangle className="h-4 w-4" />}
+        variant="warning"
+        loading={isLoading}
+      />
+      <KpiCard
+        title="Realizado"
+        value={<MoneyCell value={summary?.actual ?? 0} size="lg" className="text-2xl font-bold" />}
+        icon={<CheckCircle className="h-4 w-4" />}
+        variant="success"
+        loading={isLoading}
+      />
+      <KpiCard
+        title="Disponível"
+        value={<MoneyCell value={disponivel} size="lg" className="text-2xl font-bold" />}
+        icon={<Wallet className="h-4 w-4" />}
+        variant={disponivel < 0 ? 'danger' : 'default'}
+        loading={isLoading}
+      />
+    </KpiGrid>
   );
 }
 

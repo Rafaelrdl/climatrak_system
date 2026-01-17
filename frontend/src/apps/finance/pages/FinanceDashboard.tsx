@@ -32,8 +32,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { PageHeader, StatCard } from '@/shared/ui';
+import { PageHeader } from '@/shared/ui';
 import { Skeleton } from '@/components/ui/skeleton';
+import { KpiCard, KpiGrid } from '@/components/kpi';
 import { MoneyCell, DeltaBadge, MonthPicker } from '@/components/finance';
 import { useFinanceSummary, useCostCenters } from '@/hooks/finance';
 import { useAbility } from '@/hooks/useAbility';
@@ -359,17 +360,18 @@ export function FinanceDashboard() {
       )}
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <StatCard
+      <KpiGrid columns={5}>
+        <KpiCard
           title="Planejado"
           value={<MoneyCell value={summary?.planned ?? 0} size="lg" className="text-2xl font-bold" />}
-          icon={<DollarSign className="h-5 w-5" />}
+          icon={<DollarSign className="h-4 w-4" />}
           description="Orcamento previsto para o mes"
           trend={trends.planned > 0 ? 'up' : trends.planned < 0 ? 'down' : undefined}
           trendValue={trends.planned !== 0 ? `${Math.abs(trends.planned).toFixed(1)}%` : undefined}
-          variant="default"
+          variant="primary"
+          loading={isLoading}
           action={(
-            <Button variant="link" size="sm" className="px-0" asChild>
+            <Button variant="link" size="sm" className="px-0 h-auto" asChild>
               <Link to="/finance/budgets">
                 Ver orcamentos
                 <ArrowRight className="ml-1 h-3 w-3" />
@@ -378,14 +380,15 @@ export function FinanceDashboard() {
           )}
         />
 
-        <StatCard
+        <KpiCard
           title="Aprovado"
           value={<MoneyCell value={summary?.committed_approved ?? 0} size="lg" className="text-2xl font-bold" />}
-          icon={<CheckCircle2 className="h-5 w-5" />}
+          icon={<CheckCircle2 className="h-4 w-4" />}
           description="Compromissos aprovados"
           variant="success"
+          loading={isLoading}
           action={(
-            <Button variant="link" size="sm" className="px-0" asChild>
+            <Button variant="link" size="sm" className="px-0 h-auto" asChild>
               <Link to="/finance/commitments?status=approved">
                 Ver aprovados
                 <ArrowRight className="ml-1 h-3 w-3" />
@@ -394,14 +397,15 @@ export function FinanceDashboard() {
           )}
         />
 
-        <StatCard
+        <KpiCard
           title="Pendente"
           value={<MoneyCell value={summary?.committed_pending ?? 0} size="lg" className="text-2xl font-bold" />}
-          icon={<Clock className="h-5 w-5" />}
+          icon={<Clock className="h-4 w-4" />}
           description="Aguardando aprovacao"
           variant="warning"
+          loading={isLoading}
           action={(
-            <Button variant="link" size="sm" className="px-0" asChild>
+            <Button variant="link" size="sm" className="px-0 h-auto" asChild>
               <Link to="/finance/commitments?status=submitted">
                 Ver pendentes
                 <ArrowRight className="ml-1 h-3 w-3" />
@@ -410,16 +414,18 @@ export function FinanceDashboard() {
           )}
         />
 
-        <StatCard
+        <KpiCard
           title="Realizado"
           value={<MoneyCell value={summary?.actual ?? 0} size="lg" className="text-2xl font-bold" />}
-          icon={<TrendingDown className="h-5 w-5" />}
+          icon={<TrendingDown className="h-4 w-4" />}
           description="Custos efetivamente lancados"
           trend={trends.actual > 0 ? 'up' : trends.actual < 0 ? 'down' : undefined}
           trendValue={trends.actual !== 0 ? `${Math.abs(trends.actual).toFixed(1)}%` : undefined}
+          trendInverted
           variant={(summary?.actual ?? 0) > (summary?.planned ?? 0) ? 'danger' : 'success'}
+          loading={isLoading}
           action={(
-            <Button variant="link" size="sm" className="px-0" asChild>
+            <Button variant="link" size="sm" className="px-0 h-auto" asChild>
               <Link to="/finance/ledger">
                 Ver ledger
                 <ArrowRight className="ml-1 h-3 w-3" />
@@ -428,16 +434,17 @@ export function FinanceDashboard() {
           )}
         />
 
-        <StatCard
+        <KpiCard
           title="Economia"
           value={<MoneyCell value={summary?.savings ?? 0} size="lg" className="text-2xl font-bold" />}
-          icon={<PiggyBank className="h-5 w-5" />}
+          icon={<PiggyBank className="h-4 w-4" />}
           description="Economia gerada no periodo"
           trend={trends.savings > 0 ? 'up' : trends.savings < 0 ? 'down' : undefined}
           trendValue={trends.savings !== 0 ? `${Math.abs(trends.savings).toFixed(1)}%` : undefined}
           variant="success"
+          loading={isLoading}
           action={(
-            <Button variant="link" size="sm" className="px-0" asChild>
+            <Button variant="link" size="sm" className="px-0 h-auto" asChild>
               <Link to="/finance/savings">
                 Ver economia
                 <ArrowRight className="ml-1 h-3 w-3" />
@@ -445,7 +452,7 @@ export function FinanceDashboard() {
             </Button>
           )}
         />
-      </div>
+      </KpiGrid>
 
       {/* Variance indicator */}
       {summary && summary.variance !== 0 && (

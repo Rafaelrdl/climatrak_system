@@ -34,6 +34,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { KpiCard, KpiGrid } from '@/components/kpi';
 import {
   Select,
   SelectContent,
@@ -831,50 +832,29 @@ function PlanDetail({ plan }: PlanDetailProps) {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-primary/30">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-muted-foreground">Total Planejado</p>
-              <div className="p-2 rounded-lg bg-primary/10">
-                <DollarSign className="h-4 w-4 text-primary" />
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-primary">
-              <MoneyCell value={totalPlanned} />
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Orçamento base anual</p>
-          </CardContent>
-        </Card>
-        <Card className="border-amber-200">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-muted-foreground">Contingência</p>
-              <div className="p-2 rounded-lg bg-amber-50">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-amber-600">
-              <MoneyCell value={totalContingency} />
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Reserva de emergência</p>
-          </CardContent>
-        </Card>
-        <Card className="border-primary">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-muted-foreground">Total Geral</p>
-              <div className="p-2 rounded-lg bg-primary">
-                <TrendingUp className="h-4 w-4 text-white" />
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-primary">
-              <MoneyCell value={totalPlanned + totalContingency} />
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Orçamento total aprovado</p>
-          </CardContent>
-        </Card>
-      </div>
+      <KpiGrid columns={3}>
+        <KpiCard
+          title="Total Planejado"
+          value={<MoneyCell value={totalPlanned} size="lg" className="text-2xl font-bold" />}
+          icon={<DollarSign className="h-4 w-4" />}
+          description="Orçamento base anual"
+          variant="primary"
+        />
+        <KpiCard
+          title="Contingência"
+          value={<MoneyCell value={totalContingency} size="lg" className="text-2xl font-bold" />}
+          icon={<AlertCircle className="h-4 w-4" />}
+          description="Reserva de emergência"
+          variant="warning"
+        />
+        <KpiCard
+          title="Total Geral"
+          value={<MoneyCell value={totalPlanned + totalContingency} size="lg" className="text-2xl font-bold" />}
+          icon={<TrendingUp className="h-4 w-4" />}
+          description="Orçamento total aprovado"
+          variant="success"
+        />
+      </KpiGrid>
 
       {/* Envelopes */}
       {envelopes && envelopes.length > 0 ? (
