@@ -145,6 +145,7 @@ const processQueue = (error: AxiosError | null, token: string | null = null) => 
 const isAuthEndpoint = (url: string): boolean =>
   url.includes('/v2/auth/') ||
   url.includes('/auth/login/') ||
+  url.includes('/auth/me') ||
   url.includes('/auth/token/refresh/') ||
   url.includes('/auth/password-reset/');
 

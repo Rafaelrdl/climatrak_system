@@ -55,7 +55,7 @@ ALLOW_X_TENANT_HEADER = DEBUG and os.getenv("ALLOW_X_TENANT_HEADER", "False") ==
 
 # Domain for auth cookies (set to ".localhost" in dev to share across subdomains).
 AUTH_COOKIE_DOMAIN = os.getenv("AUTH_COOKIE_DOMAIN")
-if AUTH_COOKIE_DOMAIN == "":
+if AUTH_COOKIE_DOMAIN in ("", "localhost", ".localhost"):
     AUTH_COOKIE_DOMAIN = None
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
