@@ -8,7 +8,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Plus, Loader2 } from 'lucide-react';
 import type { InventoryItem, InventoryCategory } from '@/models/inventory';
-import { useCreateInventoryItem } from '@/hooks/useInventoryQuery';
+import { useCreateInventoryItem, useInventoryCategories } from '@/hooks/useInventoryQuery';
+import { CreateCategoryModal } from './CreateCategoryModal';
+import type { ApiInventoryCategory } from '@/types/api';
 
 interface NewItemModalProps {
   categories: InventoryCategory[];
@@ -16,9 +18,14 @@ interface NewItemModalProps {
   trigger?: React.ReactNode;
 }
 
-export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModalProps) {
+export function NewItemModal({ categories: initialCategories, onItemCreated, trigger }: NewItemModalProps) {
   const [open, setOpen] = useState(false);
+  const [createCategoryOpen, setCreateCategoryOpen] = useState(false);
   const createMutation = useCreateInventoryItem();
+  
+  // Refresh categories from backend to stay in sync
+  const { data: categories = [] } = useInventoryCategories();
+  const categoriesData = categories.length > 0 ? categories : initialCategories;
   
   const [formData, setFormData] = useState({
     name: '',
@@ -196,18 +203,29 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             {/* Categoria */}
             <div className="space-y-1.5">
               <Label htmlFor="category">Categoria</Label>
-              <Select value={formData.category_id} onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}>
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={formData.category_id} onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}>
+                  <SelectTrigger id="category" className="flex-1">
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoriesData.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCreateCategoryOpen(true)}
+                  title="Criar nova categoria"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             {/* Unidade */}
@@ -237,7 +255,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
                 id="quantity"
                 type="number"
                 min="0"
-                step="0.01"
+                step="1"
                 value={formData.quantity}
                 onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
               />
@@ -250,7 +268,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
                 id="min-qty"
                 type="number"
                 min="0"
-                step="0.01"
+                step="1"
                 value={formData.min_quantity}
                 onChange={(e) => setFormData(prev => ({ ...prev, min_quantity: parseFloat(e.target.value) || 0 }))}
                 required
@@ -264,7 +282,7 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
                 id="max-qty"
                 type="number"
                 min="0"
-                step="0.01"
+                step="1"
                 value={formData.max_quantity || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, max_quantity: e.target.value ? parseFloat(e.target.value) : undefined }))}
                 placeholder="Opcional"
@@ -393,6 +411,17 @@ export function NewItemModal({ categories, onItemCreated, trigger }: NewItemModa
             </Button>
           </div>
         </form>
+
+        {/* Create Category Modal */}
+        <CreateCategoryModal
+          open={createCategoryOpen}
+          onOpenChange={setCreateCategoryOpen}
+          onSuccess={(category: ApiInventoryCategory) => {
+            // Auto-select the newly created category
+            setFormData(prev => ({ ...prev, category_id: String(category.id) }));
+            toast.success(`Categoria "${category.name}" criada e selecionada`);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
