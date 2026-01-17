@@ -1,5 +1,8 @@
 import { api } from '@/lib';
-import { tenantStorage, updateTenantSlugCache } from '@/lib/tenantStorage';
+import { updateTenantSlugCache } from '@/lib/tenantStorage';
+import { appStorage } from '@/lib/storage';
+import { getTenantConfig } from '@/lib/tenant';
+import { useAuthStore } from '@/store/useAuthStore';
 import type { ApiUser } from '@/types/api';
 import type { User, UserRole } from '@/models/user';
 import { defaultPreferences, defaultSecurity } from '@/models/user';
@@ -58,13 +61,15 @@ export async function logout() {
   } catch (error) {
     console.warn('Logout request failed, clearing session locally', error);
   } finally {
-    tenantStorage.clear();
+    const authSnapshot = useAuthStore.getState();
+    if (authSnapshot.tenant?.schema_name) {
+      appStorage.clearByScope({ tenant: authSnapshot.tenant.schema_name });
+    }
+    useAuthStore.getState().clearSession();
     updateTenantSlugCache(null);
-    localStorage.removeItem('auth:tenant_schema');
-    localStorage.removeItem('auth:user');
-    localStorage.removeItem('auth:role');
     // Clear tenant features from store
     useFeaturesStore.getState().clearFeatures();
+    appStorage.emitAuthEvent();
     window.dispatchEvent(new Event('authChange'));
   }
 }
@@ -122,17 +127,25 @@ export async function tenantLogin(email: string, password: string): Promise<{
   // Map user data - role comes from tenant, not user
   const user = mapApiUserToUser({ ...data.user, role: data.tenant?.role });
 
-  // Persist user locally
-  localStorage.setItem('auth:user', JSON.stringify(user));
-  localStorage.setItem('auth:role', user.role);
-  localStorage.setItem('auth:tenant_schema', data.tenant.schema_name);
+  useAuthStore.getState().setSession({
+    user,
+    tenant: {
+      id: String(data.tenant?.schema_name ?? data.tenant?.slug ?? ''),
+      schema_name: data.tenant.schema_name,
+      name: data.tenant.name,
+      slug: data.tenant.slug,
+      role: user.role,
+      features: data.tenant.features,
+    },
+  });
   updateTenantSlugCache(data.tenant.schema_name);
+  getTenantConfig();
   
   // Persist tenant features if available
   console.log('🔐 [AUTH] Verificando features...', { hasFeatures: !!data.tenant?.features, features: data.tenant?.features });
   if (data.tenant?.features) {
     console.log('🔐 [AUTH] Salvando features no store:', data.tenant.features);
-    // Update Zustand store (this also persists to localStorage)
+    // Update Zustand store (persisted via storage wrapper)
     useFeaturesStore.getState().setFeatures(data.tenant.features);
     console.log('🔐 [AUTH] Features após save:', useFeaturesStore.getState().features);
   } else {
@@ -140,10 +153,38 @@ export async function tenantLogin(email: string, password: string): Promise<{
   }
   
   window.dispatchEvent(new Event('authChange'));
+  appStorage.emitAuthEvent({ tenant: data.tenant.schema_name });
 
   return {
     user,
     tenant: data.tenant
+  };
+}
+
+export async function getCurrentSession(): Promise<{
+  user: User;
+  tenant: {
+    id: string;
+    schema_name: string;
+    name: string;
+    slug: string;
+    role: UserRole;
+    features?: TenantFeatures;
+  };
+}> {
+  const { data } = await api.get('/auth/me/');
+  const role = mapApiRoleToAppRole(data.tenant?.role);
+  const user = mapApiUserToUser({ ...data.user, role });
+  return {
+    user,
+    tenant: {
+      id: String(data.tenant.id),
+      schema_name: data.tenant.schema_name,
+      name: data.tenant.name,
+      slug: data.tenant.slug,
+      role,
+      features: data.tenant.features,
+    },
   };
 }
 

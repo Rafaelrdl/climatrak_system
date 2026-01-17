@@ -1,8 +1,9 @@
 import { WorkOrder, WorkOrderCreationData } from '@/models/workOrder';
 import { MaintenancePlan } from '@/models/plan';
 import { getChecklist } from '@/data/checklistsStore';
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
 
-const WORK_ORDERS_KEY = 'workOrders:db';
+const WORK_ORDERS_KEY = STORAGE_KEYS.DATA_WORK_ORDERS;
 
 // Generate unique work order number
 function generateWorkOrderNumber(): string {
@@ -66,24 +67,14 @@ export function calculateNextExecutionDate(startDate: string, frequency: Mainten
   return nextDate.toISOString().split('T')[0];
 }
 
-// Load work orders from localStorage
+// Load work orders from storage
 export function loadWorkOrders(): WorkOrder[] {
-  try {
-    const stored = localStorage.getItem(WORK_ORDERS_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch (error) {
-    console.error('Error loading work orders:', error);
-    return [];
-  }
+  return appStorage.get<WorkOrder[]>(WORK_ORDERS_KEY) ?? [];
 }
 
-// Save work orders to localStorage
+// Save work orders to storage
 export function saveWorkOrders(workOrders: WorkOrder[]): void {
-  try {
-    localStorage.setItem(WORK_ORDERS_KEY, JSON.stringify(workOrders));
-  } catch (error) {
-    console.error('Error saving work orders:', error);
-  }
+  appStorage.set(WORK_ORDERS_KEY, workOrders);
 }
 
 // Create new work order

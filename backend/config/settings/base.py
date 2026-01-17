@@ -50,6 +50,9 @@ if any(weak in SECRET_KEY.lower() for weak in INSECURE_SECRETS):
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
+# Allow X-Tenant header override only in dev/test.
+ALLOW_X_TENANT_HEADER = DEBUG and os.getenv("ALLOW_X_TENANT_HEADER", "False") == "True"
+
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
 
 # Application definition

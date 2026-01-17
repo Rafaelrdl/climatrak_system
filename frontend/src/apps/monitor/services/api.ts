@@ -5,6 +5,9 @@
  * Usa o proxy do Vite em desenvolvimento: /api → http://umc.localhost:8000/api
  */
 
+import { getAuthSnapshot } from '@/store/useAuthStore';
+import { getTenantFromHostname } from '@/lib/tenant';
+
 // Base URL relativa para usar o proxy do Vite
 // Em produção, isso será configurado para apontar para o backend correto
 const MONITOR_API_BASE = '/api';
@@ -52,8 +55,8 @@ class MonitorApiClient {
       headers.set('Content-Type', 'application/json');
     }
 
-    const tenantSchema =
-      typeof window !== 'undefined' ? localStorage.getItem('auth:tenant_schema') : null;
+    const authTenant = getAuthSnapshot().tenant;
+    const tenantSchema = authTenant?.schema_name || getTenantFromHostname();
     if (tenantSchema && typeof window !== 'undefined') {
       const hostParts = window.location.hostname.split('.');
       const hasSubdomain =

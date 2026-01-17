@@ -26,7 +26,7 @@ import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useHelpContent } from '@/hooks/useHelpCenter';
 import { ContentType, FAQItem, GuideStep } from '@/models/helpCenter';
-import ReactMarkdown from 'react-markdown';
+import { SafeMarkdown } from '@/components/ui/safe-markdown';
 
 // Content type icons
 const contentTypeIcons: Record<ContentType, any> = {
@@ -320,7 +320,7 @@ export function HelpContentViewPage() {
             {content.type === 'article' && content.article_content && (
               <Card>
                 <CardContent className="p-6 prose prose-gray max-w-none">
-                  <ReactMarkdown>{content.article_content}</ReactMarkdown>
+                  <SafeMarkdown content={content.article_content} />
                 </CardContent>
               </Card>
             )}

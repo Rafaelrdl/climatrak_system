@@ -1,6 +1,8 @@
 // Development utilities for the Procedures module
 
 import { initializeStorage, createSampleFiles } from '@/data/proceduresStore';
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
+import { getTenantSlug } from '@/lib/tenantStorage';
 
 /**
  * Initialize procedures data for development
@@ -8,7 +10,7 @@ import { initializeStorage, createSampleFiles } from '@/data/proceduresStore';
  */
 export async function initializeProceduresForDev() {
   try {
-    // Initialize localStorage with mock data
+    // Initialize storage with mock data
     initializeStorage();
     
     // Create sample files in IndexedDB
@@ -23,11 +25,13 @@ export async function initializeProceduresForDev() {
  * Clear all procedures data (useful for testing)
  */
 export function clearProceduresData() {
-  localStorage.removeItem('procedures:db');
-  localStorage.removeItem('procedure_categories:db');
-  
-  // Clear IndexedDB
-  const request = indexedDB.deleteDatabase('ProceduresDB');
+  appStorage.remove(STORAGE_KEYS.PROCEDURES_LIST);
+  appStorage.remove(STORAGE_KEYS.PROCEDURES_CATEGORIES);
+  appStorage.remove(STORAGE_KEYS.PROCEDURES_VERSIONS);
+  appStorage.remove(STORAGE_KEYS.PROCEDURES_ANNOTATIONS);
+  appStorage.remove(STORAGE_KEYS.PROCEDURES_COMMENTS);
+
+  const request = indexedDB.deleteDatabase(`ProceduresDB_${getTenantSlug()}`);
   request.onsuccess = () => {
   };
   request.onerror = (error) => {
@@ -39,8 +43,8 @@ export function clearProceduresData() {
  * Development helper to log current procedures state
  */
 export function debugProceduresState() {
-  const procedures = JSON.parse(localStorage.getItem('procedures:db') || '[]');
-  const categories = JSON.parse(localStorage.getItem('procedure_categories:db') || '[]');
+  const procedures = appStorage.get(STORAGE_KEYS.PROCEDURES_LIST) ?? [];
+  const categories = appStorage.get(STORAGE_KEYS.PROCEDURES_CATEGORIES) ?? [];
   
   console.log('[proceduresDevUtils] procedures:', procedures);
   console.log('[proceduresDevUtils] categories:', categories);

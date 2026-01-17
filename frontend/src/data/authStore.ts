@@ -1,49 +1,34 @@
-import { useEffect, useState } from 'react';
 import type { Role } from '@/acl/abilities';
-import { usersStore } from './usersStore';
+import { useAuthStore } from '@/store/useAuthStore';
 
-const LS_KEY = 'auth:role';
+const resolveRole = (): Role => {
+  const auth = useAuthStore.getState();
+  return (
+    (auth.roleOverride as Role | null) ||
+    (auth.user?.role as Role | undefined) ||
+    (auth.tenant?.role as Role | undefined) ||
+    'viewer'
+  );
+};
 
 export function useCurrentRole(): [Role, (r: Role) => void] {
-  const [role, setRole] = useState<Role>(() => {
-    try {
-      // Tentar obter do usuário atual primeiro
-      const currentUser = usersStore.getCurrentUser();
-      if (currentUser?.role) {
-        return currentUser.role as Role;
-      }
-    } catch {
-      // Se falhar, usar localStorage como fallback
-    }
-    
-    const stored = localStorage.getItem(LS_KEY) as Role;
-    return stored || 'viewer'; // Default mais seguro: viewer (somente leitura)
+  const role = useAuthStore((state) => {
+    return (
+      (state.roleOverride as Role | null) ||
+      (state.user?.role as Role | undefined) ||
+      (state.tenant?.role as Role | undefined) ||
+      'viewer'
+    );
   });
-
-  useEffect(() => {
-    localStorage.setItem(LS_KEY, role);
-  }, [role]);
+  const setRole = (r: Role) => useAuthStore.getState().setRoleOverride(r);
 
   return [role, setRole];
 }
 
-// Função utilitária para obter o papel atual de forma síncrona
 export function getCurrentRole(): Role {
-  try {
-    // Tentar obter do usuário atual primeiro
-    const currentUser = usersStore.getCurrentUser();
-    if (currentUser?.role) {
-      return currentUser.role as Role;
-    }
-  } catch {
-    // Se falhar, usar localStorage como fallback
-  }
-  
-  const stored = localStorage.getItem(LS_KEY) as Role;
-  return stored || 'viewer'; // Default mais seguro: viewer (somente leitura)
+  return resolveRole();
 }
 
-// Função para definir o papel (útil para testes)
 export function setCurrentRole(role: Role): void {
-  localStorage.setItem(LS_KEY, role);
+  useAuthStore.getState().setRoleOverride(role);
 }

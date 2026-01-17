@@ -15,6 +15,7 @@ import {
   CheckCircle,
   Lightbulb 
 } from 'lucide-react';
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
 
 interface TourStep {
   id: string;
@@ -339,8 +340,8 @@ export function useHelpCenterTour() {
   const [hasSeenTour, setHasSeenTour] = useState(false);
 
   useEffect(() => {
-    const seen = localStorage.getItem('help:tour-seen');
-    if (seen === 'true') {
+    const seen = appStorage.get<boolean>(STORAGE_KEYS.UI_HELP_TOUR_SEEN);
+    if (seen === true) {
       setHasSeenTour(true);
     }
   }, []);
@@ -355,13 +356,13 @@ export function useHelpCenterTour() {
 
   const completeTour = () => {
     setHasSeenTour(true);
-    localStorage.setItem('help:tour-seen', 'true');
+    appStorage.set(STORAGE_KEYS.UI_HELP_TOUR_SEEN, true);
     setIsOpen(false);
   };
 
   const resetTour = () => {
     setHasSeenTour(false);
-    localStorage.removeItem('help:tour-seen');
+    appStorage.remove(STORAGE_KEYS.UI_HELP_TOUR_SEEN);
   };
 
   return {
@@ -375,7 +376,7 @@ export function useHelpCenterTour() {
 }
 
 // Quick Start Card component
-const QUICKSTART_DISMISSED_KEY = 'help:quickstart-dismissed';
+const QUICKSTART_DISMISSED_KEY = STORAGE_KEYS.UI_HELP_QUICKSTART_DISMISSED;
 
 interface QuickStartCardProps {
   onStartTour: () => void;
@@ -384,7 +385,7 @@ interface QuickStartCardProps {
 export function QuickStartCard({ onStartTour }: QuickStartCardProps) {
   const [isOpen, setIsOpen] = useState<boolean>(() => {
     try {
-      return localStorage.getItem(QUICKSTART_DISMISSED_KEY) !== 'true';
+      return appStorage.get<boolean>(QUICKSTART_DISMISSED_KEY) !== true;
     } catch {
       return true;
     }
@@ -409,7 +410,7 @@ export function QuickStartCard({ onStartTour }: QuickStartCardProps) {
   const dismissPermanently = useCallback(() => {
     setIsOpen(false);
     try {
-      localStorage.setItem(QUICKSTART_DISMISSED_KEY, 'true');
+      appStorage.set(QUICKSTART_DISMISSED_KEY, true);
     } catch (error) {
       console.warn('Failed to save quick start preference:', error);
     }
@@ -499,7 +500,7 @@ export function QuickStartCard({ onStartTour }: QuickStartCardProps) {
 export function useQuickStart() {
   const [isDismissed, setIsDismissed] = useState<boolean>(() => {
     try {
-      return localStorage.getItem(QUICKSTART_DISMISSED_KEY) === 'true';
+      return appStorage.get<boolean>(QUICKSTART_DISMISSED_KEY) === true;
     } catch {
       return false;
     }
@@ -508,7 +509,7 @@ export function useQuickStart() {
   const resetQuickStart = useCallback(() => {
     setIsDismissed(false);
     try {
-      localStorage.removeItem(QUICKSTART_DISMISSED_KEY);
+      appStorage.remove(QUICKSTART_DISMISSED_KEY);
     } catch (error) {
       console.warn('Failed to reset quick start preference:', error);
     }

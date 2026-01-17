@@ -18,15 +18,19 @@ import proceduresData from '@/mocks/procedures.json';
 import categoriesData from '@/mocks/procedure_categories.json';
 import annotationsData from '@/mocks/procedure_annotations.json';
 import commentsData from '@/mocks/procedure_comments.json';
+import { appStorage, STORAGE_KEYS, type StorageKey } from '@/lib/storage';
+import { getTenantSlug } from '@/lib/tenantStorage';
 
-const PROCEDURES_KEY = 'procedures:db';
-const CATEGORIES_KEY = 'procedure_categories:db';
-const VERSIONS_KEY = 'procedure_versions:db';
-const ANNOTATIONS_KEY = 'procedure_annotations:db';
-const COMMENTS_KEY = 'procedure_comments:db';
-const DB_NAME = 'ProceduresDB';
+const PROCEDURES_KEY = STORAGE_KEYS.PROCEDURES_LIST;
+const CATEGORIES_KEY = STORAGE_KEYS.PROCEDURES_CATEGORIES;
+const VERSIONS_KEY = STORAGE_KEYS.PROCEDURES_VERSIONS;
+const ANNOTATIONS_KEY = STORAGE_KEYS.PROCEDURES_ANNOTATIONS;
+const COMMENTS_KEY = STORAGE_KEYS.PROCEDURES_COMMENTS;
+const DB_BASE_NAME = 'ProceduresDB';
 const DB_VERSION = 2;
 const FILE_STORE_NAME = 'files';
+
+const getDbName = () => `${DB_BASE_NAME}_${getTenantSlug()}`;
 
 // Simple checksum function for file comparison
 function calculateChecksum(content: ArrayBuffer): string {
@@ -41,10 +45,23 @@ function calculateChecksum(content: ArrayBuffer): string {
 // IndexedDB for file storage
 class FileStorage {
   private db: IDBDatabase | null = null;
+  private dbName: string | null = null;
 
   async init(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      const targetDbName = getDbName();
+      if (this.db && this.dbName && this.dbName !== targetDbName) {
+        this.db.close();
+        this.db = null;
+      }
+
+      if (this.db && this.dbName === targetDbName) {
+        resolve();
+        return;
+      }
+
+      this.dbName = targetDbName;
+      const request = indexedDB.open(targetDbName, DB_VERSION);
       
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
@@ -145,16 +162,11 @@ const fileStorage = new FileStorage();
 
 // Helper functions
 function load<T>(key: string, seed: T[]): T[] {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : seed;
-  } catch {
-    return seed;
-  }
+  return appStorage.get<T[]>(key as StorageKey) ?? seed;
 }
 
 function save<T>(key: string, value: T[]): void {
-  localStorage.setItem(key, JSON.stringify(value));
+  appStorage.set(key as StorageKey, value);
 }
 
 // Categories
@@ -473,19 +485,19 @@ export async function deleteFile(fileId: string): Promise<void> {
 // Initialize storage on first load
 export function initializeStorage(): void {
   // Ensure categories, procedures, versions, annotations, and comments are loaded with defaults
-  if (!localStorage.getItem(CATEGORIES_KEY)) {
+  if (!appStorage.get(CATEGORIES_KEY)) {
     save(CATEGORIES_KEY, categoriesData as ProcedureCategory[]);
   }
-  if (!localStorage.getItem(PROCEDURES_KEY)) {
+  if (!appStorage.get(PROCEDURES_KEY)) {
     save(PROCEDURES_KEY, proceduresData as Procedure[]);
   }
-  if (!localStorage.getItem(VERSIONS_KEY)) {
+  if (!appStorage.get(VERSIONS_KEY)) {
     save(VERSIONS_KEY, [] as ProcedureVersion[]);
   }
-  if (!localStorage.getItem(ANNOTATIONS_KEY)) {
+  if (!appStorage.get(ANNOTATIONS_KEY)) {
     save(ANNOTATIONS_KEY, annotationsData as DocumentAnnotation[]);
   }
-  if (!localStorage.getItem(COMMENTS_KEY)) {
+  if (!appStorage.get(COMMENTS_KEY)) {
     save(COMMENTS_KEY, commentsData as Comment[]);
   }
 }

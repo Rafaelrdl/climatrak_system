@@ -6,6 +6,9 @@ from .base import *
 
 DEBUG = True
 
+# Allow X-Tenant header override for SPA single-domain workflows in dev.
+ALLOW_X_TENANT_HEADER = True
+
 # Allow all hosts in development
 ALLOWED_HOSTS = ["*"]
 

@@ -36,8 +36,27 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-empty-object-type': 'off',
+      'no-restricted-globals': [
+        'error',
+        { name: 'localStorage', message: 'Use appStorage wrapper in src/lib/storage.ts' },
+        { name: 'sessionStorage', message: 'Use appStorage wrapper in src/lib/storage.ts' },
+      ],
+      'no-restricted-properties': [
+        'error',
+        { object: 'window', property: 'localStorage', message: 'Use appStorage wrapper in src/lib/storage.ts' },
+        { object: 'window', property: 'sessionStorage', message: 'Use appStorage wrapper in src/lib/storage.ts' },
+        { object: 'globalThis', property: 'localStorage', message: 'Use appStorage wrapper in src/lib/storage.ts' },
+        { object: 'globalThis', property: 'sessionStorage', message: 'Use appStorage wrapper in src/lib/storage.ts' },
+      ],
       // Permitir exports de constantes em componentes UI
       'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    files: ['src/lib/storage.ts', 'src/**/__tests__/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-globals': 'off',
+      'no-restricted-properties': 'off',
     },
   },
   // Cypress E2E tests config

@@ -10,30 +10,15 @@ import {
 // Mock data imports
 import helpCategoriesData from '@/mocks/helpCategories.json';
 import helpContentData from '@/mocks/helpContent.json';
+import { appStorage, STORAGE_KEYS, type StorageKey } from '@/lib/storage';
 
-const STORAGE_KEYS = {
-  PROGRESS: 'help:progress',
-  BOOKMARKS: 'help:bookmarks', 
-  ANALYTICS: 'help:analytics',
-  SEARCH_HISTORY: 'help:searchHistory'
-};
-
-// Utility functions for localStorage
+// Utility functions for app storage
 function getFromStorage<T>(key: string, defaultValue: T): T {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : defaultValue;
-  } catch {
-    return defaultValue;
-  }
+  return appStorage.get<T>(key as StorageKey) ?? defaultValue;
 }
 
 function saveToStorage<T>(key: string, value: T): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
-    console.warn('Failed to save to localStorage:', error);
-  }
+  appStorage.set(key as StorageKey, value);
 }
 
 // Initialize with mock data
@@ -53,10 +38,10 @@ export class HelpCenterStore {
   private searchHistory: string[];
 
   constructor() {
-    this.categories = initializeData('help:categories', helpCategoriesData as HelpCategory[]);
-    this.content = initializeData('help:content', helpContentData as HelpContent[]);
-    this.userProgress = getFromStorage(STORAGE_KEYS.PROGRESS, []);
-    this.searchHistory = getFromStorage(STORAGE_KEYS.SEARCH_HISTORY, []);
+    this.categories = initializeData(STORAGE_KEYS.HELP_CATEGORIES, helpCategoriesData as HelpCategory[]);
+    this.content = initializeData(STORAGE_KEYS.HELP_CONTENT, helpContentData as HelpContent[]);
+    this.userProgress = getFromStorage(STORAGE_KEYS.HELP_PROGRESS, []);
+    this.searchHistory = getFromStorage(STORAGE_KEYS.HELP_SEARCH_HISTORY, []);
   }
 
   // Categories
@@ -166,7 +151,7 @@ export class HelpCenterStore {
       ...this.searchHistory.filter(q => q !== trimmedQuery)
     ].slice(0, 10); // Keep only last 10 searches
 
-    saveToStorage(STORAGE_KEYS.SEARCH_HISTORY, this.searchHistory);
+    saveToStorage(STORAGE_KEYS.HELP_SEARCH_HISTORY, this.searchHistory);
   }
 
   getSearchHistory(): string[] {
@@ -175,7 +160,7 @@ export class HelpCenterStore {
 
   clearSearchHistory(): void {
     this.searchHistory = [];
-    saveToStorage(STORAGE_KEYS.SEARCH_HISTORY, []);
+    saveToStorage(STORAGE_KEYS.HELP_SEARCH_HISTORY, []);
   }
 
   // User Progress
@@ -207,7 +192,7 @@ export class HelpCenterStore {
       this.userProgress.push(progressData);
     }
 
-    saveToStorage(STORAGE_KEYS.PROGRESS, this.userProgress);
+    saveToStorage(STORAGE_KEYS.HELP_PROGRESS, this.userProgress);
   }
 
   markAsCompleted(userId: string, contentId: string): void {
@@ -233,7 +218,7 @@ export class HelpCenterStore {
       });
     }
 
-    saveToStorage(STORAGE_KEYS.PROGRESS, this.userProgress);
+    saveToStorage(STORAGE_KEYS.HELP_PROGRESS, this.userProgress);
     return this.userProgress.find(p => p.user_id === userId && p.content_id === contentId)?.bookmarked || false;
   }
 

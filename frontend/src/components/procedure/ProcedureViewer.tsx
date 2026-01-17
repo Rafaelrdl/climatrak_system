@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import ReactMarkdown from 'react-markdown';
 // Import PDF configuration utility
 import { configurePDFWorker, configurePDFWorkerWithFallback } from '@/utils/pdfConfig';
 import {
@@ -44,6 +43,7 @@ import { VersionHistory } from '@/components/procedure/VersionHistory';
 import { VersionComparison } from '@/components/procedure/VersionComparison';
 import { PDFViewerFallback } from '@/components/procedure/PDFViewerFallback';
 import { PDFErrorBoundary } from '@/components/ui/pdf-error-boundary';
+import { SafeMarkdown } from '@/components/ui/safe-markdown';
 import { AnnotationPanel } from '@/components/procedure/AnnotationPanel';
 import { AnnotationOverlay } from '@/components/procedure/AnnotationOverlay';
 import { AnnotationToolbar } from '@/components/procedure/AnnotationToolbar';
@@ -765,26 +765,7 @@ export function ProcedureViewer({
 
                       {!isPDF && fileContent && (
                         <div className="prose prose-slate dark:prose-invert max-w-none relative">
-                          <ReactMarkdown
-                            components={{
-                              // Disable HTML rendering for security
-                              html: () => null,
-                              // Custom link handling
-                              a: ({ href, children, ...props }) => (
-                                <a 
-                                  href={href} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-primary underline hover:no-underline"
-                                  {...props}
-                                >
-                                  {children}
-                                </a>
-                              ),
-                            }}
-                          >
-                            {fileContent}
-                          </ReactMarkdown>
+                          <SafeMarkdown content={fileContent} />
 
                           {/* Annotation Overlay for Markdown */}
                           <AnnotationOverlay

@@ -19,6 +19,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useCurrentRole } from '@/data/authStore';
+import { clearTour, getTourState, setTourCompleted, setTourSkipped, setTourStep } from '@/lib/tourStorage';
 import type { UserRole } from '@/models/user';
 
 // ==================== TYPES ====================
@@ -498,8 +499,7 @@ export function InteractiveTour({
 
   const handleComplete = useCallback(() => {
     if (config.storageKey) {
-      localStorage.setItem(`tour:${config.storageKey}:completed`, 'true');
-      localStorage.removeItem(`tour:${config.storageKey}:step`);
+      setTourCompleted(config.storageKey);
     }
     config.onComplete?.();
     onClose();
@@ -507,7 +507,7 @@ export function InteractiveTour({
 
   const handleSkip = useCallback(() => {
     if (config.storageKey) {
-      localStorage.setItem(`tour:${config.storageKey}:skipped`, 'true');
+      setTourSkipped(config.storageKey);
     }
     config.onSkip?.();
     onClose();
@@ -555,7 +555,7 @@ export function InteractiveTour({
   // Save progress
   useEffect(() => {
     if (config.persistProgress && config.storageKey) {
-      localStorage.setItem(`tour:${config.storageKey}:step`, String(currentStepIndex));
+      setTourStep(config.storageKey, currentStepIndex);
     }
   }, [currentStepIndex, config.persistProgress, config.storageKey]);
 
@@ -609,18 +609,17 @@ export function useInteractiveTour(config: TourConfig) {
   const [isOpen, setIsOpen] = useState(false);
   const [startStep, setStartStep] = useState(0);
 
-  // Check if tour was completed or skipped
+  const tourState = getTourState();
   const hasCompleted = config.storageKey
-    ? localStorage.getItem(`tour:${config.storageKey}:completed`) === 'true'
+    ? !!tourState.completed[config.storageKey]
     : false;
 
   const hasSkipped = config.storageKey
-    ? localStorage.getItem(`tour:${config.storageKey}:skipped`) === 'true'
+    ? !!tourState.skipped[config.storageKey]
     : false;
 
-  // Get saved progress
   const savedStep = config.storageKey
-    ? parseInt(localStorage.getItem(`tour:${config.storageKey}:step`) || '0', 10)
+    ? tourState.step[config.storageKey] ?? 0
     : 0;
 
   const startTour = (fromStep?: number) => {
@@ -634,9 +633,7 @@ export function useInteractiveTour(config: TourConfig) {
 
   const resetTour = () => {
     if (config.storageKey) {
-      localStorage.removeItem(`tour:${config.storageKey}:completed`);
-      localStorage.removeItem(`tour:${config.storageKey}:skipped`);
-      localStorage.removeItem(`tour:${config.storageKey}:step`);
+      clearTour(config.storageKey);
     }
     setStartStep(0);
   };

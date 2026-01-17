@@ -1,23 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { tenantStorage } from '@/lib/tenantStorage';
+import { useAuthStore } from '@/store/useAuthStore';
+import { getCurrentSession } from '@/services/authService';
+import { useFeaturesStore } from '@/store/useFeaturesStore';
+import { appStorage, migrateLegacyStorage } from '@/lib/storage';
+import { getTenantFromHostname } from '@/lib/tenant';
 
-// Rotas públicas que não precisam de autenticação
-const PUBLIC_ROUTES = ['/login', '/forgot-password', '/reset-password', '/onboarding/accept', '/accept-invite', '/quick-setup', '/welcome-tour'];
-
-// Extrai tenant do hostname
-const getTenantFromHostname = (): string | null => {
-  const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return null;
-  }
-  const parts = hostname.split('.');
-  if (parts.length > 1 && parts[0] !== 'www') {
-    return parts[0];
-  }
-  return null;
-};
+const PUBLIC_ROUTES = [
+  '/login',
+  '/forgot-password',
+  '/reset-password',
+  '/onboarding/accept',
+  '/accept-invite',
+  '/quick-setup',
+  '/welcome-tour',
+];
 
 const normalizeTenantKey = (value: string): string =>
   value.toLowerCase().replace(/[-_]/g, '');
@@ -26,22 +24,89 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
+  const tenant = useAuthStore((state) => state.tenant);
+  const isHydrated = useAuthStore((state) => state.isHydrated);
+  const isHydrating = useAuthStore((state) => state.isHydrating);
+  const startHydration = useAuthStore((state) => state.startHydration);
+  const finishHydration = useAuthStore((state) => state.finishHydration);
+  const setSession = useAuthStore((state) => state.setSession);
+  const clearSession = useAuthStore((state) => state.clearSession);
+  const setFeatures = useFeaturesStore((state) => state.setFeatures);
   const [tenantValidated, setTenantValidated] = useState(false);
 
-  const isPublicRoute = PUBLIC_ROUTES.some(route => location.pathname.startsWith(route));
+  const isPublicRoute = PUBLIC_ROUTES.some((route) =>
+    location.pathname.startsWith(route)
+  );
+
+  const hydrateSession = useCallback(async () => {
+    if (isHydrated || isHydrating) return;
+    startHydration();
+    try {
+      const session = await getCurrentSession();
+      setSession(session);
+      if (session.tenant.features) {
+        setFeatures(session.tenant.features);
+      }
+    } catch {
+      clearSession();
+    } finally {
+      finishHydration();
+    }
+  }, [
+    isHydrated,
+    isHydrating,
+    startHydration,
+    finishHydration,
+    setSession,
+    clearSession,
+    setFeatures,
+  ]);
 
   useEffect(() => {
-    if (isLoading) return; // Don't redirect while checking auth status
+    migrateLegacyStorage();
+  }, []);
+
+  useEffect(() => {
+    void hydrateSession();
+  }, [hydrateSession]);
+
+  useEffect(() => {
+    const handleAuthChange = () => {
+      void hydrateSession();
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (!event.key) return;
+      if (event.key.includes(':auth.event')) {
+        void hydrateSession();
+      }
+    };
+
+    window.addEventListener('authChange', handleAuthChange);
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener('authChange', handleAuthChange);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [hydrateSession]);
+
+  useEffect(() => {
+    if (isLoading) return;
 
     const tenantFromUrl = getTenantFromHostname();
-    const storedTenantSchema = localStorage.getItem('auth:tenant_schema');
+    const storedTenant = tenant?.schema_name;
     const tenantMismatch =
       tenantFromUrl &&
-      storedTenantSchema &&
-      normalizeTenantKey(tenantFromUrl) !== normalizeTenantKey(storedTenantSchema);
+      storedTenant &&
+      normalizeTenantKey(tenantFromUrl) !== normalizeTenantKey(storedTenant);
 
     const clearTenantSession = () => {
-      tenantStorage.clear();
+      if (storedTenant) {
+        appStorage.clearByScope({ tenant: storedTenant });
+      }
+      clearSession();
+      appStorage.emitAuthEvent();
       window.dispatchEvent(new Event('authChange'));
     };
 
@@ -55,38 +120,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (!tenantFromUrl && location.pathname === '/login' && storedTenantSchema && !isAuthenticated) {
-      clearTenantSession();
-    }
-
-    // Validar tenant apenas se autenticado
     if (isAuthenticated && !isPublicRoute && !tenantValidated) {
       setTenantValidated(true);
     }
 
     if (!isAuthenticated && !isPublicRoute) {
-      // User not authenticated and not on public route, redirect to login
       navigate('/login');
     } else if (isAuthenticated && location.pathname === '/login') {
-      // User authenticated and on login page, redirect to dashboard
       navigate('/');
     }
-  }, [isAuthenticated, isLoading, navigate, location.pathname, isPublicRoute, tenantValidated]);
+  }, [
+    isAuthenticated,
+    isLoading,
+    navigate,
+    location.pathname,
+    isPublicRoute,
+    tenantValidated,
+    tenant,
+    clearSession,
+  ]);
 
-  // Show loading spinner while checking authentication
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-muted-foreground">Verificando autenticação...</p>
+          <p className="text-muted-foreground">Verificando autenticacao...</p>
         </div>
       </div>
     );
   }
 
-  // Don't render protected routes if user is not authenticated
-  // This prevents API calls from being made before authentication
   if (!isAuthenticated && !isPublicRoute) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">

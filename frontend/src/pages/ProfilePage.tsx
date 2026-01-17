@@ -9,10 +9,11 @@ import { useUsers } from '@/data/usersStore';
 import { updateProfile } from '@/services/authService';
 import { toast } from 'sonner';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
 
 type TabValue = 'dados' | 'preferencias' | 'seguranca';
 
-const STORAGE_KEY = 'profile:lastTab';
+const STORAGE_KEY = STORAGE_KEYS.UI_PROFILE_LAST_TAB;
 
 const tabTitles: Record<TabValue, { title: string; subtitle: string }> = {
   dados: {
@@ -31,8 +32,8 @@ const tabTitles: Record<TabValue, { title: string; subtitle: string }> = {
 
 export function ProfilePage() {
   const [activeTab, setActiveTab] = useState<TabValue>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return (stored as TabValue) || 'dados';
+    const stored = appStorage.get<TabValue>(STORAGE_KEY);
+    return stored || 'dados';
   });
 
   const { getCurrentUser, updateCurrentUser } = useUsers();
@@ -41,7 +42,7 @@ export function ProfilePage() {
 
   const handleTabChange = useCallback((tab: TabValue) => {
     setActiveTab(tab);
-    localStorage.setItem(STORAGE_KEY, tab);
+    appStorage.set(STORAGE_KEY, tab);
   }, []);
 
   const handleSaveProfile = useCallback(async (data: any) => {
@@ -63,7 +64,7 @@ export function ProfilePage() {
       // Chamar API para salvar no backend
       const response = await updateProfile(profileData);
       
-      // Atualizar localStorage com os dados retornados
+        // Atualizar cache do usuario com os dados retornados
       updateCurrentUser({
         name: response.user.full_name,
         phone: response.user.phone,
@@ -101,7 +102,7 @@ export function ProfilePage() {
   const handleAvatarClick = useCallback(() => {
     // Switch to profile data tab and focus on avatar upload
     setActiveTab('dados');
-    localStorage.setItem(STORAGE_KEY, 'dados');
+    appStorage.set(STORAGE_KEY, 'dados');
     // Trigger file input after a short delay to ensure tab change
     setTimeout(() => {
       fileInputRef.current?.click();

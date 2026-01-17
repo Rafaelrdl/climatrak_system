@@ -6,6 +6,7 @@ import {
   compareVersions,
   rollbackToVersion,
 } from '@/data/proceduresStore';
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
 import { Procedure, ProcedureFileRef } from '@/models/procedure';
 
 // Mock UUID
@@ -14,14 +15,13 @@ const mockUuid = () => Math.random().toString(36).substring(2, 15);
 describe('Version Comparison Functionality', () => {
   let testProcedure: Procedure;
   let mockFile: ProcedureFileRef;
+  const storageScope = { tenant: 'default' };
 
   beforeEach(() => {
-    // Clear localStorage completely
     localStorage.clear();
-    
-    // Initialize storage with empty data
-    localStorage.setItem('procedure_versions:db', JSON.stringify([]));
-    localStorage.setItem('procedures:db', JSON.stringify([]));
+    appStorage.clearByScope(storageScope);
+    appStorage.set(STORAGE_KEYS.PROCEDURES_VERSIONS, [], storageScope);
+    appStorage.set(STORAGE_KEYS.PROCEDURES_LIST, [], storageScope);
     
     // Create mock file reference
     mockFile = {

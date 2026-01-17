@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useCurrentRole } from '@/data/authStore';
 import { isOnboardingCompleted, removeOnboardingValue } from '@/lib/onboardingStorage';
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
 
 interface PageHint {
   path: string;
@@ -85,7 +86,7 @@ export function TourHint() {
 
   useEffect(() => {
     // Check if user has dismissed hints permanently
-    const hintsDisabled = localStorage.getItem('tour:hintsDisabled');
+    const hintsDisabled = appStorage.get<boolean>(STORAGE_KEYS.UI_TOUR_HINTS_DISABLED);
     if (hintsDisabled) return;
 
     // Find hint for current page
@@ -113,7 +114,7 @@ export function TourHint() {
   };
 
   const handleDisable = () => {
-    localStorage.setItem('tour:hintsDisabled', 'true');
+    appStorage.set(STORAGE_KEYS.UI_TOUR_HINTS_DISABLED, true);
     setIsVisible(false);
   };
 

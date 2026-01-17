@@ -1,7 +1,8 @@
 import type { MaintenancePlan } from '@/models/plan';
 import { calculateNextExecutionDate } from './workOrdersStore';
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
 
-const STORAGE_KEY = 'traknor-maintenance-plans';
+const STORAGE_KEY = STORAGE_KEYS.DATA_MAINTENANCE_PLANS;
 
 // Mock plans for seeding
 export const MOCK_PLANS: MaintenancePlan[] = [
@@ -63,29 +64,21 @@ export const MOCK_PLANS: MaintenancePlan[] = [
 
 export const loadPlans = (): MaintenancePlan[] => {
   if (typeof window === 'undefined') return MOCK_PLANS;
-  
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (error) {
-    console.warn('Error loading plans from localStorage:', error);
+
+  const stored = appStorage.get<MaintenancePlan[]>(STORAGE_KEY);
+  if (stored) {
+    return stored;
   }
   
-  // Save mock data to localStorage on first load
+  // Save mock data to storage on first load
   savePlans(MOCK_PLANS);
   return MOCK_PLANS;
 };
 
 export const savePlans = (plans: MaintenancePlan[]): void => {
   if (typeof window === 'undefined') return;
-  
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
-  } catch (error) {
-    console.error('Error saving plans to localStorage:', error);
-  }
+
+  appStorage.set(STORAGE_KEY, plans);
 };
 
 export const createPlan = (plan: Omit<MaintenancePlan, 'id' | 'created_at' | 'updated_at'>): MaintenancePlan => {

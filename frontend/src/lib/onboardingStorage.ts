@@ -1,84 +1,48 @@
-/**
- * Centralized storage utilities for onboarding state.
- * Keys are scoped by tenant + user to ensure isolation between users/tenants.
- */
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
 
-export type OnboardingKey = 
+export type OnboardingKey =
   | 'inviteAccepted'
   | 'setupCompleted'
   | 'tourCompleted'
   | 'firstTimeGuideCompleted'
   | 'shouldStartTour'
-  | 'welcomeGuideShown';
+  | 'welcomeGuideShown'
+  | 'interactiveTourCompleted'
+  | 'interactiveTourSkipped';
 
-/**
- * Get the storage prefix for onboarding keys.
- * Format: onboarding:{tenantSchema}:{userId}
- */
-export function getStoragePrefix(): string {
-  const tenantSchema = localStorage.getItem('auth:tenant_schema');
-  const userDataStr = localStorage.getItem('auth:user');
-  
-  let userId = 'unknown';
-  if (userDataStr) {
-    try {
-      const userData = JSON.parse(userDataStr);
-      userId = userData.id?.toString() || 'unknown';
-    } catch {
-      // ignore parse errors
-    }
-  }
-  
-  if (!tenantSchema || !userId || userId === 'unknown') {
-    return 'onboarding';
-  }
-  
-  return `onboarding:${tenantSchema}:${userId}`;
-}
+const getState = (): Record<string, boolean> => {
+  return appStorage.get<Record<string, boolean>>(STORAGE_KEYS.ONBOARDING_STATE) ?? {};
+};
 
-/**
- * Get an onboarding value from localStorage.
- */
+const setState = (state: Record<string, boolean>): void => {
+  appStorage.set(STORAGE_KEYS.ONBOARDING_STATE, state);
+};
+
 export function getOnboardingValue(key: OnboardingKey): string | null {
-  const prefix = getStoragePrefix();
-  const fullKey = `${prefix}:${key}`;
-  return localStorage.getItem(fullKey);
+  const state = getState();
+  return state[key] ? 'true' : null;
 }
 
-/**
- * Check if an onboarding step is completed.
- */
 export function isOnboardingCompleted(key: OnboardingKey): boolean {
   return getOnboardingValue(key) === 'true';
 }
 
-/**
- * Set an onboarding value in localStorage.
- */
 export function setOnboardingValue(key: OnboardingKey, value: string): void {
-  const prefix = getStoragePrefix();
-  const fullKey = `${prefix}:${key}`;
-  localStorage.setItem(fullKey, value);
+  const state = getState();
+  state[key] = value === 'true';
+  setState(state);
 }
 
-/**
- * Mark an onboarding step as completed.
- */
 export function markOnboardingCompleted(key: OnboardingKey): void {
   setOnboardingValue(key, 'true');
 }
 
-/**
- * Remove an onboarding value from localStorage.
- */
 export function removeOnboardingValue(key: OnboardingKey): void {
-  const prefix = getStoragePrefix();
-  localStorage.removeItem(`${prefix}:${key}`);
+  const state = getState();
+  delete state[key];
+  setState(state);
 }
 
-/**
- * Reset all onboarding state for current user/tenant.
- */
 export function resetOnboarding(): void {
   const keys: OnboardingKey[] = [
     'inviteAccepted',
@@ -86,15 +50,18 @@ export function resetOnboarding(): void {
     'tourCompleted',
     'firstTimeGuideCompleted',
     'shouldStartTour',
-    'welcomeGuideShown'
+    'welcomeGuideShown',
+    'interactiveTourCompleted',
+    'interactiveTourSkipped',
   ];
-  
-  keys.forEach(key => removeOnboardingValue(key));
+
+  const state = getState();
+  keys.forEach((key) => {
+    delete state[key];
+  });
+  setState(state);
 }
 
-/**
- * Get all onboarding state for current user/tenant.
- */
 export function getOnboardingState() {
   return {
     inviteAccepted: isOnboardingCompleted('inviteAccepted'),

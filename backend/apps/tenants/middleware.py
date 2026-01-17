@@ -10,7 +10,7 @@ Flow:
 3. API requests can now work with any tenant from a single frontend URL
 
 Security:
-- Header override is allowed only in DEBUG (or ALLOW_X_TENANT_HEADER)
+- Header override is allowed only when ALLOW_X_TENANT_HEADER is enabled (dev/test only)
 - Header mismatches are rejected when a tenant host is already resolved
 - Membership and tenant lock are enforced by JWT authentication
 
@@ -90,9 +90,7 @@ class TenantHeaderMiddleware:
                 if not normalized_header:
                     return self.get_response(request)
 
-                allow_header = settings.DEBUG or getattr(
-                    settings, "ALLOW_X_TENANT_HEADER", False
-                )
+                allow_header = getattr(settings, "ALLOW_X_TENANT_HEADER", False)
 
                 # In production, header is never the source of truth.
                 if not allow_header:
@@ -112,7 +110,7 @@ class TenantHeaderMiddleware:
                         )
                     return self.get_response(request)
 
-                # In dev, allow header only when host is public or matches current tenant.
+                # In dev/test, allow header only when host is public or matches current tenant.
                 if (
                     current_schema != public_schema
                     and self._normalize_schema(current_schema) != normalized_header

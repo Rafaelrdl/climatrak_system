@@ -1,5 +1,6 @@
 import React, { useState, useEffect, KeyboardEvent } from 'react';
 import { cn } from '@/lib/utils';
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
 
 type TabValue = 'table' | 'cards' | 'analysis' | 'history';
 
@@ -16,13 +17,13 @@ interface InventoryTabsProps {
   onTabChange?: (tab: TabValue) => void;
 }
 
-const STORAGE_KEY = 'inventory:lastTab';
+const STORAGE_KEY = STORAGE_KEYS.UI_INVENTORY_LAST_TAB;
 
 export function InventoryTabs({ tabs, defaultValue = 'table', className = '', onTabChange }: InventoryTabsProps) {
   const [activeTab, setActiveTab] = useState<TabValue>(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return (stored as TabValue) || defaultValue;
+      const stored = appStorage.get<TabValue>(STORAGE_KEY);
+      return stored || defaultValue;
     } catch {
       return defaultValue;
     }
@@ -30,7 +31,7 @@ export function InventoryTabs({ tabs, defaultValue = 'table', className = '', on
   
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, activeTab);
+      appStorage.set(STORAGE_KEY, activeTab);
       onTabChange?.(activeTab);
     } catch (error) {
       console.warn('Failed to save tab preference:', error);

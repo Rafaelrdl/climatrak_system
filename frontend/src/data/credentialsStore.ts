@@ -1,4 +1,6 @@
-const CREDENTIALS_KEY = 'credentials:db';
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
+
+const CREDENTIALS_KEY = STORAGE_KEYS.DEMO_CREDENTIALS;
 
 interface UserCredentials {
   userId: string;
@@ -8,23 +10,14 @@ interface UserCredentials {
   updatedAt: string;
 }
 
-// Helper para carregar dados do localStorage ou usar seed vazio
+// Helper para carregar dados do storage ou usar seed vazio
 function load<T>(key: string, seed: T): T {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : seed;
-  } catch {
-    return seed;
-  }
+  return appStorage.get<T>(key as typeof CREDENTIALS_KEY) ?? seed;
 }
 
-// Helper para salvar dados no localStorage
+// Helper para salvar dados no storage
 function save<T>(key: string, value: T): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
-    console.error('Erro ao salvar credenciais no localStorage:', error);
-  }
+  appStorage.set(key as typeof CREDENTIALS_KEY, value);
 }
 
 // Store de credenciais

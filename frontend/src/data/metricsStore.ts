@@ -2,36 +2,29 @@ import type { MetricsSummary, MetricsRange, MTTRBySector, BacklogTrend, TopAsset
 import type { WorkOrder, Equipment, Sector } from '@/types';
 import { MOCK_EQUIPMENT, MOCK_SECTORS } from '@/data/mockData';
 import { EXPANDED_WORK_ORDERS } from '@/data/mockMetricsData';
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
 
-// Chaves do localStorage
-const STORAGE_KEYS = {
-  WORK_ORDERS: 'traknor-work-orders',
-  EQUIPMENT: 'traknor-equipment',
-  SECTORS: 'traknor-sectors',
+// Chaves do storage
+const METRICS_KEYS = {
+  WORK_ORDERS: STORAGE_KEYS.METRICS_WORK_ORDERS,
+  EQUIPMENT: STORAGE_KEYS.METRICS_EQUIPMENT,
+  SECTORS: STORAGE_KEYS.METRICS_SECTORS,
 };
 
 /**
- * Helper para carregar entidades do localStorage com fallback para dados mock
+ * Helper para carregar entidades do storage com fallback para dados mock
  */
 function loadEntity<T>(key: string, fallback: T[]): T[] {
-  try {
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      return JSON.parse(stored) as T[];
-    }
-  } catch {
-    // Ignora erros de parse
-  }
-  return fallback;
+  return appStorage.get<T[]>(key as typeof METRICS_KEYS.WORK_ORDERS) ?? fallback;
 }
 
 /**
  * Carrega todos os dados necessários para métricas
  */
 export function loadMetricsData() {
-  const workOrders = loadEntity(STORAGE_KEYS.WORK_ORDERS, EXPANDED_WORK_ORDERS);
-  const equipment = loadEntity(STORAGE_KEYS.EQUIPMENT, MOCK_EQUIPMENT);
-  const sectors = loadEntity(STORAGE_KEYS.SECTORS, MOCK_SECTORS);
+  const workOrders = loadEntity(METRICS_KEYS.WORK_ORDERS, EXPANDED_WORK_ORDERS);
+  const equipment = loadEntity(METRICS_KEYS.EQUIPMENT, MOCK_EQUIPMENT);
+  const sectors = loadEntity(METRICS_KEYS.SECTORS, MOCK_SECTORS);
   
   return { workOrders, equipment, sectors };
 }

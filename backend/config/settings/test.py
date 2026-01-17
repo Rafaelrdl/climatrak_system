@@ -25,6 +25,9 @@ from .base import *  # noqa: E402, F401, F403
 
 DEBUG = False
 
+# Allow X-Tenant header override in test environment.
+ALLOW_X_TENANT_HEADER = True
+
 # Allow all hosts in test
 ALLOWED_HOSTS = ["*", "localhost", "127.0.0.1", "testserver"]
 

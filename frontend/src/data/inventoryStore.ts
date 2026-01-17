@@ -6,6 +6,7 @@ import type {
   AnalysisRange,
   MovementType 
 } from '@/models/inventory';
+import { appStorage, STORAGE_KEYS, type StorageKey } from '@/lib/storage';
 
 // Seed data
 const MOCK_CATEGORIES: InventoryCategory[] = [
@@ -206,34 +207,24 @@ const MOCK_MOVEMENTS: InventoryMovement[] = [
 
 // Storage utilities
 export function load<T>(key: string, seed: T): T {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : seed;
-  } catch (error) {
-    console.warn(`Error loading ${key} from localStorage:`, error);
-    return seed;
-  }
+  return appStorage.get<T>(key as StorageKey) ?? seed;
 }
 
 export function save<T>(key: string, value: T): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
-    console.error(`Error saving ${key} to localStorage:`, error);
-  }
+  appStorage.set(key as StorageKey, value);
 }
 
 // Inventory management functions
 export function loadCategories(): InventoryCategory[] {
-  return load('inventory:categories', MOCK_CATEGORIES);
+  return load(STORAGE_KEYS.INVENTORY_CATEGORIES, MOCK_CATEGORIES);
 }
 
 export function loadItems(): InventoryItem[] {
-  return load('inventory:items', MOCK_ITEMS);
+  return load(STORAGE_KEYS.INVENTORY_ITEMS, MOCK_ITEMS);
 }
 
 export function loadMovements(): InventoryMovement[] {
-  return load('inventory:movements', MOCK_MOVEMENTS);
+  return load(STORAGE_KEYS.INVENTORY_MOVEMENTS, MOCK_MOVEMENTS);
 }
 
 export function createItem(item: Omit<InventoryItem, 'id' | 'created_at' | 'updated_at'>): InventoryItem {
@@ -248,7 +239,7 @@ export function createItem(item: Omit<InventoryItem, 'id' | 'created_at' | 'upda
   };
   
   items.push(newItem);
-  save('inventory:items', items);
+  save(STORAGE_KEYS.INVENTORY_ITEMS, items);
   
   return newItem;
 }
@@ -267,7 +258,7 @@ export function updateItem(updatedItem: InventoryItem): InventoryItem {
   };
   
   items[index] = updated;
-  save('inventory:items', items);
+  save(STORAGE_KEYS.INVENTORY_ITEMS, items);
   
   return updated;
 }
@@ -275,7 +266,7 @@ export function updateItem(updatedItem: InventoryItem): InventoryItem {
 export function deleteItem(id: string): void {
   const items = loadItems();
   const filtered = items.filter(item => item.id !== id);
-  save('inventory:items', filtered);
+  save(STORAGE_KEYS.INVENTORY_ITEMS, filtered);
 }
 
 export function moveItem({
@@ -343,8 +334,8 @@ export function moveItem({
   const itemIndex = items.findIndex(i => i.id === item_id);
   items[itemIndex] = updatedItem;
   
-  save('inventory:movements', movements);
-  save('inventory:items', items);
+  save(STORAGE_KEYS.INVENTORY_MOVEMENTS, movements);
+  save(STORAGE_KEYS.INVENTORY_ITEMS, items);
   
   return movement;
 }

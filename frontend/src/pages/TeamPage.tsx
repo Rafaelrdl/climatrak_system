@@ -59,7 +59,7 @@ export function TeamPage() {
   const revokeInviteMutation = useRevokeInvite();
   const deleteMemberMutation = useDeleteMember();
 
-  // Usuário atual (do localStorage)
+  // Usuario atual (do store)
   const { getCurrentUser } = useUsers();
   const currentUser = getCurrentUser();
 

@@ -9,6 +9,7 @@ import {
   getTourProgress
 } from './tourConfigs';
 import { isOnboardingCompleted, removeOnboardingValue } from '@/lib/onboardingStorage';
+import { clearTour } from '@/lib/tourStorage';
 
 // ==================== TYPES ====================
 
@@ -125,9 +126,7 @@ export function TourProvider({ children, autoStartWelcomeTour = false }: TourPro
   // Reset a specific tour
   const resetTour = useCallback((tourId?: string) => {
     const key = tourId || currentTour?.storageKey || 'welcome';
-    localStorage.removeItem(`tour:${key}:completed`);
-    localStorage.removeItem(`tour:${key}:skipped`);
-    localStorage.removeItem(`tour:${key}:step`);
+    clearTour(key);
     
     if (key === 'welcome') {
       setHasCompletedWelcomeTour(false);

@@ -6,7 +6,8 @@
  */
 
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
+import { createZustandStorage, STORAGE_KEYS } from '@/lib/storage';
 
 // TrakService feature keys
 export type TrakServiceFeature = 
@@ -50,7 +51,7 @@ interface FeaturesState {
   hasTrakServiceFeature: (feature: Exclude<TrakServiceFeature, 'trakservice.enabled'>) => boolean;
 }
 
-const STORAGE_KEY = 'tenant:features';
+const STORAGE_KEY = STORAGE_KEYS.TENANT_FEATURES;
 
 export const useFeaturesStore = create<FeaturesState>()(
   persist(
@@ -92,7 +93,7 @@ export const useFeaturesStore = create<FeaturesState>()(
     }),
     {
       name: STORAGE_KEY,
-      storage: createJSONStorage(() => localStorage),
+      storage: createZustandStorage(),
       partialize: (state) => ({ features: state.features }),
     }
   )

@@ -119,6 +119,45 @@ export const assetTypeKeys = {
 - Rotas: guard para bloquear acesso direto via URL
 - Estado "feature disabled": tela padrão (403/Not available)
 
+## Política de Storage (Frontend) — Anti-XSS + Anti-tenant-leak
+
+**Objetivo**: evitar vazamento de dados por XSS e impedir contaminação entre tenants via estado persistido no browser.
+
+### Regras inegociáveis
+1. **Nunca persistir dados P0**: tokens, credenciais, papéis/funções, `tenant_schema` (ou qualquer “chave de tenant” usada para headers).
+2. Todo dado persistido deve ser **escopado por tenant** (e por usuário quando aplicável).
+3. É proibido acessar `localStorage`/`sessionStorage`/`indexedDB` diretamente no código da app.
+   - Use exclusivamente o wrapper: `frontend/src/lib/storage.ts` (`appStorage`).
+
+### Wrapper `appStorage` (obrigatório)
+O wrapper garante:
+- **Allowlist** de chaves permitidas (`STORAGE_KEYS`).
+- **Validação por chave** com Zod (schema por chave).
+- **Namespace fixo**: `climatrak:v1:{tenant}:{user?}:{key}`.
+- **Demo-only keys**: credenciais/convites de demo **não persistem** quando demo mode estiver OFF.
+
+### Escopos suportados
+- `tenant`: compartilhado dentro do tenant atual.
+- `tenantUser`: específico para o par (tenant + usuário).
+
+### Limpeza, rotação e migração
+- Ao fazer logout ou trocar de tenant: chame `appStorage.clearByScope({ tenant, userId })`.
+- Chaves legadas devem ser migradas e removidas via `migrateLegacyStorage()` (executar na inicialização do app).
+
+### Como adicionar uma nova chave (checklist)
+1. Adicionar a chave em `STORAGE_KEYS`.
+2. Definir `scope` + `schema` (Zod) em `storageDefinitions`.
+3. Usar `appStorage.get/set/remove` com o scope correto.
+4. Se existir legado, migrar em `migrateLegacyStorage()`.
+5. Atualizar/garantir testes em `frontend/src/__tests__/storagePolicy.test.ts`.
+
+### Testes e lint (obrigatórios)
+- PRs não podem introduzir uso direto de storage (ESLint deve bloquear).
+- Chaves fora da allowlist ou com payload inválido devem falhar com segurança (retornar `undefined`/default).
+- Garantir isolamento: um tenant não lê o estado persistido de outro tenant.
+
+## Padrões Frontend (Design/UI)
+
 **UI (obrigatório)**: shadcn/ui + Radix, ícones Lucide, gráficos Recharts. Seguir `docs/design/DESIGN_SYSTEM.md` e reutilizar componentes existentes.
 
 **Platform-first**: viewport fixo (100vh), densidade alta, desktop-first.
@@ -169,6 +208,8 @@ Ver `.github/instructions/testing.instructions.md` para detalhes completos.
 4. **TrakService**: feature gating obrigatório (UI + backend) e privacidade no tracking.
 5. **Models**: sempre migration + testes.
 6. **PRs**: pequenos, 1 issue por PR.
+7. **Storage policy (anti-XSS / anti-tenant-leak)**: sem P0 persistido; sem acesso direto a `localStorage`; chaves allowlisted + validadas; isolamento por tenant/user.
+
 
 ## Workflow de Implementação
 

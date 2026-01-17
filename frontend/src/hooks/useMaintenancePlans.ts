@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { MaintenancePlan } from '@/models/plan';
 import { loadPlans, savePlans } from '@/data/plansStore';
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
 
 export const useMaintenancePlansNew = (): [
   MaintenancePlan[], 
@@ -8,7 +9,7 @@ export const useMaintenancePlansNew = (): [
   () => void
 ] => {
   const [data, setData] = useState<MaintenancePlan[]>(() => {
-    // Load from localStorage/mock on initialization
+    // Load from storage/mock on initialization
     return loadPlans();
   });
   
@@ -22,14 +23,14 @@ export const useMaintenancePlansNew = (): [
       setData(newData);
     }
     
-    // Save to localStorage
+    // Save to storage
     savePlans(newData);
   };
 
   const deleteData = () => {
     setData([]);
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('traknor-maintenance-plans');
+      appStorage.remove(STORAGE_KEYS.DATA_MAINTENANCE_PLANS);
     }
   };
   

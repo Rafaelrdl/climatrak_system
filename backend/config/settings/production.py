@@ -6,6 +6,9 @@ from .base import *
 
 DEBUG = False
 
+# Never allow X-Tenant header override in production.
+ALLOW_X_TENANT_HEADER = False
+
 # Security settings for production
 SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

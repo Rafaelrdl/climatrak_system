@@ -2,26 +2,18 @@ import type { Invite } from '@/models/invite';
 import type { UserRole, User } from '@/models/user';
 import { usersStore } from './usersStore';
 import { credentialsStore } from './credentialsStore';
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
 
-const INVITES_KEY = 'invites:db';
+const INVITES_KEY = STORAGE_KEYS.DEMO_INVITES;
 
-// Helper para carregar dados do localStorage ou usar seed vazio
+// Helper para carregar dados do storage ou usar seed vazio
 function load<T>(key: string, seed: T): T {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : seed;
-  } catch {
-    return seed;
-  }
+  return appStorage.get<T>(key as typeof INVITES_KEY) ?? seed;
 }
 
-// Helper para salvar dados no localStorage
+// Helper para salvar dados no storage
 function save<T>(key: string, value: T): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
-    console.error('Erro ao salvar no localStorage:', error);
-  }
+  appStorage.set(key as typeof INVITES_KEY, value);
 }
 
 // Helper para gerar UUID simples

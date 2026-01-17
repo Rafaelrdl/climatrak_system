@@ -1,6 +1,7 @@
 import type { TourConfig, TourStep } from './InteractiveTour';
 import type { UserRole } from '@/models/user';
-import { markOnboardingCompleted } from '@/lib/onboardingStorage';
+import { markOnboardingCompleted, removeOnboardingValue } from '@/lib/onboardingStorage';
+import { hasCompletedTour as hasCompletedTourStorage, resetAllTours as resetAllToursStorage } from '@/lib/tourStorage';
 
 // ==================== ROLE CONSTANTS ====================
 /**
@@ -426,21 +427,13 @@ export function getTourForPage(pathname: string): TourConfig | null {
 }
 
 export function hasCompletedTour(tourId: string): boolean {
-  // Consider completed OR skipped as "done" to not show tour again
-  return localStorage.getItem(`tour:${tourId}:completed`) === 'true' ||
-         localStorage.getItem(`tour:${tourId}:skipped`) === 'true';
+  return hasCompletedTourStorage(tourId);
 }
 
 export function resetAllTours(): void {
-  Object.values(allTours).forEach(tour => {
-    if (tour.storageKey) {
-      localStorage.removeItem(`tour:${tour.storageKey}:completed`);
-      localStorage.removeItem(`tour:${tour.storageKey}:skipped`);
-      localStorage.removeItem(`tour:${tour.storageKey}:step`);
-    }
-  });
-  localStorage.removeItem('onboarding:interactiveTourCompleted');
-  localStorage.removeItem('onboarding:interactiveTourSkipped');
+  resetAllToursStorage();
+  removeOnboardingValue('interactiveTourCompleted');
+  removeOnboardingValue('interactiveTourSkipped');
 }
 
 export function getTourProgress(): { completed: number; total: number; percentage: number } {

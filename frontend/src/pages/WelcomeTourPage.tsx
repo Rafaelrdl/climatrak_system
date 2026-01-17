@@ -203,7 +203,7 @@ export function WelcomeTourPage() {
   }, [currentStep, isAutoPlaying, isLastStep]);
 
   const handleFinishTour = useCallback(() => {
-    // Mark tour as completed in localStorage (tenant+user specific)
+    // Mark tour as completed in storage (tenant+user specific)
     markOnboardingCompleted('tourCompleted');
     
     // Show completion toast

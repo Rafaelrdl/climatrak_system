@@ -11,8 +11,9 @@
  */
 
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { getTenantApiUrl } from './tenant';
-import { tenantStorage } from './tenantStorage';
+import { getTenantApiUrl, getTenantFromHostname } from './tenant';
+import { getAuthSnapshot } from '@/store/useAuthStore';
+import { appStorage } from './storage';
 
 // Base URL da API (dinâmica por tenant)
 const getApiBaseUrl = (): string => {
@@ -88,13 +89,14 @@ api.interceptors.request.use(
     
     // 🏢 MULTI-TENANT: Add X-Tenant header only when not on a tenant subdomain
     // Subdomain routing is preferred when available.
-    const tenantSchema = localStorage.getItem('auth:tenant_schema');
+    const authTenant = getAuthSnapshot().tenant;
+    const tenantSchema = authTenant?.schema_name || getTenantFromHostname();
     if (tenantSchema && typeof window !== 'undefined') {
       const hostname = window.location.hostname;
       const hostParts = hostname.split('.');
       const hasSubdomain =
         hostParts.length > 1 && hostParts[0] !== 'www' && hostParts[0] !== 'localhost';
-      
+
       if (!hasSubdomain) {
         config.headers['X-Tenant'] = tenantSchema;
       }
@@ -176,8 +178,10 @@ api.interceptors.response.use(
         // Refresh falhou - limpar tudo e redirecionar para login
         processQueue(refreshError as AxiosError, null);
         
-        // Limpar storage do tenant
-        tenantStorage.clear();
+        const authTenant = getAuthSnapshot().tenant;
+        if (authTenant?.schema_name) {
+          appStorage.clearByScope({ tenant: authTenant.schema_name });
+        }
         
         // Redirecionar para login
         if (typeof window !== 'undefined') {

@@ -1,39 +1,29 @@
 import type { User, UserStatus } from '@/models/user';
 import { defaultPreferences, defaultSecurity } from '@/models/user';
 import mockUsers from '@/mocks/users.json';
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
+import { getAuthSnapshot, useAuthStore } from '@/store/useAuthStore';
 
-const USERS_KEY = 'users:db';
-const CURRENT_USER_KEY = 'auth:current_user';
-
-// Helper para carregar dados do localStorage ou usar seed
-function load<T>(key: string, seed: T): T {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : seed;
-  } catch {
-    return seed;
-  }
+// Helper para carregar dados do storage ou usar seed
+function load<T>(seed: T): T {
+  return appStorage.get<T>(STORAGE_KEYS.DATA_USERS) ?? seed;
 }
 
-// Helper para salvar dados no localStorage
-function save<T>(key: string, value: T): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
-    console.error('Erro ao salvar no localStorage:', error);
-  }
+// Helper para salvar dados no storage
+function save<T>(value: T): void {
+  appStorage.set(STORAGE_KEYS.DATA_USERS, value);
 }
 
-// Store de usuários
+// Store de usuarios
 class UsersStore {
   private users: User[] = [];
 
   constructor() {
-    this.users = load(USERS_KEY, mockUsers as User[]);
+    this.users = load(mockUsers as User[]);
   }
 
   private saveUsers(): void {
-    save(USERS_KEY, this.users);
+    save(this.users);
   }
 
   listUsers(): User[] {
@@ -41,65 +31,55 @@ class UsersStore {
   }
 
   getCurrentUser(): User | null {
-    // Check if user is authenticated via login
-    const authUser = localStorage.getItem('auth:user');
-    if (authUser) {
-      try {
-        return JSON.parse(authUser);
-      } catch {
-        // Clear invalid auth data
-        localStorage.removeItem('auth:user');
-        localStorage.removeItem('auth:role');
-      }
-    }
-    
-    return null;
+    const authUser = getAuthSnapshot().user;
+    return authUser ? { ...authUser } : null;
   }
 
   setCurrentUser(userId: string): void {
-    const user = this.users.find(u => u.id === userId);
-    if (user && user.status === 'active') {
-      localStorage.setItem(CURRENT_USER_KEY, userId);
-    } else {
-      throw new Error('Usuário não encontrado ou inativo');
+    const user = this.users.find((u) => u.id === userId);
+    if (!user || user.status !== 'active') {
+      throw new Error('Usuario nao encontrado ou inativo');
     }
+    const authTenant = getAuthSnapshot().tenant;
+    if (!authTenant) {
+      throw new Error('Tenant nao identificado');
+    }
+    useAuthStore.getState().setSession({ user, tenant: authTenant });
   }
 
   updateCurrentUser(partial: Partial<User>): User {
     const currentUser = this.getCurrentUser();
     if (!currentUser) {
-      throw new Error('Nenhum usuário autenticado');
+      throw new Error('Nenhum usuario autenticado');
     }
-    
+
     const updatedUser = {
       ...currentUser,
       ...partial,
-      id: currentUser.id, // Não permitir alteração do ID
-      email: currentUser.email, // Não permitir alteração do email por padrão
+      id: currentUser.id,
+      email: currentUser.email,
       updated_at: new Date().toISOString(),
     };
 
-    // Update in auth storage
-    localStorage.setItem('auth:user', JSON.stringify(updatedUser));
+    useAuthStore.getState().updateUser(updatedUser);
 
     return { ...updatedUser };
   }
 
   updateUser(id: string, partial: Partial<User>): User {
-    const userIndex = this.users.findIndex(u => u.id === id);
+    const userIndex = this.users.findIndex((u) => u.id === id);
     if (userIndex < 0) {
-      throw new Error('Usuário não encontrado');
+      throw new Error('Usuario nao encontrado');
     }
 
     const user = this.users[userIndex];
     const updatedUser = {
       ...user,
       ...partial,
-      id: user.id, // Não permitir alteração do ID
+      id: user.id,
       updated_at: new Date().toISOString(),
     };
 
-    // Garantir que preferências e segurança tenham valores padrão
     if (!updatedUser.preferences) {
       updatedUser.preferences = { ...defaultPreferences };
     }
@@ -130,7 +110,7 @@ class UsersStore {
   }
 
   setUserStatus(id: string, status: UserStatus): void {
-    const userIndex = this.users.findIndex(u => u.id === id);
+    const userIndex = this.users.findIndex((u) => u.id === id);
     if (userIndex >= 0) {
       this.users[userIndex] = {
         ...this.users[userIndex],
@@ -142,11 +122,10 @@ class UsersStore {
   }
 
   getUserByEmail(email: string): User | null {
-    const user = this.users.find(u => u.email === email);
+    const user = this.users.find((u) => u.email === email);
     return user ? { ...user } : null;
   }
 
-  // Método para gerar códigos de recuperação 2FA
   generateRecoveryCodes(): string[] {
     const codes: string[] = [];
     for (let i = 0; i < 8; i++) {
@@ -157,25 +136,26 @@ class UsersStore {
   }
 }
 
-// Instância singleton
 export const usersStore = new UsersStore();
 
-// Hooks para React
 export function useUsers() {
   return {
     listUsers: () => usersStore.listUsers(),
     getCurrentUser: () => usersStore.getCurrentUser(),
     setCurrentUser: (userId: string) => usersStore.setCurrentUser(userId),
-    updateCurrentUser: (partial: Partial<User>) => usersStore.updateCurrentUser(partial),
-    updateUser: (id: string, partial: Partial<User>) => usersStore.updateUser(id, partial),
-    addUser: (user: Omit<User, 'id' | 'created_at' | 'updated_at'>) => usersStore.addUser(user),
-    setUserStatus: (id: string, status: UserStatus) => usersStore.setUserStatus(id, status),
+    updateCurrentUser: (partial: Partial<User>) =>
+      usersStore.updateCurrentUser(partial),
+    updateUser: (id: string, partial: Partial<User>) =>
+      usersStore.updateUser(id, partial),
+    addUser: (user: Omit<User, 'id' | 'created_at' | 'updated_at'>) =>
+      usersStore.addUser(user),
+    setUserStatus: (id: string, status: UserStatus) =>
+      usersStore.setUserStatus(id, status),
     getUserByEmail: (email: string) => usersStore.getUserByEmail(email),
     generateRecoveryCodes: () => usersStore.generateRecoveryCodes(),
   };
 }
 
-// Individual hooks for convenience
 export function useCurrentUser(): User | null {
   return usersStore.getCurrentUser();
 }

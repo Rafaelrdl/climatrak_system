@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { appStorage, STORAGE_KEYS } from '@/lib/storage';
 import type { 
   User,
   Company, 
@@ -298,19 +299,15 @@ export const findWorkOrderById = (id: string) => {
  * HOOK PARA SOLICITAÇÕES
  * 
  * Gerencia os dados das solicitações de materiais/serviços.
- * Inclui persistência via localStorage para demonstração.
+ * Inclui persistencia via storage para demonstracao.
  */
 export const useSolicitations = (): [Solicitation[], (value: Solicitation[] | ((current: Solicitation[]) => Solicitation[])) => void, () => void] => {
   const [data, setData] = useState<Solicitation[]>(() => {
-    // Tenta carregar do localStorage primeiro
+    // Tenta carregar do storage primeiro
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('traknor-solicitations');
+      const stored = appStorage.get<Solicitation[]>(STORAGE_KEYS.DATA_SOLICITATIONS);
       if (stored) {
-        try {
-          return JSON.parse(stored);
-        } catch (e) {
-          console.warn('Error parsing stored solicitations:', e);
-        }
+        return stored;
       }
     }
     return MOCK_SOLICITATIONS;
@@ -320,17 +317,17 @@ export const useSolicitations = (): [Solicitation[], (value: Solicitation[] | ((
     if (typeof value === 'function') {
       setData(currentData => {
         const newData = value(currentData);
-        // Salva no localStorage
+        // Salva no storage
         if (typeof window !== 'undefined') {
-          localStorage.setItem('traknor-solicitations', JSON.stringify(newData));
+          appStorage.set(STORAGE_KEYS.DATA_SOLICITATIONS, newData);
         }
         return newData;
       });
     } else {
       setData(value);
-      // Salva no localStorage
+      // Salva no storage
       if (typeof window !== 'undefined') {
-        localStorage.setItem('traknor-solicitations', JSON.stringify(value));
+        appStorage.set(STORAGE_KEYS.DATA_SOLICITATIONS, value);
       }
     }
   };
@@ -338,7 +335,7 @@ export const useSolicitations = (): [Solicitation[], (value: Solicitation[] | ((
   const deleteData = () => {
     setData([]);
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('traknor-solicitations');
+      appStorage.remove(STORAGE_KEYS.DATA_SOLICITATIONS);
     }
   };
   
@@ -367,21 +364,16 @@ export const useFindById = <T extends { id: string }>(
 /**
  * BUSCAR SOLICITAÇÃO POR ID
  * 
- * Encontra uma solicitação específica, considerando dados do localStorage.
+ * Encontra uma solicitacao especifica, considerando dados do storage.
  * 
  * @param id - ID da solicitação a ser encontrada
  * @returns Solicitação encontrada ou undefined
  */
 export const findSolicitationById = (id: string) => {
   if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('traknor-solicitations');
+    const stored = appStorage.get<Solicitation[]>(STORAGE_KEYS.DATA_SOLICITATIONS);
     if (stored) {
-      try {
-        const solicitations: Solicitation[] = JSON.parse(stored);
-        return solicitations.find(solicitation => solicitation.id === id);
-      } catch (e) {
-        console.warn('Error parsing stored solicitations:', e);
-      }
+      return stored.find(solicitation => solicitation.id === id);
     }
   }
   return MOCK_SOLICITATIONS.find(solicitation => solicitation.id === id);
