@@ -8,8 +8,8 @@ pytz==2024.1
 # Multi-tenancy
 django-tenants==3.9.0
 
-# Admin Interface (Unfold - Modern Django Admin)
-django-unfold==0.47.0
+# Admin Interface (Jazzmin - AdminLTE-style Django Admin)
+django-jazzmin==3.0.1
 
 # Static Files (Production)
 whitenoise==6.8.2

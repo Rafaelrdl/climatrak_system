@@ -1,7 +1,7 @@
 """
 ClimaTrak Admin Base Classes
 
-Este módulo fornece classes base para ModelAdmins e Inlines usando django-unfold.
+Este módulo fornece classes base para ModelAdmins e Inlines.
 Todos os admins do projeto devem herdar dessas classes para garantir consistência visual
 e comportamentos padrão de UX, performance e segurança multi-tenant.
 
@@ -23,20 +23,9 @@ Uso:
 """
 
 from django.contrib import admin
+from django.contrib.admin import ModelAdmin, StackedInline, TabularInline
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
-
-try:
-    from unfold.admin import ModelAdmin, StackedInline, TabularInline
-    from unfold.decorators import action as unfold_action
-
-    UNFOLD_AVAILABLE = True
-except ModuleNotFoundError:
-    from django.contrib.admin import ModelAdmin, StackedInline, TabularInline
-
-    # Fallback para decorator padrão do Django
-    unfold_action = admin.action
-    UNFOLD_AVAILABLE = False
 
 
 # =============================================================================
@@ -174,22 +163,13 @@ class BaseAdmin(ModelAdmin):
     """
     Classe base para todos os ModelAdmins do ClimaTrak.
 
-    Herda de unfold.admin.ModelAdmin para garantir visual moderno.
+    Herda de django.contrib.admin.ModelAdmin.
     Inclui configurações padrão do projeto para melhor UX.
 
-    Atributos Unfold habilitados:
-    - warn_unsaved_form: Alerta ao sair de form com alterações não salvas
-    - list_filter_submit: Botão "Aplicar" nos filtros (evita reload a cada filtro)
-    - list_fullwidth: Lista ocupa toda a largura disponível
+    Atributos habilitados:
     - list_per_page: 25 itens por página (padrão)
+    - save_on_top: Botões de salvar no topo também
     """
-
-    # ==========================================================================
-    # Unfold UX Options
-    # ==========================================================================
-    warn_unsaved_form = True  # Alerta ao sair sem salvar
-    list_filter_submit = True  # Botão "Aplicar" nos filtros
-    list_fullwidth = True  # Lista em largura total
 
     # ==========================================================================
     # Django Admin Options
@@ -229,7 +209,7 @@ class BaseTabularInline(TabularInline):
     """
     Classe base para TabularInlines do ClimaTrak.
 
-    Herda de unfold.admin.TabularInline para visual moderno.
+    Herda de django.contrib.admin.TabularInline.
     """
 
     extra = 0
@@ -241,7 +221,7 @@ class BaseStackedInline(StackedInline):
     """
     Classe base para StackedInlines do ClimaTrak.
 
-    Herda de unfold.admin.StackedInline para visual moderno.
+    Herda de django.contrib.admin.StackedInline.
     """
 
     extra = 0
@@ -254,23 +234,40 @@ class BaseStackedInline(StackedInline):
 # =============================================================================
 
 
+# Mapeamento de cores para classes Bootstrap
+BOOTSTRAP_COLOR_MAP = {
+    "#10b981": "success",  # Verde
+    "#f59e0b": "warning",  # Amarelo/Laranja
+    "#ef4444": "danger",   # Vermelho
+    "#3b82f6": "info",     # Azul
+    "#6b7280": "secondary",  # Cinza
+    "#8b5cf6": "primary",  # Roxo -> Primary for visibility
+}
+
+
 def status_badge(value: str, color: str, icon: str = None) -> str:
     """
     Cria um badge colorido para exibição em list_display.
+    Usa classes Bootstrap/AdminLTE para compatibilidade com Jazzmin.
 
     Args:
         value: Texto a exibir
-        color: Cor hex (ex: "#10b981")
-        icon: Emoji opcional para prefixo
+        color: Cor hex (ex: "#10b981") ou nome Bootstrap (success, warning, etc.)
+        icon: Emoji opcional para prefixo (não usado em Bootstrap)
 
     Returns:
         HTML formatado do badge
     """
+    # Mapear cor hex para classe Bootstrap
+    if color.startswith("#"):
+        bootstrap_class = BOOTSTRAP_COLOR_MAP.get(color, "secondary")
+    else:
+        bootstrap_class = color
+    
     icon_html = f"{icon} " if icon else ""
     return format_html(
-        '<span style="background-color: {}; color: white; padding: 4px 8px; '
-        'border-radius: 4px; font-size: 11px; font-weight: 500;">{}{}</span>',
-        color,
+        '<span class="badge badge-{}">{}{}</span>',
+        bootstrap_class,
         icon_html,
         value,
     )

@@ -3,13 +3,9 @@ Admin configuration for User models.
 """
 
 from django.contrib import admin
+from django.contrib.admin import ModelAdmin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.utils.translation import gettext_lazy as _
-
-try:
-    from unfold.admin import ModelAdmin
-except ModuleNotFoundError:
-    from django.contrib.admin import ModelAdmin
 
 from apps.common.admin_base import get_status_color, status_badge
 
@@ -18,14 +14,7 @@ from .models import User
 
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin, ModelAdmin):
-    """Admin interface for User model using Unfold."""
-
-    # ==========================================================================
-    # Unfold UX Options
-    # ==========================================================================
-    warn_unsaved_form = True
-    list_filter_submit = True
-    list_fullwidth = True
+    """Admin interface for User model."""
 
     # ==========================================================================
     # List View Configuration

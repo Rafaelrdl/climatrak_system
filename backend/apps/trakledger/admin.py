@@ -21,7 +21,6 @@ class CostCenterChildInline(BaseTabularInline):
     show_change_link = True
     verbose_name = _("Centro de Custo Filho")
     verbose_name_plural = _("Centros de Custo Filhos")
-    tab = True  # Unfold: exibir como aba
 
 
 @admin.register(CostCenter)
@@ -133,7 +132,6 @@ class BudgetEnvelopeInline(BaseTabularInline):
     fields = ["name", "category", "cost_center", "amount", "is_active"]
     autocomplete_fields = ["cost_center"]
     show_change_link = True
-    tab = True  # Unfold: exibir como aba
 
 
 @admin.register(BudgetPlan)
@@ -186,7 +184,6 @@ class BudgetMonthInline(BaseTabularInline):
     extra = 0
     fields = ["month", "planned_amount", "is_locked", "locked_at", "locked_by"]
     readonly_fields = ["locked_at", "locked_by"]
-    tab = True  # Unfold: exibir como aba
 
 
 @admin.register(BudgetEnvelope)

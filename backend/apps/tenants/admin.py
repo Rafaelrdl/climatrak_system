@@ -8,16 +8,13 @@ Nova arquitetura: Acesso aos dados de Assets, Devices, Sensors e Sites
 from urllib.parse import urlparse
 
 from django.contrib import admin, messages
+from django.contrib.admin import ModelAdmin
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
 from django.utils.html import format_html
 
 from django_tenants.admin import TenantAdminMixin
 from django_tenants.utils import get_public_schema_name, schema_context
-try:
-    from unfold.admin import ModelAdmin
-except ModuleNotFoundError:
-    from django.contrib.admin import ModelAdmin
 
 from .models import Domain, Tenant
 

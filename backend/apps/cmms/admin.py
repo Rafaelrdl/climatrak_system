@@ -39,14 +39,12 @@ class WorkOrderPhotoInline(BaseTabularInline):
     model = WorkOrderPhoto
     extra = 0
     readonly_fields = ["uploaded_at", "uploaded_by"]
-    tab = True  # Unfold: exibir como aba
 
 
 class WorkOrderItemInline(BaseTabularInline):
     model = WorkOrderItem
     extra = 0
     readonly_fields = ["total_cost"]
-    tab = True  # Unfold: exibir como aba
 
     def total_cost(self, obj):
         return obj.quantity * obj.unit_cost if obj.unit_cost else "-"
@@ -258,7 +256,6 @@ class TimeEntryInline(BaseTabularInline):
         "total_cost",
         "description",
     ]
-    tab = True  # Unfold: exibir como aba
 
     def total_cost(self, obj):
         if obj.hourly_rate:
@@ -285,7 +282,6 @@ class PartUsageInline(BaseTabularInline):
         "inventory_deducted",
     ]
     raw_id_fields = ["inventory_item"]
-    tab = True  # Unfold: exibir como aba
 
     def total_cost(self, obj):
         if obj.unit_cost:
@@ -300,7 +296,6 @@ class ExternalCostAttachmentInline(BaseTabularInline):
 
     model = ExternalCostAttachment
     extra = 0
-    tab = True  # Unfold: exibir como aba
     readonly_fields = ["uploaded_at", "uploaded_by"]
     fields = [
         "file",

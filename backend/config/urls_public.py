@@ -19,12 +19,16 @@ from apps.accounts.views_password_reset import (
 )
 from apps.accounts.views_team import PublicInviteAcceptView, PublicInviteValidateView
 from apps.common.health import health_check
+from apps.common.admin_site import climatrak_admin_site, register_all_models
+
+# Registrar todos os modelos no admin site customizado
+register_all_models()
 
 urlpatterns = [
     # Observability endpoints (no auth required) - available on both schemas
     path("", include("apps.common.observability.urls")),
-    # Centralized Django Admin (only in public schema)
-    path("admin/", admin.site.urls),
+    # Centralized Django Admin (only in public schema) - using custom AdminSite
+    path("admin/", climatrak_admin_site.urls),
     # Ops Panel (staff-only, public schema)
     path("ops/", include("apps.ops.urls")),
     # Health check

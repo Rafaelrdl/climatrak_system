@@ -1,81 +1,89 @@
-{% extends "admin/base.html" %}
-{% load i18n %}
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
 
 {% block title %}{% trans "Dashboard" %} | {{ site_title }}{% endblock %}
 
 {% block breadcrumbs %}
-<div class="breadcrumbs">
-    <span class="material-symbols-outlined" style="font-size: 1rem;">home</span>
-    <span>{% trans "Dashboard" %}</span>
-</div>
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item active">
+            <i class="fas fa-home"></i> {% trans "Dashboard" %}
+        </li>
+    </ol>
+</nav>
 {% endblock %}
 
 {% block content %}
-<div>
+<div class="container-fluid">
     {% if is_public_schema %}
         {# ============================================= #}
         {# PUBLIC SCHEMA VIEW - Global Administration   #}
         {# ============================================= #}
 
         {# Welcome Card #}
-        <div class="dashboard-card" style="margin-bottom: 2rem;">
-            <div class="dashboard-card-header">
-                {% trans "Administração Global" %}
+        <div class="card card-outline card-primary mb-4">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-shield-alt"></i>
+                    {% trans "Administração Global" %}
+                </h3>
             </div>
-            <div class="welcome-card-content">
-                <span class="material-symbols-outlined welcome-icon">admin_panel_settings</span>
-                <h2 class="welcome-title">
-                    {% trans "Bem-vindo ao painel administrativo global" %}
-                </h2>
-                <p class="welcome-description">
+            <div class="card-body text-center">
+                <i class="fas fa-user-shield fa-4x text-primary mb-3"></i>
+                <h4>{% trans "Bem-vindo ao painel administrativo global" %}</h4>
+                <p class="text-muted">
                     {% trans "Você está no schema público. Selecione um tenant no menu lateral ou gerencie recursos globais abaixo." %}
                 </p>
             </div>
         </div>
 
-        {# Global Management Cards #}
-        <div class="dashboard-grid grid-3">
+        {# Global Management Cards - Row of Small Boxes #}
+        <div class="row">
             {# Tenants Card #}
-            <a href="/admin/tenants/tenant/" class="dashboard-card clickable" style="text-decoration: none;">
-                <div class="dashboard-card-content">
-                    <span class="material-symbols-outlined dashboard-card-icon">apartment</span>
-                    <div>
-                        <span class="kpi-value primary">{{ tenant_count|default:"0" }}</span>
-                        <p class="kpi-label">{% trans "Tenants Ativos" %}</p>
+            <div class="col-lg-4 col-md-6 col-sm-12">
+                <div class="small-box bg-info">
+                    <div class="inner">
+                        <h3>{{ tenant_count|default:"0" }}</h3>
+                        <p>{% trans "Tenants Ativos" %}</p>
                     </div>
+                    <div class="icon">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <a href="{% url 'admin:tenants_tenant_changelist' %}" class="small-box-footer">
+                        {% trans "Gerenciar tenants" %} <i class="fas fa-arrow-circle-right"></i>
+                    </a>
                 </div>
-                <div class="dashboard-card-footer">
-                    <span>{% trans "Gerenciar tenants" %} →</span>
-                </div>
-            </a>
+            </div>
 
             {# Domains Card #}
-            <a href="/admin/tenants/domain/" class="dashboard-card clickable" style="text-decoration: none;">
-                <div class="dashboard-card-content">
-                    <span class="material-symbols-outlined dashboard-card-icon">domain</span>
-                    <div>
-                        <span class="kpi-value primary">{{ domain_count|default:"0" }}</span>
-                        <p class="kpi-label">{% trans "Domínios Configurados" %}</p>
+            <div class="col-lg-4 col-md-6 col-sm-12">
+                <div class="small-box bg-success">
+                    <div class="inner">
+                        <h3>{{ domain_count|default:"0" }}</h3>
+                        <p>{% trans "Domínios Configurados" %}</p>
                     </div>
+                    <div class="icon">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <a href="{% url 'admin:tenants_domain_changelist' %}" class="small-box-footer">
+                        {% trans "Ver domínios" %} <i class="fas fa-arrow-circle-right"></i>
+                    </a>
                 </div>
-                <div class="dashboard-card-footer">
-                    <span>{% trans "Ver domínios" %} →</span>
-                </div>
-            </a>
+            </div>
 
             {# Settings Card #}
-            <div class="dashboard-card">
-                <div class="dashboard-card-content">
-                    <span class="material-symbols-outlined dashboard-card-icon">settings</span>
-                    <div>
-                        <span class="kpi-value" style="font-size: 1.875rem;">
-                            <span class="material-symbols-outlined">build</span>
-                        </span>
-                        <p class="kpi-label">{% trans "Configurações do Sistema" %}</p>
+            <div class="col-lg-4 col-md-6 col-sm-12">
+                <div class="small-box bg-secondary">
+                    <div class="inner">
+                        <h3><i class="fas fa-cog"></i></h3>
+                        <p>{% trans "Configurações do Sistema" %}</p>
                     </div>
-                </div>
-                <div class="dashboard-card-footer" style="color: var(--color-font-subtle);">
-                    <span>{% trans "Acesso restrito" %}</span>
+                    <div class="icon">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                    <span class="small-box-footer text-muted">
+                        {% trans "Acesso restrito" %}
+                    </span>
                 </div>
             </div>
         </div>
@@ -86,47 +94,46 @@
         {# ============================================= #}
 
         {# Dashboard Header #}
-        <div class="dashboard-header">
-            <h1 class="dashboard-title">{% trans "Dashboard" %}</h1>
-            <p class="dashboard-subtitle">
+        <div class="mb-4">
+            <h2 class="mb-1">{% trans "Dashboard" %}</h2>
+            <p class="text-muted">
                 {% blocktrans with tenant=tenant_name %}Visão geral do tenant {{ tenant }}{% endblocktrans %}
             </p>
         </div>
 
         {# Quick Actions Bar #}
         {% if quick_links %}
-        <div class="quick-actions">
-            {% for link in quick_links %}
-                <a href="{{ link.url }}" class="quick-action-btn">
-                    <span class="material-symbols-outlined">{{ link.icon }}</span>
-                    {{ link.title }}
-                </a>
-            {% endfor %}
+        <div class="mb-4">
+            <div class="btn-group flex-wrap" role="group">
+                {% for link in quick_links %}
+                    <a href="{{ link.url }}" class="btn btn-primary">
+                        <i class="fas fa-{{ link.icon|default:'plus' }}"></i>
+                        {{ link.title }}
+                    </a>
+                {% endfor %}
+            </div>
         </div>
         {% endif %}
 
-        {# KPI Cards Grid #}
+        {# KPI Cards Grid - Using AdminLTE Small Boxes #}
         {% if dashboard_cards %}
-        <div class="dashboard-grid grid-4">
+        <div class="row">
             {% for card in dashboard_cards %}
-            <div class="dashboard-card">
-                <div class="dashboard-card-content">
-                    {% if card.icon %}
-                    <span class="material-symbols-outlined dashboard-card-icon">{{ card.icon }}</span>
-                    {% endif %}
-                    <div>
-                        <span class="kpi-value {{ card.color|default:'primary' }}">{{ card.metric }}</span>
-                        <p class="kpi-label">{{ card.title }}</p>
+            <div class="col-lg-3 col-md-6 col-sm-12">
+                <div class="small-box bg-{% if card.color == 'danger' %}danger{% elif card.color == 'warning' %}warning{% elif card.color == 'success' %}success{% elif card.color == 'info' %}info{% else %}primary{% endif %}">
+                    <div class="inner">
+                        <h3>{{ card.metric }}</h3>
+                        <p>{{ card.title }}</p>
                     </div>
-                </div>
-                {% if card.footer %}
-                <div class="dashboard-card-footer">
-                    <a href="{{ card.footer.link|default:'#' }}">
-                        {{ card.footer.label }}
-                        <span class="material-symbols-outlined" style="font-size: 0.875rem;">arrow_forward</span>
+                    <div class="icon">
+                        <i class="fas fa-{% if card.icon == 'assignment' %}clipboard-list{% elif card.icon == 'build' %}wrench{% elif card.icon == 'inventory_2' %}boxes{% elif card.icon == 'warning' %}exclamation-triangle{% elif card.icon == 'notifications' %}bell{% elif card.icon == 'error' %}times-circle{% elif card.icon == 'account_balance_wallet' %}wallet{% elif card.icon == 'event_available' %}calendar-check{% elif card.icon == 'local_shipping' %}truck{% elif card.icon == 'schedule' %}clock{% else %}chart-bar{% endif %}"></i>
+                    </div>
+                    {% if card.footer %}
+                    <a href="{{ card.footer.link|default:'#' }}" class="small-box-footer">
+                        {{ card.footer.label }} <i class="fas fa-arrow-circle-right"></i>
                     </a>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -134,23 +141,32 @@
 
         {# Budget Utilization Progress #}
         {% if budget_utilization is not None %}
-        <div class="dashboard-card" style="margin-bottom: 2rem;">
-            <div class="dashboard-card-header">
-                {% trans "Utilização do Orçamento Mensal" %}
+        <div class="card card-outline card-primary mb-4">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-pie"></i>
+                    {% trans "Utilização do Orçamento Mensal" %}
+                </h3>
             </div>
-            <div class="progress-container">
-                <div class="progress-header">
-                    <span class="progress-title">{{ budget_month_name }}</span>
-                    <span class="progress-value {% if budget_utilization > 90 %}danger{% elif budget_utilization > 75 %}warning{% else %}success{% endif %}">
-                        {{ budget_utilization }}%
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span><strong>{{ budget_month_name }}</strong></span>
+                    <span class="{% if budget_utilization > 90 %}text-danger{% elif budget_utilization > 75 %}text-warning{% else %}text-success{% endif %}">
+                        <strong>{{ budget_utilization }}%</strong>
                     </span>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress-bar-fill {% if budget_utilization > 90 %}danger{% elif budget_utilization > 75 %}warning{% else %}success{% endif %}" 
-                         style="width: {{ budget_utilization }}%;"></div>
+                <div class="progress" style="height: 25px;">
+                    <div class="progress-bar {% if budget_utilization > 90 %}bg-danger{% elif budget_utilization > 75 %}bg-warning{% else %}bg-success{% endif %}" 
+                         role="progressbar" 
+                         style="width: {{ budget_utilization }}%;" 
+                         aria-valuenow="{{ budget_utilization }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                        {{ budget_utilization }}%
+                    </div>
                 </div>
                 {% if budget_description %}
-                <p class="progress-description">{{ budget_description }}</p>
+                <p class="text-muted mt-2 mb-0">{{ budget_description }}</p>
                 {% endif %}
             </div>
         </div>
@@ -158,13 +174,16 @@
 
         {# Operations Overview Table #}
         {% if table_data.rows %}
-        <div class="dashboard-card" style="margin-bottom: 2rem;">
-            <div class="dashboard-card-header">
-                {% trans "Visão Geral de Operações" %}
+        <div class="card card-outline card-info mb-4">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-table"></i>
+                    {% trans "Visão Geral de Operações" %}
+                </h3>
             </div>
-            <div style="overflow-x: auto;">
-                <table class="dashboard-table">
-                    <thead>
+            <div class="card-body p-0">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="thead-dark">
                         <tr>
                             {% for header in table_data.headers %}
                             <th>{{ header }}</th>
@@ -187,38 +206,39 @@
 
         {# Recent Activity #}
         {% if recent_activity %}
-        <div class="dashboard-card" style="margin-bottom: 2rem;">
-            <div class="dashboard-card-header">
-                {% trans "Atividade Recente" %}
+        <div class="card card-outline card-secondary mb-4">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-history"></i>
+                    {% trans "Atividade Recente" %}
+                </h3>
             </div>
-            <div class="activity-feed">
-                {% for activity in recent_activity %}
-                <div class="activity-item">
-                    <span class="material-symbols-outlined activity-icon {% if activity.type == 'alert' %}alert{% elif activity.type == 'workorder' %}workorder{% elif activity.type == 'inventory' %}inventory{% else %}default{% endif %}">
-                        {{ activity.icon }}
-                    </span>
-                    <div class="activity-content">
-                        <p class="activity-message">{{ activity.message }}</p>
-                        <p class="activity-timestamp">{{ activity.timestamp }}</p>
-                    </div>
-                    {% if activity.link %}
-                    <a href="{{ activity.link }}" class="activity-link">{% trans "Ver" %}</a>
-                    {% endif %}
-                </div>
-                {% endfor %}
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for activity in recent_activity %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-{% if activity.type == 'alert' %}bell text-warning{% elif activity.type == 'workorder' %}clipboard-list text-info{% elif activity.type == 'inventory' %}box text-success{% else %}circle text-secondary{% endif %} mr-2"></i>
+                            {{ activity.message }}
+                            <small class="text-muted ml-2">{{ activity.timestamp }}</small>
+                        </div>
+                        {% if activity.link %}
+                        <a href="{{ activity.link }}" class="btn btn-sm btn-outline-primary">{% trans "Ver" %}</a>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
         {% endif %}
 
         {# Empty State #}
         {% if not dashboard_cards and not table_data.rows %}
-        <div class="dashboard-card">
-            <div class="empty-state">
-                <span class="material-symbols-outlined empty-state-icon">dashboard</span>
-                <h3 class="empty-state-title">
-                    {% trans "Nenhum dado disponível" %}
-                </h3>
-                <p class="empty-state-description">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-chart-line fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">{% trans "Nenhum dado disponível" %}</h4>
+                <p class="text-muted">
                     {% trans "Comece criando ordens de serviço, registrando movimentações de estoque ou configurando alertas para ver estatísticas aqui." %}
                 </p>
             </div>
@@ -227,4 +247,50 @@
 
     {% endif %}
 </div>
+
+{# App List - Only show in tenant schema, handled by get_app_list filtering #}
+{% if not is_public_schema %}
+<div class="container-fluid mt-4">
+    <div class="card card-outline card-secondary">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-th-large"></i>
+                {% trans "Aplicações" %}
+            </h3>
+        </div>
+        <div class="card-body">
+            {% if app_list %}
+            <div class="row">
+                {% for app in app_list %}
+                <div class="col-lg-4 col-md-6 col-sm-12 mb-3">
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-folder mr-2"></i>
+                                {{ app.name }}
+                            </h5>
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            {% for model in app.models %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <a href="{{ model.admin_url }}">{{ model.name }}</a>
+                                {% if model.add_url %}
+                                <a href="{{ model.add_url }}" class="btn btn-sm btn-success" title="{% trans 'Adicionar' %}">
+                                    <i class="fas fa-plus"></i>
+                                </a>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">{% trans "Nenhuma aplicação disponível." %}</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

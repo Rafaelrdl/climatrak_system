@@ -1,7 +1,7 @@
 """
 ClimaTrak Admin Dashboard
 
-Dashboard customizado para o Django Admin com Unfold.
+Dashboard customizado para o Django Admin com Jazzmin (AdminLTE).
 Exibe cards e métricas relevantes por domínio, respeitando permissões do usuário.
 
 IMPORTANTE: Multi-tenant safety
@@ -9,43 +9,34 @@ IMPORTANTE: Multi-tenant safety
 - Dados NUNCA são cacheados entre tenants
 - Cada card verifica permissões antes de exibir dados
 
-Configuração no settings:
-    UNFOLD = {
-        ...
-        "DASHBOARD_CALLBACK": "apps.ops.admin_dashboard.dashboard_callback",
-    }
-
-Ícones usados: Material Symbols (Google)
-https://fonts.google.com/icons?icon.set=Material+Symbols
+O dashboard é integrado via ClimaTrakAdminSite.index() que chama dashboard_callback().
 """
 
 from django.db.models import Count, F, Q, Sum
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-# Mapeamento de ícones para Material Symbols
+# Mapeamento de ícones Material Symbols → FontAwesome
+# Usado para compatibilidade com templates que ainda usam os nomes antigos
 ICON_MAP = {
     # CMMS
-    "clipboard-list": "assignment",
-    "wrench": "build",
-    "package": "inventory_2",
-    "alert-triangle": "warning",
-    # Inventory
-    "package-x": "inventory_2",
-    "boxes": "inventory_2",
+    "assignment": "clipboard-list",
+    "build": "wrench",
+    "inventory_2": "boxes",
+    "warning": "exclamation-triangle",
     # Alerts
-    "bell-ring": "notifications",
-    "alert-octagon": "error",
+    "notifications": "bell",
+    "error": "times-circle",
     # Finance
-    "wallet": "account_balance_wallet",
-    "calendar-check": "event_available",
+    "account_balance_wallet": "wallet",
+    "event_available": "calendar-check",
     # TrakService
-    "truck": "local_shipping",
-    "clock": "schedule",
+    "local_shipping": "truck",
+    "schedule": "clock",
     # Quick links
-    "plus-circle": "add_circle",
-    "package-plus": "add_box",
-    "check-circle": "check_circle",
+    "add_circle": "plus-circle",
+    "add_box": "plus-square",
+    "check_circle": "check-circle",
 }
 
 # Importações condicionais - falha silenciosamente se app não existir
@@ -489,9 +480,10 @@ def _get_operations_table(request) -> dict:
 
 def dashboard_callback(request, context):
     """
-    Callback principal do dashboard do Unfold.
+    Callback principal do dashboard.
 
-    Esta função é chamada pelo Unfold para popular o dashboard com cards.
+    Esta função é chamada pelo ClimaTrakAdminSite.index() para popular 
+    o dashboard com cards KPI, quick links e dados de operações.
     Respeita permissões do usuário e não vaza dados entre tenants.
 
     Args:

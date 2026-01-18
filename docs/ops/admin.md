@@ -87,7 +87,18 @@ Isso previne acidentes em produção.
 
 ### CSS Customizado
 
-Estilos adicionais em: `backend/static/admin/css/climatrak_admin.css`
+Estilos adicionais em: `backend/static/admin/css/climatrak_jazzmin.css`
+
+Cores principais:
+- **Primary (Teal/Verde-Petróleo)**: `#0d9488`
+- Definido via CSS Variables (`--ct-teal-*`)
+
+Para editar cores/tema em desenvolvimento, ative o UI Builder:
+```python
+JAZZMIN_SETTINGS = {
+    "show_ui_builder": DEBUG,  # Ativa em dev
+}
+```
 
 ---
 
