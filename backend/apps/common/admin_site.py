@@ -238,6 +238,20 @@ class ClimaTrakAdminSite(AdminSite):
         
         wrapper.model_admin = view.model_admin if hasattr(view, 'model_admin') else None
         return update_wrapper(wrapper, view)
+
+    def admin_view(self, view, cacheable=False):
+        """
+        Override to inject schema protection into every ModelAdmin view.
+        """
+        decorated = super().admin_view(view, cacheable=cacheable)
+        model_admin = getattr(decorated, "model_admin", None)
+        if model_admin:
+            decorated = self._modeladmin_view(
+                decorated,
+                model_admin.model,
+                cacheable=cacheable,
+            )
+        return decorated
     
     # =========================================================================
     # OVERRIDE: URLs com proteção de schema
