@@ -5,6 +5,7 @@ For more information on this file, see
 https://docs.djangoproject.com/en/5.0/topics/settings/
 """
 
+import importlib.util
 import os
 from pathlib import Path
 
@@ -85,6 +86,8 @@ if AUTH_COOKIE_DOMAIN in ("", "localhost", ".localhost"):
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
 
 # Application definition
+_JAZZMIN_AVAILABLE = importlib.util.find_spec("jazzmin") is not None
+
 SHARED_APPS = [
     "django_tenants",  # Must be first
     "apps.accounts",  # Must be before auth for custom user model (TEMPORARY: will be moved to TENANT_APPS only after migration)
@@ -93,7 +96,12 @@ SHARED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "jazzmin",  # Must be before django.contrib.admin
+]
+
+if _JAZZMIN_AVAILABLE:
+    SHARED_APPS.append("jazzmin")  # Must be before django.contrib.admin
+
+SHARED_APPS += [
     "django.contrib.admin",  # Admin only in public schema
     # Third-party
     "rest_framework",
