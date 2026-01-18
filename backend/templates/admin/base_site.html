@@ -1,0 +1,152 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{# ============================================================================= #}
+{# ClimaTrak Admin Base Template                                                  #}
+{# Estende o base do Jazzmin/Django para adicionar:                              #}
+{# 1. Banner fixo de tenant ativo (proteção multi-tenant)                        #}
+{# 2. Estilos customizados para alertas de schema                                #}
+{# ============================================================================= #}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    /* =========================================== */
+    /* TENANT BANNER - Proteção Multi-Tenant      */
+    /* =========================================== */
+    
+    .tenant-banner {
+        position: sticky;
+        top: 0;
+        z-index: 1040;
+        padding: 8px 16px;
+        font-weight: 600;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .tenant-banner--public {
+        background: linear-gradient(90deg, #dc3545, #c82333);
+        color: white;
+    }
+    
+    .tenant-banner--tenant {
+        background: linear-gradient(90deg, #0d9488, #0f766e);
+        color: white;
+    }
+    
+    .tenant-banner__icon {
+        font-size: 1.2em;
+    }
+    
+    .tenant-banner__info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .tenant-banner__name {
+        font-size: 1em;
+        font-weight: 700;
+    }
+    
+    .tenant-banner__schema {
+        font-size: 0.85em;
+        opacity: 0.9;
+        background: rgba(255,255,255,0.2);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: monospace;
+    }
+    
+    .tenant-banner__warning {
+        font-size: 0.85em;
+        margin-left: 16px;
+        opacity: 0.9;
+    }
+    
+    /* Estilos para mensagens de lock */
+    .lock-warning {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 4px;
+        padding: 12px 16px;
+        margin: 16px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .lock-warning__icon {
+        font-size: 1.5em;
+    }
+    
+    .lock-warning__text {
+        color: #856404;
+        font-weight: 500;
+    }
+    
+    /* Badge de readonly para modelos críticos */
+    .readonly-badge {
+        background: #6c757d;
+        color: white;
+        font-size: 0.75em;
+        padding: 2px 6px;
+        border-radius: 3px;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{# ============================================================================= #}
+{# BANNER DE TENANT - Sempre visível no topo                                     #}
+{# ============================================================================= #}
+{% if tenant_banner %}
+<div class="tenant-banner tenant-banner--{% if tenant_banner.is_public %}public{% else %}tenant{% endif %}" role="alert">
+    <span class="tenant-banner__icon">{{ tenant_banner.tenant_icon }}</span>
+    <div class="tenant-banner__info">
+        <span class="tenant-banner__name">
+            {% if tenant_banner.is_public %}
+                {% trans "SCHEMA PÚBLICO" %}
+            {% else %}
+                TENANT: {{ tenant_banner.tenant_name }}
+            {% endif %}
+        </span>
+        <span class="tenant-banner__schema">schema: {{ tenant_banner.schema_name }}</span>
+    </div>
+    {% if tenant_banner.is_public %}
+    <span class="tenant-banner__warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        {% trans "Operações aqui afetam TODOS os tenants. Use com cuidado!" %}
+    </span>
+    {% endif %}
+</div>
+{% endif %}
+
+{# Mensagem de lock para registros bloqueados #}
+{% if is_locked %}
+<div class="lock-warning">
+    <span class="lock-warning__icon">🔒</span>
+    <span class="lock-warning__text">{{ lock_message }}</span>
+</div>
+{% endif %}
+
+{{ block.super }}
+{% endblock %}
+
+{% block branding %}
+<a href="{% url 'admin:index' %}" class="brand-link">
+    <span class="brand-text font-weight-light">
+        <i class="fas fa-chart-line"></i>
+        <strong>ClimaTrak</strong> Admin
+    </span>
+</a>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

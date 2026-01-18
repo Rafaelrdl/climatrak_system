@@ -5,6 +5,12 @@ Este módulo fornece classes base para ModelAdmins e Inlines.
 Todos os admins do projeto devem herdar dessas classes para garantir consistência visual
 e comportamentos padrão de UX, performance e segurança multi-tenant.
 
+RECURSOS:
+- Logging estruturado de operações administrativas
+- Mixins para timestamps, locks, auditoria
+- Performance otimizada com select_related/prefetch_related
+- Helpers para badges e formatação
+
 Uso:
     from apps.common.admin_base import (
         BaseAdmin,
@@ -22,10 +28,14 @@ Uso:
         model = MyRelatedModel
 """
 
+import logging
+
 from django.contrib import admin
 from django.contrib.admin import ModelAdmin, StackedInline, TabularInline
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -169,6 +179,7 @@ class BaseAdmin(ModelAdmin):
     Atributos habilitados:
     - list_per_page: 25 itens por página (padrão)
     - save_on_top: Botões de salvar no topo também
+    - Logging automático de save/delete para auditoria
     """
 
     # ==========================================================================
@@ -203,6 +214,90 @@ class BaseAdmin(ModelAdmin):
             qs = qs.prefetch_related(*self.list_prefetch_related)
 
         return qs
+
+    # ==========================================================================
+    # AUDITORIA: Logging de operações administrativas
+    # ==========================================================================
+    
+    def _get_tenant_info(self, request):
+        """Extrai informações do tenant da request."""
+        tenant = getattr(request, "tenant", None)
+        if tenant:
+            return {
+                "tenant_name": getattr(tenant, "name", tenant.schema_name),
+                "schema_name": tenant.schema_name,
+            }
+        return {"tenant_name": "unknown", "schema_name": "unknown"}
+    
+    def save_model(self, request, obj, form, change):
+        """Salva modelo e loga a operação para auditoria."""
+        super().save_model(request, obj, form, change)
+        
+        # Log da operação
+        action = "change" if change else "add"
+        tenant_info = self._get_tenant_info(request)
+        
+        logger.info(
+            f"Admin {action}: {self.model._meta.label} (id={obj.pk})",
+            extra={
+                "admin_action": action,
+                "model": self.model._meta.label,
+                "object_id": str(obj.pk),
+                "user_id": request.user.id,
+                "username": request.user.username,
+                "tenant": tenant_info["tenant_name"],
+                "schema": tenant_info["schema_name"],
+                "ip": request.META.get("REMOTE_ADDR"),
+                "changed_fields": list(form.changed_data) if form else [],
+            }
+        )
+    
+    def delete_model(self, request, obj):
+        """Deleta modelo e loga a operação para auditoria."""
+        tenant_info = self._get_tenant_info(request)
+        object_repr = str(obj)
+        object_pk = str(obj.pk)
+        
+        # Log ANTES de deletar (para ter os dados)
+        logger.warning(
+            f"Admin delete: {self.model._meta.label} (id={object_pk})",
+            extra={
+                "admin_action": "delete",
+                "model": self.model._meta.label,
+                "object_id": object_pk,
+                "object_repr": object_repr,
+                "user_id": request.user.id,
+                "username": request.user.username,
+                "tenant": tenant_info["tenant_name"],
+                "schema": tenant_info["schema_name"],
+                "ip": request.META.get("REMOTE_ADDR"),
+            }
+        )
+        
+        super().delete_model(request, obj)
+    
+    def delete_queryset(self, request, queryset):
+        """Deleta múltiplos objetos e loga para auditoria."""
+        tenant_info = self._get_tenant_info(request)
+        count = queryset.count()
+        ids = list(queryset.values_list("pk", flat=True)[:10])  # Log até 10 IDs
+        
+        logger.warning(
+            f"Admin bulk delete: {self.model._meta.label} ({count} objects)",
+            extra={
+                "admin_action": "bulk_delete",
+                "model": self.model._meta.label,
+                "count": count,
+                "sample_ids": [str(pk) for pk in ids],
+                "user_id": request.user.id,
+                "username": request.user.username,
+                "tenant": tenant_info["tenant_name"],
+                "schema": tenant_info["schema_name"],
+                "ip": request.META.get("REMOTE_ADDR"),
+            }
+        )
+        
+        super().delete_queryset(request, queryset)
 
 
 class BaseTabularInline(TabularInline):

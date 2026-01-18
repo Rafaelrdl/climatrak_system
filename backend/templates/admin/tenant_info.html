@@ -1,0 +1,121 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Informações do Tenant" %} | {{ site_title }}{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'admin:index' %}"><i class="fas fa-home"></i> {% trans "Dashboard" %}</a></li>
+        <li class="breadcrumb-item active">{% trans "Informações do Tenant" %}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+{{ block.super }}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card card-outline card-{% if tenant_info.is_public %}danger{% else %}primary{% endif %}">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-info-circle"></i>
+                        {% trans "Contexto Atual" %}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <tbody>
+                            <tr>
+                                <th style="width: 40%">{% trans "Tenant" %}</th>
+                                <td>
+                                    <span class="tenant-banner__icon">{{ tenant_info.tenant_icon }}</span>
+                                    <strong>{{ tenant_info.tenant_name }}</strong>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>{% trans "Schema PostgreSQL" %}</th>
+                                <td><code>{{ tenant_info.schema_name }}</code></td>
+                            </tr>
+                            <tr>
+                                <th>{% trans "Tipo" %}</th>
+                                <td>
+                                    {% if tenant_info.is_public %}
+                                        <span class="badge badge-danger">{% trans "Schema Público" %}</span>
+                                    {% else %}
+                                        <span class="badge badge-success">{% trans "Schema Tenant" %}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>{% trans "Usuário Atual" %}</th>
+                                <td>
+                                    <i class="fas fa-user"></i>
+                                    {{ user.username }} ({{ user.email }})
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>{% trans "Permissões" %}</th>
+                                <td>
+                                    {% if user.is_superuser %}
+                                        <span class="badge badge-danger">Superuser</span>
+                                    {% endif %}
+                                    {% if user.is_staff %}
+                                        <span class="badge badge-warning">Staff</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card card-outline card-warning">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-shield-alt"></i>
+                        {% trans "Regras de Segurança" %}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i>
+                            {% trans "Operações são isoladas por tenant (multi-schema)" %}
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i>
+                            {% trans "Modelos tenant-only bloqueados no schema público" %}
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i>
+                            {% trans "Finance (CostTransaction) é readonly por padrão" %}
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i>
+                            {% trans "Registros locked não podem ser editados/deletados" %}
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i>
+                            {% trans "Ações administrativas são logadas para auditoria" %}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            {% if tenant_info.is_public %}
+            <div class="alert alert-danger">
+                <h5><i class="fas fa-exclamation-triangle"></i> {% trans "Atenção: Schema Público" %}</h5>
+                <p class="mb-0">
+                    {% trans "Você está no schema público. Operações aqui podem afetar TODOS os tenants. Apenas gestão de tenants e domínios está disponível." %}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

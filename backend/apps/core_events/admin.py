@@ -2,27 +2,49 @@
 Core Events Admin - Administração da Outbox
 
 Interface administrativa para visualização e gestão de eventos.
+Foco em operações de suporte e debugging (READONLY por padrão).
+
+REGRAS:
+1. Eventos são IMUTÁVEIS - não editáveis
+2. Reprocessamento é IDEMPOTENTE via idempotency_key
+3. Delete apenas para superusers (limpeza de falhos)
 """
 
+import json
+import logging
+
 from django.contrib import admin
+from django.db.models import Count
+from django.utils import timezone
 from django.utils.html import format_html
 
 from apps.common.admin_base import BaseAdmin
 
 from .models import OutboxEvent, OutboxEventStatus
 
+logger = logging.getLogger(__name__)
+
 
 @admin.register(OutboxEvent)
 class OutboxEventAdmin(BaseAdmin):
-    """Admin para visualização e gestão de eventos da Outbox."""
+    """
+    Admin para visualização e gestão de eventos da Outbox.
+    
+    READONLY por padrão - eventos são imutáveis.
+    Ações disponíveis:
+    - Reprocessar (idempotente via idempotency_key)
+    - Marcar como falho
+    - Exportar para análise
+    """
 
     list_display = [
         "id_short",
         "event_name",
         "aggregate_info",
         "status_badge",
-        "attempts",
+        "attempts_badge",
         "occurred_at",
+        "processing_time",
         "created_at",
     ]
 
@@ -30,7 +52,8 @@ class OutboxEventAdmin(BaseAdmin):
         "status",
         "event_name",
         "aggregate_type",
-        "created_at",
+        ("created_at", admin.DateFieldListFilter),
+        ("occurred_at", admin.DateFieldListFilter),
     ]
 
     search_fields = [
@@ -38,7 +61,12 @@ class OutboxEventAdmin(BaseAdmin):
         "event_name",
         "aggregate_id",
         "idempotency_key",
+        "last_error",
     ]
+    
+    date_hierarchy = "occurred_at"
+    list_per_page = 50
+    ordering = ["-occurred_at"]
 
     readonly_fields = [
         "id",
@@ -96,7 +124,7 @@ class OutboxEventAdmin(BaseAdmin):
         ),
     ]
 
-    actions = ["retry_selected_events", "mark_as_failed"]
+    actions = ["retry_selected_events", "mark_as_failed", "export_events_csv"]
 
     def id_short(self, obj):
         """Exibe ID truncado para melhor visualização."""
@@ -111,21 +139,61 @@ class OutboxEventAdmin(BaseAdmin):
     aggregate_info.short_description = "Agregado"
 
     def status_badge(self, obj):
-        """Exibe status com cores."""
-        colors = {
-            OutboxEventStatus.PENDING: "#ffc107",  # Amarelo
-            OutboxEventStatus.PROCESSED: "#28a745",  # Verde
-            OutboxEventStatus.FAILED: "#dc3545",  # Vermelho
+        """Exibe status com cores Bootstrap."""
+        badge_map = {
+            OutboxEventStatus.PENDING: ("warning", "⏳"),
+            OutboxEventStatus.PROCESSED: ("success", "✅"),
+            OutboxEventStatus.FAILED: ("danger", "❌"),
         }
-        color = colors.get(obj.status, "#6c757d")
+        badge_class, icon = badge_map.get(obj.status, ("secondary", "❓"))
         return format_html(
-            '<span style="background-color: {}; color: white; padding: 2px 8px; '
-            'border-radius: 4px; font-size: 11px;">{}</span>',
-            color,
+            '<span class="badge badge-{}">{} {}</span>',
+            badge_class,
+            icon,
             obj.get_status_display(),
         )
 
     status_badge.short_description = "Status"
+    
+    def attempts_badge(self, obj):
+        """Exibe tentativas com cor baseada em threshold."""
+        if obj.attempts >= obj.max_attempts:
+            color = "danger"
+        elif obj.attempts > 0:
+            color = "warning"
+        else:
+            color = "secondary"
+        return format_html(
+            '<span class="badge badge-{}">{}/{}</span>',
+            color,
+            obj.attempts,
+            obj.max_attempts,
+        )
+    
+    attempts_badge.short_description = "Tentativas"
+    
+    def processing_time(self, obj):
+        """Tempo entre ocorrência e processamento."""
+        if obj.processed_at and obj.occurred_at:
+            delta = obj.processed_at - obj.occurred_at
+            seconds = delta.total_seconds()
+            if seconds < 60:
+                return f"{seconds:.1f}s"
+            elif seconds < 3600:
+                return f"{seconds/60:.1f}m"
+            else:
+                return f"{seconds/3600:.1f}h"
+        elif obj.status == OutboxEventStatus.PENDING:
+            # Ainda pendente - mostrar tempo de espera
+            delta = timezone.now() - obj.occurred_at
+            seconds = delta.total_seconds()
+            return format_html(
+                '<span style="color: #dc3545;">⏱️ {:.0f}s</span>',
+                seconds,
+            )
+        return "-"
+    
+    processing_time.short_description = "Tempo"
 
     def payload_formatted(self, obj):
         """Exibe payload formatado."""
@@ -141,20 +209,33 @@ class OutboxEventAdmin(BaseAdmin):
 
     payload_formatted.short_description = "Payload (JSON)"
 
-    @admin.action(description="Reprocessar eventos selecionados")
+    @admin.action(description="🔄 Reprocessar eventos selecionados (idempotente)")
     def retry_selected_events(self, request, queryset):
-        """Action para reprocessar eventos."""
+        """
+        Action para reprocessar eventos.
+        
+        IMPORTANTE: Reprocessamento é IDEMPOTENTE via idempotency_key.
+        Consumidores devem verificar se já processaram o evento.
+        """
         from .services import EventRetrier
 
         count = 0
+        errors = []
         for event in queryset:
             try:
                 EventRetrier.retry_event(event.id)
                 count += 1
-            except Exception as e:
-                self.message_user(
-                    request, f"Erro ao resetar evento {event.id}: {e}", level="error"
+                logger.info(
+                    f"Evento {event.id} marcado para reprocessamento",
+                    extra={
+                        "event_id": str(event.id),
+                        "event_name": event.event_name,
+                        "user": request.user.username,
+                        "action": "admin_retry",
+                    }
                 )
+            except Exception as e:
+                errors.append(f"{event.id}: {e}")
 
         if count > 0:
             # Disparar processamento
@@ -163,18 +244,66 @@ class OutboxEventAdmin(BaseAdmin):
             dispatch_pending_events.delay(batch_size=count)
 
             self.message_user(
-                request, f"{count} evento(s) resetado(s) para reprocessamento."
+                request, 
+                f"✅ {count} evento(s) resetado(s) para reprocessamento.",
+                level="success",
             )
+        
+        for error in errors[:3]:  # Mostrar até 3 erros
+            self.message_user(request, f"❌ Erro: {error}", level="error")
 
-    @admin.action(description="Marcar como falho")
+    @admin.action(description="❌ Marcar como falho (permanente)")
     def mark_as_failed(self, request, queryset):
-        """Action para marcar eventos como falhos."""
+        """Action para marcar eventos como falhos permanentemente."""
         count = queryset.filter(status=OutboxEventStatus.PENDING).update(
             status=OutboxEventStatus.FAILED,
-            last_error="Marcado manualmente como falho via admin",
+            last_error=f"Marcado manualmente como falho via admin por {request.user.username}",
+            last_attempt_at=timezone.now(),
         )
+        
+        if count > 0:
+            logger.warning(
+                f"{count} eventos marcados como falhos via admin",
+                extra={
+                    "user": request.user.username,
+                    "action": "admin_mark_failed",
+                    "count": count,
+                }
+            )
 
-        self.message_user(request, f"{count} evento(s) marcado(s) como falho.")
+        self.message_user(request, f"⚠️ {count} evento(s) marcado(s) como falho.")
+    
+    @admin.action(description="📊 Exportar para CSV")
+    def export_events_csv(self, request, queryset):
+        """Exporta eventos selecionados para CSV."""
+        import csv
+        from django.http import HttpResponse
+        
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="outbox_events.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow([
+            "ID", "Event Name", "Aggregate Type", "Aggregate ID",
+            "Status", "Attempts", "Occurred At", "Processed At",
+            "Last Error", "Idempotency Key",
+        ])
+        
+        for event in queryset:
+            writer.writerow([
+                str(event.id),
+                event.event_name,
+                event.aggregate_type,
+                str(event.aggregate_id),
+                event.get_status_display(),
+                event.attempts,
+                event.occurred_at.isoformat() if event.occurred_at else "",
+                event.processed_at.isoformat() if event.processed_at else "",
+                event.last_error or "",
+                event.idempotency_key or "",
+            ])
+        
+        return response
 
     def has_add_permission(self, request):
         """Desabilita criação manual de eventos."""

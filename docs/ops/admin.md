@@ -2,6 +2,11 @@
 
 Este documento define os padrões, convenções e boas práticas para o Django Admin do ClimaTrak System.
 
+> **IMPORTANTE**: O admin do ClimaTrak é um **painel de backoffice técnico** para suporte, auditoria,
+> correções controladas e manutenção do multi-tenant. **NÃO** é a UI principal (essa é o frontend React).
+
+---
+
 ## 📍 Acesso ao Admin
 
 O admin é centralizado no **schema público** (multi-tenant):
@@ -13,6 +18,39 @@ O admin é centralizado no **schema público** (multi-tenant):
 
 > ⚠️ **IMPORTANTE**: O admin **NÃO** está disponível via domínios de tenant (ex: `umc.localhost`).
 > Acessar `/admin` em um domínio de tenant retorna 404.
+
+---
+
+## 🛡️ Proteções Multi-Tenant (Prioridade Máxima)
+
+### Banner Fixo de Tenant
+
+O admin exibe um **banner fixo no topo** de TODAS as páginas mostrando:
+- 🏢 Nome do tenant ativo
+- 📦 Schema PostgreSQL atual
+- ⚠️ Aviso quando em schema público
+
+**Cores do Banner:**
+- **Vermelho (`#dc3545`)**: Schema público - operações afetam TODOS os tenants
+- **Teal (`#0d9488`)**: Schema de tenant - operações isoladas
+
+### Bloqueio de Schema Errado
+
+O `ClimaTrakAdminSite` (em `apps/common/admin_site.py`) bloqueia automaticamente:
+
+| Schema | Apps Bloqueados |
+|--------|-----------------|
+| `public` | cmms, inventory, trakledger, assets, alerts, locations, ingest, trakservice |
+| Tenant | tenants, public_identity |
+
+Tentar acessar um model no schema errado retorna **403 Forbidden**.
+
+### Regras Inegociáveis
+
+1. ❌ **NUNCA** permitir seleção de tenant/schema via dropdown
+2. ❌ **NUNCA** expor dados de tenant A para usuário de tenant B
+3. ✅ Usar `schema_context()` ao acessar dados de tenant específico
+4. ✅ Logging de TODAS as operações administrativas
 
 ---
 
@@ -162,17 +200,60 @@ class MyModelAdmin(admin.ModelAdmin):
 
 ### Grupos Recomendados
 
-| Grupo | Permissões |
-|-------|------------|
-| **Superuser** | Tudo (is_superuser=True) |
-| **Staff Admin** | Gerenciar tenants, users, ver ops |
-| **Finance** | TrakLedger (view/change), reports |
-| **Maintenance** | CMMS, Inventory (view/change) |
-| **Viewer** | Apenas view em tudo |
+| Grupo | Descrição | Permissões Principais |
+|-------|-----------|----------------------|
+| **CMMS Admin** | Gestão completa de manutenção | WorkOrder (CRUD), MaintenancePlan (CRUD), Asset (view) |
+| **Inventory Admin** | Gestão de estoque | InventoryItem (CRUD), InventoryMovement (view-only) |
+| **Finance ReadOnly** | Visualização financeira | CostTransaction (view), BudgetPlan (view), CostCenter (view) |
+| **Finance Admin** | Gestão financeira completa | Inclui lock/unlock de períodos, criar adjustments |
+| **Ops Admin** | Operações do sistema | OutboxEvent (view + retry), Alerts (view + acknowledge) |
+| **Support ReadOnly** | Suporte ao cliente | View-only em todos os módulos principais |
 
-### Proteção de Dados Críticos
+### Seed de Grupos
 
-#### TrakLedger (Finance)
+```bash
+# Criar grupos em todos os tenants
+docker exec climatrak-api python manage.py seed_admin_groups
+
+# Criar em tenant específico
+docker exec climatrak-api python manage.py seed_admin_groups --tenant=umc
+
+# Dry run (apenas mostra o que seria criado)
+docker exec climatrak-api python manage.py seed_admin_groups --dry-run
+```
+
+---
+
+## 💰 TrakLedger: Ledger Protegido (Imutabilidade)
+
+O `CostTransaction` é a **fonte da verdade** do sistema financeiro.
+
+### Regras de Proteção (CostTransactionAdmin)
+
+| Operação | Permitido? | Observação |
+|----------|------------|------------|
+| **View** | ✅ Sim | Para todos com permissão |
+| **Add** | ⚠️ Apenas superusers | Transações devem ser criadas via API |
+| **Change** | ❌ Não (locked) / ⚠️ Super (unlocked) | Transações são imutáveis após lock |
+| **Delete** | ❌ NUNCA | Ledger não permite delete. Use adjustments |
+
+### Ações Disponíveis
+
+- **➕ Criar Adjustment**: Abre wizard para correção
+- **🔒 Bloquear transações**: Lock de período (superuser)
+- **📊 Exportar CSV**: Download para análise
+
+### Para Correções
+
+❌ **NÃO** edite uma transação existente
+✅ **Crie** uma transação de tipo `adjustment` que compensa o erro
+
+```
+Original:  labor, +R$ 100,00 (errado - deveria ser R$ 80)
+Correção:  adjustment, -R$ 20,00 (descrição: "Correção de valor")
+```
+
+### BudgetMonth Lock
 
 ```python
 # BudgetMonthAdmin
@@ -198,7 +279,80 @@ def has_delete_permission(self, request, obj=None):
 
 ---
 
-## 🚀 Performance
+## � Ops Console: Eventos e Monitoramento
+
+### OutboxEventAdmin
+
+Interface para gestão de eventos da Outbox (Event Sourcing).
+
+| Operação | Permitido? | Observação |
+|----------|------------|------------|
+| **View** | ✅ Sim | Para Ops Admin |
+| **Add** | ❌ Nunca | Eventos são criados pelo sistema |
+| **Change** | ❌ Nunca | Eventos são imutáveis |
+| **Delete** | ⚠️ Superuser | Apenas para limpeza de falhos |
+
+### Ações Disponíveis
+
+- **🔄 Reprocessar eventos**: Marca eventos para retry (IDEMPOTENTE via idempotency_key)
+- **❌ Marcar como falho**: Desiste de processar o evento
+- **📊 Exportar CSV**: Download para análise
+
+### Colunas Úteis
+
+- **Status**: PENDING (amarelo), PROCESSED (verde), FAILED (vermelho)
+- **Tentativas**: X/Y com cor baseada em threshold
+- **Tempo**: Tempo entre ocorrência e processamento
+
+### InventoryMovementAdmin (Auditoria)
+
+Movimentações de estoque são **100% readonly** - servem apenas para auditoria:
+
+```python
+def has_add_permission(self, request):
+    return False
+
+def has_change_permission(self, request, obj=None):
+    return False
+
+def has_delete_permission(self, request, obj=None):
+    return False
+```
+
+---
+
+## 📝 Auditoria de Ações
+
+Todas as operações administrativas são logadas automaticamente pelo `BaseAdmin`:
+
+### Eventos Logados
+
+| Ação | Nível | Dados Incluídos |
+|------|-------|-----------------|
+| Add | INFO | model, object_id, user, tenant, schema, ip, changed_fields |
+| Change | INFO | model, object_id, user, tenant, schema, ip, changed_fields |
+| Delete | WARNING | model, object_id, object_repr, user, tenant, schema, ip |
+| Bulk Delete | WARNING | model, count, sample_ids, user, tenant, schema, ip |
+
+### Exemplo de Log
+
+```json
+{
+  "admin_action": "change",
+  "model": "trakledger.CostCenter",
+  "object_id": "a1b2c3d4-...",
+  "user_id": 1,
+  "username": "admin",
+  "tenant": "UMC",
+  "schema": "umc",
+  "ip": "127.0.0.1",
+  "changed_fields": ["name", "is_active"]
+}
+```
+
+---
+
+## �🚀 Performance
 
 ### Evitando N+1 Queries
 
