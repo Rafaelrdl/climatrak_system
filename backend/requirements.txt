@@ -45,7 +45,7 @@ opentelemetry-sdk==1.28.0
 opentelemetry-exporter-otlp-proto-grpc==1.28.0
 opentelemetry-instrumentation-django==0.49b0
 opentelemetry-instrumentation-requests==0.49b0
-opentelemetry-instrumentation-celery==0.49b0
+opentelemetry-instrumentation-celery==0.60b1
 
 # Configuration
 python-dotenv==1.0.1
