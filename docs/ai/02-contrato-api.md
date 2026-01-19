@@ -110,8 +110,17 @@ GET /api/ai/jobs/
 ```
 
 **Query Parameters:**
-- `agent` (string, optional): Filtrar por agente
-- `status` (string, optional): Filtrar por status
+| Parâmetro | Tipo | Descrição |
+|-----------|------|-----------|
+| `agent` | string | Filtrar por agente (ex: `predictive`) |
+| `status` | string | Filtrar por status (`pending`, `running`, `succeeded`, `failed`) |
+| `related_type` | string | Filtrar por tipo de recurso relacionado (ex: `asset`, `alert`) |
+| `related_id` | int\|string | Filtrar por ID do recurso (convertido para UUID internamente) |
+
+**Exemplo com filtros:**
+```http
+GET /api/ai/jobs/?agent=predictive&related_type=asset&related_id=123
+```
 
 **Response 200:**
 ```json

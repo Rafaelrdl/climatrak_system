@@ -53,28 +53,41 @@ class RootCauseAgentValidationTests(TestCase):
 
     def test_validate_input_requires_alert_id(self):
         """Alert ID é obrigatório."""
-        with self.assertRaises(ValueError):
-            self.agent.validate_input({})
+        is_valid, error = self.agent.validate_input({})
+        self.assertFalse(is_valid)
+        self.assertIsNotNone(error)
+        # Verificar que a mensagem de erro é sobre campo obrigatório
+        self.assertTrue("alert_id" in error.lower() or "obrigat" in error.lower())
 
     def test_validate_input_accepts_int_alert_id(self):
         """Alert ID pode ser int."""
-        result = self.agent.validate_input({"alert_id": 123})
-        self.assertTrue(result)
+        is_valid, error = self.agent.validate_input({"alert_id": 123})
+        self.assertTrue(is_valid)
+        self.assertIsNone(error)
 
     def test_validate_input_accepts_string_alert_id(self):
         """Alert ID pode ser string numérica."""
-        result = self.agent.validate_input({"alert_id": "456"})
-        self.assertTrue(result)
+        is_valid, error = self.agent.validate_input({"alert_id": "456"})
+        self.assertTrue(is_valid)
+        self.assertIsNone(error)
 
     def test_validate_input_rejects_non_numeric(self):
         """Alert ID não-numérico é rejeitado."""
-        with self.assertRaises(ValueError):
-            self.agent.validate_input({"alert_id": "not_a_number"})
+        is_valid, error = self.agent.validate_input({"alert_id": "not_a_number"})
+        self.assertFalse(is_valid)
+        self.assertIsNotNone(error)
 
     def test_validate_input_accepts_window_minutes(self):
         """Window_minutes é opcional."""
-        result = self.agent.validate_input({"alert_id": 123, "window_minutes": 60})
-        self.assertTrue(result)
+        is_valid, error = self.agent.validate_input({"alert_id": 123, "window_minutes": 60})
+        self.assertTrue(is_valid)
+        self.assertIsNone(error)
+
+    def test_validate_input_rejects_empty_data(self):
+        """Input data vazio é rejeitado."""
+        is_valid, error = self.agent.validate_input(None)
+        self.assertFalse(is_valid)
+        self.assertIn("vazio", error.lower())
 
 
 class RootCauseAgentContextTests(TestCase):
@@ -84,21 +97,44 @@ class RootCauseAgentContextTests(TestCase):
         """Setup."""
         self.agent = RootCauseAgent()
 
-    @patch("apps.ai.agents.root_cause.Alert.objects.get")
-    def test_gather_context_with_alert(self, mock_alert_get):
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_correlated_alerts")
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_cmms_context")
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_related_sensors")
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_telemetry")
+    @patch("apps.ai.agents.root_cause.Asset.objects.filter")
+    @patch("apps.ai.agents.root_cause.Alert.objects.select_related")
+    def test_gather_context_with_alert(self, mock_select_related, mock_asset_filter,
+                                        mock_telemetry, mock_related, mock_cmms, mock_correlated):
         """Coleta contexto quando alerta existe."""
-        # Mock do alerta
+        from django.utils import timezone
+
+        # Mock do alerta com campos REAIS do model
         mock_alert = MagicMock()
         mock_alert.id = 123
         mock_alert.asset_tag = "AHU-01"
         mock_alert.parameter_key = "temp_supply"
-        mock_alert.current_value = 18.3
-        mock_alert.threshold_value = 12.0
+        mock_alert.parameter_value = 18.3  # Campo real (não current_value)
+        mock_alert.threshold = 12.0  # Campo real (não threshold_value)
+        mock_alert.message = "Temperatura acima do limite"  # Campo real (não description)
         mock_alert.severity = "Critical"
-        mock_alert.unit = "°C"
-        mock_alert.triggered_at = "2024-01-15T10:00:00Z"
+        mock_alert.triggered_at = timezone.now()
+        mock_alert.rule = None
 
-        mock_alert_get.return_value = mock_alert
+        # Mock da cadeia select_related().get()
+        mock_qs = MagicMock()
+        mock_qs.get.return_value = mock_alert
+        mock_select_related.return_value = mock_qs
+        
+        # Mock do Asset.objects.filter para retornar None (sem asset)
+        mock_asset_qs = MagicMock()
+        mock_asset_qs.first.return_value = None
+        mock_asset_filter.return_value = mock_asset_qs
+        
+        # Mock dos métodos auxiliares
+        mock_telemetry.return_value = {"window_minutes": 120, "primary_sensor": {}}
+        mock_related.return_value = []
+        mock_cmms.return_value = {"recent_work_orders": []}
+        mock_correlated.return_value = {"same_asset_active_count": 0, "recent_severities": []}
 
         context = AgentContext(
             tenant_id=uuid.uuid4(),
@@ -111,13 +147,19 @@ class RootCauseAgentContextTests(TestCase):
         self.assertIn("alert", result)
         self.assertEqual(result["alert"]["id"], 123)
         self.assertEqual(result["alert"]["asset_tag"], "AHU-01")
+        # Verifica que campos são mapeados corretamente
+        self.assertEqual(result["alert"]["current_value"], 18.3)
+        self.assertEqual(result["alert"]["threshold_value"], 12.0)
+        self.assertEqual(result["alert"]["description"], "Temperatura acima do limite")
 
-    @patch("apps.ai.agents.root_cause.Alert.objects.get")
-    def test_gather_context_alert_not_found(self, mock_alert_get):
+    @patch("apps.ai.agents.root_cause.Alert.objects.select_related")
+    def test_gather_context_alert_not_found(self, mock_select_related):
         """Lança erro se alerta não existe."""
-        from django.core.exceptions import ObjectDoesNotExist
+        from apps.alerts.models import Alert
 
-        mock_alert_get.side_effect = ObjectDoesNotExist()
+        mock_qs = MagicMock()
+        mock_qs.get.side_effect = Alert.DoesNotExist()
+        mock_select_related.return_value = mock_qs
 
         context = AgentContext(
             tenant_id=uuid.uuid4(),
@@ -128,26 +170,46 @@ class RootCauseAgentContextTests(TestCase):
         with self.assertRaises(ValueError):
             self.agent.gather_context(input_data, context)
 
-    @patch("apps.ai.agents.root_cause.Reading.objects.filter")
-    @patch("apps.ai.agents.root_cause.Alert.objects.get")
-    def test_gather_context_includes_telemetry(self, mock_alert_get, mock_reading_filter):
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_correlated_alerts")
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_cmms_context")
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_related_sensors")
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_telemetry")
+    @patch("apps.ai.agents.root_cause.Asset.objects.filter")
+    @patch("apps.ai.agents.root_cause.Alert.objects.select_related")
+    def test_gather_context_includes_telemetry(self, mock_select_related, mock_asset_filter,
+                                                mock_telemetry, mock_related, mock_cmms, mock_correlated):
         """Contexto inclui telemetria."""
-        # Mock do alerta
+        from django.utils import timezone
+
+        # Mock do alerta com campos REAIS do model
         mock_alert = MagicMock()
         mock_alert.id = 123
         mock_alert.asset_tag = "AHU-01"
         mock_alert.parameter_key = "temp_supply"
-        mock_alert.current_value = 18.0
-        mock_alert_get.return_value = mock_alert
+        mock_alert.parameter_value = 18.0  # Campo real
+        mock_alert.threshold = 12.0  # Campo real
+        mock_alert.message = "Alerta de temperatura"
+        mock_alert.severity = "High"
+        mock_alert.triggered_at = timezone.now()
+        mock_alert.rule = None
 
-        # Mock das readings
-        mock_reading_qs = MagicMock()
-        mock_reading_qs.order_by.return_value.values_list.return_value = [
-            (18.0, "2024-01-15T09:55:00Z"),
-            (18.5, "2024-01-15T09:50:00Z"),
-            (19.0, "2024-01-15T09:45:00Z"),
-        ]
-        mock_reading_filter.return_value = mock_reading_qs
+        mock_qs = MagicMock()
+        mock_qs.get.return_value = mock_alert
+        mock_select_related.return_value = mock_qs
+        
+        # Mock do Asset.objects.filter para retornar None (sem asset)
+        mock_asset_qs = MagicMock()
+        mock_asset_qs.first.return_value = None
+        mock_asset_filter.return_value = mock_asset_qs
+
+        # Mock dos métodos auxiliares
+        mock_telemetry.return_value = {
+            "window_minutes": 120,
+            "primary_sensor": {"min": 17.5, "max": 19.0, "avg": 18.0}
+        }
+        mock_related.return_value = []
+        mock_cmms.return_value = {"recent_work_orders": []}
+        mock_correlated.return_value = {"same_asset_active_count": 0, "recent_severities": []}
 
         context = AgentContext(
             tenant_id=uuid.uuid4(),
@@ -163,6 +225,164 @@ class RootCauseAgentContextTests(TestCase):
         self.assertIn("min", telemetry["primary_sensor"])
         self.assertIn("max", telemetry["primary_sensor"])
 
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_correlated_alerts")
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_cmms_context")
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_related_sensors")
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_telemetry")
+    @patch("apps.ai.agents.root_cause.Asset.objects.filter")
+    @patch("apps.ai.agents.root_cause.Alert.objects.select_related")
+    def test_gather_context_resilient_no_attribute_error(self, mock_select_related, mock_asset_filter,
+                                                          mock_telemetry, mock_related, mock_cmms, mock_correlated):
+        """
+        Verifica que gather_context NÃO lança AttributeError
+        mesmo quando Alert não tem current_value, threshold_value ou description.
+        (Regressão para bug: AttributeError: 'Alert' has no attribute 'current_value')
+        """
+        from django.utils import timezone
+
+        # Mock de alerta com APENAS campos reais do model
+        mock_alert = MagicMock(spec=["id", "asset_tag", "parameter_key", "parameter_value",
+                                      "threshold", "message", "severity", "triggered_at", "rule"])
+        mock_alert.id = 999
+        mock_alert.asset_tag = "CHILLER-01"
+        mock_alert.parameter_key = "pressure"
+        mock_alert.parameter_value = 150.5
+        mock_alert.threshold = 140.0
+        mock_alert.message = "Pressão elevada"
+        mock_alert.severity = "High"
+        mock_alert.triggered_at = timezone.now()
+        mock_alert.rule = None
+
+        mock_qs = MagicMock()
+        mock_qs.get.return_value = mock_alert
+        mock_select_related.return_value = mock_qs
+        
+        # Mock do Asset.objects.filter para retornar None (sem asset)
+        mock_asset_qs = MagicMock()
+        mock_asset_qs.first.return_value = None
+        mock_asset_filter.return_value = mock_asset_qs
+
+        # Mock dos métodos auxiliares
+        mock_telemetry.return_value = {"window_minutes": 120, "primary_sensor": {}}
+        mock_related.return_value = []
+        mock_cmms.return_value = {"recent_work_orders": []}
+        mock_correlated.return_value = {"same_asset_active_count": 0, "recent_severities": []}
+
+        context = AgentContext(
+            tenant_id=uuid.uuid4(),
+            tenant_schema="test_tenant",
+        )
+        input_data = {"alert_id": 999}
+
+        # Não deve lançar AttributeError
+        result = self.agent.gather_context(input_data, context)
+
+        # Verifica mapeamento correto
+        self.assertEqual(result["alert"]["current_value"], 150.5)
+        self.assertEqual(result["alert"]["threshold_value"], 140.0)
+        self.assertEqual(result["alert"]["description"], "Pressão elevada")
+
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_correlated_alerts")
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_cmms_context")
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_related_sensors")
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_telemetry")
+    @patch("apps.ai.agents.root_cause.Asset.objects.filter")
+    @patch("apps.ai.agents.root_cause.Alert.objects.select_related")
+    def test_gather_context_with_unit_from_rule(self, mock_select_related, mock_asset_filter,
+                                                 mock_telemetry, mock_related, mock_cmms, mock_correlated):
+        """Verifica que unit é extraído da Rule quando disponível."""
+        from django.utils import timezone
+
+        # Mock da Rule com unit
+        mock_rule = MagicMock()
+        mock_rule.unit = "°C"
+        mock_rule.equipment = None
+
+        # Mock do alerta
+        mock_alert = MagicMock()
+        mock_alert.id = 456
+        mock_alert.asset_tag = "FCU-02"
+        mock_alert.parameter_key = "temp_return"
+        mock_alert.parameter_value = 28.5
+        mock_alert.threshold = 26.0
+        mock_alert.message = "Temperatura de retorno elevada"
+        mock_alert.severity = "Medium"
+        mock_alert.triggered_at = timezone.now()
+        mock_alert.rule = mock_rule
+
+        mock_qs = MagicMock()
+        mock_qs.get.return_value = mock_alert
+        mock_select_related.return_value = mock_qs
+        
+        # Mock do Asset.objects.filter para retornar None (sem asset)
+        mock_asset_qs = MagicMock()
+        mock_asset_qs.first.return_value = None
+        mock_asset_filter.return_value = mock_asset_qs
+        
+        # Mock dos métodos auxiliares
+        mock_telemetry.return_value = {"window_minutes": 120, "primary_sensor": {}}
+        mock_related.return_value = []
+        mock_cmms.return_value = {"recent_work_orders": []}
+        mock_correlated.return_value = {"same_asset_active_count": 0, "recent_severities": []}
+
+        context = AgentContext(
+            tenant_id=uuid.uuid4(),
+            tenant_schema="test_tenant",
+        )
+        input_data = {"alert_id": 456}
+
+        result = self.agent.gather_context(input_data, context)
+
+        self.assertEqual(result["alert"]["unit"], "°C")
+
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_correlated_alerts")
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_cmms_context")
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_related_sensors")
+    @patch("apps.ai.agents.root_cause.RootCauseAgent._gather_telemetry")
+    @patch("apps.ai.agents.root_cause.Asset.objects.filter")
+    @patch("apps.ai.agents.root_cause.Alert.objects.select_related")
+    def test_gather_context_handles_missing_optional_fields(self, mock_select_related, mock_asset_filter,
+                                                             mock_telemetry, mock_related, mock_cmms, mock_correlated):
+        """Verifica resiliência com campos opcionais ausentes (message=None)."""
+        from django.utils import timezone
+
+        mock_alert = MagicMock()
+        mock_alert.id = 789
+        mock_alert.asset_tag = "AHU-03"
+        mock_alert.parameter_key = "humidity"
+        mock_alert.parameter_value = 85.0
+        mock_alert.threshold = 70.0
+        mock_alert.message = None  # Campo pode ser None
+        mock_alert.severity = "Low"
+        mock_alert.triggered_at = timezone.now()
+        mock_alert.rule = None
+
+        mock_qs = MagicMock()
+        mock_qs.get.return_value = mock_alert
+        mock_select_related.return_value = mock_qs
+        
+        # Mock do Asset.objects.filter para retornar None (sem asset)
+        mock_asset_qs = MagicMock()
+        mock_asset_qs.first.return_value = None
+        mock_asset_filter.return_value = mock_asset_qs
+        
+        # Mock dos métodos auxiliares
+        mock_telemetry.return_value = {"window_minutes": 120, "primary_sensor": {}}
+        mock_related.return_value = []
+        mock_cmms.return_value = {"recent_work_orders": []}
+        mock_correlated.return_value = {"same_asset_active_count": 0, "recent_severities": []}
+
+        context = AgentContext(
+            tenant_id=uuid.uuid4(),
+            tenant_schema="test_tenant",
+        )
+        input_data = {"alert_id": 789}
+
+        result = self.agent.gather_context(input_data, context)
+
+        # description deve ser string vazia quando message é None
+        self.assertEqual(result["alert"]["description"], "")
+
 
 class RootCauseAgentExecutionTests(TestCase):
     """Testes de execução do agent."""
@@ -170,11 +390,30 @@ class RootCauseAgentExecutionTests(TestCase):
     def setUp(self):
         """Setup."""
         self.agent = RootCauseAgent()
+        # Contexto mockado completo que build_user_prompt espera
+        self.complete_context = {
+            "alert": {
+                "id": 1,
+                "severity": "High",
+                "asset_tag": "TEST-01",
+                "parameter_key": "temp",
+                "current_value": 25.0,
+                "threshold_value": 20.0,
+                "unit": "°C",
+                "triggered_at": "2024-01-15T10:00:00Z",
+                "description": "Teste",
+            },
+            "telemetry_summary": {"window_minutes": 120, "primary_sensor": {}},
+            "related_sensors": [],
+            "cmms_context": {"recent_work_orders": []},
+            "correlated_alerts": {"same_asset_active_count": 0, "recent_severities": []},
+            "asset": None,
+        }
 
     @patch("apps.ai.agents.root_cause.RootCauseAgent.gather_context")
     def test_execute_parses_llm_json_output(self, mock_gather):
         """Execute parseia output JSON do LLM."""
-        mock_gather.return_value = {"alert": {"id": 1}}
+        mock_gather.return_value = self.complete_context
 
         # Mock do provider
         mock_response = MagicMock()
@@ -193,8 +432,10 @@ class RootCauseAgentExecutionTests(TestCase):
         mock_response.usage = MagicMock()
         mock_response.usage.total_tokens = 150
 
+        # Configurar o provider mockado
         mock_provider = MagicMock()
         mock_provider.chat_sync.return_value = mock_response
+        self.agent._provider = mock_provider
 
         context = AgentContext(
             tenant_id=uuid.uuid4(),
@@ -202,7 +443,7 @@ class RootCauseAgentExecutionTests(TestCase):
         )
         input_data = {"alert_id": 1}
 
-        result = self.agent.execute(input_data, mock_gather.return_value, mock_provider)
+        result = self.agent.execute(input_data, context)
 
         self.assertTrue(result.success)
         self.assertIsNotNone(result.data)
@@ -212,7 +453,7 @@ class RootCauseAgentExecutionTests(TestCase):
     @patch("apps.ai.agents.root_cause.RootCauseAgent.gather_context")
     def test_execute_removes_json_fence(self, mock_gather):
         """Execute remove ```json fence se presente."""
-        mock_gather.return_value = {"alert": {"id": 1}}
+        mock_gather.return_value = self.complete_context
 
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
@@ -229,6 +470,7 @@ class RootCauseAgentExecutionTests(TestCase):
 
         mock_provider = MagicMock()
         mock_provider.chat_sync.return_value = mock_response
+        self.agent._provider = mock_provider
 
         context = AgentContext(
             tenant_id=uuid.uuid4(),
@@ -236,7 +478,7 @@ class RootCauseAgentExecutionTests(TestCase):
         )
         input_data = {"alert_id": 1}
 
-        result = self.agent.execute(input_data, mock_gather.return_value, mock_provider)
+        result = self.agent.execute(input_data, context)
 
         self.assertTrue(result.success)
         self.assertIsInstance(result.data, dict)
@@ -244,7 +486,7 @@ class RootCauseAgentExecutionTests(TestCase):
     @patch("apps.ai.agents.root_cause.RootCauseAgent.gather_context")
     def test_execute_handles_invalid_json(self, mock_gather):
         """Execute trata JSON inválido com erro."""
-        mock_gather.return_value = {"alert": {"id": 1}}
+        mock_gather.return_value = self.complete_context
 
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
@@ -252,6 +494,7 @@ class RootCauseAgentExecutionTests(TestCase):
 
         mock_provider = MagicMock()
         mock_provider.chat_sync.return_value = mock_response
+        self.agent._provider = mock_provider
 
         context = AgentContext(
             tenant_id=uuid.uuid4(),
@@ -259,65 +502,7 @@ class RootCauseAgentExecutionTests(TestCase):
         )
         input_data = {"alert_id": 1}
 
-        result = self.agent.execute(input_data, mock_gather.return_value, mock_provider)
+        result = self.agent.execute(input_data, context)
 
         self.assertFalse(result.success)
         self.assertIsNotNone(result.error)
-
-
-class RelatedIdConversionTests(TestCase):
-    """Testes de conversão de related.id para UUID."""
-
-    def test_convert_int_related_id_to_uuid(self):
-        """Int é convertido para UUID determinístico."""
-        from apps.ai.views import convert_related_id_to_uuid
-
-        result = convert_related_id_to_uuid(123, "alert")
-
-        self.assertIsInstance(result, uuid.UUID)
-        # Determinístico: mesma entrada = mesmo UUID
-        result2 = convert_related_id_to_uuid(123, "alert")
-        self.assertEqual(result, result2)
-
-    def test_convert_string_numeric_to_uuid(self):
-        """String numérica é convertida."""
-        from apps.ai.views import convert_related_id_to_uuid
-
-        result = convert_related_id_to_uuid("456", "alert")
-
-        self.assertIsInstance(result, uuid.UUID)
-
-    def test_convert_valid_uuid_unchanged(self):
-        """UUID válido passa direto."""
-        from apps.ai.views import convert_related_id_to_uuid
-
-        original_uuid = uuid.uuid4()
-        result = convert_related_id_to_uuid(original_uuid, "alert")
-
-        self.assertEqual(result, original_uuid)
-
-    def test_convert_uuid_string_unchanged(self):
-        """String UUID válido passa direto."""
-        from apps.ai.views import convert_related_id_to_uuid
-
-        original_uuid = uuid.uuid4()
-        result = convert_related_id_to_uuid(str(original_uuid), "alert")
-
-        self.assertEqual(result, original_uuid)
-
-    def test_convert_none_returns_none(self):
-        """None retorna None."""
-        from apps.ai.views import convert_related_id_to_uuid
-
-        result = convert_related_id_to_uuid(None, "alert")
-
-        self.assertIsNone(result)
-
-    def test_different_types_generate_different_uuids(self):
-        """Tipos diferentes geram UUIDs diferentes mesmo com mesmo ID."""
-        from apps.ai.views import convert_related_id_to_uuid
-
-        uuid_alert = convert_related_id_to_uuid(123, "alert")
-        uuid_device = convert_related_id_to_uuid(123, "device")
-
-        self.assertNotEqual(uuid_alert, uuid_device)

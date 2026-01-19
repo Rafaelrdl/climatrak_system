@@ -86,9 +86,9 @@ class RootCauseAgent(BaseAgent):
         max_readings = int(input_data.get("max_readings", 200))
         max_work_orders = int(input_data.get("max_work_orders", 10))
 
-        # Buscar alerta
+        # Buscar alerta com select_related para evitar N+1
         try:
-            alert = Alert.objects.select_related("rule").get(pk=alert_id)
+            alert = Alert.objects.select_related("rule", "rule__equipment").get(pk=alert_id)
         except Alert.DoesNotExist:
             raise ValueError(f"Alert {alert_id} não encontrado")
 
@@ -129,17 +129,38 @@ class RootCauseAgent(BaseAgent):
         # Alertas correlatos
         correlated_alerts = self._gather_correlated_alerts(alert)
 
+        # Mapear campos reais do Alert para payload do agente (fallback resiliente)
+        # Model real: parameter_value, threshold, message
+        # Payload esperado: current_value, threshold_value, description
+        current_value = getattr(alert, "parameter_value", getattr(alert, "current_value", None))
+        threshold_value = getattr(alert, "threshold", getattr(alert, "threshold_value", None))
+        description = getattr(alert, "message", getattr(alert, "description", "")) or ""
+
+        # Unit: buscar em ordem de preferência
+        # 1. Sensor primário (mais específico)
+        # 2. Rule (se existir)
+        # 3. RuleParameter (primeiro parâmetro da regra)
+        unit = None
+        if primary_sensor and hasattr(primary_sensor, "unit"):
+            unit = primary_sensor.unit
+        elif alert.rule:
+            unit = getattr(alert.rule, "unit", None)
+            if not unit and hasattr(alert.rule, "parameters"):
+                first_param = alert.rule.parameters.first()
+                if first_param:
+                    unit = getattr(first_param, "unit", None)
+
         return {
             "alert": {
                 "id": alert.id,
                 "severity": alert.severity,
                 "asset_tag": alert.asset_tag,
                 "parameter_key": alert.parameter_key,
-                "current_value": alert.current_value,
-                "threshold_value": alert.threshold_value,
-                "unit": alert.unit if hasattr(alert, "unit") else None,
+                "current_value": current_value,
+                "threshold_value": threshold_value,
+                "unit": unit,
                 "triggered_at": alert.triggered_at.isoformat() if alert.triggered_at else None,
-                "description": alert.description or "",
+                "description": description,
             },
             "telemetry_summary": telemetry_context,
             "related_sensors": related_sensors,

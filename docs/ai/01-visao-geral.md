@@ -122,22 +122,21 @@ LLM_TIMEOUT_SECONDS=60
 | `dummy` | Agente de teste | ✅ Implementado |
 | `root_cause` | Análise de causa raiz (RCA) | ✅ Implementado (AI-002) |
 | `inventory` | Otimização de estoque | ✅ Implementado (AI-004) |
+| `preventive` | Recomendações preventivas | ✅ Implementado (AI-005) |
+| `predictive` | Manutenção preditiva | ✅ Implementado (AI-005) |
+| `patterns` | Padrões de manutenção | ✅ Implementado (AI-005) |
 | `quick_repair` | Assistente de reparos | 🔜 Planejado (AI-003) |
-| `preventive` | Recomendações preventivas | 🔜 Planejado (AI-005) |
-| `predictive` | Manutenção preditiva | 🔜 Planejado (AI-005) |
-| `patterns` | Padrões de manutenção | 🔜 Planejado (AI-005) |
 
 ## 8. Próximos Passos
 
 1. **AI-002**: ✅ Implementado agente RCA (`root_cause`)
 2. **AI-004**: ✅ Implementado agente Inventário (`inventory`)
-3. **AI-003**: Implementar agente Quick Repair
-4. **AI-005**: Implementar agentes Preventivo, Preditivo e Padrões
+3. **AI-005**: ✅ Implementados agentes Preventivo, Preditivo e Padrões
+4. **AI-003**: Implementar agente Quick Repair
 
 ## 9. Referências
 
 - [02-contrato-api.md](02-contrato-api.md) - Contrato da API REST
 - [03-agent-root-cause.md](03-agent-root-cause.md) - Documentação do RootCauseAgent
 - [04-agent-inventory.md](04-agent-inventory.md) - Documentação do InventoryAgent
-- [backend/apps/ai/](../../backend/apps/ai/) - Código fonte
-- [Ollama](https://ollama.ai/) - Runtime LLM local
+- [05-agent-maintenance.md](05-agent-maintenance.md) - Documentação dos agentes Preventive, Predictive, Patterns
