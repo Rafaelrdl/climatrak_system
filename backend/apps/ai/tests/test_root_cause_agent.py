@@ -53,7 +53,8 @@ class RootCauseAgentValidationTests(TestCase):
 
     def test_validate_input_requires_alert_id(self):
         """Alert ID é obrigatório."""
-        is_valid, error = self.agent.validate_input({})
+        # Passa dados não vazios mas sem alert_id para testar a validação de campo obrigatório
+        is_valid, error = self.agent.validate_input({"other_field": 123})
         self.assertFalse(is_valid)
         self.assertIsNotNone(error)
         # Verificar que a mensagem de erro é sobre campo obrigatório
