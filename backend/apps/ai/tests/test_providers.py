@@ -165,12 +165,13 @@ class OpenAICompatProviderTests(TestCase):
         self.assertEqual(result.finish_reason, "stop")
 
     def test_parse_response_empty_choices(self):
-        """Test parsing response with no choices."""
+        """Test parsing response with no choices raises error."""
         response_data = {"choices": [], "usage": {}}
 
-        result = self.provider._parse_response(response_data)
+        with self.assertRaises(ValueError) as ctx:
+            self.provider._parse_response(response_data)
 
-        self.assertEqual(result.content, "")
+        self.assertIn("Empty choices", str(ctx.exception))
 
     @patch("apps.ai.providers.openai_compat.httpx.Client")
     def test_chat_sync_success(self, mock_client_class):

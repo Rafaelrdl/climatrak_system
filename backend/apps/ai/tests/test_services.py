@@ -11,10 +11,20 @@ from django_tenants.utils import schema_context
 
 from apps.ai.models import AIJob, AIJobStatus
 from apps.ai.services import AIJobService
+from apps.ai.agents.registry import register_agent, _agent_registry
+from apps.ai.agents.dummy import DummyAgent
 
 
 class AIJobServiceTests(TenantTestCase):
     """Tests for AIJobService."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Ensure DummyAgent is registered before tests."""
+        super().setUpClass()
+        # Register dummy agent if not already registered
+        if "dummy" not in _agent_registry:
+            register_agent(DummyAgent)
 
     def test_create_job_success(self):
         """Test creating a new job."""
@@ -160,6 +170,14 @@ class AIJobServiceIdempotencyTests(TenantTestCase):
 
     REGRA: Repetir operação com mesma idempotency_key NÃO duplica job.
     """
+
+    @classmethod
+    def setUpClass(cls):
+        """Ensure DummyAgent is registered before tests."""
+        super().setUpClass()
+        # Register dummy agent if not already registered
+        if "dummy" not in _agent_registry:
+            register_agent(DummyAgent)
 
     def test_same_idempotency_key_creates_one_job(self):
         """

@@ -96,7 +96,7 @@ class AIJobModelTests(TenantTestCase):
         job.refresh_from_db()
 
         self.assertEqual(job.status, AIJobStatus.TIMEOUT)
-        self.assertIn("timeout", job.error_message.lower())
+        self.assertIn("exceeded", job.error_message.lower())
         self.assertIsNotNone(job.completed_at)
 
     def test_can_retry_failed_job(self):

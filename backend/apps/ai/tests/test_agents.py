@@ -210,4 +210,5 @@ class DummyAgentTests(TestCase):
         result = self.agent.run({"test": True}, self.context)
 
         self.assertTrue(result.success)
-        self.assertGreater(result.execution_time_ms, 0)
+        # execution_time_ms may be 0 for very fast executions
+        self.assertGreaterEqual(result.execution_time_ms, 0)

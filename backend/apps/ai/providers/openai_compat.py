@@ -65,7 +65,12 @@ class OpenAICompatProvider(BaseLLMProvider):
     def _parse_response(self, response_data: dict) -> LLMResponse:
         """Parseia resposta da API."""
         try:
-            choice = response_data.get("choices", [{}])[0]
+            choices = response_data.get("choices", [])
+            if not choices:
+                # Lista vazia - resposta inválida
+                raise ValueError("Empty choices in LLM response")
+            
+            choice = choices[0]
             message = choice.get("message", {})
             usage = response_data.get("usage", {})
 
@@ -78,7 +83,7 @@ class OpenAICompatProvider(BaseLLMProvider):
                 finish_reason=choice.get("finish_reason", ""),
                 raw_response=response_data,
             )
-        except (KeyError, IndexError) as e:
+        except (KeyError, IndexError, ValueError) as e:
             logger.error(f"Error parsing LLM response: {e}")
             raise ValueError(f"Invalid LLM response format: {e}")
 
