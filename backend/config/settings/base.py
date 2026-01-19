@@ -129,6 +129,7 @@ TENANT_APPS = [
     "apps.trakledger",  # TrakLedger - Orçamento Vivo (Centros de Custo, RateCard, Budget)
     "apps.trakservice",  # TrakService - Field Service Management (Dispatch, Routing, Tracking)
     "apps.core_events",  # Domain Events Outbox (processamento assíncrono de eventos)
+    "apps.ai",  # AI - Agentes de IA (RCA, Preventivo, Preditivo, Inventário, Quick Repair)
 ]
 
 
@@ -469,6 +470,24 @@ CELERY_BEAT_SCHEDULE = {
             "expires": 3600,  # Expira em 1 hora se não executar
         },
     },
+    # Limpar jobs de IA antigos uma vez por dia
+    "cleanup-old-ai-jobs": {
+        "task": "apps.ai.tasks.cleanup_old_ai_jobs",
+        "schedule": 86400.0,  # 24 horas em segundos
+        "kwargs": {"days": 30},
+        "options": {
+            "expires": 3600,  # Expira em 1 hora se não executar
+        },
+    },
+    # Verificar jobs de IA travados a cada 15 minutos
+    "check-stuck-ai-jobs": {
+        "task": "apps.ai.tasks.check_stuck_ai_jobs",
+        "schedule": 900.0,  # 15 minutos em segundos
+        "kwargs": {"timeout_minutes": 30},
+        "options": {
+            "expires": 300,  # Expira em 5 minutos se não executar
+        },
+    },
 }
 
 # MinIO / S3
@@ -497,6 +516,22 @@ else:
 
 # EMQX / MQTT
 EMQX_URL = os.getenv("EMQX_URL", "mqtt://emqx:1883")
+
+# ============================================================================
+# AI / LLM Configuration - OpenAI-compatible API (Ollama, vLLM, etc.)
+# ============================================================================
+# LLM Provider settings (supports Ollama, vLLM, OpenAI, etc.)
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://ollama:11434/v1")
+LLM_MODEL = os.getenv("LLM_MODEL", "mistral-nemo")
+LLM_API_KEY = os.getenv("LLM_API_KEY", "")  # Optional for local providers
+LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.2"))
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
+LLM_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", "60"))
+LLM_RETRY_ATTEMPTS = int(os.getenv("LLM_RETRY_ATTEMPTS", "3"))
+LLM_RETRY_DELAY = float(os.getenv("LLM_RETRY_DELAY", "1.0"))
+
+# Embeddings model for RAG (optional, for future use)
+EMBEDDINGS_MODEL = os.getenv("EMBEDDINGS_MODEL", "bge-m3")
 
 # ============================================================================
 # PAYLOAD PARSERS - Sistema plugável para diferentes formatos de dispositivos

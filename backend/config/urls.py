@@ -50,6 +50,8 @@ urlpatterns = [
     path("api/trakledger/", include("apps.trakledger.urls")),
     # TrakService API (Field Service Management - feature gated)
     path("api/trakservice/", include("apps.trakservice.urls")),
+    # AI API (Agentes de IA - RCA, Preventivo, Preditivo, Inventário, Quick Repair)
+    path("api/ai/", include("apps.ai.urls")),
 ]
 
 # Serve media files in development

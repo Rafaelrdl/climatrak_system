@@ -92,6 +92,36 @@ services:
     networks:
       - climatrak
 
+  # Ollama - Local LLM Server (OpenAI-compatible API)
+  # Documentation: https://ollama.ai/
+  # Models: https://ollama.ai/library
+  ollama:
+    image: ollama/ollama:latest
+    container_name: climatrak-ollama
+    ports:
+      - "11434:11434"  # API (OpenAI-compatible at /v1)
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      OLLAMA_HOST: 0.0.0.0
+      # OLLAMA_MODELS: mistral-nemo  # Uncomment to pre-pull model
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    networks:
+      - climatrak
+    # GPU support (uncomment if NVIDIA GPU available)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
   # Django API
   api:
     build:
@@ -283,6 +313,7 @@ volumes:
   emqx_data:
   emqx_log:
   grafana_data:
+  ollama_data:
 
 networks:
   climatrak:
