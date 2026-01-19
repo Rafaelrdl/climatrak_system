@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { PageHeader } from '@/shared/ui';
+import { PageHeader, FilterPopover, FilterItem } from '@/shared/ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -175,29 +175,45 @@ export function WorkOrdersPage() {
                   className="pl-10 w-64"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">Todos Status</SelectItem>
-                  <SelectItem value="OPEN">Abertas</SelectItem>
-                  <SelectItem value="IN_PROGRESS">Em Execução</SelectItem>
-                  <SelectItem value="COMPLETED">Concluídas</SelectItem>
-                  <SelectItem value="CANCELLED">Canceladas</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={originFilter} onValueChange={setOriginFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">Todas Origens</SelectItem>
-                  <SelectItem value="PLAN">Plano de Manutenção</SelectItem>
-                  <SelectItem value="REQUEST">Solicitação</SelectItem>
-                  <SelectItem value="MANUAL">Manual</SelectItem>
-                </SelectContent>
-              </Select>
+              <FilterPopover
+                activeCount={
+                  (statusFilter !== 'ALL' ? 1 : 0) + 
+                  (originFilter !== 'ALL' ? 1 : 0)
+                }
+                onClear={() => {
+                  setStatusFilter('ALL');
+                  setOriginFilter('ALL');
+                }}
+              >
+                <FilterItem label="Status">
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Todos os status</SelectItem>
+                      <SelectItem value="OPEN">Abertas</SelectItem>
+                      <SelectItem value="IN_PROGRESS">Em Execução</SelectItem>
+                      <SelectItem value="COMPLETED">Concluídas</SelectItem>
+                      <SelectItem value="CANCELLED">Canceladas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FilterItem>
+                
+                <FilterItem label="Origem">
+                  <Select value={originFilter} onValueChange={setOriginFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Todas as origens</SelectItem>
+                      <SelectItem value="PLAN">Plano de Manutenção</SelectItem>
+                      <SelectItem value="REQUEST">Solicitação</SelectItem>
+                      <SelectItem value="MANUAL">Manual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FilterItem>
+              </FilterPopover>
             </div>
           </div>
         </CardHeader>

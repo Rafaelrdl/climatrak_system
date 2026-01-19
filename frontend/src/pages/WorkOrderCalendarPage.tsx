@@ -25,7 +25,7 @@ import {
   parseISO
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { PageHeader, StatusBadge } from '@/shared/ui';
+import { PageHeader, StatusBadge, FilterPopover, FilterItem } from '@/shared/ui';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +39,6 @@ import {
   Calendar as CalendarIcon,
   User,
   ClipboardList,
-  Filter,
   RotateCcw,
   ArrowLeft
 } from 'lucide-react';
@@ -177,50 +176,57 @@ export function WorkOrderCalendarPage() {
 
             {/* Filtros */}
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[130px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">Todos Status</SelectItem>
-                  <SelectItem value="OPEN">Abertas</SelectItem>
-                  <SelectItem value="IN_PROGRESS">Em Execução</SelectItem>
-                  <SelectItem value="COMPLETED">Concluídas</SelectItem>
-                </SelectContent>
-              </Select>
+              <FilterPopover
+                activeCount={
+                  (statusFilter !== 'ALL' ? 1 : 0) + 
+                  (typeFilter !== 'ALL' ? 1 : 0) +
+                  (priorityFilter !== 'ALL' ? 1 : 0)
+                }
+                onClear={resetFilters}
+              >
+                <FilterItem label="Status">
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Todos os status</SelectItem>
+                      <SelectItem value="OPEN">Abertas</SelectItem>
+                      <SelectItem value="IN_PROGRESS">Em Execução</SelectItem>
+                      <SelectItem value="COMPLETED">Concluídas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FilterItem>
 
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[130px]">
-                  <SelectValue placeholder="Tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">Todos Tipos</SelectItem>
-                  <SelectItem value="PREVENTIVE">Preventiva</SelectItem>
-                  <SelectItem value="CORRECTIVE">Corretiva</SelectItem>
-                  <SelectItem value="PREDICTIVE">Preditiva</SelectItem>
-                </SelectContent>
-              </Select>
+                <FilterItem label="Tipo">
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Todos os tipos</SelectItem>
+                      <SelectItem value="PREVENTIVE">Preventiva</SelectItem>
+                      <SelectItem value="CORRECTIVE">Corretiva</SelectItem>
+                      <SelectItem value="PREDICTIVE">Preditiva</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FilterItem>
 
-              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-[130px]">
-                  <SelectValue placeholder="Prioridade" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">Todas</SelectItem>
-                  <SelectItem value="CRITICAL">Crítica</SelectItem>
-                  <SelectItem value="HIGH">Alta</SelectItem>
-                  <SelectItem value="MEDIUM">Média</SelectItem>
-                  <SelectItem value="LOW">Baixa</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {hasActiveFilters && (
-                <Button variant="ghost" size="sm" onClick={resetFilters}>
-                  <RotateCcw className="h-4 w-4 mr-1" />
-                  Limpar
-                </Button>
-              )}
+                <FilterItem label="Prioridade">
+                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Prioridade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Todas as prioridades</SelectItem>
+                      <SelectItem value="CRITICAL">Crítica</SelectItem>
+                      <SelectItem value="HIGH">Alta</SelectItem>
+                      <SelectItem value="MEDIUM">Média</SelectItem>
+                      <SelectItem value="LOW">Baixa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FilterItem>
+              </FilterPopover>
             </div>
           </div>
 

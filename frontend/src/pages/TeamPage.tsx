@@ -1,9 +1,10 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Plus, Loader2, Search, Users, AlertTriangle } from 'lucide-react';
-import { PageHeader } from '@/shared/ui';
+import { PageHeader, FilterPopover, FilterItem } from '@/shared/ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,

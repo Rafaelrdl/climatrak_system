@@ -22,6 +22,14 @@ export { EmptyState, type EmptyStateProps } from './EmptyState';
 
 // Filters
 export { FilterBar, type FilterBarProps } from './FilterBar';
+export { 
+  FilterPopover, 
+  FilterItem, 
+  FilterRangeItem,
+  type FilterPopoverProps,
+  type FilterItemProps,
+  type FilterRangeItemProps,
+} from './FilterPopover';
 
 // Feedback
 export { ConfirmDialog, type ConfirmDialogProps } from './ConfirmDialog';

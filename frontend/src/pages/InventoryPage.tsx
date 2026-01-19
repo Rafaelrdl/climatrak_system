@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { PageHeader } from '@/shared/ui';
+import { PageHeader, FilterPopover, FilterItem } from '@/shared/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -314,34 +314,48 @@ export function InventoryPage() {
                 />
               </div>
               
-              {/* Category Filter */}
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue placeholder="Todas categorias" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              {/* Active Filter */}
-              <Select 
-                value={showActiveOnly ? 'active' : 'all'} 
-                onValueChange={(value) => setShowActiveOnly(value === 'active')}
+              {/* Filter Popover */}
+              <FilterPopover
+                activeCount={
+                  (selectedCategory !== 'all' ? 1 : 0) + 
+                  (showActiveOnly ? 0 : 1)
+                }
+                onClear={() => {
+                  setSelectedCategory('all');
+                  setShowActiveOnly(true);
+                }}
               >
-                <SelectTrigger className="w-full sm:w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Ativos</SelectItem>
-                  <SelectItem value="all">Todos</SelectItem>
-                </SelectContent>
-              </Select>
+                <FilterItem label="Categoria">
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Todas categorias" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as categorias</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FilterItem>
+                
+                <FilterItem label="Status">
+                  <Select 
+                    value={showActiveOnly ? 'active' : 'all'} 
+                    onValueChange={(value) => setShowActiveOnly(value === 'active')}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Apenas ativos</SelectItem>
+                      <SelectItem value="all">Todos os itens</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FilterItem>
+              </FilterPopover>
             </div>
             )}
           </div>

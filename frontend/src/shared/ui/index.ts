@@ -145,6 +145,12 @@ export {
   // Filters
   FilterBar,
   type FilterBarProps,
+  FilterPopover,
+  FilterItem,
+  FilterRangeItem,
+  type FilterPopoverProps,
+  type FilterItemProps,
+  type FilterRangeItemProps,
 
   // Feedback
   ConfirmDialog,
