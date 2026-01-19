@@ -6,8 +6,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Wifi, RefreshCw, Filter, Radio, Building2 } from 'lucide-react';
-import { PageHeader } from '@/shared/ui';
+import { Wifi, RefreshCw, Radio, Building2 } from 'lucide-react';
+import { PageHeader, FilterPopover, FilterItem } from '@/shared/ui';
 import { Button } from '@/components/ui/button';
 import { 
   Select,
@@ -155,23 +155,26 @@ export function SensorsPage() {
           <div className="h-6 w-px bg-border" />
 
           {/* Filtro de Status */}
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">Status:</span>
-            <Select
-              value={deviceStatusFilter}
-              onValueChange={(value) => setDeviceStatusFilter(value as DeviceStatusFilter)}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos ({devices.length})</SelectItem>
-                <SelectItem value="online">Online ({onlineCount})</SelectItem>
-                <SelectItem value="offline">Offline ({offlineCount})</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <FilterPopover
+            activeCount={deviceStatusFilter !== 'all' ? 1 : 0}
+            onClear={() => setDeviceStatusFilter('all')}
+          >
+            <FilterItem label="Status do Dispositivo">
+              <Select
+                value={deviceStatusFilter}
+                onValueChange={(value) => setDeviceStatusFilter(value as DeviceStatusFilter)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos ({devices.length})</SelectItem>
+                  <SelectItem value="online">Online ({onlineCount})</SelectItem>
+                  <SelectItem value="offline">Offline ({offlineCount})</SelectItem>
+                </SelectContent>
+              </Select>
+            </FilterItem>
+          </FilterPopover>
         </div>
 
         {/* Contadores */}

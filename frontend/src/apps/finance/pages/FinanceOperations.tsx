@@ -14,7 +14,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Filter,
   Wrench,
   ClipboardList,
   AlertCircle,
@@ -48,13 +47,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { MoneyCell, DataTable, type Column, type PaginationState } from '@/components/finance';
-import { FilterBar } from '@/shared/ui';
+import { FilterPopover, FilterItem } from '@/shared/ui';
 import { useLedger, useCostCenters } from '@/hooks/finance';
 import { cn } from '@/lib/utils';
 import type { 
@@ -129,105 +123,83 @@ function FilterPanel({ filters, onFiltersChange, onClear }: FilterPanelProps) {
     if (filters.cost_center) count++;
     if (filters.category) count++;
     if (filters.type) count++;
-    if (filters.asset) count++;
-    if (filters.work_order) count++;
+    if (filters.asset_id) count++;
+    if (filters.work_order_id) count++;
     return count;
   }, [filters]);
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <Filter className="h-4 w-4" />
-          Filtros
-          {activeFiltersCount > 0 && (
-            <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 text-xs">
-              {activeFiltersCount}
-            </Badge>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80" align="end">
-        <FilterBar title="Filtros" count={activeFiltersCount} onClear={onClear}>
-          <div className="space-y-3">
-            <div className="grid gap-2">
-              <Label>Centro de Custo</Label>
-              <Select
-                value={filters.cost_center ?? 'all'}
-                onValueChange={(v) => onFiltersChange({ ...filters, cost_center: v === 'all' ? undefined : v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {costCenters?.map((cc) => (
-                    <SelectItem key={cc.id} value={cc.id}>
-                      {cc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+    <FilterPopover activeCount={activeFiltersCount} onClear={onClear}>
+      <FilterItem label="Centro de Custo">
+        <Select
+          value={filters.cost_center ?? 'all'}
+          onValueChange={(v) => onFiltersChange({ ...filters, cost_center: v === 'all' ? undefined : v })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os centros</SelectItem>
+            {costCenters?.map((cc) => (
+              <SelectItem key={cc.id} value={cc.id}>
+                {cc.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterItem>
 
-            <div className="grid gap-2">
-              <Label>Categoria</Label>
-              <Select
-                value={filters.category ?? 'all'}
-                onValueChange={(v) => onFiltersChange({ ...filters, category: v === 'all' ? undefined : v as TransactionCategory })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {CATEGORIES.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <FilterItem label="Categoria">
+        <Select
+          value={filters.category ?? 'all'}
+          onValueChange={(v) => onFiltersChange({ ...filters, category: v === 'all' ? undefined : v as TransactionCategory })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Todas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as categorias</SelectItem>
+            {CATEGORIES.map((cat) => (
+              <SelectItem key={cat.value} value={cat.value}>
+                {cat.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterItem>
 
-            <div className="grid gap-2">
-              <Label>Tipo</Label>
-              <Select
-                value={filters.type ?? 'all'}
-                onValueChange={(v) => onFiltersChange({ ...filters, type: v === 'all' ? undefined : v as TransactionType })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="labor">Mão de Obra</SelectItem>
-                  <SelectItem value="parts">Materiais</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <FilterItem label="Tipo">
+        <Select
+          value={filters.type ?? 'all'}
+          onValueChange={(v) => onFiltersChange({ ...filters, type: v === 'all' ? undefined : v as TransactionType })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os tipos</SelectItem>
+            <SelectItem value="labor">Mão de Obra</SelectItem>
+            <SelectItem value="parts">Materiais</SelectItem>
+          </SelectContent>
+        </Select>
+      </FilterItem>
 
-            <div className="grid gap-2">
-              <Label>ID do Ativo</Label>
-              <Input
-                placeholder="UUID do ativo"
-                value={filters.asset_id ?? ''}
-                onChange={(e) => onFiltersChange({ ...filters, asset_id: e.target.value || undefined })}
-              />
-            </div>
+      <FilterItem label="ID do Ativo">
+        <Input
+          placeholder="UUID do ativo"
+          value={filters.asset_id ?? ''}
+          onChange={(e) => onFiltersChange({ ...filters, asset_id: e.target.value || undefined })}
+        />
+      </FilterItem>
 
-            <div className="grid gap-2">
-              <Label>ID da OS</Label>
-              <Input
-                placeholder="UUID da OS"
-                value={filters.work_order_id ?? ''}
-                onChange={(e) => onFiltersChange({ ...filters, work_order_id: e.target.value || undefined })}
-              />
-            </div>
-          </div>
-        </FilterBar>
-      </PopoverContent>
-    </Popover>
+      <FilterItem label="ID da OS">
+        <Input
+          placeholder="UUID da OS"
+          value={filters.work_order_id ?? ''}
+          onChange={(e) => onFiltersChange({ ...filters, work_order_id: e.target.value || undefined })}
+        />
+      </FilterItem>
+    </FilterPopover>
   );
 }
 

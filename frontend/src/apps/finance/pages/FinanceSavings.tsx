@@ -14,7 +14,6 @@ import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Plus,
-  Filter,
   TrendingDown,
   Zap,
   ShieldCheck,
@@ -63,16 +62,12 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { MoneyCell, DataTable, type Column, type PaginationState } from '@/components/finance';
+import { FilterPopover, FilterItem } from '@/shared/ui';
 import { 
   useSavings, 
   useCreateSavingsEvent, 
@@ -205,119 +200,90 @@ function FilterPanel({ filters, onFiltersChange, onClear }: FilterPanelProps) {
     if (filters.cost_center_id) count++;
     if (filters.event_type) count++;
     if (filters.confidence) count++;
+    if (filters.from || filters.to) count++;
     return count;
   }, [filters]);
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <Filter className="h-4 w-4" />
-          Filtros
-          {activeFiltersCount > 0 && (
-            <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 text-xs">
-              {activeFiltersCount}
-            </Badge>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80" align="end">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium">Filtros</h4>
-            {activeFiltersCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={onClear}>
-                Limpar
-              </Button>
-            )}
-          </div>
+    <FilterPopover activeCount={activeFiltersCount} onClear={onClear}>
+      <FilterItem label="Tipo de Evento">
+        <Select
+          value={filters.event_type ?? 'all'}
+          onValueChange={(v) => onFiltersChange({ ...filters, event_type: v === 'all' ? undefined : v as SavingsEventType })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os tipos</SelectItem>
+            {Object.entries(EVENT_TYPE_CONFIG).map(([value, config]) => (
+              <SelectItem key={value} value={value}>
+                {config.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterItem>
 
-          <div className="space-y-3">
-            <div className="grid gap-2">
-              <Label>Tipo de Evento</Label>
-              <Select
-                value={filters.event_type ?? ''}
-                onValueChange={(v) => onFiltersChange({ ...filters, event_type: v as SavingsEventType || undefined })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
-                  {Object.entries(EVENT_TYPE_CONFIG).map(([value, config]) => (
-                    <SelectItem key={value} value={value}>
-                      {config.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <FilterItem label="Confiança">
+        <Select
+          value={filters.confidence ?? 'all'}
+          onValueChange={(v) => onFiltersChange({ ...filters, confidence: v === 'all' ? undefined : v as SavingsConfidence })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Todas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os níveis</SelectItem>
+            {Object.entries(CONFIDENCE_CONFIG).map(([value, config]) => (
+              <SelectItem key={value} value={value}>
+                {config.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterItem>
 
-            <div className="grid gap-2">
-              <Label>Confiança</Label>
-              <Select
-                value={filters.confidence ?? ''}
-                onValueChange={(v) => onFiltersChange({ ...filters, confidence: v as SavingsConfidence || undefined })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
-                  {Object.entries(CONFIDENCE_CONFIG).map(([value, config]) => (
-                    <SelectItem key={value} value={value}>
-                      {config.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <FilterItem label="Centro de Custo">
+        <Select
+          value={filters.cost_center_id ?? 'all'}
+          onValueChange={(v) => onFiltersChange({ ...filters, cost_center_id: v === 'all' ? undefined : v })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os centros</SelectItem>
+            {costCenters?.map((cc) => (
+              <SelectItem key={cc.id} value={cc.id}>
+                {cc.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterItem>
 
-            <div className="grid gap-2">
-              <Label>Centro de Custo</Label>
-              <Select
-                value={filters.cost_center_id ?? ''}
-                onValueChange={(v) => onFiltersChange({ ...filters, cost_center_id: v || undefined })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
-                  {costCenters?.map((cc) => (
-                    <SelectItem key={cc.id} value={cc.id}>
-                      {cc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Período</Label>
-              <DateRangePicker
-                dateRange={{
-                  from: filters.from ? new Date(filters.from + 'T00:00:00') : undefined,
-                  to: filters.to ? new Date(filters.to + 'T00:00:00') : undefined,
-                }}
-                onDateRangeChange={(range) => {
-                  const formatDate = (d: Date | undefined) => {
-                    if (!d) return undefined;
-                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                  };
-                  onFiltersChange({
-                    ...filters,
-                    from: formatDate(range?.from) ?? undefined,
-                    to: formatDate(range?.to) ?? undefined,
-                  });
-                }}
-                className="w-full"
-              />
-            </div>
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
+      <FilterItem label="Período">
+        <DateRangePicker
+          dateRange={{
+            from: filters.from ? new Date(filters.from + 'T00:00:00') : undefined,
+            to: filters.to ? new Date(filters.to + 'T00:00:00') : undefined,
+          }}
+          onDateRangeChange={(range) => {
+            const formatDate = (d: Date | undefined) => {
+              if (!d) return undefined;
+              return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            };
+            onFiltersChange({
+              ...filters,
+              from: formatDate(range?.from) ?? undefined,
+              to: formatDate(range?.to) ?? undefined,
+            });
+          }}
+          className="w-full"
+        />
+      </FilterItem>
+    </FilterPopover>
   );
 }
 

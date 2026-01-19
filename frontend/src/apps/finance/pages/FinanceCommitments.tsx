@@ -14,7 +14,6 @@ import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Plus,
-  Filter,
   FileText,
   Building2,
   AlertCircle,
@@ -58,11 +57,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -73,6 +67,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { MoneyCell, DataTable, type Column, type PaginationState } from '@/components/finance';
+import { FilterPopover, FilterItem } from '@/shared/ui';
 import { 
   useCommitments, 
   useCreateCommitment, 
@@ -169,85 +164,56 @@ function FilterPanel({ filters, onFiltersChange, onClear }: FilterPanelProps) {
   }, [filters]);
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <Filter className="h-4 w-4" />
-          Filtros
-          {activeFiltersCount > 0 && (
-            <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 text-xs">
-              {activeFiltersCount}
-            </Badge>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80" align="end">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium">Filtros</h4>
-            {activeFiltersCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={onClear}>
-                Limpar
-              </Button>
-            )}
-          </div>
+    <FilterPopover activeCount={activeFiltersCount} onClear={onClear}>
+      <FilterItem label="Status">
+        <Select
+          value={filters.status ?? 'all'}
+          onValueChange={(v) => onFiltersChange({ ...filters, status: v === 'all' ? undefined : v as CommitmentStatus })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os status</SelectItem>
+            {Object.entries(STATUS_CONFIG).map(([value, config]) => (
+              <SelectItem key={value} value={value}>
+                {config.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterItem>
 
-          <div className="space-y-3">
-            <div className="grid gap-2">
-              <Label>Status</Label>
-              <Select
-                value={filters.status ?? ''}
-                onValueChange={(v) => onFiltersChange({ ...filters, status: v as CommitmentStatus || undefined })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
-                  {Object.entries(STATUS_CONFIG).map(([value, config]) => (
-                    <SelectItem key={value} value={value}>
-                      {config.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <FilterItem label="Centro de Custo">
+        <Select
+          value={filters.cost_center_id ?? 'all'}
+          onValueChange={(v) => onFiltersChange({ ...filters, cost_center_id: v === 'all' ? undefined : v })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os centros</SelectItem>
+            {costCenters?.map((cc) => (
+              <SelectItem key={cc.id} value={cc.id}>
+                {cc.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FilterItem>
 
-            <div className="grid gap-2">
-              <Label>Centro de Custo</Label>
-              <Select
-                value={filters.cost_center_id ?? ''}
-                onValueChange={(v) => onFiltersChange({ ...filters, cost_center_id: v || undefined })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
-                  {costCenters?.map((cc) => (
-                    <SelectItem key={cc.id} value={cc.id}>
-                      {cc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Mês do Budget</Label>
-              <Input
-                type="month"
-                value={filters.budget_month?.slice(0, 7) ?? ''}
-                onChange={(e) => onFiltersChange({ 
-                  ...filters, 
-                  budget_month: e.target.value ? `${e.target.value}-01` : undefined 
-                })}
-              />
-            </div>
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
+      <FilterItem label="Mês do Budget">
+        <Input
+          type="month"
+          value={filters.budget_month?.slice(0, 7) ?? ''}
+          onChange={(e) => onFiltersChange({ 
+            ...filters, 
+            budget_month: e.target.value ? `${e.target.value}-01` : undefined 
+          })}
+        />
+      </FilterItem>
+    </FilterPopover>
   );
 }
 
