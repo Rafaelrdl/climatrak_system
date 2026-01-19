@@ -120,3 +120,93 @@ class AIHealthSerializer(serializers.Serializer):
     llm = serializers.DictField()
     agents = serializers.ListField(child=AgentInfoSerializer())
     status = serializers.CharField()
+
+
+# ==============================================================================
+# KNOWLEDGE BASE SERIALIZERS (AI-006)
+# ==============================================================================
+
+
+class KnowledgeSearchQuerySerializer(serializers.Serializer):
+    """Serializer para query de busca na base de conhecimento."""
+
+    q = serializers.CharField(
+        required=True,
+        min_length=2,
+        max_length=200,
+        help_text="Termo de busca (2-200 caracteres)",
+    )
+    page = serializers.IntegerField(
+        required=False,
+        default=1,
+        min_value=1,
+        help_text="Página (1-based)",
+    )
+    page_size = serializers.IntegerField(
+        required=False,
+        default=10,
+        min_value=1,
+        max_value=50,
+        help_text="Tamanho da página (1-50)",
+    )
+    source_type = serializers.CharField(
+        required=False,
+        max_length=50,
+        help_text="Filtrar por tipo de fonte (ex: procedure)",
+    )
+
+
+class KnowledgeSearchResultSerializer(serializers.Serializer):
+    """Serializer para resultado de busca."""
+
+    chunk_id = serializers.UUIDField(help_text="ID do chunk")
+    document_id = serializers.UUIDField(help_text="ID do documento")
+    document_title = serializers.CharField(help_text="Título do documento")
+    source_type = serializers.CharField(help_text="Tipo da fonte")
+    source_id = serializers.UUIDField(help_text="ID da fonte (UUID determinístico)")
+    version = serializers.IntegerField(help_text="Versão do documento")
+    chunk_index = serializers.IntegerField(help_text="Índice do chunk no documento")
+    content = serializers.CharField(help_text="Conteúdo do chunk")
+    rank = serializers.FloatField(help_text="Score de relevância")
+    highlight = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="Trecho com termos destacados",
+    )
+
+
+class KnowledgeSearchResponseSerializer(serializers.Serializer):
+    """Serializer para resposta de busca."""
+
+    results = KnowledgeSearchResultSerializer(many=True)
+    total_count = serializers.IntegerField(help_text="Total de resultados")
+    query = serializers.CharField(help_text="Query executada")
+    page = serializers.IntegerField(help_text="Página atual")
+    page_size = serializers.IntegerField(help_text="Tamanho da página")
+
+
+class KnowledgeDocumentSerializer(serializers.Serializer):
+    """Serializer para documento de conhecimento."""
+
+    id = serializers.UUIDField()
+    source_type = serializers.CharField()
+    source_id = serializers.UUIDField()
+    title = serializers.CharField()
+    file_type = serializers.CharField()
+    version = serializers.IntegerField()
+    status = serializers.CharField()
+    chunks_count = serializers.IntegerField()
+    char_count = serializers.IntegerField()
+    created_at = serializers.DateTimeField()
+    indexed_at = serializers.DateTimeField(allow_null=True)
+
+
+class KnowledgeStatsSerializer(serializers.Serializer):
+    """Serializer para estatísticas da base de conhecimento."""
+
+    total_documents = serializers.IntegerField()
+    total_chunks = serializers.IntegerField()
+    by_status = serializers.DictField(child=serializers.IntegerField())
+    by_source_type = serializers.DictField(child=serializers.IntegerField())
+    by_file_type = serializers.DictField(child=serializers.IntegerField())
+

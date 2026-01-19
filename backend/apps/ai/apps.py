@@ -7,6 +7,7 @@ class AIConfig(AppConfig):
 
     Gerencia:
     - AIJob: Jobs de execução de agentes
+    - AIKnowledgeDocument/Chunk: Base de conhecimento RAG (AI-006)
     - Providers: Clients LLM (OpenAI-compat)
     - Agents: RCA, Preventivo, Preditivo, Inventário, Quick Repair
 
@@ -24,25 +25,31 @@ class AIConfig(AppConfig):
         """
         Hook chamado quando o app é carregado.
 
-        Registra os agentes disponíveis.
+        Registra os agentes e handlers disponíveis.
         """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
         # Importar agents para registrar no registry
         # O __init__.py do agents importa DummyAgent e RootCauseAgent
         # que usam @register_agent decorator
         try:
             from . import agents  # noqa: F401
 
-            # Log agents registrados
-            import logging
-
-            logger = logging.getLogger(__name__)
             from .agents import get_registered_agents
 
             registered = get_registered_agents()
             for agent in registered:
                 logger.info(f"AI Agent registered: {agent['key']} ({agent['name']})")
         except ImportError as e:
-            import logging
-
-            logger = logging.getLogger(__name__)
             logger.warning(f"Failed to import AI agents: {e}")
+
+        # Importar handlers para registrar no core_events (AI-006)
+        # Handlers são registrados via @register_event_handler decorator
+        try:
+            from . import handlers  # noqa: F401
+
+            logger.info("AI handlers registered (procedure.updated)")
+        except ImportError as e:
+            logger.warning(f"Failed to import AI handlers: {e}")

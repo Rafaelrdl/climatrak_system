@@ -416,10 +416,9 @@ class RootCauseAgentExecutionTests(TestCase):
         """Execute parseia output JSON do LLM."""
         mock_gather.return_value = self.complete_context
 
-        # Mock do provider
+        # Mock do provider - LLMResponse usa content diretamente
         mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = json.dumps(
+        mock_response.content = json.dumps(
             {
                 "schema_version": "1.0",
                 "alert": {"id": 1},
@@ -430,8 +429,8 @@ class RootCauseAgentExecutionTests(TestCase):
                 "notes": "Test note",
             }
         )
-        mock_response.usage = MagicMock()
-        mock_response.usage.total_tokens = 150
+        mock_response.model = "mistral-nemo"
+        mock_response.tokens_total = 150
 
         # Configurar o provider mockado
         mock_provider = MagicMock()
@@ -457,17 +456,16 @@ class RootCauseAgentExecutionTests(TestCase):
         mock_gather.return_value = self.complete_context
 
         mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        # Resposta com fence
-        mock_response.choices[0].message.content = """```json
+        # Resposta com fence - LLMResponse usa content diretamente
+        mock_response.content = """```json
 {
   "schema_version": "1.0",
   "hypotheses": [],
   "immediate_actions": []
 }
 ```"""
-        mock_response.usage = MagicMock()
-        mock_response.usage.total_tokens = 100
+        mock_response.model = "mistral-nemo"
+        mock_response.tokens_total = 100
 
         mock_provider = MagicMock()
         mock_provider.chat_sync.return_value = mock_response
@@ -490,8 +488,9 @@ class RootCauseAgentExecutionTests(TestCase):
         mock_gather.return_value = self.complete_context
 
         mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "invalid json {{"
+        # LLMResponse usa content diretamente
+        mock_response.content = "invalid json {{"
+        mock_response.model = "mistral-nemo"
 
         mock_provider = MagicMock()
         mock_provider.chat_sync.return_value = mock_response

@@ -67,6 +67,10 @@ pytest-cov==6.0.0
 factory-boy==3.3.1
 freezegun==1.5.1
 
+# Document Processing (AI Knowledge Base)
+pypdf==5.1.0
+python-docx==1.1.2
+
 # Security Scanning
 bandit==1.8.2
 pip-audit==2.8.0

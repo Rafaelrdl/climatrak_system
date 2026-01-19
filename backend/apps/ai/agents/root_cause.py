@@ -22,6 +22,7 @@ from apps.assets.models import Asset, Device, Sensor
 from apps.cmms.models import WorkOrder
 from apps.ingest.models import Reading
 
+from ..providers.base import LLMMessage
 from .base import AgentContext, AgentResult, BaseAgent
 from .registry import register_agent
 
@@ -265,14 +266,14 @@ Retorne apenas JSON válido.
             # Chamar LLM via self.provider (lazy loading)
             logger.debug("[RCA] Chamando LLM provider.chat_sync...")
             response = self.provider.chat_sync(
-                messages=[{"role": "user", "content": user_prompt}],
+                messages=[LLMMessage(role="user", content=user_prompt)],
                 model="mistral-nemo",  # padrão para dev
                 temperature=0.5,
             )
-            logger.debug(f"[RCA] LLM response received: {len(response.choices)} choices")
+            logger.debug(f"[RCA] LLM response received, model={response.model}")
 
             # Extrair conteúdo
-            content = response.choices[0].message.content if response.choices else ""
+            content = response.content or ""
 
             # Remover fence de markdown se existir
             content = re.sub(r"```json\s*", "", content)
@@ -296,7 +297,7 @@ Retorne apenas JSON válido.
             return AgentResult(
                 success=True,
                 data=output_data,
-                tokens_used=response.usage.total_tokens if response.usage else None,
+                tokens_used=response.tokens_total if response.tokens_total else None,
                 execution_time_ms=getattr(response, "execution_time_ms", None),
             )
 

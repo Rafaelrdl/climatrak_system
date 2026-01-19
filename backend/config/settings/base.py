@@ -93,6 +93,7 @@ SHARED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.postgres",  # Postgres FTS (SearchVector, SearchQuery)
     "jazzmin",  # Must be before django.contrib.admin
     "django.contrib.admin",  # Admin only in public schema
     # Third-party
@@ -115,6 +116,7 @@ TENANT_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.postgres",  # Postgres FTS (SearchVector, SearchQuery)
     # NOTE: django.contrib.admin is NOT in TENANT_APPS
     # Admin is centralized in public schema only
     # NOTE: token_blacklist is NOT in TENANT_APPS

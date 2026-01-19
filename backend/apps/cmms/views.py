@@ -8,7 +8,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -19,6 +19,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from django_filters.rest_framework import DjangoFilterBackend
+
+from apps.core_events.services import EventPublisher
 
 logger = logging.getLogger(__name__)
 
@@ -1481,9 +1483,14 @@ class ProcedureViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         if serializer.validated_data["approved"]:
-            procedure.status = "ACTIVE"
-            procedure.is_active = True
-            procedure.save()
+            with transaction.atomic():
+                procedure.status = "ACTIVE"
+                procedure.is_active = True
+                procedure.save()
+
+                # Emitir evento procedure.updated para indexação (AI-006)
+                self._emit_procedure_updated_event(procedure, "approved")
+
             return Response(
                 {"status": "approved", "message": "Procedimento aprovado com sucesso."}
             )
@@ -1523,8 +1530,13 @@ class ProcedureViewSet(viewsets.ModelViewSet):
     def archive(self, request, pk=None):
         """Arquiva um procedimento."""
         procedure = self.get_object()
-        procedure.status = "ARCHIVED"
-        procedure.save()
+
+        with transaction.atomic():
+            procedure.status = "ARCHIVED"
+            procedure.save()
+
+            # Emitir evento procedure.updated para indexação (AI-006)
+            self._emit_procedure_updated_event(procedure, "archived")
 
         return Response(
             {"status": "archived", "message": "Procedimento arquivado com sucesso."}
@@ -1539,30 +1551,34 @@ class ProcedureViewSet(viewsets.ModelViewSet):
         changelog = request.data.get("changelog", "Nova versão")
         file = request.FILES.get("file")
 
-        # Salva versão anterior
-        ProcedureVersion.objects.create(
-            procedure=procedure,
-            version_number=procedure.version,
-            file=procedure.file,
-            file_type=procedure.file_type,
-            changelog=changelog,
-            created_by=request.user,
-        )
+        with transaction.atomic():
+            # Salva versão anterior
+            ProcedureVersion.objects.create(
+                procedure=procedure,
+                version_number=procedure.version,
+                file=procedure.file,
+                file_type=procedure.file_type,
+                changelog=changelog,
+                created_by=request.user,
+            )
 
-        # Atualiza procedimento com novo arquivo se fornecido
-        if file:
-            procedure.file = file
-            # Detecta tipo de arquivo
-            if file.name.lower().endswith(".pdf"):
-                procedure.file_type = "PDF"
-            elif file.name.lower().endswith(".md"):
-                procedure.file_type = "MARKDOWN"
-            elif file.name.lower().endswith(".docx"):
-                procedure.file_type = "DOCX"
+            # Atualiza procedimento com novo arquivo se fornecido
+            if file:
+                procedure.file = file
+                # Detecta tipo de arquivo
+                if file.name.lower().endswith(".pdf"):
+                    procedure.file_type = "PDF"
+                elif file.name.lower().endswith(".md"):
+                    procedure.file_type = "MARKDOWN"
+                elif file.name.lower().endswith(".docx"):
+                    procedure.file_type = "DOCX"
 
-        # Incrementa versão
-        procedure.version += 1
-        procedure.save()
+            # Incrementa versão
+            procedure.version += 1
+            procedure.save()
+
+            # Emitir evento procedure.updated para indexação (AI-006)
+            self._emit_procedure_updated_event(procedure, "version_created")
 
         return Response(
             {
@@ -1597,16 +1613,70 @@ class ProcedureViewSet(viewsets.ModelViewSet):
                 {"error": "Versão não encontrada."}, status=status.HTTP_404_NOT_FOUND
             )
 
-        # Atualiza procedimento com dados da versão
-        procedure.file = version.file
-        procedure.file_type = version.file_type
-        procedure.save()
+        with transaction.atomic():
+            # Atualiza procedimento com dados da versão
+            procedure.file = version.file
+            procedure.file_type = version.file_type
+            procedure.save()
+
+            # Emitir evento procedure.updated para indexação (AI-006)
+            self._emit_procedure_updated_event(procedure, "version_restored")
 
         return Response(
             {
                 "status": "restored",
                 "message": f"Procedimento restaurado para versão {version.version_number}.",
             }
+        )
+
+    def _emit_procedure_updated_event(self, procedure, action: str):
+        """
+        Emite evento procedure.updated para indexação na base de conhecimento.
+
+        Usa idempotency_key determinística baseada em procedure.id + version.
+        Evento é processado pelo handler em apps.ai.handlers para enfileirar
+        task de indexação.
+
+        Args:
+            procedure: Instância de Procedure
+            action: Tipo de ação (approved, archived, version_created, version_restored)
+        """
+        from apps.tenants.models import Tenant
+
+        # Obtém tenant_id do schema atual
+        tenant_schema = connection.schema_name
+        try:
+            tenant = Tenant.objects.get(schema_name=tenant_schema)
+            tenant_id = tenant.id
+        except Tenant.DoesNotExist:
+            logger.warning(
+                f"[_emit_procedure_updated_event] Tenant not found for schema {tenant_schema}"
+            )
+            return
+
+        # Idempotency key determinística
+        idempotency_key = f"procedure:{procedure.id}:v{procedure.version}:{action}"
+
+        EventPublisher.publish_idempotent(
+            tenant_id=tenant_id,
+            event_name="procedure.updated",
+            aggregate_type="procedure",
+            aggregate_id=procedure.id,
+            data={
+                "procedure_id": procedure.id,
+                "title": procedure.title,
+                "version": procedure.version,
+                "file_type": procedure.file_type,
+                "status": procedure.status,
+                "action": action,
+                "has_file": bool(procedure.file),
+            },
+            idempotency_key=idempotency_key,
+        )
+
+        logger.info(
+            f"[_emit_procedure_updated_event] Emitted procedure.updated for "
+            f"procedure {procedure.id} v{procedure.version} ({action})"
         )
 
     @action(detail=False, methods=["get"])

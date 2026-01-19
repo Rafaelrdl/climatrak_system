@@ -379,3 +379,164 @@ def schedule_patterns_report(scope: str = "all"):
     )
     return {"created": total_created, "skipped": total_skipped}
 
+
+# ==============================================================================
+# KNOWLEDGE BASE TASKS (AI-006)
+# ==============================================================================
+
+
+@shared_task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_backoff_max=600,
+)
+def index_procedure_knowledge(
+    self,
+    procedure_id: int,
+    schema_name: str,
+    tenant_id: str,
+):
+    """
+    Indexa um Procedure na base de conhecimento.
+
+    Executado via evento procedure.updated ou manualmente.
+    Idempotente via content_hash no indexer.
+
+    Args:
+        procedure_id: ID do Procedure
+        schema_name: Nome do schema do tenant
+        tenant_id: ID do tenant (string UUID)
+    """
+    import uuid as uuid_module
+
+    from .knowledge.indexer import ProcedureIndexer
+
+    logger.info(
+        f"[index_procedure_knowledge] Starting for procedure {procedure_id} "
+        f"in schema {schema_name}"
+    )
+
+    with schema_context(schema_name):
+        try:
+            tenant_uuid = uuid_module.UUID(tenant_id)
+            indexer = ProcedureIndexer(tenant_uuid)
+            result = indexer.index_procedure_by_id(procedure_id)
+
+            logger.info(
+                f"[index_procedure_knowledge] Completed for procedure {procedure_id}: "
+                f"status={result.status}, chunks={result.chunks_count}"
+            )
+
+            return {
+                "procedure_id": procedure_id,
+                "status": result.status,
+                "chunks_count": result.chunks_count,
+                "char_count": result.char_count,
+                "was_updated": result.was_updated,
+                "error": result.error,
+            }
+
+        except Exception as e:
+            logger.exception(
+                f"[index_procedure_knowledge] Failed for procedure {procedure_id}: {e}"
+            )
+            raise
+
+
+@shared_task
+def reindex_all_procedures(schema_name: str = None, max_per_tenant: int = 100):
+    """
+    Reindexa todos os Procedures ativos.
+
+    Útil para migração inicial ou reindexação em massa.
+    Executa em background, não bloqueia.
+
+    Args:
+        schema_name: Schema específico (None = todos os tenants)
+        max_per_tenant: Limite de procedures por tenant
+    """
+    from apps.cmms.models import Procedure
+    from apps.tenants.models import Tenant
+
+    total_enqueued = 0
+
+    if schema_name:
+        # Tenant específico
+        try:
+            tenant = Tenant.objects.get(schema_name=schema_name)
+            tenants = [tenant]
+        except Tenant.DoesNotExist:
+            logger.error(f"[reindex_all_procedures] Tenant {schema_name} not found")
+            return {"error": f"Tenant {schema_name} not found"}
+    else:
+        # Todos os tenants
+        tenants = list(iter_tenants())
+
+    for tenant in tenants:
+        with schema_context(tenant.schema_name):
+            # Busca procedures ativos com arquivo
+            procedures = Procedure.objects.filter(
+                status__in=["ACTIVE", "INACTIVE"],
+                file__isnull=False,
+            ).exclude(
+                file=""
+            ).values("id")[:max_per_tenant]
+
+            for proc in procedures:
+                index_procedure_knowledge.delay(
+                    procedure_id=proc["id"],
+                    schema_name=tenant.schema_name,
+                    tenant_id=str(tenant.id),
+                )
+                total_enqueued += 1
+
+            logger.info(
+                f"[reindex_all_procedures] Enqueued {len(procedures)} procedures "
+                f"for tenant {tenant.slug}"
+            )
+
+    logger.info(
+        f"[reindex_all_procedures] Completed: {total_enqueued} procedures enqueued"
+    )
+    return {"enqueued": total_enqueued}
+
+
+@shared_task
+def cleanup_outdated_knowledge(days: int = 30):
+    """
+    Remove documentos OUTDATED antigos.
+
+    Args:
+        days: Idade máxima em dias
+    """
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from .models import AIKnowledgeDocument, AIKnowledgeDocumentStatus
+
+    cutoff = timezone.now() - timedelta(days=days)
+    total_deleted = 0
+
+    for tenant in iter_tenants():
+        with schema_context(tenant.schema_name):
+            # Deleta documentos outdated antigos (cascata deleta chunks)
+            deleted, _ = AIKnowledgeDocument.objects.filter(
+                status=AIKnowledgeDocumentStatus.OUTDATED,
+                indexed_at__lt=cutoff,
+            ).delete()
+
+            total_deleted += deleted
+
+            if deleted > 0:
+                logger.info(
+                    f"[cleanup_outdated_knowledge] Deleted {deleted} outdated docs "
+                    f"from tenant {tenant.slug}"
+                )
+
+    return {"deleted_total": total_deleted}
+
+

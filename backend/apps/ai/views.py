@@ -271,3 +271,250 @@ class AIHealthViewSet(viewsets.ViewSet):
             "agents": agents,
             "status": overall_status,
         })
+
+
+# ==============================================================================
+# KNOWLEDGE BASE VIEWSET (AI-006)
+# ==============================================================================
+
+
+@extend_schema_view(
+    search=extend_schema(
+        summary="Buscar na base de conhecimento",
+        description="""
+        Busca full-text search na base de conhecimento.
+        
+        Busca em todos os chunks de documentos indexados (procedures).
+        Retorna resultados rankeados por relevância com highlighting.
+        
+        Parâmetros:
+        - q: Termo de busca (obrigatório, 2-200 chars)
+        - page: Página (default: 1)
+        - page_size: Tamanho da página (default: 10, max: 50)
+        - source_type: Filtrar por tipo (ex: procedure)
+        """,
+        parameters=[
+            OpenApiParameter(
+                name="q",
+                description="Termo de busca",
+                required=True,
+                type=str,
+            ),
+            OpenApiParameter(
+                name="page",
+                description="Página (1-based)",
+                required=False,
+                type=int,
+            ),
+            OpenApiParameter(
+                name="page_size",
+                description="Tamanho da página (1-50)",
+                required=False,
+                type=int,
+            ),
+            OpenApiParameter(
+                name="source_type",
+                description="Filtrar por tipo de fonte",
+                required=False,
+                type=str,
+            ),
+        ],
+    ),
+)
+class AIKnowledgeViewSet(viewsets.ViewSet):
+    """
+    ViewSet para busca na base de conhecimento.
+    
+    Endpoints:
+    - GET /api/ai/knowledge/search/?q=termo
+    - GET /api/ai/knowledge/stats/
+    - GET /api/ai/knowledge/documents/
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def _get_tenant_id(self):
+        """Obtém tenant_id do schema atual."""
+        from apps.tenants.models import Tenant
+
+        tenant_schema = connection.schema_name
+        try:
+            tenant = Tenant.objects.get(schema_name=tenant_schema)
+            return tenant.id
+        except Tenant.DoesNotExist:
+            return None
+
+    @action(detail=False, methods=["get"])
+    def search(self, request):
+        """
+        Busca full-text search na base de conhecimento.
+        
+        Query params:
+        - q: Termo de busca (obrigatório)
+        - page: Página (default: 1)
+        - page_size: Tamanho da página (default: 10)
+        - source_type: Filtrar por tipo de fonte
+        """
+        from .knowledge.search import KnowledgeSearch
+        from .serializers import (
+            KnowledgeSearchQuerySerializer,
+            KnowledgeSearchResponseSerializer,
+        )
+
+        # Validar query params
+        query_serializer = KnowledgeSearchQuerySerializer(data=request.query_params)
+        if not query_serializer.is_valid():
+            return Response(
+                query_serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        data = query_serializer.validated_data
+        tenant_id = self._get_tenant_id()
+
+        if not tenant_id:
+            return Response(
+                {"detail": "Tenant not found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Executar busca
+        searcher = KnowledgeSearch(tenant_id)
+        result = searcher.search(
+            query=data["q"],
+            page=data.get("page", 1),
+            page_size=data.get("page_size", 10),
+            source_type=data.get("source_type"),
+        )
+
+        # Serializar resposta
+        response_data = {
+            "results": [
+                {
+                    "chunk_id": r.chunk_id,
+                    "document_id": r.document_id,
+                    "document_title": r.document_title,
+                    "source_type": r.source_type,
+                    "source_id": r.source_id,
+                    "version": r.version,
+                    "chunk_index": r.chunk_index,
+                    "content": r.content,
+                    "rank": r.rank,
+                    "highlight": r.highlight,
+                }
+                for r in result.results
+            ],
+            "total_count": result.total_count,
+            "query": result.query,
+            "page": result.page,
+            "page_size": result.page_size,
+        }
+
+        return Response(response_data)
+
+    @action(detail=False, methods=["get"])
+    def stats(self, request):
+        """
+        Retorna estatísticas da base de conhecimento.
+        """
+        from django.db.models import Count
+
+        from .models import AIKnowledgeChunk, AIKnowledgeDocument
+
+        tenant_id = self._get_tenant_id()
+
+        if not tenant_id:
+            return Response(
+                {"detail": "Tenant not found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Contagens
+        docs = AIKnowledgeDocument.objects.filter(tenant_id=tenant_id)
+        chunks = AIKnowledgeChunk.objects.filter(tenant_id=tenant_id)
+
+        # Por status
+        by_status = dict(
+            docs.values("status").annotate(count=Count("id")).values_list("status", "count")
+        )
+
+        # Por source_type
+        by_source_type = dict(
+            docs.values("source_type").annotate(count=Count("id")).values_list("source_type", "count")
+        )
+
+        # Por file_type
+        by_file_type = dict(
+            docs.values("file_type").annotate(count=Count("id")).values_list("file_type", "count")
+        )
+
+        return Response({
+            "total_documents": docs.count(),
+            "total_chunks": chunks.count(),
+            "by_status": by_status,
+            "by_source_type": by_source_type,
+            "by_file_type": by_file_type,
+        })
+
+    @action(detail=False, methods=["get"])
+    def documents(self, request):
+        """
+        Lista documentos indexados.
+        
+        Query params:
+        - status: Filtrar por status
+        - source_type: Filtrar por tipo de fonte
+        - page: Página (default: 1)
+        - page_size: Tamanho da página (default: 20)
+        """
+        from .models import AIKnowledgeDocument
+
+        tenant_id = self._get_tenant_id()
+
+        if not tenant_id:
+            return Response(
+                {"detail": "Tenant not found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Filtros
+        queryset = AIKnowledgeDocument.objects.filter(tenant_id=tenant_id)
+
+        status_filter = request.query_params.get("status")
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+
+        source_type = request.query_params.get("source_type")
+        if source_type:
+            queryset = queryset.filter(source_type=source_type)
+
+        # Paginação
+        page = int(request.query_params.get("page", 1))
+        page_size = min(int(request.query_params.get("page_size", 20)), 50)
+
+        total = queryset.count()
+        offset = (page - 1) * page_size
+        documents = queryset.order_by("-indexed_at", "-created_at")[offset:offset + page_size]
+
+        return Response({
+            "results": [
+                {
+                    "id": doc.id,
+                    "source_type": doc.source_type,
+                    "source_id": doc.source_id,
+                    "title": doc.title,
+                    "file_type": doc.file_type,
+                    "version": doc.version,
+                    "status": doc.status,
+                    "chunks_count": doc.chunks_count,
+                    "char_count": doc.char_count,
+                    "created_at": doc.created_at,
+                    "indexed_at": doc.indexed_at,
+                }
+                for doc in documents
+            ],
+            "total_count": total,
+            "page": page,
+            "page_size": page_size,
+        })
+

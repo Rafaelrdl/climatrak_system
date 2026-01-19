@@ -270,3 +270,229 @@ class AIJob(models.Model):
             idempotency_key=idempotency_key,
             defaults=defaults,
         )
+
+
+# ============================================
+# KNOWLEDGE BASE MODELS (AI-006)
+# ============================================
+
+
+class AIKnowledgeDocumentStatus(models.TextChoices):
+    """Status do documento na base de conhecimento."""
+
+    PENDING = "PENDING", "Pending Indexation"
+    INDEXING = "INDEXING", "Indexing"
+    INDEXED = "INDEXED", "Indexed"
+    FAILED = "FAILED", "Failed"
+    OUTDATED = "OUTDATED", "Outdated"
+
+
+class AIKnowledgeDocument(models.Model):
+    """
+    Documento indexado na base de conhecimento.
+
+    Rastreia Procedures indexados para RAG.
+    Usa content_hash (SHA256) para idempotência.
+    """
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    # Denormalização do tenant para queries eficientes
+    tenant_id = models.UUIDField(
+        verbose_name="Tenant ID",
+        db_index=True,
+        help_text="ID do tenant (denormalizado)",
+    )
+
+    # Referência ao Procedure (polimórfico para futuras expansões)
+    source_type = models.CharField(
+        max_length=50,
+        default="procedure",
+        verbose_name="Tipo de Fonte",
+        db_index=True,
+        help_text="Tipo do documento fonte (procedure, manual, etc)",
+    )
+    source_id = models.UUIDField(
+        verbose_name="ID da Fonte",
+        db_index=True,
+        help_text="ID do objeto fonte (UUID determinístico)",
+    )
+
+    # Metadados do documento
+    title = models.CharField(
+        max_length=255,
+        verbose_name="Título",
+    )
+    file_type = models.CharField(
+        max_length=20,
+        choices=[("PDF", "PDF"), ("MARKDOWN", "Markdown"), ("DOCX", "Word Document")],
+        verbose_name="Tipo de Arquivo",
+    )
+    version = models.PositiveIntegerField(
+        default=1,
+        verbose_name="Versão",
+        help_text="Versão do documento fonte",
+    )
+
+    # Hash do conteúdo para idempotência
+    content_hash = models.CharField(
+        max_length=64,
+        verbose_name="Hash do Conteúdo",
+        db_index=True,
+        help_text="SHA256 do texto extraído",
+    )
+
+    # Texto extraído completo (para reindexação se necessário)
+    extracted_text = models.TextField(
+        verbose_name="Texto Extraído",
+        help_text="Texto completo extraído do documento",
+    )
+
+    # Status de indexação
+    status = models.CharField(
+        max_length=20,
+        choices=AIKnowledgeDocumentStatus.choices,
+        default=AIKnowledgeDocumentStatus.PENDING,
+        verbose_name="Status",
+        db_index=True,
+    )
+
+    # Métricas
+    chunks_count = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Quantidade de Chunks",
+    )
+    char_count = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Quantidade de Caracteres",
+    )
+
+    # Erro se houver
+    error_message = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name="Mensagem de Erro",
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Criado em",
+    )
+    indexed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Indexado em",
+    )
+
+    class Meta:
+        verbose_name = "Documento de Conhecimento"
+        verbose_name_plural = "Documentos de Conhecimento"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["tenant_id", "source_type", "source_id"]),
+            models.Index(fields=["tenant_id", "status"]),
+            models.Index(fields=["tenant_id", "content_hash"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant_id", "source_type", "source_id", "version"],
+                name="unique_knowledge_doc_per_source_version",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.title} v{self.version} ({self.status})"
+
+
+class AIKnowledgeChunk(models.Model):
+    """
+    Chunk de texto para busca.
+
+    Cada documento é dividido em chunks para FTS.
+    Usa SearchVectorField para busca eficiente.
+    """
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    # Relacionamento com documento
+    document = models.ForeignKey(
+        AIKnowledgeDocument,
+        on_delete=models.CASCADE,
+        related_name="chunks",
+        verbose_name="Documento",
+    )
+
+    # Denormalização para queries diretas
+    tenant_id = models.UUIDField(
+        verbose_name="Tenant ID",
+        db_index=True,
+    )
+
+    # Posição no documento
+    chunk_index = models.PositiveIntegerField(
+        verbose_name="Índice do Chunk",
+        help_text="Posição sequencial no documento (0-based)",
+    )
+
+    # Conteúdo do chunk
+    content = models.TextField(
+        verbose_name="Conteúdo",
+        help_text="Texto do chunk",
+    )
+
+    # Metadados para contexto
+    char_start = models.PositiveIntegerField(
+        verbose_name="Posição Inicial",
+        help_text="Posição inicial do chunk no texto original",
+    )
+    char_end = models.PositiveIntegerField(
+        verbose_name="Posição Final",
+        help_text="Posição final do chunk no texto original",
+    )
+
+    # Full-Text Search vector
+    search_vector = models.GeneratedField(
+        expression=models.Func(
+            models.Value("portuguese"),
+            models.F("content"),
+            function="to_tsvector",
+            output_field=models.TextField(),
+        ),
+        output_field=models.TextField(),
+        db_persist=True,
+        verbose_name="Vetor de Busca",
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Criado em",
+    )
+
+    class Meta:
+        verbose_name = "Chunk de Conhecimento"
+        verbose_name_plural = "Chunks de Conhecimento"
+        ordering = ["document", "chunk_index"]
+        indexes = [
+            models.Index(fields=["tenant_id"]),
+            models.Index(fields=["document", "chunk_index"]),
+            # GIN index para FTS (criado via migration raw SQL)
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["document", "chunk_index"],
+                name="unique_chunk_per_document",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Chunk {self.chunk_index} of {self.document.title}"
