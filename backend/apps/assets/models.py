@@ -509,7 +509,7 @@ class Asset(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.tag} - {self.get_asset_type_display()}"
+        return f"{self.tag} - {self.asset_type}"
 
     @property
     def full_location(self):

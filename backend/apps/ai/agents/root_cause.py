@@ -99,17 +99,22 @@ class RootCauseAgent(BaseAgent):
         elif alert.asset_tag:
             asset = Asset.objects.filter(tag=alert.asset_tag).first()
 
+        logger.debug(f"[RCA] gather_context: alert={alert.id}, asset_tag={alert.asset_tag}, asset={asset}")
+
         # Sensor primário
         primary_sensor = None
         if alert.parameter_key and asset:
             primary_sensor = Sensor.objects.filter(
                 tag=alert.parameter_key, device__asset=asset
             ).first()
+            logger.debug(f"[RCA] primary_sensor={primary_sensor}")
 
         # Telemetria recente
+        logger.debug(f"[RCA] Chamando _gather_telemetry: window={window_minutes}min, max_readings={max_readings}")
         telemetry_context = self._gather_telemetry(
             alert, primary_sensor, window_minutes, max_readings
         )
+        logger.debug(f"[RCA] telemetry_context keys: {list(telemetry_context.keys())}")
 
         # Sensores relacionados
         related_sensors = []
@@ -117,7 +122,9 @@ class RootCauseAgent(BaseAgent):
             related_sensors = self._gather_related_sensors(asset, alert.parameter_key)
 
         # CMMS
+        logger.debug(f"[RCA] Chamando _gather_cmms_context: asset={asset}, max_wo={max_work_orders}")
         cmms_context = self._gather_cmms_context(asset, max_work_orders)
+        logger.debug(f"[RCA] cmms_context: {len(cmms_context.get('recent_work_orders', []))} work orders")
 
         # Alertas correlatos
         correlated_alerts = self._gather_correlated_alerts(alert)
@@ -222,18 +229,26 @@ Retorne apenas JSON válido.
             AgentResult com dados/erro
         """
         try:
+            logger.debug(f"[RCA] execute: input_data={input_data}")
+            
             # Coletar contexto (telemetria, CMMS, etc.)
+            logger.debug("[RCA] Chamando gather_context...")
             context_data = self.gather_context(input_data, context)
+            logger.debug(f"[RCA] gather_context retornou: keys={list(context_data.keys())}")
 
             # Montar prompt
+            logger.debug("[RCA] Chamando build_user_prompt...")
             user_prompt = self.build_user_prompt(input_data, context_data)
+            logger.debug(f"[RCA] user_prompt length={len(user_prompt)} chars")
 
             # Chamar LLM via self.provider (lazy loading)
+            logger.debug("[RCA] Chamando LLM provider.chat_sync...")
             response = self.provider.chat_sync(
                 messages=[{"role": "user", "content": user_prompt}],
                 model="mistral-nemo",  # padrão para dev
                 temperature=0.5,
             )
+            logger.debug(f"[RCA] LLM response received: {len(response.choices)} choices")
 
             # Extrair conteúdo
             content = response.choices[0].message.content if response.choices else ""
@@ -266,7 +281,7 @@ Retorne apenas JSON válido.
 
         except Exception as e:
             logger.exception(f"Erro ao executar RootCauseAgent: {e}")
-            return AgentResult(success=False, error=str(e))
+            return AgentResult(success=False, data={}, error=str(e))
 
     def _gather_telemetry(
         self, alert: Alert, primary_sensor: Optional[Sensor], window_minutes: int, max_readings: int
@@ -295,27 +310,30 @@ Retorne apenas JSON válido.
         start_time = alert.triggered_at - timedelta(minutes=window_minutes)
         end_time = alert.triggered_at
 
-        # Buscar readings
-        readings = (
+        # Buscar readings (campo ts = timestamp)
+        readings_qs = (
             Reading.objects.filter(
                 asset_tag=alert.asset_tag,
                 sensor_id=alert.parameter_key,
-                recorded_at__gte=start_time,
-                recorded_at__lte=end_time,
+                ts__gte=start_time,
+                ts__lte=end_time,
             )
-            .order_by("recorded_at")[: max_readings + 1]
+            .order_by("ts")[: max_readings + 1]
         )
+        # Converter para lista para evitar problemas com slice + .last()
+        readings_list = list(readings_qs)
 
-        if readings.exists():
-            values = [float(r.value) for r in readings if r.value is not None]
+        if readings_list:
+            values = [float(r.value) for r in readings_list if r.value is not None]
             if values:
+                last_reading = readings_list[-1]
                 result["primary_sensor"] = {
                     "sensor_id": alert.parameter_key,
                     "min": min(values),
                     "max": max(values),
                     "avg": sum(values) / len(values),
-                    "trend": self._calculate_trend(list(readings)),
-                    "last_value": float(readings.last().value) if readings.last().value else None,
+                    "trend": self._calculate_trend(readings_list),
+                    "last_value": float(last_reading.value) if last_reading.value else None,
                     "readings_count": len(values),
                 }
 
@@ -326,7 +344,7 @@ Retorne apenas JSON válido.
         Calcula tendência simples (rising/falling/stable) comparando start vs end.
 
         Args:
-            readings: QuerySet de readings ordenado por recorded_at
+            readings: QuerySet de readings ordenado por ts (timestamp)
 
         Returns:
             String: "rising", "falling", "stable", "unknown"
@@ -372,7 +390,7 @@ Retorne apenas JSON válido.
         for sensor_tag in sensors:
             reading = (
                 Reading.objects.filter(asset_tag=asset.tag, sensor_id=sensor_tag)
-                .order_by("-recorded_at")
+                .order_by("-ts")
                 .first()
             )
             if reading:
@@ -380,7 +398,7 @@ Retorne apenas JSON válido.
                     {
                         "sensor_id": sensor_tag,
                         "last_value": float(reading.value) if reading.value else None,
-                        "recorded_at": reading.recorded_at.isoformat() if reading.recorded_at else None,
+                        "ts": reading.ts.isoformat() if reading.ts else None,
                     }
                 )
 
@@ -402,10 +420,11 @@ Retorne apenas JSON válido.
         if not asset:
             return result
 
+        logger.debug(f"[RCA] _gather_cmms_context: buscando WOs para asset={asset.id if asset else None}")
         work_orders = (
             WorkOrder.objects.filter(asset=asset)
             .order_by("-created_at")[:max_work_orders]
-            .values("id", "status", "type", "created_at", "title")
+            .values("id", "status", "type", "created_at", "description")
         )
 
         for wo in work_orders:
@@ -415,9 +434,10 @@ Retorne apenas JSON válido.
                     "status": wo["status"],
                     "type": wo["type"],
                     "created_at": wo["created_at"].isoformat() if wo["created_at"] else None,
-                    "title": wo["title"],
+                    "description": wo["description"],
                 }
             )
+        logger.debug(f"[RCA] _gather_cmms_context: encontrados {len(result['recent_work_orders'])} WOs")
 
         return result
 
@@ -439,8 +459,8 @@ Retorne apenas JSON válido.
         if not alert.asset_tag:
             return result
 
-        # Alertas do mesmo equipamento (recentes)
-        correlated = (
+        # Alertas do mesmo equipamento (recentes) - para lista de severidades
+        correlated_qs = (
             Alert.objects.filter(asset_tag=alert.asset_tag)
             .exclude(pk=alert.pk)
             .order_by("-triggered_at")[:10]
@@ -449,10 +469,15 @@ Retorne apenas JSON válido.
 
         result["recent_severities"] = [
             {"severity": c["severity"], "triggered_at": c["triggered_at"].isoformat()}
-            for c in correlated
+            for c in correlated_qs
         ]
-        result["same_asset_active_count"] = correlated.filter(
-            triggered_at__gte=timezone.now() - timedelta(hours=1)
-        ).count()
+        
+        # Contagem de alertas ativos (última hora) - query separada sem slice
+        result["same_asset_active_count"] = (
+            Alert.objects.filter(asset_tag=alert.asset_tag)
+            .exclude(pk=alert.pk)
+            .filter(triggered_at__gte=timezone.now() - timedelta(hours=1))
+            .count()
+        )
 
         return result

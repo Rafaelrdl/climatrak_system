@@ -173,11 +173,16 @@ export async function checkAIHealth(): Promise<HealthCheckResponse> {
 
 /**
  * Analisa a causa raiz de um alerta usando IA
+ * 
+ * Nota: Cada chamada gera uma nova análise. Para re-analisar o mesmo alerta,
+ * usamos timestamp na idempotency_key para permitir múltiplas tentativas.
  */
 export async function analyzeAlertWithAI(
   alertId: number | string,
   windowMinutes: number = 120
 ): Promise<AIJobRunResponse> {
+  // Incluir timestamp para permitir re-análises do mesmo alerta
+  const timestamp = Date.now();
   return runAgent('root_cause', {
     input: {
       alert_id: alertId,
@@ -187,7 +192,7 @@ export async function analyzeAlertWithAI(
       type: 'alert',
       id: alertId,
     },
-    idempotency_key: `rca:${alertId}:v1`,
+    idempotency_key: `rca:${alertId}:${timestamp}`,
   });
 }
 
