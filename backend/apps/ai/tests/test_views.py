@@ -1,41 +1,40 @@
 """
 Tests for AI API Views
 
-Note: These tests are currently skipped because they require special
-multi-tenant + DRF authentication setup. The core functionality is
-tested via test_services.py and test_agents.py.
-
-TODO: Fix tenant context for APIClient-based tests.
+Uses APIRequestFactory pattern for proper multi-tenant testing.
+Following the same pattern as apps/trakservice/tests/test_trakservice_api.py
 """
 
-import unittest
 import uuid
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
-from django.urls import reverse
-from django_tenants.test.cases import TenantTestCase
-from django_tenants.test.client import TenantClient
+from django.db import connection
+from django.test import TestCase
 from rest_framework import status
-from rest_framework.test import APIClient
+from rest_framework.test import APIRequestFactory, force_authenticate
+
+from django_tenants.test.cases import TenantTestCase
+from django_tenants.utils import schema_context
 
 from apps.accounts.models import User
 from apps.ai.models import AIJob, AIJobStatus
+from apps.ai.views import AIJobViewSet, AgentViewSet, AIHealthViewSet
 from apps.ai.agents.registry import register_agent, _agent_registry
 from apps.ai.agents.dummy import DummyAgent
 
 
-@unittest.skip("Requires tenant-aware APIClient setup - tested via services/agents")
 class AIJobViewSetTests(TenantTestCase):
-    """Tests for AIJobViewSet."""
+    """Tests for AIJobViewSet using APIRequestFactory."""
 
     def setUp(self):
         """Set up test data."""
         super().setUp()
-        # Use APIClient with force_authenticate for JWT auth
-        self.client = TenantClient(self.tenant)
-        self.api_client = APIClient()
-
-        # Create test user - username is required by AbstractUser
+        self.factory = APIRequestFactory()
+        
+        # Clean any existing AIJobs from previous tests
+        AIJob.objects.all().delete()
+        
+        # Create test user in tenant context
         self.user = User.objects.create_user(
             username="testuser",
             email="test@example.com",
@@ -43,38 +42,62 @@ class AIJobViewSetTests(TenantTestCase):
             first_name="Test",
             last_name="User",
         )
-        self.api_client.force_authenticate(user=self.user)
-
+        
         # Create tenant UUID
         self.tenant_id = uuid.uuid5(
             uuid.NAMESPACE_DNS, f"tenant:{self.tenant.schema_name}"
         )
 
-    def test_list_jobs_empty(self):
-        """Test listing jobs when none exist."""
-        response = self.api_client.get("/api/ai/jobs/")
+    def _get_authenticated_request(self, method, path, data=None):
+        """Helper to create authenticated request."""
+        if method == "GET":
+            request = self.factory.get(path)
+        elif method == "POST":
+            request = self.factory.post(path, data=data, format="json")
+        else:
+            request = self.factory.get(path)
+        
+        force_authenticate(request, user=self.user)
+        return request
+
+    def test_list_jobs_success(self):
+        """Test listing jobs returns valid response with correct structure."""
+        from django.db import connection
+        service_tenant_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"tenant:{connection.schema_name}")
+        
+        # Get initial count
+        initial_count = AIJob.objects.filter(tenant_id=service_tenant_id).count()
+        
+        # Create a job
+        job = AIJob.objects.create(
+            tenant_id=service_tenant_id,
+            agent_key="dummy",
+            input_data={"test": True},
+        )
+
+        request = self._get_authenticated_request("GET", "/api/ai/jobs/")
+        view = AIJobViewSet.as_view({"get": "list"})
+        
+        response = view(request)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 0)
-
-    def test_list_jobs_with_data(self):
-        """Test listing jobs with data."""
-        # Create some jobs
-        AIJob.objects.create(
-            tenant_id=self.tenant_id,
-            agent_key="dummy",
-            input_data={},
-        )
-        AIJob.objects.create(
-            tenant_id=self.tenant_id,
-            agent_key="dummy",
-            input_data={},
-        )
-
-        response = self.api_client.get("/api/ai/jobs/")
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)
+        
+        # Handle both paginated and non-paginated responses
+        if isinstance(response.data, dict) and "results" in response.data:
+            # Paginated response
+            results = response.data["results"]
+            self.assertIn("count", response.data)
+        else:
+            # Non-paginated response
+            results = response.data
+            
+        self.assertIsInstance(results, list)
+        # Should have at least the job we created
+        self.assertGreaterEqual(len(results), 1)
+        
+        # Verify our job is in the response
+        job_ids = [j["id"] for j in results]
+        self.assertIn(str(job.id), job_ids)
 
     def test_retrieve_job(self):
         """Test retrieving single job."""
@@ -84,7 +107,10 @@ class AIJobViewSetTests(TenantTestCase):
             input_data={"test": True},
         )
 
-        response = self.api_client.get(f"/api/ai/jobs/{job.id}/")
+        request = self._get_authenticated_request("GET", f"/api/ai/jobs/{job.id}/")
+        view = AIJobViewSet.as_view({"get": "retrieve"})
+        
+        response = view(request, id=str(job.id))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["id"], str(job.id))
@@ -93,23 +119,30 @@ class AIJobViewSetTests(TenantTestCase):
     def test_retrieve_nonexistent_job(self):
         """Test retrieving nonexistent job returns 404."""
         fake_id = uuid.uuid4()
-        response = self.api_client.get(f"/api/ai/jobs/{fake_id}/")
+        
+        request = self._get_authenticated_request("GET", f"/api/ai/jobs/{fake_id}/")
+        view = AIJobViewSet.as_view({"get": "retrieve"})
+        
+        response = view(request, id=str(fake_id))
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_unauthenticated_access_denied(self):
         """Test unauthenticated access is denied."""
-        # Use a new unauthenticated client
-        unauthenticated_client = APIClient()
-
-        response = unauthenticated_client.get("/api/ai/jobs/")
+        request = self.factory.get("/api/ai/jobs/")
+        # Don't set request.user - simulate unauthenticated
+        request.user = MagicMock()
+        request.user.is_authenticated = False
+        
+        view = AIJobViewSet.as_view({"get": "list"})
+        
+        response = view(request)
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-@unittest.skip("Requires tenant-aware APIClient setup - tested via services/agents")
 class AgentViewSetTests(TenantTestCase):
-    """Tests for AgentViewSet."""
+    """Tests for AgentViewSet using APIRequestFactory."""
 
     @classmethod
     def setUpClass(cls):
@@ -122,10 +155,9 @@ class AgentViewSetTests(TenantTestCase):
     def setUp(self):
         """Set up test data."""
         super().setUp()
-        self.client = TenantClient(self.tenant)
-        self.api_client = APIClient()
-
-        # Create test user - username is required by AbstractUser
+        self.factory = APIRequestFactory()
+        
+        # Create test user
         self.user = User.objects.create_user(
             username="testuser2",
             email="test2@example.com",
@@ -133,11 +165,34 @@ class AgentViewSetTests(TenantTestCase):
             first_name="Test",
             last_name="User",
         )
-        self.api_client.force_authenticate(user=self.user)
+        
+        # Ensure dummy agent is registered
+        if "dummy" not in _agent_registry:
+            register_agent(DummyAgent)
+        
+        # Create tenant UUID
+        self.tenant_id = uuid.uuid5(
+            uuid.NAMESPACE_DNS, f"tenant:{self.tenant.schema_name}"
+        )
+
+    def _get_authenticated_request(self, method, path, data=None):
+        """Helper to create authenticated request."""
+        if method == "GET":
+            request = self.factory.get(path)
+        elif method == "POST":
+            request = self.factory.post(path, data=data, format="json")
+        else:
+            request = self.factory.get(path)
+        
+        force_authenticate(request, user=self.user)
+        return request
 
     def test_list_agents(self):
         """Test listing available agents."""
-        response = self.api_client.get("/api/ai/agents/")
+        request = self._get_authenticated_request("GET", "/api/ai/agents/")
+        view = AgentViewSet.as_view({"get": "list"})
+        
+        response = view(request)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIsInstance(response.data, list)
@@ -149,11 +204,17 @@ class AgentViewSetTests(TenantTestCase):
     @patch("apps.ai.views.execute_ai_job.delay")
     def test_run_agent_success(self, mock_task):
         """Test running an agent creates job."""
-        response = self.api_client.post(
+        # Set connection.tenant for the view to use
+        connection.tenant = self.tenant
+        
+        request = self._get_authenticated_request(
+            "POST", 
             "/api/ai/agents/dummy/run/",
-            data={"input": {"test": True}},
-            format="json",
+            data={"input": {"test": True}}
         )
+        view = AgentViewSet.as_view({"post": "run"})
+        
+        response = view(request, pk="dummy")
 
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         self.assertIn("job_id", response.data)
@@ -165,37 +226,50 @@ class AgentViewSetTests(TenantTestCase):
 
     def test_run_nonexistent_agent(self):
         """Test running nonexistent agent returns 404."""
-        response = self.api_client.post(
+        connection.tenant = self.tenant
+        
+        request = self._get_authenticated_request(
+            "POST",
             "/api/ai/agents/nonexistent/run/",
-            data={"input": {}},
-            format="json",
+            data={"input": {}}
         )
+        view = AgentViewSet.as_view({"post": "run"})
+        
+        response = view(request, pk="nonexistent")
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     @patch("apps.ai.views.execute_ai_job.delay")
     def test_run_agent_with_idempotency(self, mock_task):
         """Test running agent with idempotency key."""
+        connection.tenant = self.tenant
+        
         data = {
             "input": {"test": True},
             "idempotency_key": "unique-test-key",
         }
 
         # First call
-        response1 = self.api_client.post(
+        request1 = self._get_authenticated_request(
+            "POST",
             "/api/ai/agents/dummy/run/",
-            data=data,
-            format="json",
+            data=data
         )
+        view = AgentViewSet.as_view({"post": "run"})
+        response1 = view(request1, pk="dummy")
+        
         self.assertEqual(response1.status_code, status.HTTP_202_ACCEPTED)
         self.assertTrue(response1.data["created"])
+        job_id = response1.data["job_id"]
 
         # Second call with same key
-        response2 = self.api_client.post(
+        request2 = self._get_authenticated_request(
+            "POST",
             "/api/ai/agents/dummy/run/",
-            data=data,
-            format="json",
+            data=data
         )
+        response2 = view(request2, pk="dummy")
+        
         self.assertEqual(response2.status_code, status.HTTP_200_OK)
         self.assertFalse(response2.data["created"])
 
@@ -208,15 +282,20 @@ class AgentViewSetTests(TenantTestCase):
     @patch("apps.ai.views.execute_ai_job.delay")
     def test_run_agent_with_related(self, mock_task):
         """Test running agent with related object."""
+        connection.tenant = self.tenant
+        
         related_id = str(uuid.uuid4())
-        response = self.api_client.post(
+        request = self._get_authenticated_request(
+            "POST",
             "/api/ai/agents/dummy/run/",
             data={
                 "input": {"alert_id": related_id},
                 "related": {"type": "alert", "id": related_id},
-            },
-            format="json",
+            }
         )
+        view = AgentViewSet.as_view({"post": "run"})
+        
+        response = view(request, pk="dummy")
 
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
 
@@ -226,17 +305,15 @@ class AgentViewSetTests(TenantTestCase):
         self.assertEqual(str(job.related_id), related_id)
 
 
-@unittest.skip("Requires tenant-aware APIClient setup - tested via services/agents")
 class AIHealthViewSetTests(TenantTestCase):
-    """Tests for AIHealthViewSet."""
+    """Tests for AIHealthViewSet using APIRequestFactory."""
 
     def setUp(self):
         """Set up test data."""
         super().setUp()
-        self.client = TenantClient(self.tenant)
-        self.api_client = APIClient()
-
-        # Create test user - username is required by AbstractUser
+        self.factory = APIRequestFactory()
+        
+        # Create test user
         self.user = User.objects.create_user(
             username="testuser3",
             email="test3@example.com",
@@ -244,7 +321,18 @@ class AIHealthViewSetTests(TenantTestCase):
             first_name="Test",
             last_name="User",
         )
-        self.api_client.force_authenticate(user=self.user)
+
+    def _get_authenticated_request(self, method, path, data=None):
+        """Helper to create authenticated request."""
+        if method == "GET":
+            request = self.factory.get(path)
+        elif method == "POST":
+            request = self.factory.post(path, data=data, format="json")
+        else:
+            request = self.factory.get(path)
+        
+        force_authenticate(request, user=self.user)
+        return request
 
     @patch("apps.ai.views.check_llm_health")
     def test_health_check(self, mock_health):
@@ -256,7 +344,10 @@ class AIHealthViewSetTests(TenantTestCase):
             "model": "mistral-nemo",
         }
 
-        response = self.api_client.get("/api/ai/health/")
+        request = self._get_authenticated_request("GET", "/api/ai/health/")
+        view = AIHealthViewSet.as_view({"get": "list"})
+        
+        response = view(request)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("llm", response.data)
@@ -272,7 +363,10 @@ class AIHealthViewSetTests(TenantTestCase):
             "error": "Connection refused",
         }
 
-        response = self.api_client.get("/api/ai/health/")
+        request = self._get_authenticated_request("GET", "/api/ai/health/")
+        view = AIHealthViewSet.as_view({"get": "list"})
+        
+        response = view(request)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["status"], "degraded")
