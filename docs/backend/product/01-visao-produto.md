@@ -1,7 +1,9 @@
-# Visão do Produto — Orçamento Vivo (TrakNor + TrakSense)
+# Visão do Produto — TrakLedger (Orçamento Vivo)
 
 ## Objetivo
-Implementar um módulo financeiro que transforme o CMMS em uma plataforma de gestão:
+Implementar o **TrakLedger**, módulo financeiro ("Orçamento Vivo") que conecta a operação
+do **TrakNor (CMMS)** e dados do **TrakSense (IoT)** em uma camada de governança e visibilidade:
+
 - **Planejado vs Comprometido vs Realizado**
 - Custos automáticos por OS (mão de obra + peças + terceiros/contratos)
 - **Economia/ROI** rastreável (ligado a alertas e OS)
