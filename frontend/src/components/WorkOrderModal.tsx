@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarIcon, Save, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarIcon, Save, ChevronLeft, ChevronRight, Bot } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,9 @@ import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';
 import { useCompanies, useUnits, useSectors, useSubsections } from '@/hooks/useLocationsQuery';
 import { getPriorityLabel } from '@/shared/ui/statusBadgeUtils';
+import { QuickRepairDialog } from '@/components/QuickRepairDialog';
 import type { WorkOrder } from '@/types';
+import type { SuggestedWorkOrder } from '@/services/aiService';
 
 interface WorkOrderModalProps {
   isOpen: boolean;
@@ -99,6 +101,9 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
     status: 'OPEN' as WorkOrder['status']
   });
 
+  // Quick Repair AI dialog state
+  const [isQuickRepairOpen, setIsQuickRepairOpen] = useState(false);
+
   // Ref para controlar se já inicializamos os valores
   const initializedRef = useRef(false);
 
@@ -117,7 +122,18 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
     setSelectedSectorId('');
     setSelectedSubsectionId('');
     setCurrentStep('basic');
+    setIsQuickRepairOpen(false);
     initializedRef.current = false;
+  };
+
+  // Handler para aplicar sugestão do Quick Repair AI
+  const handleApplyAISuggestion = (suggestion: SuggestedWorkOrder) => {
+    setFormData(prev => ({
+      ...prev,
+      type: suggestion.type as WorkOrder['type'],
+      priority: suggestion.priority as WorkOrder['priority'],
+      description: suggestion.title + (prev.description ? `\n\n${prev.description}` : ''),
+    }));
   };
 
   // Preencher empresa quando o modal abre
@@ -462,7 +478,21 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="description">Descrição *</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="description">Descrição *</Label>
+            {formData.equipmentId && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsQuickRepairOpen(true)}
+                className="gap-1 text-xs"
+              >
+                <Bot className="h-3 w-3" />
+                Assistente IA
+              </Button>
+            )}
+          </div>
           <Textarea
             id="description"
             value={formData.description}
@@ -655,6 +685,17 @@ export function WorkOrderModal({ isOpen, onClose, onSave, initialValues }: WorkO
           </div>
         </div>
       </DialogContent>
+
+      {/* Quick Repair AI Dialog */}
+      {selectedEquipment && (
+        <QuickRepairDialog
+          assetId={Number(selectedEquipment.id)}
+          assetTag={selectedEquipment.tag}
+          isOpen={isQuickRepairOpen}
+          onClose={() => setIsQuickRepairOpen(false)}
+          onApplySuggestion={handleApplyAISuggestion}
+        />
+      )}
     </Dialog>
   );
 }

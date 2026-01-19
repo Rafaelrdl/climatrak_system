@@ -796,3 +796,183 @@ export async function getAssetAIInsights(assetId: number): Promise<AssetAIInsigh
   };
 }
 
+// ============================================
+// Quick Repair Agent Types and Functions (AI-003)
+// ============================================
+
+export interface QuickRepairInput {
+  symptom: string;
+  asset_id: number;
+  constraints?: string[];
+  observations?: string;
+  window_days?: number;
+}
+
+export interface QuickRepairHypothesis {
+  id: string;
+  title: string;
+  confidence: number;
+  evidence: string[];
+  severity?: 'high' | 'medium' | 'low';
+}
+
+export interface DiagnosisStep {
+  step: number;
+  action: string;
+  expected_result: string;
+  tools_required: string[];
+}
+
+export interface RepairStep {
+  step: number;
+  action: string;
+  precautions?: string;
+  estimated_minutes?: number;
+}
+
+export interface InventoryMatch {
+  inventory_id: number;
+  code: string;
+  name: string;
+  available_qty: number;
+  unit: string;
+  unit_cost: number;
+  location: string;
+}
+
+export interface PartSuggestion {
+  name: string;
+  quantity: number;
+  purpose: string;
+  inventory_matches?: InventoryMatch[];
+}
+
+export interface SafetyInfo {
+  ppe_required: string[];
+  warnings: string[];
+}
+
+export interface EscalationInfo {
+  criteria: string;
+  contact: string;
+}
+
+export interface SuggestedWorkOrder {
+  title: string;
+  type: 'CORRECTIVE' | 'PREVENTIVE' | 'PREDICTIVE' | 'EMERGENCY';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  estimated_hours?: number;
+}
+
+export interface QuickRepairReference {
+  id: number;
+  number?: string;
+  title?: string;
+  description?: string;
+  status?: string;
+  file_type?: string;
+}
+
+export interface QuickRepairAsset {
+  id: number;
+  tag: string;
+  name: string;
+  asset_type: string;
+  manufacturer: string;
+  model: string;
+  serial_number: string;
+  status: string;
+  specifications: Record<string, unknown>;
+  site_name: string | null;
+  sector_name: string | null;
+  subsection_name: string | null;
+}
+
+export interface QuickRepairOutput {
+  agent_key: 'quick_repair';
+  version: string;
+  generated_at: string;
+  mode?: 'fallback';
+  summary: string;
+  hypotheses: QuickRepairHypothesis[];
+  diagnosis_steps: DiagnosisStep[];
+  repair_steps: RepairStep[];
+  parts: PartSuggestion[];
+  tools: string[];
+  safety: SafetyInfo;
+  escalation: EscalationInfo;
+  suggested_work_order?: SuggestedWorkOrder;
+  references: {
+    similar_work_orders: QuickRepairReference[];
+    procedures: QuickRepairReference[];
+  };
+  asset: QuickRepairAsset;
+  idempotency_key: string;
+}
+
+/**
+ * Executa diagnóstico rápido para um ativo com sintoma específico
+ *
+ * @param assetId ID do ativo
+ * @param symptom Descrição do sintoma/problema (mínimo 10 caracteres)
+ * @param options Opções adicionais (constraints, observations)
+ */
+export async function runQuickRepairAnalysis(
+  assetId: number,
+  symptom: string,
+  options: Omit<QuickRepairInput, 'asset_id' | 'symptom'> = {}
+): Promise<AIJobRunResponse> {
+  const timestamp = Date.now();
+
+  return runAgent('quick_repair', {
+    input: {
+      asset_id: assetId,
+      symptom,
+      ...options,
+    },
+    related: {
+      type: 'asset',
+      id: assetId,
+    },
+    idempotency_key: `quick_repair:asset:${assetId}:${timestamp}`,
+  });
+}
+
+/**
+ * Executa diagnóstico rápido e aguarda resultado
+ *
+ * @param assetId ID do ativo
+ * @param symptom Descrição do sintoma/problema
+ * @param options Opções adicionais
+ * @param pollOptions Opções de polling
+ */
+export async function analyzeQuickRepairAndWait(
+  assetId: number,
+  symptom: string,
+  options: Omit<QuickRepairInput, 'asset_id' | 'symptom'> = {},
+  pollOptions: { maxRetries?: number; delayMs?: number } = {}
+): Promise<QuickRepairOutput> {
+  const { maxRetries = 90, delayMs = 1000 } = pollOptions;
+
+  const jobResponse = await runQuickRepairAnalysis(assetId, symptom, options);
+  const completedJob = await pollAIJob(jobResponse.job_id, maxRetries, delayMs);
+
+  if (!completedJob) {
+    throw new Error('Falha no diagnóstico rápido: Job não encontrado');
+  }
+
+  if (completedJob.status === JobStatus.FAILED) {
+    throw new Error(`Diagnóstico falhou: ${completedJob.error_message}`);
+  }
+
+  if (completedJob.status === JobStatus.TIMEOUT) {
+    throw new Error('Diagnóstico expirou (timeout)');
+  }
+
+  if (completedJob.status !== JobStatus.SUCCEEDED) {
+    throw new Error(`Status inesperado: ${completedJob.status}`);
+  }
+
+  return completedJob.output_data as unknown as QuickRepairOutput;
+}
+
