@@ -3,6 +3,7 @@ AI Views - DRF ViewSets for AI module.
 """
 
 import logging
+import uuid
 
 from django.db import connection
 
@@ -27,6 +28,44 @@ from .services import AIJobService
 from .tasks import execute_ai_job
 
 logger = logging.getLogger(__name__)
+
+
+def convert_related_id_to_uuid(related_id: str | int, related_type: str) -> uuid.UUID:
+    """
+    Converte related.id (int/string) para UUID determinístico se não for UUID válido.
+
+    Args:
+        related_id: ID do objeto relacionado (pode ser int, string numérica ou UUID)
+        related_type: Tipo do objeto (ex: "alert", "work_order")
+
+    Returns:
+        UUID válido
+
+    Raises:
+        ValueError: Se conversão falhar
+    """
+    if related_id is None:
+        return None
+
+    # Tentar validar como UUID
+    if isinstance(related_id, uuid.UUID):
+        return related_id
+
+    related_id_str = str(related_id).strip()
+
+    # Tentar fazer parse como UUID válido
+    try:
+        return uuid.UUID(related_id_str)
+    except (ValueError, AttributeError):
+        pass
+
+    # Não é UUID válido, gerar determinístico baseado em namespace
+    try:
+        # Garantir que temos um string válido para o namespace
+        deterministic_id = f"{related_type}:{related_id_str}"
+        return uuid.uuid5(uuid.NAMESPACE_DNS, deterministic_id)
+    except Exception as e:
+        raise ValueError(f"Não foi possível converter related.id '{related_id}' para UUID: {e}")
 
 
 @extend_schema_view(
@@ -141,6 +180,17 @@ class AgentViewSet(viewsets.ViewSet):
 
         data = serializer.validated_data
         related = data.get("related")
+        related_id = None
+
+        if related:
+            # Converter related.id (int/string) para UUID determinístico se necessário
+            try:
+                related_id = convert_related_id_to_uuid(related.get("id"), related.get("type"))
+            except ValueError as e:
+                return Response(
+                    {"detail": f"Erro ao processar related.id: {str(e)}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         try:
             # Criar job
@@ -149,7 +199,7 @@ class AgentViewSet(viewsets.ViewSet):
                 input_data=data.get("input", {}),
                 user=request.user,
                 related_type=related.get("type") if related else None,
-                related_id=related.get("id") if related else None,
+                related_id=related_id,
                 idempotency_key=data.get("idempotency_key"),
             )
 

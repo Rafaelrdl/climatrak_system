@@ -62,7 +62,11 @@ import {
   Activity,
   Target,
   Trash2,
-  UserPlus
+  UserPlus,
+  Zap,
+  AlertOctagon,
+  CheckCheckIcon,
+  Lightbulb
 } from 'lucide-react';
 import { 
   useAlertsQuery, 
@@ -74,6 +78,11 @@ import {
 import { useCreateWorkOrder } from '@/hooks/useWorkOrdersQuery';
 import { useEquipments } from '@/hooks/useEquipmentQuery';
 import { useTechnicians } from '@/hooks/useTeamQuery';
+import { 
+  analyzeAlertWithAI, 
+  pollAIJob,
+  type RootCauseAnalysisOutput
+} from '@/services/aiService';
 import type { Alert, AlertFilters, AlertSeverity } from '../types';
 import type { WorkOrder } from '@/types';
 import { format } from 'date-fns';
@@ -148,6 +157,12 @@ export function AlertsList() {
   // Estado para o dialog de confirmação de exclusão
   const [alertToDelete, setAlertToDelete] = useState<Alert | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  
+  // Estado para análise com IA
+  const [aiJobId, setAiJobId] = useState<string | null>(null);
+  const [aiResult, setAiResult] = useState<RootCauseAnalysisOutput | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   // Queries para dados reais da API
   const { data: alerts = [], isLoading, isError, refetch } = useAlertsQuery({ status: filterStatus || undefined });
@@ -193,7 +208,7 @@ export function AlertsList() {
     acknowledgeMutation.mutate({ id: alert.id });
   };
 
-  // Handler para resolver um alerta
+  // Handler para excluir um alerta
   // Handler para abrir dialog de exclusão
   const handleDelete = (alert: Alert) => {
     setAlertToDelete(alert);
@@ -204,6 +219,36 @@ export function AlertsList() {
   const confirmDelete = () => {
     if (alertToDelete) {
       deleteAlertMutation.mutate(alertToDelete.id);
+    }
+  };
+
+  // Handler para analisar alerta com IA
+  const handleAnalyzeWithAI = async (alert: Alert) => {
+    if (!alert.id) return;
+    
+    setIsAnalyzing(true);
+    setAiError(null);
+    setAiResult(null);
+    setAiJobId(null);
+    
+    try {
+      // Inicia a análise
+      const jobResponse = await analyzeAlertWithAI(alert.id);
+      setAiJobId(jobResponse.job_id);
+      
+      // Poll até a conclusão
+      const completedJob = await pollAIJob(jobResponse.job_id);
+      
+      if (completedJob && completedJob.status === 'succeeded') {
+        setAiResult(completedJob.output_data as RootCauseAnalysisOutput);
+      } else {
+        setAiError(`Análise falhou com status: ${completedJob?.status}`);
+      }
+    } catch (error) {
+      setAiError(error instanceof Error ? error.message : 'Erro ao analisar alerta');
+      console.error('Erro ao analisar alerta com IA:', error);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -742,8 +787,8 @@ export function AlertsList() {
 
               {/* Ações */}
               <Separator />
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
                   {!selectedAlert.acknowledged && !selectedAlert.resolved && (
                     <Button
                       variant="outline"
@@ -758,6 +803,27 @@ export function AlertsList() {
                       Reconhecer
                     </Button>
                   )}
+                  
+                  {/* Botão de Análise com IA */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAnalyzeWithAI(selectedAlert)}
+                    disabled={isAnalyzing}
+                    title="Usar IA para identificar possíveis causas raízes"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        Analisando...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-4 w-4 mr-1" />
+                        Analisar com IA
+                      </>
+                    )}
+                  </Button>
                 </div>
                 
                 {!selectedAlert.resolved && !selectedAlert.work_order && (
@@ -793,6 +859,125 @@ export function AlertsList() {
                   </Link>
                 )}
               </div>
+
+              {/* Resultados da Análise com IA */}
+              {(aiResult || aiError || isAnalyzing) && (
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-amber-500" />
+                      <h3 className="font-medium">Análise com IA</h3>
+                    </div>
+
+                    {isAnalyzing && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Analisando alerta...
+                      </div>
+                    )}
+
+                    {aiError && (
+                      <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
+                        <p className="text-sm text-destructive flex items-start gap-2">
+                          <AlertOctagon className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                          {aiError}
+                        </p>
+                      </div>
+                    )}
+
+                    {aiResult && (
+                      <div className="space-y-4">
+                        {/* Hipóteses */}
+                        {aiResult.hypotheses && aiResult.hypotheses.length > 0 && (
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-medium flex items-center gap-2">
+                              <Lightbulb className="h-4 w-4" />
+                              Possíveis Causas Raízes
+                            </h4>
+                            {aiResult.hypotheses.map((hypothesis, index) => (
+                              <div key={hypothesis.id} className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div>
+                                    <p className="font-medium">{index + 1}. {hypothesis.title}</p>
+                                    {hypothesis.evidence && hypothesis.evidence.length > 0 && (
+                                      <ul className="text-xs text-muted-foreground mt-1 ml-4 space-y-0.5">
+                                        {hypothesis.evidence.map((ev, i) => (
+                                          <li key={i}>• {ev}</li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                  </div>
+                                  <Badge variant="secondary" className="text-xs whitespace-nowrap">
+                                    {Math.round(hypothesis.confidence * 100)}%
+                                  </Badge>
+                                </div>
+                                {hypothesis.recommendation && (
+                                  <p className="text-xs text-foreground mt-2 italic">
+                                    💡 {hypothesis.recommendation}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Ações Imediatas */}
+                        {aiResult.immediate_actions && aiResult.immediate_actions.length > 0 && (
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-medium flex items-center gap-2">
+                              <CheckCheckIcon className="h-4 w-4" />
+                              Ações Imediatas Recomendadas
+                            </h4>
+                            <ul className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
+                              {aiResult.immediate_actions.map((action, i) => (
+                                <li key={i} className="flex items-start gap-2">
+                                  <span className="text-amber-500 mt-0.5">•</span>
+                                  {action}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* OS Recomendada */}
+                        {aiResult.recommended_work_order && (
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-medium flex items-center gap-2">
+                              <Wrench className="h-4 w-4" />
+                              Ordem de Serviço Recomendada
+                            </h4>
+                            <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
+                              <p><span className="font-medium">Título:</span> {aiResult.recommended_work_order.title}</p>
+                              <p><span className="font-medium">Prioridade:</span> {aiResult.recommended_work_order.priority}</p>
+                              {aiResult.recommended_work_order.estimated_duration_hours && (
+                                <p><span className="font-medium">Duração Est.:</span> {aiResult.recommended_work_order.estimated_duration_hours}h</p>
+                              )}
+                              {aiResult.recommended_work_order.parts_potentially_needed && 
+                               aiResult.recommended_work_order.parts_potentially_needed.length > 0 && (
+                                <div>
+                                  <p className="font-medium">Peças Potencialmente Necessárias:</p>
+                                  <ul className="ml-4 text-xs space-y-0.5">
+                                    {aiResult.recommended_work_order.parts_potentially_needed.map((part, i) => (
+                                      <li key={i}>• {part}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {aiResult.notes && (
+                          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-3 text-sm">
+                            <p className="text-blue-900 dark:text-blue-100">{aiResult.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </DialogContent>

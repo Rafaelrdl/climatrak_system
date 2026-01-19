@@ -27,7 +27,22 @@ class AIConfig(AppConfig):
         Registra os agentes disponíveis.
         """
         # Importar agents para registrar no registry
+        # O __init__.py do agents importa DummyAgent e RootCauseAgent
+        # que usam @register_agent decorator
         try:
-            from .agents import registry  # noqa: F401
-        except ImportError:
-            pass
+            from . import agents  # noqa: F401
+
+            # Log agents registrados
+            import logging
+
+            logger = logging.getLogger(__name__)
+            from .agents import get_registered_agents
+
+            registered = get_registered_agents()
+            for agent in registered:
+                logger.info(f"AI Agent registered: {agent['key']} ({agent['name']})")
+        except ImportError as e:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to import AI agents: {e}")

@@ -55,21 +55,26 @@ POST /api/ai/agents/{agent_key}/run/
 ```json
 {
   "input": {
-    "alert_id": "uuid-do-alerta"
+    "alert_id": 123
   },
   "related": {
     "type": "alert",
-    "id": "uuid-do-alerta"
+    "id": 123
   },
-  "idempotency_key": "rca:uuid:v1"
+  "idempotency_key": "rca:123:v1"
 }
 ```
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
 | `input` | object | Não | Dados de entrada para o agente |
+| `input.alert_id` | int\|string | Sim* | ID do alerta (BigAutoField) |
 | `related` | object | Não | Objeto relacionado (type + id) |
+| `related.id` | int\|string\|uuid | Não | ID do recurso (convertido para UUID se necessário) |
+| `related.type` | string | Não | Tipo do recurso ('alert', 'device', etc) |
 | `idempotency_key` | string | Não | Chave única para evitar duplicatas |
+
+*Obrigatório para agente root_cause
 
 **Response 202 (Created):**
 ```json
@@ -235,18 +240,64 @@ curl -X POST http://localhost:8000/api/ai/agents/dummy/run/ \
   -d '{"input": {"echo": "Hello AI!"}}'
 ```
 
+### Executar agente root_cause (Análise de Causa Raiz)
+
+```bash
+curl -X POST http://localhost:8000/api/ai/agents/root_cause/run/ \
+  -H "Content-Type: application/json" \
+  -H "Cookie: access_token=..." \
+  -d '{
+    "input": {
+      "alert_id": 123,
+      "window_minutes": 120
+    },
+    "related": {
+      "type": "alert",
+      "id": 123
+    },
+    "idempotency_key": "rca:123:v1"
+  }'
+```
+
+**Response 202:**
+```json
+{
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "pending",
+  "created": true
+}
+```
+
 ### Consultar resultado
 
 ```bash
-curl http://localhost:8000/api/ai/jobs/{job_id}/ \
+curl http://localhost:8000/api/ai/jobs/550e8400-e29b-41d4-a716-446655440000/ \
   -H "Cookie: access_token=..."
 ```
 
-### Verificar saúde
-
-```bash
-curl http://localhost:8000/api/ai/health/ \
-  -H "Cookie: access_token=..."
+**Response 200 (após conclusão):**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "agent_key": "root_cause",
+  "status": "succeeded",
+  "input_data": {
+    "alert_id": 123,
+    "window_minutes": 120
+  },
+  "output_data": {
+    "schema_version": "1.0",
+    "hypotheses": [...],
+    "immediate_actions": [...],
+    "recommended_work_order": {...},
+    "tokens_used": 287
+  },
+  "error_message": null,
+  "tokens_used": 287,
+  "execution_time_ms": 2340,
+  "created_at": "2026-01-18T12:00:00-03:00",
+  "completed_at": "2026-01-18T12:00:02-03:00"
+}
 ```
 
 ---
