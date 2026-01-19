@@ -6,6 +6,7 @@ from rest_framework import serializers
 
 from .models import AIJob, AIJobStatus
 from .agents import get_registered_agents
+from .utils.related import normalize_related_id
 
 
 class AIJobCreateSerializer(serializers.Serializer):
@@ -28,7 +29,14 @@ class AIJobCreateSerializer(serializers.Serializer):
     )
 
     def validate_related(self, value):
-        """Valida estrutura do campo related."""
+        """
+        Valida estrutura do campo related e normaliza o ID para UUID.
+        
+        O ID pode ser:
+        - UUID válido (retornado como está)
+        - ID numérico (convertido para UUID determinístico)
+        - String numérica (convertida para UUID determinístico)
+        """
         if value is None:
             return None
 
@@ -40,6 +48,18 @@ class AIJobCreateSerializer(serializers.Serializer):
 
         if "id" not in value:
             raise serializers.ValidationError("Related object must have 'id'")
+
+        # Normalizar ID para UUID determinístico
+        related_type = value["type"]
+        raw_id = value["id"]
+        
+        try:
+            normalized_id = normalize_related_id(related_type, raw_id)
+            if normalized_id is None:
+                raise serializers.ValidationError("Related 'id' cannot be empty")
+            value["_normalized_id"] = normalized_id
+        except Exception as e:
+            raise serializers.ValidationError(f"Failed to normalize related.id: {e}")
 
         return value
 

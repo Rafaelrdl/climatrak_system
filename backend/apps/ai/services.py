@@ -170,6 +170,8 @@ class AIJobService:
         cls,
         agent_key: str = None,
         status: str = None,
+        related_type: str = None,
+        related_id: uuid.UUID = None,
         limit: int = 50,
     ):
         """
@@ -178,6 +180,8 @@ class AIJobService:
         Args:
             agent_key: Filtrar por agente (opcional)
             status: Filtrar por status (opcional)
+            related_type: Filtrar por tipo relacionado (opcional)
+            related_id: Filtrar por ID relacionado - UUID normalizado (opcional)
             limit: Limite de resultados
 
         Returns:
@@ -191,6 +195,12 @@ class AIJobService:
 
         if status:
             queryset = queryset.filter(status=status)
+
+        if related_type:
+            queryset = queryset.filter(related_type=related_type)
+
+        if related_id:
+            queryset = queryset.filter(related_id=related_id)
 
         return queryset.order_by("-created_at")[:limit]
 

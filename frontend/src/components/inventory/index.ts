@@ -7,6 +7,7 @@ export { InventoryCards } from './InventoryCards';
 export { InventoryTabs } from './InventoryTabs';
 export { InventoryHistory } from './InventoryHistory';
 export { InventoryAnalysis } from './InventoryAnalysis';
+export { AIRecommendations } from './AIRecommendations';
 export { NewItemModal } from './NewItemModal';
 export { EditItemModal } from './EditItemModal';
 export { MoveItemModal } from './MoveItemModal';

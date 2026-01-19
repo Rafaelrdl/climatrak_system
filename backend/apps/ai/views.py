@@ -12,7 +12,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
 from .agents import get_agent, get_registered_agents
 from .models import AIJob
@@ -26,52 +26,41 @@ from .serializers import (
 )
 from .services import AIJobService
 from .tasks import execute_ai_job
+from .utils.related import normalize_related_id
 
 logger = logging.getLogger(__name__)
-
-
-def convert_related_id_to_uuid(related_id: str | int, related_type: str) -> uuid.UUID:
-    """
-    Converte related.id (int/string) para UUID determinístico se não for UUID válido.
-
-    Args:
-        related_id: ID do objeto relacionado (pode ser int, string numérica ou UUID)
-        related_type: Tipo do objeto (ex: "alert", "work_order")
-
-    Returns:
-        UUID válido
-
-    Raises:
-        ValueError: Se conversão falhar
-    """
-    if related_id is None:
-        return None
-
-    # Tentar validar como UUID
-    if isinstance(related_id, uuid.UUID):
-        return related_id
-
-    related_id_str = str(related_id).strip()
-
-    # Tentar fazer parse como UUID válido
-    try:
-        return uuid.UUID(related_id_str)
-    except (ValueError, AttributeError):
-        pass
-
-    # Não é UUID válido, gerar determinístico baseado em namespace
-    try:
-        # Garantir que temos um string válido para o namespace
-        deterministic_id = f"{related_type}:{related_id_str}"
-        return uuid.uuid5(uuid.NAMESPACE_DNS, deterministic_id)
-    except Exception as e:
-        raise ValueError(f"Não foi possível converter related.id '{related_id}' para UUID: {e}")
 
 
 @extend_schema_view(
     list=extend_schema(
         summary="Listar jobs de IA",
-        description="Lista jobs de IA do tenant atual",
+        description="Lista jobs de IA do tenant atual. Aceita filtros por agent, status, related_type e related_id.",
+        parameters=[
+            OpenApiParameter(
+                name="agent",
+                description="Filtrar por chave do agente (ex: predictive, preventive)",
+                required=False,
+                type=str,
+            ),
+            OpenApiParameter(
+                name="status",
+                description="Filtrar por status (pending, running, succeeded, failed)",
+                required=False,
+                type=str,
+            ),
+            OpenApiParameter(
+                name="related_type",
+                description="Filtrar por tipo relacionado (ex: asset, work_order)",
+                required=False,
+                type=str,
+            ),
+            OpenApiParameter(
+                name="related_id",
+                description="Filtrar por ID relacionado (raw ID, será convertido para UUID)",
+                required=False,
+                type=str,
+            ),
+        ],
         responses={200: AIJobListSerializer(many=True)},
     ),
     retrieve=extend_schema(
@@ -85,6 +74,12 @@ class AIJobViewSet(viewsets.ReadOnlyModelViewSet):
     ViewSet para consulta de jobs de IA.
 
     Apenas leitura - criação é via endpoints específicos de agentes.
+    
+    Query Parameters:
+        - agent: Filtrar por chave do agente
+        - status: Filtrar por status do job
+        - related_type: Filtrar por tipo do objeto relacionado
+        - related_id: Filtrar por ID do objeto relacionado (raw, convertido para UUID)
     """
 
     permission_classes = [IsAuthenticated]
@@ -96,7 +91,37 @@ class AIJobViewSet(viewsets.ReadOnlyModelViewSet):
         return AIJobSerializer
 
     def get_queryset(self):
-        """Retorna jobs do tenant atual."""
+        """
+        Retorna jobs do tenant atual com filtros opcionais.
+        
+        Filtros suportados via query params:
+        - agent: chave do agente
+        - status: status do job
+        - related_type: tipo do objeto relacionado
+        - related_id: ID raw do objeto (convertido para UUID determinístico)
+        """
+        agent_key = self.request.query_params.get("agent")
+        status_filter = self.request.query_params.get("status")
+        related_type = self.request.query_params.get("related_type")
+        related_id_raw = self.request.query_params.get("related_id")
+        
+        # Converter related_id raw para UUID se fornecido
+        related_id = None
+        if related_id_raw and related_type:
+            try:
+                related_id = normalize_related_id(related_type, related_id_raw)
+            except Exception:
+                # Se falhar conversão, retorna queryset vazio
+                logger.warning(f"Failed to normalize related_id: {related_id_raw}")
+                return AIJob.objects.none()
+        
+        return AIJobService.list_jobs(
+            agent_key=agent_key,
+            status=status_filter,
+            related_type=related_type,
+            related_id=related_id,
+            limit=100,
+        )
         return AIJobService.list_jobs(
             agent_key=self.request.query_params.get("agent"),
             status=self.request.query_params.get("status"),
@@ -181,16 +206,12 @@ class AgentViewSet(viewsets.ViewSet):
         data = serializer.validated_data
         related = data.get("related")
         related_id = None
+        related_type = None
 
         if related:
-            # Converter related.id (int/string) para UUID determinístico se necessário
-            try:
-                related_id = convert_related_id_to_uuid(related.get("id"), related.get("type"))
-            except ValueError as e:
-                return Response(
-                    {"detail": f"Erro ao processar related.id: {str(e)}"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            # Usar o ID normalizado pelo serializer (já convertido para UUID)
+            related_type = related.get("type")
+            related_id = related.get("_normalized_id")
 
         try:
             # Criar job
@@ -198,7 +219,7 @@ class AgentViewSet(viewsets.ViewSet):
                 agent_key=agent_key,
                 input_data=data.get("input", {}),
                 user=request.user,
-                related_type=related.get("type") if related else None,
+                related_type=related_type,
                 related_id=related_id,
                 idempotency_key=data.get("idempotency_key"),
             )

@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DonutChart } from '@/components/charts';
 import { TrendingUp, Package2, AlertCircle, Loader2 } from 'lucide-react';
 import { useConsumptionByCategory, useTopConsumedItems, useInventoryCategories } from '@/hooks/useInventoryQuery';
+import { AIRecommendations } from './AIRecommendations';
 
 interface InventoryAnalysisProps {
   className?: string;
@@ -207,6 +208,9 @@ export function InventoryAnalysis({ className = '' }: InventoryAnalysisProps) {
           </Card>
         </div>
       )}
+
+      {/* AI Recommendations Section */}
+      <AIRecommendations windowDays={days} className="mt-6" />
     </div>
   );
 }

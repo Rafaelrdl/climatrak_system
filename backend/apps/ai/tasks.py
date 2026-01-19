@@ -150,3 +150,232 @@ def check_stuck_ai_jobs(timeout_minutes: int = 30):
                 )
 
     return {"timeout_total": total_timeout}
+
+
+# ==============================================================================
+# SCHEDULED AGENT TASKS
+# ==============================================================================
+
+
+def _get_date_bucket(bucket_type: str = "day") -> str:
+    """
+    Retorna bucket temporal para idempotency_key.
+    
+    Args:
+        bucket_type: "day", "hour" ou "week"
+    
+    Returns:
+        String do bucket (ex: "2026-01-19", "2026-01-19T10", "2026-W03")
+    """
+    from django.utils import timezone
+    
+    now = timezone.now()
+    
+    if bucket_type == "hour":
+        return now.strftime("%Y-%m-%dT%H")
+    elif bucket_type == "week":
+        return now.strftime("%Y-W%W")
+    else:  # day
+        return now.strftime("%Y-%m-%d")
+
+
+@shared_task
+def schedule_preventive_insights(max_assets_per_tenant: int = 50):
+    """
+    Task agendada para gerar insights preventivos por ativo.
+    
+    Itera todos os tenants e cria jobs de preventive para ativos ativos.
+    Usa idempotency_key determinística por dia para evitar duplicatas.
+    
+    Args:
+        max_assets_per_tenant: Limite de ativos por tenant
+    """
+    from django.db import connection
+    
+    from apps.assets.models import Asset
+    
+    from .services import AIJobService
+    from .utils.related import normalize_related_id
+    
+    date_bucket = _get_date_bucket("day")
+    total_created = 0
+    total_skipped = 0
+    
+    for tenant in iter_tenants():
+        with schema_context(tenant.schema_name):
+            # Buscar ativos ativos
+            assets = Asset.objects.filter(
+                status__in=["OK", "MAINTENANCE", "ALERT"]
+            ).values("id", "tag")[:max_assets_per_tenant]
+            
+            for asset in assets:
+                # Gerar idempotency_key determinística
+                idempotency_key = f"preventive:asset:{asset['id']}:asof:{date_bucket}:v1"
+                
+                try:
+                    # Normalizar related_id
+                    related_id = normalize_related_id("asset", asset["id"])
+                    
+                    job, created = AIJobService.create_job(
+                        agent_key="preventive",
+                        input_data={
+                            "scope": "asset",
+                            "asset_id": asset["id"],
+                        },
+                        related_type="asset",
+                        related_id=related_id,
+                        idempotency_key=idempotency_key,
+                    )
+                    
+                    if created:
+                        execute_ai_job.delay(
+                            job_id=str(job.id),
+                            schema_name=tenant.schema_name,
+                        )
+                        total_created += 1
+                        logger.debug(
+                            f"[schedule_preventive] Created job for asset {asset['tag']} "
+                            f"in tenant {tenant.slug}"
+                        )
+                    else:
+                        total_skipped += 1
+                        
+                except Exception as e:
+                    logger.warning(
+                        f"[schedule_preventive] Error for asset {asset['id']} "
+                        f"in tenant {tenant.slug}: {e}"
+                    )
+    
+    logger.info(
+        f"[schedule_preventive] Completed: {total_created} created, "
+        f"{total_skipped} skipped (idempotent)"
+    )
+    return {"created": total_created, "skipped": total_skipped}
+
+
+@shared_task
+def schedule_predictive_risk(max_assets_per_tenant: int = 50):
+    """
+    Task agendada para calcular risco preditivo por ativo.
+    
+    Itera todos os tenants e cria jobs de predictive para ativos.
+    Usa idempotency_key determinística por hora para reavaliação frequente.
+    
+    Args:
+        max_assets_per_tenant: Limite de ativos por tenant
+    """
+    from django.db import connection
+    
+    from apps.assets.models import Asset
+    
+    from .services import AIJobService
+    from .utils.related import normalize_related_id
+    
+    hour_bucket = _get_date_bucket("hour")
+    total_created = 0
+    total_skipped = 0
+    
+    for tenant in iter_tenants():
+        with schema_context(tenant.schema_name):
+            # Priorizar ativos em alerta ou manutenção
+            assets = Asset.objects.filter(
+                status__in=["ALERT", "MAINTENANCE", "OK"]
+            ).order_by(
+                # Ativos em alerta primeiro
+                "-status"
+            ).values("id", "tag")[:max_assets_per_tenant]
+            
+            for asset in assets:
+                idempotency_key = f"predictive:asset:{asset['id']}:bucket:{hour_bucket}:v1"
+                
+                try:
+                    related_id = normalize_related_id("asset", asset["id"])
+                    
+                    job, created = AIJobService.create_job(
+                        agent_key="predictive",
+                        input_data={
+                            "asset_id": asset["id"],
+                        },
+                        related_type="asset",
+                        related_id=related_id,
+                        idempotency_key=idempotency_key,
+                    )
+                    
+                    if created:
+                        execute_ai_job.delay(
+                            job_id=str(job.id),
+                            schema_name=tenant.schema_name,
+                        )
+                        total_created += 1
+                    else:
+                        total_skipped += 1
+                        
+                except Exception as e:
+                    logger.warning(
+                        f"[schedule_predictive] Error for asset {asset['id']} "
+                        f"in tenant {tenant.slug}: {e}"
+                    )
+    
+    logger.info(
+        f"[schedule_predictive] Completed: {total_created} created, "
+        f"{total_skipped} skipped"
+    )
+    return {"created": total_created, "skipped": total_skipped}
+
+
+@shared_task
+def schedule_patterns_report(scope: str = "all"):
+    """
+    Task agendada para gerar relatório de padrões.
+    
+    Executa uma vez por semana (ou conforme configurado no beat schedule).
+    Usa idempotency_key determinística por semana.
+    
+    Args:
+        scope: "all" para tenant-wide, ou "site" para por site
+    """
+    from django.db import connection
+    
+    from .services import AIJobService
+    
+    week_bucket = _get_date_bucket("week")
+    total_created = 0
+    total_skipped = 0
+    
+    for tenant in iter_tenants():
+        with schema_context(tenant.schema_name):
+            idempotency_key = f"patterns:scope:{scope}:tenant:week:{week_bucket}:v1"
+            
+            try:
+                job, created = AIJobService.create_job(
+                    agent_key="patterns",
+                    input_data={
+                        "scope": scope,
+                        "window_days": 30,
+                    },
+                    idempotency_key=idempotency_key,
+                )
+                
+                if created:
+                    execute_ai_job.delay(
+                        job_id=str(job.id),
+                        schema_name=tenant.schema_name,
+                    )
+                    total_created += 1
+                    logger.info(
+                        f"[schedule_patterns] Created patterns report for tenant {tenant.slug}"
+                    )
+                else:
+                    total_skipped += 1
+                    
+            except Exception as e:
+                logger.warning(
+                    f"[schedule_patterns] Error for tenant {tenant.slug}: {e}"
+                )
+    
+    logger.info(
+        f"[schedule_patterns] Completed: {total_created} created, "
+        f"{total_skipped} skipped"
+    )
+    return {"created": total_created, "skipped": total_skipped}
+

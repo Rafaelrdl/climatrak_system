@@ -488,6 +488,36 @@ CELERY_BEAT_SCHEDULE = {
             "expires": 300,  # Expira em 5 minutos se não executar
         },
     },
+    # ===========================================================================
+    # AI SCHEDULED AGENTS (AI-005)
+    # ===========================================================================
+    # Insights preventivos: executa diariamente às 6:00 AM
+    "schedule-preventive-insights": {
+        "task": "apps.ai.tasks.schedule_preventive_insights",
+        "schedule": 86400.0,  # 24 horas em segundos
+        "kwargs": {"max_assets_per_tenant": 50},
+        "options": {
+            "expires": 3600,  # Expira em 1 hora se não executar
+        },
+    },
+    # Risco preditivo: executa a cada 4 horas
+    "schedule-predictive-risk": {
+        "task": "apps.ai.tasks.schedule_predictive_risk",
+        "schedule": 14400.0,  # 4 horas em segundos
+        "kwargs": {"max_assets_per_tenant": 50},
+        "options": {
+            "expires": 1800,  # Expira em 30 minutos se não executar
+        },
+    },
+    # Relatório de padrões: executa semanalmente (uma vez por semana)
+    "schedule-patterns-report": {
+        "task": "apps.ai.tasks.schedule_patterns_report",
+        "schedule": 604800.0,  # 7 dias em segundos
+        "kwargs": {"scope": "all"},
+        "options": {
+            "expires": 7200,  # Expira em 2 horas se não executar
+        },
+    },
 }
 
 # MinIO / S3

@@ -50,6 +50,7 @@ import {
   Wifi,
   WifiOff,
   MoreHorizontal,
+  Brain,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -85,6 +86,7 @@ import { MultiSeriesTelemetryChart } from '@/apps/monitor/components/charts/Mult
 import { WorkOrderViewModal } from '@/components/WorkOrderViewModal';
 import { WorkOrderModal } from '@/components/WorkOrderModal';
 import { EquipmentEditModal } from '@/components/EquipmentEditModal';
+import { AssetAIInsightsTab } from '@/components/assets/AssetAIInsightsTab';
 import type { MaintenanceAlert, WorkOrder } from '@/types';
 
 // ============================================================================
@@ -729,6 +731,10 @@ export function AssetDetailPage() {
               <TabsTrigger value="documents" className="data-[state=active]:bg-background">
                 <FileText className="h-4 w-4 mr-1.5" />
                 Documentos
+              </TabsTrigger>
+              <TabsTrigger value="ai" className="data-[state=active]:bg-background">
+                <Brain className="h-4 w-4 mr-1.5" />
+                IA
               </TabsTrigger>
             </TabsList>
 
@@ -1853,6 +1859,18 @@ export function AssetDetailPage() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* ================================================================ */}
+            {/* Aba IA - Insights de Inteligência Artificial */}
+            {/* ================================================================ */}
+            <TabsContent value="ai" className="mt-0">
+              {asset && (
+                <AssetAIInsightsTab
+                  assetId={asset.id}
+                  assetTag={asset.tag || `Ativo #${asset.id}`}
+                />
+              )}
             </TabsContent>
           </Tabs>
         </div>
