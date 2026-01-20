@@ -527,8 +527,8 @@ export function AssetAIInsightsTab({ assetId, assetTag }: AssetAIInsightsTabProp
         jobResponse = await runPatternsAnalysis(assetId);
       }
 
-      // Poll for completion
-      const completedJob = await pollAIJob(jobResponse.job_id, 60, 1000);
+      // Poll for completion (300 tentativas x 2s = 10 min para modelos locais lentos)
+      const completedJob = await pollAIJob(jobResponse.job_id, 300, 2000);
 
       if (completedJob?.status === JobStatus.SUCCEEDED) {
         toast.success(`Análise ${agentKey} concluída`);

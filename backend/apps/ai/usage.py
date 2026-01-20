@@ -7,12 +7,15 @@ Implementa gravação best-effort (não deve quebrar execução do agente).
 
 import logging
 import uuid
-from typing import Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from django.db import connection
 
-from .agents.base import AgentContext
 from .providers.base import LLMResponse
+
+# Import apenas para type hints (evita import circular)
+if TYPE_CHECKING:
+    from .agents.base import AgentContext
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +39,7 @@ class AIUsageService:
     @staticmethod
     def record_llm_call(
         *,
-        context: Optional[AgentContext],
+        context: Optional["AgentContext"],
         agent_key: str,
         response: LLMResponse,
         provider: str = "openai_compat",

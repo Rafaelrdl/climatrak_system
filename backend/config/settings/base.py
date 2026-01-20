@@ -553,6 +553,8 @@ EMQX_URL = os.getenv("EMQX_URL", "mqtt://emqx:1883")
 # AI / LLM Configuration - OpenAI-compatible API (Ollama, vLLM, etc.)
 # ============================================================================
 # LLM Provider settings (supports Ollama, vLLM, OpenAI, etc.)
+# LLM_PROVIDER: "ollama" (native API), "openai" or "openai_compat" (OpenAI API)
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://ollama:11434/v1")
 LLM_MODEL = os.getenv("LLM_MODEL", "mistral-nemo")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")  # Optional for local providers

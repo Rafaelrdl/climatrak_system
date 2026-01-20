@@ -217,11 +217,14 @@ export async function getRootCauseAnalysis(jobId: string): Promise<RootCauseAnal
  * Hook para polling de um job de IA até conclusão
  * 
  * Retorna null se o job não foi encontrado ou falhou
+/**
+ * Aguarda conclusão de um AI Job via polling.
+ * Polling default: 300 tentativas × 2s = 10 minutos (para modelos locais lentos)
  */
 export async function pollAIJob(
   jobId: string,
-  maxRetries: number = 60,
-  delayMs: number = 1000
+  maxRetries: number = 300,
+  delayMs: number = 2000
 ): Promise<AIJob | null> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {

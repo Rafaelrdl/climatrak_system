@@ -143,8 +143,8 @@ export function useQuickRepair() {
         const jobResponse = await runQuickRepairAnalysis(assetId, symptom, options);
         setState({ status: 'loading', jobId: jobResponse.job_id });
 
-        // Fazer polling
-        const completedJob = await pollAIJob(jobResponse.job_id, 90, 1000);
+        // Fazer polling (300 tentativas x 2s = 10 min para modelos locais lentos)
+        const completedJob = await pollAIJob(jobResponse.job_id, 300, 2000);
 
         if (!completedJob) {
           throw new Error('Job não encontrado após polling');

@@ -3,6 +3,7 @@
 
 import uuid
 
+from django.contrib.postgres.search import SearchVectorField
 from django.db import migrations, models
 import django.db.models.deletion
 
@@ -208,9 +209,9 @@ class Migration(migrations.Migration):
                             models.Value("portuguese"),
                             models.F("content"),
                             function="to_tsvector",
-                            output_field=models.TextField(),
+                            output_field=SearchVectorField(),
                         ),
-                        output_field=models.TextField(),
+                        output_field=SearchVectorField(),
                         verbose_name="Vetor de Busca",
                     ),
                 ),

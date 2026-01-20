@@ -11,6 +11,7 @@ from typing import Optional
 from django.conf import settings
 
 from .base import BaseLLMProvider, LLMConfig
+from .ollama import OllamaNativeProvider
 from .openai_compat import OpenAICompatProvider
 
 logger = logging.getLogger(__name__)
@@ -47,10 +48,29 @@ def get_llm_provider() -> BaseLLMProvider:
 
     Usa cache para evitar múltiplas instâncias.
     Para limpar cache: get_llm_provider.cache_clear()
+    
+    Providers disponíveis (LLM_PROVIDER setting):
+    - "ollama": API nativa Ollama (/api/chat) - recomendado para Ollama
+    - "openai" ou "openai_compat": API OpenAI/compatível (/v1/chat/completions)
     """
     config = get_llm_config()
-    logger.info(f"Initializing LLM provider: {config.base_url} / {config.model}")
-    return OpenAICompatProvider(config)
+    provider_type = getattr(settings, "LLM_PROVIDER", "ollama").lower()
+    
+    logger.info(
+        f"Initializing LLM provider: type={provider_type}, "
+        f"url={config.base_url}, model={config.model}"
+    )
+    
+    if provider_type == "ollama":
+        return OllamaNativeProvider(config)
+    elif provider_type in ("openai", "openai_compat"):
+        return OpenAICompatProvider(config)
+    else:
+        # Fallback para OpenAI compat
+        logger.warning(
+            f"Unknown LLM provider type '{provider_type}', falling back to openai_compat"
+        )
+        return OpenAICompatProvider(config)
 
 
 def get_fresh_llm_provider() -> BaseLLMProvider:
@@ -60,7 +80,14 @@ def get_fresh_llm_provider() -> BaseLLMProvider:
     Útil para testes ou quando config muda.
     """
     config = get_llm_config()
-    return OpenAICompatProvider(config)
+    provider_type = getattr(settings, "LLM_PROVIDER", "ollama").lower()
+    
+    if provider_type == "ollama":
+        return OllamaNativeProvider(config)
+    elif provider_type in ("openai", "openai_compat"):
+        return OpenAICompatProvider(config)
+    else:
+        return OpenAICompatProvider(config)
 
 
 def check_llm_health() -> dict:
@@ -74,10 +101,11 @@ def check_llm_health() -> dict:
         provider = get_fresh_llm_provider()
         is_healthy = provider.health_check()
         config = get_llm_config()
+        provider_type = getattr(settings, "LLM_PROVIDER", "ollama").lower()
 
         return {
             "healthy": is_healthy,
-            "provider": "openai_compat",
+            "provider": provider_type,
             "base_url": config.base_url,
             "model": config.model,
         }
