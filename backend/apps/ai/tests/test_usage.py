@@ -12,12 +12,15 @@ from django.test import TestCase
 from django.utils import timezone
 from django_tenants.test.cases import TenantTestCase
 from django_tenants.test.client import TenantClient
+from rest_framework.test import APIRequestFactory, force_authenticate
 
+from apps.accounts.models import User
 from apps.ai.models import AIJob, AIJobStatus, AIUsageLog
 from apps.ai.agents.base import AgentContext, AgentResult, BaseAgent
 from apps.ai.agents.registry import register_agent, _agent_registry
 from apps.ai.providers.base import LLMResponse
 from apps.ai.usage import AIUsageService
+from apps.ai.views import AIUsageViewSet
 
 
 class TestUsageAgent(BaseAgent):
@@ -201,6 +204,16 @@ class BaseAgentCallLLMUsageTests(TenantTestCase):
         if "test_usage" not in _agent_registry:
             register_agent(TestUsageAgent)
 
+    def setUp(self):
+        """Set up test user."""
+        super().setUp()
+        # Create a real user so user_id FK works
+        self.user = User.objects.create_user(
+            username="llmtestuser",
+            email="llmtest@example.com",
+            password="testpass123",
+        )
+
     @patch("apps.ai.agents.base.get_llm_provider")
     def test_call_llm_records_usage(self, mock_get_provider):
         """Test that call_llm automatically records usage."""
@@ -216,12 +229,12 @@ class BaseAgentCallLLMUsageTests(TenantTestCase):
         )
         mock_get_provider.return_value = mock_provider
 
-        # Create agent and context
+        # Create agent and context with real user_id
         agent = TestUsageAgent()
         context = AgentContext(
             tenant_id=str(uuid.uuid4()),
             tenant_schema="test_schema",
-            user_id="123",
+            user_id=str(self.user.id),  # Use real user ID
             job_id=None,
         )
 
@@ -267,24 +280,23 @@ class BaseAgentCallLLMUsageTests(TenantTestCase):
 
 
 class AIUsageMonthlyEndpointTests(TenantTestCase):
-    """Tests for /api/ai/usage/monthly/ endpoint."""
+    """Tests for /api/ai/usage/monthly/ endpoint using APIRequestFactory."""
 
     def setUp(self):
-        """Set up test client and data."""
+        """Set up test data."""
         super().setUp()
-        self.client = TenantClient(self.tenant)
+        self.factory = APIRequestFactory()
 
         # Create test user
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
         self.user = User.objects.create_user(
             username="testuser",
             email="test@example.com",
             password="testpass123",
+            first_name="Test",
+            last_name="User",
         )
 
         # Get tenant UUID
-        from apps.ai.usage import AIUsageService
         self.tenant_id = AIUsageService.get_tenant_uuid()
 
     def _create_usage_logs(self):
@@ -296,7 +308,7 @@ class AIUsageMonthlyEndpointTests(TenantTestCase):
             tenant_id=self.tenant_id,
             tenant_schema=self.tenant.schema_name,
             agent_key="preventive",
-            model="mistral-nemo",
+            model="glm-4.7-flash",
             input_tokens=100,
             output_tokens=50,
             total_tokens=150,
@@ -305,7 +317,7 @@ class AIUsageMonthlyEndpointTests(TenantTestCase):
             tenant_id=self.tenant_id,
             tenant_schema=self.tenant.schema_name,
             agent_key="predictive",
-            model="mistral-nemo",
+            model="glm-4.7-flash",
             input_tokens=200,
             output_tokens=100,
             total_tokens=300,
@@ -327,18 +339,23 @@ class AIUsageMonthlyEndpointTests(TenantTestCase):
 
     def test_monthly_endpoint_requires_auth(self):
         """Test that endpoint requires authentication."""
-        response = self.client.get("/api/ai/usage/monthly/")
+        view = AIUsageViewSet.as_view({"get": "monthly"})
+        request = self.factory.get("/api/ai/usage/monthly/")
+        # No authentication
+        response = view(request)
         self.assertEqual(response.status_code, 401)
 
     def test_monthly_endpoint_returns_buckets(self):
         """Test that endpoint returns monthly buckets."""
-        self.client.force_login(self.user)
         self._create_usage_logs()
 
-        response = self.client.get("/api/ai/usage/monthly/")
+        view = AIUsageViewSet.as_view({"get": "monthly"})
+        request = self.factory.get("/api/ai/usage/monthly/")
+        force_authenticate(request, user=self.user)
+        response = view(request)
 
         self.assertEqual(response.status_code, 200)
-        data = response.json()
+        data = response.data
 
         self.assertIn("buckets", data)
         self.assertIn("totals", data)
@@ -357,13 +374,15 @@ class AIUsageMonthlyEndpointTests(TenantTestCase):
 
     def test_monthly_endpoint_filter_by_agent(self):
         """Test filtering by agent_key."""
-        self.client.force_login(self.user)
         self._create_usage_logs()
 
-        response = self.client.get("/api/ai/usage/monthly/?agent=preventive")
+        view = AIUsageViewSet.as_view({"get": "monthly"})
+        request = self.factory.get("/api/ai/usage/monthly/", {"agent": "preventive"})
+        force_authenticate(request, user=self.user)
+        response = view(request)
 
         self.assertEqual(response.status_code, 200)
-        data = response.json()
+        data = response.data
 
         self.assertEqual(data["filters"]["agent"], "preventive")
         # Should only have preventive agent data
@@ -373,37 +392,43 @@ class AIUsageMonthlyEndpointTests(TenantTestCase):
 
     def test_monthly_endpoint_filter_by_model(self):
         """Test filtering by model."""
-        self.client.force_login(self.user)
         self._create_usage_logs()
 
-        response = self.client.get("/api/ai/usage/monthly/?model=mistral-nemo")
+        view = AIUsageViewSet.as_view({"get": "monthly"})
+        request = self.factory.get("/api/ai/usage/monthly/", {"model": "glm-4.7-flash"})
+        force_authenticate(request, user=self.user)
+        response = view(request)
 
         self.assertEqual(response.status_code, 200)
-        data = response.json()
+        data = response.data
 
-        self.assertEqual(data["filters"]["model"], "mistral-nemo")
+        self.assertEqual(data["filters"]["model"], "glm-4.7-flash")
 
     def test_monthly_endpoint_respects_months_param(self):
         """Test months parameter limits date range."""
-        self.client.force_login(self.user)
         self._create_usage_logs()
 
-        response = self.client.get("/api/ai/usage/monthly/?months=1")
+        view = AIUsageViewSet.as_view({"get": "monthly"})
+        request = self.factory.get("/api/ai/usage/monthly/", {"months": "1"})
+        force_authenticate(request, user=self.user)
+        response = view(request)
 
         self.assertEqual(response.status_code, 200)
-        data = response.json()
+        data = response.data
 
         self.assertEqual(data["months_requested"], 1)
 
     def test_monthly_endpoint_calculates_totals(self):
         """Test that totals are correctly calculated."""
-        self.client.force_login(self.user)
         self._create_usage_logs()
 
-        response = self.client.get("/api/ai/usage/monthly/")
+        view = AIUsageViewSet.as_view({"get": "monthly"})
+        request = self.factory.get("/api/ai/usage/monthly/")
+        force_authenticate(request, user=self.user)
+        response = view(request)
 
         self.assertEqual(response.status_code, 200)
-        data = response.json()
+        data = response.data
 
         # Verify totals match sum of buckets
         bucket_input_sum = sum(b["input_tokens"] for b in data["buckets"])
