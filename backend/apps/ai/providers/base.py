@@ -48,7 +48,7 @@ class LLMConfig:
     api_key: str = ""
     temperature: float = 0.2
     max_tokens: int = 4096
-    timeout_seconds: int = 60
+    timeout_seconds: int = 120
     retry_attempts: int = 3
     retry_delay: float = 1.0
 

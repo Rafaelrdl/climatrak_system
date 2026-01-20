@@ -562,7 +562,7 @@ LLM_MODEL = os.getenv("LLM_MODEL", "glm-4.7-flash")
 LLM_API_KEY = os.getenv("LLM_API_KEY") or os.getenv("ZAI_API_KEY", "")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.2"))
 LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
-LLM_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", "60"))
+LLM_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", "120"))
 LLM_RETRY_ATTEMPTS = int(os.getenv("LLM_RETRY_ATTEMPTS", "3"))
 LLM_RETRY_DELAY = float(os.getenv("LLM_RETRY_DELAY", "1.0"))
 

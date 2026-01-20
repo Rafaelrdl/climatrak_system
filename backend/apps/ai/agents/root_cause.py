@@ -267,7 +267,6 @@ Retorne apenas JSON válido.
             logger.debug("[RCA] Chamando LLM provider.chat_sync...")
             response = self.provider.chat_sync(
                 messages=[LLMMessage(role="user", content=user_prompt)],
-                model="mistral-nemo",  # padrão para dev
                 temperature=0.5,
             )
             logger.debug(f"[RCA] LLM response received, model={response.model}")

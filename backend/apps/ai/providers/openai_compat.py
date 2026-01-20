@@ -183,6 +183,8 @@ class OpenAICompatProvider(BaseLLMProvider):
         body = self._build_request_body(messages, temperature, max_tokens, **kwargs)
         headers = self._get_headers()
         last_error = None
+        
+        self.logger.debug(f"LLM request body: model={body.get('model')}, messages_count={len(body.get('messages', []))}")
 
         for attempt in range(self.config.retry_attempts):
             try:
@@ -206,6 +208,12 @@ class OpenAICompatProvider(BaseLLMProvider):
                     f"LLM request failed with status {e.response.status_code} "
                     f"(attempt {attempt + 1}/{self.config.retry_attempts})"
                 )
+                # Log do corpo da resposta de erro
+                try:
+                    error_body = e.response.text[:500]
+                    self.logger.error(f"LLM error response body: {error_body}")
+                except Exception:
+                    pass
                 # Não retry para erros 4xx (exceto rate limit)
                 if 400 <= e.response.status_code < 500 and e.response.status_code != 429:
                     raise

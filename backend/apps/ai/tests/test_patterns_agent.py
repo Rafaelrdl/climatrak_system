@@ -16,6 +16,13 @@ from django.test import TestCase
 from apps.ai.agents import get_agent, get_registered_agents
 from apps.ai.agents.patterns import PatternsAgent
 from apps.ai.agents.base import AgentContext, AgentResult
+# Force import all agents for registration tests
+import apps.ai.agents.dummy  # noqa: F401
+import apps.ai.agents.root_cause  # noqa: F401
+import apps.ai.agents.inventory  # noqa: F401
+import apps.ai.agents.preventive  # noqa: F401
+import apps.ai.agents.predictive  # noqa: F401
+import apps.ai.agents.quick_repair  # noqa: F401
 
 
 class PatternsAgentRegistrationTests(TestCase):

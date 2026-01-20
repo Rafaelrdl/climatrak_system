@@ -27,7 +27,7 @@ def get_llm_config() -> LLMConfig:
     - LLM_API_KEY: API key (obrigatório para Z.ai)
     - LLM_TEMPERATURE: Temperatura (default: 0.2)
     - LLM_MAX_TOKENS: Max tokens (default: 4096)
-    - LLM_TIMEOUT_SECONDS: Timeout (default: 60)
+    - LLM_TIMEOUT_SECONDS: Timeout (default: 120)
     """
     return LLMConfig(
         base_url=getattr(settings, "LLM_BASE_URL", "https://api.z.ai/api/paas/v4"),
@@ -35,7 +35,7 @@ def get_llm_config() -> LLMConfig:
         api_key=getattr(settings, "LLM_API_KEY", ""),
         temperature=float(getattr(settings, "LLM_TEMPERATURE", 0.2)),
         max_tokens=int(getattr(settings, "LLM_MAX_TOKENS", 4096)),
-        timeout_seconds=int(getattr(settings, "LLM_TIMEOUT_SECONDS", 60)),
+        timeout_seconds=int(getattr(settings, "LLM_TIMEOUT_SECONDS", 120)),
         retry_attempts=int(getattr(settings, "LLM_RETRY_ATTEMPTS", 3)),
         retry_delay=float(getattr(settings, "LLM_RETRY_DELAY", 1.0)),
     )

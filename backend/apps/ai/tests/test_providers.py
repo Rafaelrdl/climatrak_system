@@ -26,7 +26,7 @@ class LLMConfigTests(TestCase):
         self.assertEqual(config.api_key, "")
         self.assertEqual(config.temperature, 0.2)
         self.assertEqual(config.max_tokens, 4096)
-        self.assertEqual(config.timeout_seconds, 60)
+        self.assertEqual(config.timeout_seconds, 120)
         self.assertEqual(config.retry_attempts, 3)
 
 
