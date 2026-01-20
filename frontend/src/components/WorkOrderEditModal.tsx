@@ -30,6 +30,7 @@ import {
   Upload,
   ClipboardCheck,
   PenTool,
+  Bot,
 } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { SignaturePad, type SignaturePadRef } from '@/components/ui/signature-pad';
@@ -42,8 +43,10 @@ import { useWorkOrderSettingsStore } from '@/store/useWorkOrderSettingsStore';
 import { StatusBadge } from '@/shared/ui';
 import { printWorkOrder } from '@/utils/printWorkOrder';
 import { workOrdersService } from '@/services/workOrdersService';
+import { QuickRepairDialog } from '@/components/QuickRepairDialog';
 import type { WorkOrder, ChecklistResponse, UploadedPhoto, StockItem } from '@/types';
 import type { ApiInventoryItem } from '@/types/api';
+import type { SuggestedWorkOrder } from '@/services/aiService';
 import { cn } from '@/lib/utils';
 import { getPriorityDotClass, getPriorityLabel } from '@/shared/ui/statusBadgeUtils';
 
@@ -155,6 +158,9 @@ export function WorkOrderEditModal({
   const [hasSignature, setHasSignature] = useState(false);
   const signaturePadRef = useRef<SignaturePadRef>(null);
   
+  // Estado para o diálogo de Assistente IA (Quick Repair)
+  const [isQuickRepairOpen, setIsQuickRepairOpen] = useState(false);
+  
   const { data: equipment = [] } = useEquipments();
   const { data: sectors = [] } = useSectors();
   const { data: companies = [] } = useCompanies();
@@ -189,6 +195,17 @@ export function WorkOrderEditModal({
       companies,
       settings
     });
+  };
+  
+  // Handler para aplicar sugestão do Assistente IA (Quick Repair)
+  const handleApplyAISuggestion = (suggestion: SuggestedWorkOrder) => {
+    // Atualiza a descrição de execução com a sugestão da IA
+    setExecutionDescription(prev => {
+      const currentText = prev.trim();
+      const suggestionText = `📋 Sugestão IA:\n${suggestion.description || ''}`;
+      return currentText ? `${currentText}\n\n${suggestionText}` : suggestionText;
+    });
+    setIsQuickRepairOpen(false);
   };
   
   // Carregar dados da ordem de serviço quando abrir o modal ou quando os detalhes carregarem
@@ -1340,11 +1357,23 @@ export function WorkOrderEditModal({
 
                     {/* Descrição da Execução */}
                     <div className="rounded-lg border bg-card">
-                      <div className="px-4 py-3 border-b bg-muted/50">
+                      <div className="px-4 py-3 border-b bg-muted/50 flex items-center justify-between">
                         <h3 className="text-sm font-medium flex items-center gap-2">
                           <FileText className="h-4 w-4 text-muted-foreground" />
                           Descrição da Execução
                         </h3>
+                        {selectedEquipment && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsQuickRepairOpen(true)}
+                            className="gap-1 text-xs"
+                          >
+                            <Bot className="h-3 w-3" />
+                            Assistente IA
+                          </Button>
+                        )}
                       </div>
                       <div className="p-4">
                         <div className="space-y-2">
@@ -1660,6 +1689,17 @@ export function WorkOrderEditModal({
           </div>
         </div>
       </DialogContent>
+
+      {/* Quick Repair AI Dialog */}
+      {selectedEquipment && (
+        <QuickRepairDialog
+          assetId={Number(selectedEquipment.id)}
+          assetTag={selectedEquipment.tag}
+          isOpen={isQuickRepairOpen}
+          onClose={() => setIsQuickRepairOpen(false)}
+          onApplySuggestion={handleApplyAISuggestion}
+        />
+      )}
     </Dialog>
   );
 }

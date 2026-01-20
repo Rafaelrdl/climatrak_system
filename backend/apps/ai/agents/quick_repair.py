@@ -264,9 +264,8 @@ class QuickRepairAgent(BaseAgent):
         """Executa diagnóstico usando LLM."""
         prompt = self._build_prompt(context_data)
 
-        response = self.provider.generate(
+        response = self.provider.chat_sync(
             messages=[LLMMessage(role="user", content=prompt)],
-            model="mistral-nemo",
             temperature=0.3,
         )
 

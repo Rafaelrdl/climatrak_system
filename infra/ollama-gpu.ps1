@@ -4,7 +4,7 @@
 #   .\ollama-gpu.ps1 stop     # Para o Ollama
 #   .\ollama-gpu.ps1 cpu      # Inicia com CPU only
 #   .\ollama-gpu.ps1 status   # Verifica status
-#   .\ollama-gpu.ps1 test     # Testa se GPU está funcionando
+#   .\ollama-gpu.ps1 test     # Testa se GPU esta funcionando
 
 param(
     [Parameter(Position=0)]
@@ -12,22 +12,21 @@ param(
     [string]$Command = "help"
 )
 
-$ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ScriptDir
 
-function Write-Success { param($msg) Write-Host "✅ $msg" -ForegroundColor Green }
-function Write-Info { param($msg) Write-Host "ℹ️  $msg" -ForegroundColor Cyan }
-function Write-Warn { param($msg) Write-Host "⚠️  $msg" -ForegroundColor Yellow }
-function Write-Err { param($msg) Write-Host "❌ $msg" -ForegroundColor Red }
+function Write-Success { param($msg) Write-Host "[OK] $msg" -ForegroundColor Green }
+function Write-Info { param($msg) Write-Host "[INFO] $msg" -ForegroundColor Cyan }
+function Write-Warn { param($msg) Write-Host "[WARN] $msg" -ForegroundColor Yellow }
+function Write-Err { param($msg) Write-Host "[ERROR] $msg" -ForegroundColor Red }
 
 switch ($Command) {
     { $_ -in "start", "gpu" } {
         Write-Info "Iniciando Ollama com GPU NVIDIA..."
         
-        # Parar versão CPU se existir
-        docker compose --profile cpu stop ollama 2>$null
-        docker rm climatrak-ollama 2>$null
+        # Parar versao CPU se existir (ignorar erros)
+        $null = docker compose --profile cpu stop ollama 2>&1
+        $null = docker rm climatrak-ollama 2>&1
         
         # Iniciar com GPU
         docker compose --profile gpu up -d ollama-gpu
@@ -40,7 +39,7 @@ switch ($Command) {
             docker exec climatrak-ollama nvidia-smi
             Write-Success "GPU NVIDIA detectada!"
         } catch {
-            Write-Warn "nvidia-smi não disponível (GPU pode não estar configurada)"
+            Write-Warn "nvidia-smi nao disponivel (GPU pode nao estar configurada)"
         }
         
         Write-Host ""
@@ -51,9 +50,9 @@ switch ($Command) {
     "cpu" {
         Write-Info "Iniciando Ollama com CPU only..."
         
-        # Parar versão GPU se existir
-        docker compose --profile gpu stop ollama-gpu 2>$null
-        docker rm climatrak-ollama 2>$null
+        # Parar versao GPU se existir (ignorar erros)
+        $null = docker compose --profile gpu stop ollama-gpu 2>&1
+        $null = docker rm climatrak-ollama 2>&1
         
         # Iniciar com CPU
         docker compose --profile cpu up -d ollama
@@ -63,9 +62,9 @@ switch ($Command) {
     
     "stop" {
         Write-Info "Parando Ollama..."
-        docker compose --profile gpu stop ollama-gpu 2>$null
-        docker compose --profile cpu stop ollama 2>$null
-        docker rm climatrak-ollama 2>$null
+        $null = docker compose --profile gpu stop ollama-gpu 2>&1
+        $null = docker compose --profile cpu stop ollama 2>&1
+        $null = docker rm climatrak-ollama 2>&1
         Write-Success "Ollama parado!"
     }
     
@@ -74,12 +73,12 @@ switch ($Command) {
         docker ps --filter "name=climatrak-ollama" --format "table {{.Names}}`t{{.Status}}`t{{.Ports}}"
         
         Write-Host ""
-        Write-Info "Modelos disponíveis:"
+        Write-Info "Modelos disponiveis:"
         try {
             $response = Invoke-RestMethod -Uri "http://localhost:11434/api/tags" -Method Get -ErrorAction Stop
             $response.models | ForEach-Object { Write-Host "  - $($_.name)" }
         } catch {
-            Write-Warn "Ollama não está rodando ou não responde"
+            Write-Warn "Ollama nao esta rodando ou nao responde"
         }
     }
     
@@ -92,7 +91,7 @@ switch ($Command) {
             Write-Success "GPU NVIDIA detectada e funcionando!"
             
             Write-Host ""
-            Write-Info "Testando inferência com GPU..."
+            Write-Info "Testando inferencia com GPU..."
             $startTime = Get-Date
             
             $body = @{
@@ -110,14 +109,14 @@ switch ($Command) {
             Write-Host ""
             
             if ($elapsed.TotalSeconds -lt 10) {
-                Write-Success "GPU está acelerando a inferência! (< 10s)"
+                Write-Success "GPU esta acelerando a inferencia! (menos de 10s)"
             } elseif ($elapsed.TotalSeconds -lt 30) {
                 Write-Info "Performance OK, mas pode melhorar"
             } else {
-                Write-Warn "Lento! Verifique se GPU está sendo usada"
+                Write-Warn "Lento! Verifique se GPU esta sendo usada"
             }
         } catch {
-            Write-Err "GPU não disponível no container."
+            Write-Err "GPU nao disponivel no container."
             Write-Host ""
             Write-Host "Verifique:"
             Write-Host "  1. Driver NVIDIA instalado no Windows: nvidia-smi"
@@ -133,24 +132,24 @@ switch ($Command) {
     }
     
     default {
-        Write-Host @"
-Uso: .\ollama-gpu.ps1 <comando>
-
-Comandos:
-  start/gpu  - Inicia Ollama com GPU NVIDIA
-  cpu        - Inicia Ollama com CPU only  
-  stop       - Para o Ollama
-  status     - Mostra status e modelos
-  test       - Testa se GPU está funcionando
-  pull       - Baixa modelo mistral-nemo
-
-Pré-requisitos para GPU no Windows:
-  1. Driver NVIDIA atualizado (Game Ready ou Studio)
-  2. Docker Desktop com WSL2 backend
-  3. WSL2 atualizado (wsl --update)
-
-Para verificar GPU no host:
-  nvidia-smi
-"@
+        Write-Host ""
+        Write-Host "Uso: .\ollama-gpu.ps1 [comando]" -ForegroundColor White
+        Write-Host ""
+        Write-Host "Comandos:" -ForegroundColor Yellow
+        Write-Host "  start/gpu  - Inicia Ollama com GPU NVIDIA"
+        Write-Host "  cpu        - Inicia Ollama com CPU only"
+        Write-Host "  stop       - Para o Ollama"
+        Write-Host "  status     - Mostra status e modelos"
+        Write-Host "  test       - Testa se GPU esta funcionando"
+        Write-Host "  pull       - Baixa modelo mistral-nemo"
+        Write-Host ""
+        Write-Host "Pre-requisitos para GPU no Windows:" -ForegroundColor Yellow
+        Write-Host "  1. Driver NVIDIA atualizado (Game Ready ou Studio)"
+        Write-Host "  2. Docker Desktop com WSL2 backend"
+        Write-Host "  3. WSL2 atualizado (wsl --update)"
+        Write-Host ""
+        Write-Host "Para verificar GPU no host:" -ForegroundColor Yellow
+        Write-Host "  nvidia-smi"
+        Write-Host ""
     }
 }
