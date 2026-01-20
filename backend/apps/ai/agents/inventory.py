@@ -264,7 +264,7 @@ class InventoryAgent(BaseAgent):
 
             # Tentar sumarização via LLM (opcional)
             if recommendations["summary"]["total_items"] > 0:
-                llm_summary = self._try_llm_summary(recommendations)
+                llm_summary = self._try_llm_summary(recommendations, context)
                 if llm_summary:
                     output_data["llm_summary"] = llm_summary
                     output_data["engine"]["type"] = "llm+heuristic"
@@ -508,12 +508,13 @@ class InventoryAgent(BaseAgent):
             "dead_stock": dead_stock_list,
         }
 
-    def _try_llm_summary(self, recommendations: dict[str, Any]) -> Optional[str]:
+    def _try_llm_summary(self, recommendations: dict[str, Any], context: AgentContext) -> Optional[str]:
         """
         Tenta gerar resumo executivo via LLM.
 
         Args:
             recommendations: Recomendações calculadas
+            context: Contexto do agente para logging de uso
 
         Returns:
             Texto do resumo ou None se LLM não disponível
@@ -552,15 +553,15 @@ Gere um resumo executivo focado em:
 
 Responda em português brasileiro, de forma profissional e objetiva."""
 
-            response = self.provider.chat_sync(
-                messages=[{"role": "user", "content": prompt}],
-                model="mistral-nemo",
+            response = self.call_llm(
+                user_prompt=prompt,
                 temperature=0.3,
                 max_tokens=500,
+                context=context,
             )
 
-            if response.choices:
-                return response.choices[0].message.content.strip()
+            if response.content:
+                return response.content.strip()
 
         except Exception as e:
             logger.debug(f"[InventoryAgent] LLM não disponível: {e}")

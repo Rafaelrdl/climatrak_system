@@ -233,3 +233,93 @@ class OpenAICompatProviderTests(TestCase):
         result = self.provider.health_check()
 
         self.assertFalse(result)
+
+    def test_parse_response_ollama_native_format(self):
+        """
+        Test parsing Ollama native format with prompt_eval_count and eval_count.
+        
+        Ollama responses include tokens in root level fields:
+        - prompt_eval_count: input tokens
+        - eval_count: output tokens
+        """
+        response_data = {
+            "model": "gemma3",
+            "choices": [
+                {
+                    "message": {"role": "assistant", "content": "Test response"},
+                    "finish_reason": "stop",
+                }
+            ],
+            "done": True,
+            "prompt_eval_count": 11,
+            "eval_count": 18,
+            "total_duration": 5000000000,
+            "load_duration": 100000000,
+            "prompt_eval_duration": 200000000,
+            "eval_duration": 4700000000,
+        }
+
+        result = self.provider._parse_response(response_data)
+
+        self.assertEqual(result.content, "Test response")
+        self.assertEqual(result.tokens_prompt, 11)
+        self.assertEqual(result.tokens_completion, 18)
+        self.assertEqual(result.tokens_total, 29)
+        self.assertEqual(result.model, "gemma3")
+        # Verify raw_response preserved
+        self.assertEqual(result.raw_response["prompt_eval_count"], 11)
+        self.assertEqual(result.raw_response["eval_count"], 18)
+        self.assertEqual(result.raw_response["total_duration"], 5000000000)
+
+    def test_parse_response_ollama_fallback_when_usage_empty(self):
+        """
+        Test that Ollama fields are used when usage dict is empty or missing.
+        """
+        response_data = {
+            "model": "mistral-nemo",
+            "choices": [
+                {
+                    "message": {"role": "assistant", "content": "Response text"},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {},  # Empty usage dict
+            "prompt_eval_count": 25,
+            "eval_count": 42,
+        }
+
+        result = self.provider._parse_response(response_data)
+
+        self.assertEqual(result.tokens_prompt, 25)
+        self.assertEqual(result.tokens_completion, 42)
+        self.assertEqual(result.tokens_total, 67)
+
+    def test_parse_response_openai_format_takes_precedence(self):
+        """
+        Test that OpenAI usage format takes precedence over Ollama fields.
+        """
+        response_data = {
+            "model": "gpt-4",
+            "choices": [
+                {
+                    "message": {"role": "assistant", "content": "OpenAI response"},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 100,
+                "completion_tokens": 50,
+                "total_tokens": 150,
+            },
+            # Ollama fields also present (should be ignored)
+            "prompt_eval_count": 11,
+            "eval_count": 18,
+        }
+
+        result = self.provider._parse_response(response_data)
+
+        # Should use OpenAI format, not Ollama
+        self.assertEqual(result.tokens_prompt, 100)
+        self.assertEqual(result.tokens_completion, 50)
+        self.assertEqual(result.tokens_total, 150)
+

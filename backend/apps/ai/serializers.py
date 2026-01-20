@@ -210,3 +210,76 @@ class KnowledgeStatsSerializer(serializers.Serializer):
     by_source_type = serializers.DictField(child=serializers.IntegerField())
     by_file_type = serializers.DictField(child=serializers.IntegerField())
 
+
+# ==============================================================================
+# AI USAGE METRICS SERIALIZERS
+# ==============================================================================
+
+
+class AIUsageMonthlyBucketSerializer(serializers.Serializer):
+    """
+    Serializer para bucket de uso mensal de tokens.
+    
+    Representa agregação de uso por mês.
+    """
+
+    month = serializers.CharField(
+        help_text="Mês no formato YYYY-MM",
+    )
+    input_tokens = serializers.IntegerField(
+        help_text="Total de tokens de entrada no mês",
+    )
+    output_tokens = serializers.IntegerField(
+        help_text="Total de tokens de saída no mês",
+    )
+    total_tokens = serializers.IntegerField(
+        help_text="Total de tokens (entrada + saída) no mês",
+    )
+    calls = serializers.IntegerField(
+        help_text="Número de chamadas ao LLM no mês",
+    )
+
+
+class AIUsageMonthlyResponseSerializer(serializers.Serializer):
+    """
+    Serializer para resposta da API de uso mensal.
+    """
+
+    tenant_id = serializers.UUIDField(
+        help_text="ID do tenant",
+    )
+    tenant_schema = serializers.CharField(
+        help_text="Schema do tenant",
+    )
+    months_requested = serializers.IntegerField(
+        help_text="Número de meses solicitados",
+    )
+    filters = serializers.DictField(
+        child=serializers.CharField(allow_null=True),
+        help_text="Filtros aplicados (agent, model, user_id)",
+    )
+    buckets = AIUsageMonthlyBucketSerializer(
+        many=True,
+        help_text="Dados agregados por mês",
+    )
+    totals = serializers.DictField(
+        help_text="Totais do período",
+    )
+
+
+class AIUsageLogSerializer(serializers.Serializer):
+    """
+    Serializer para log individual de uso.
+    """
+
+    id = serializers.UUIDField()
+    agent_key = serializers.CharField()
+    model = serializers.CharField()
+    provider = serializers.CharField()
+    input_tokens = serializers.IntegerField()
+    output_tokens = serializers.IntegerField()
+    total_tokens = serializers.IntegerField()
+    created_at = serializers.DateTimeField()
+    job_id = serializers.UUIDField(allow_null=True)
+    created_by_id = serializers.IntegerField(allow_null=True)
+

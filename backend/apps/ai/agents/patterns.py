@@ -314,7 +314,7 @@ class PatternsAgent(BaseAgent):
         }
 
         # Tentar resumo LLM
-        output["llm_summary"] = self._try_llm_summary(context_data, patterns)
+        output["llm_summary"] = self._try_llm_summary(context_data, patterns, context)
 
         execution_time_ms = int((time.time() - start_time) * 1000)
 
@@ -462,7 +462,7 @@ class PatternsAgent(BaseAgent):
         return patterns
 
     def _try_llm_summary(
-        self, context_data: dict, patterns: list[dict]
+        self, context_data: dict, patterns: list[dict], context: AgentContext
     ) -> str | None:
         """Tenta gerar resumo via LLM."""
         try:
@@ -499,9 +499,10 @@ Responda apenas com o texto do resumo."""
                 user_prompt=prompt,
                 temperature=0.3,
                 max_tokens=250,
+                context=context,
             )
 
-            if response.success:
+            if response.content:
                 return response.content.strip()
 
         except Exception as e:

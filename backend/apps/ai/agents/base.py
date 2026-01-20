@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Type
 
 from ..providers.base import LLMMessage, LLMResponse
 from ..providers.factory import get_llm_provider
+from ..usage import AIUsageService
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +136,7 @@ class BaseAgent(ABC):
         system_prompt: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        context: Optional["AgentContext"] = None,
     ) -> LLMResponse:
         """
         Chama o LLM com os prompts fornecidos.
@@ -144,6 +146,7 @@ class BaseAgent(ABC):
             system_prompt: Prompt de sistema (usa default se None)
             temperature: Temperatura (usa default se None)
             max_tokens: Max tokens (usa default se None)
+            context: Contexto do agente para logging de uso (opcional)
 
         Returns:
             LLMResponse com resposta do LLM
@@ -153,11 +156,20 @@ class BaseAgent(ABC):
             LLMMessage(role="user", content=user_prompt),
         ]
 
-        return self.provider.chat_sync(
+        response = self.provider.chat_sync(
             messages=messages,
             temperature=temperature or self.default_temperature,
             max_tokens=max_tokens or self.default_max_tokens,
         )
+
+        # Registrar uso de tokens (best-effort)
+        AIUsageService.record_llm_call(
+            context=context,
+            agent_key=self.agent_key,
+            response=response,
+        )
+
+        return response
 
     def gather_context(self, input_data: Dict[str, Any], context: AgentContext) -> Dict[str, Any]:
         """

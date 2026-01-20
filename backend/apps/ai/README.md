@@ -31,6 +31,7 @@ ai/
 | GET | `/api/ai/jobs/` | Lista jobs |
 | GET | `/api/ai/jobs/{id}/` | Detalhe do job |
 | GET | `/api/ai/health/` | Health check |
+| GET | `/api/ai/usage/monthly/` | Métricas de uso de tokens |
 
 ## Configuração (.env)
 
@@ -85,3 +86,4 @@ class MyAgent(BaseAgent):
 
 - [docs/ai/01-visao-geral.md](../../../docs/ai/01-visao-geral.md)
 - [docs/ai/02-contrato-api.md](../../../docs/ai/02-contrato-api.md)
+- [docs/ai/06-metricas-uso-tokens.md](../../../docs/ai/06-metricas-uso-tokens.md)

@@ -409,6 +409,132 @@ class AIKnowledgeDocument(models.Model):
         return f"{self.title} v{self.version} ({self.status})"
 
 
+# ============================================
+# AI USAGE LOG MODEL (Token Usage Tracking)
+# ============================================
+
+
+class AIUsageLog(models.Model):
+    """
+    Log de uso de LLM por chamada.
+
+    Registra métricas de tokens (entrada/saída) para cada chamada ao LLM.
+    Suporta tanto formato OpenAI compat quanto Ollama nativo.
+
+    Multi-tenant:
+    - tenant_id: UUID determinístico do tenant
+    - tenant_schema: nome do schema (auditoria/debug)
+
+    Mapeamento de campos Ollama:
+    - prompt_eval_count → input_tokens
+    - eval_count → output_tokens
+    - Tempos em nanossegundos salvos em raw_usage
+    """
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+        verbose_name="ID",
+    )
+
+    # Identificação do tenant
+    tenant_id = models.UUIDField(
+        verbose_name="Tenant ID",
+        db_index=True,
+        help_text="ID do tenant (UUID determinístico)",
+    )
+    tenant_schema = models.CharField(
+        max_length=100,
+        verbose_name="Schema do Tenant",
+        db_index=True,
+        help_text="Nome do schema PostgreSQL (auditoria)",
+    )
+
+    # Identificação do agente/modelo
+    agent_key = models.CharField(
+        max_length=50,
+        verbose_name="Chave do Agente",
+        db_index=True,
+        help_text="Identificador do agente (ex: preventive, predictive)",
+    )
+    model = models.CharField(
+        max_length=100,
+        verbose_name="Modelo LLM",
+        db_index=True,
+        help_text="Modelo usado (ex: mistral-nemo, llama3)",
+    )
+    provider = models.CharField(
+        max_length=50,
+        default="openai_compat",
+        verbose_name="Provider",
+        help_text="Provider LLM (openai_compat, ollama, etc)",
+    )
+
+    # Contagem de tokens
+    input_tokens = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Tokens de Entrada",
+        help_text="Mapeado de usage.prompt_tokens ou prompt_eval_count (Ollama)",
+    )
+    output_tokens = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Tokens de Saída",
+        help_text="Mapeado de usage.completion_tokens ou eval_count (Ollama)",
+    )
+    total_tokens = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Tokens Total",
+        help_text="Se não vier, calculado como input + output",
+    )
+
+    # Relacionamentos opcionais
+    job = models.ForeignKey(
+        AIJob,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="usage_logs",
+        verbose_name="Job de IA",
+        help_text="Job relacionado (se houver)",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ai_usage_logs",
+        verbose_name="Criado por",
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Criado em",
+        db_index=True,
+    )
+
+    # Payload bruto para auditoria
+    raw_usage = models.JSONField(
+        default=dict,
+        verbose_name="Dados Brutos",
+        help_text="Payload de uso bruto (tempos, métricas extras)",
+    )
+
+    class Meta:
+        verbose_name = "Log de Uso de IA"
+        verbose_name_plural = "Logs de Uso de IA"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["tenant_id", "created_at"]),
+            models.Index(fields=["tenant_id", "agent_key", "created_at"]),
+            models.Index(fields=["tenant_id", "model", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.agent_key}/{self.model} - {self.total_tokens} tokens ({self.created_at})"
+
+
 class AIKnowledgeChunk(models.Model):
     """
     Chunk de texto para busca.

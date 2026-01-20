@@ -301,7 +301,7 @@ class PreventiveAgent(BaseAgent):
 
         # Tentar gerar resumo LLM se disponível
         if all_recommendations:
-            output["llm_summary"] = self._try_llm_summary(context_data, all_recommendations)
+            output["llm_summary"] = self._try_llm_summary(context_data, all_recommendations, context)
 
         execution_time_ms = int((time.time() - start_time) * 1000)
 
@@ -416,7 +416,7 @@ class PreventiveAgent(BaseAgent):
         return recommendations
 
     def _try_llm_summary(
-        self, context_data: dict, recommendations: list[dict]
+        self, context_data: dict, recommendations: list[dict], context: AgentContext
     ) -> str | None:
         """
         Tenta gerar resumo executivo via LLM.
@@ -424,6 +424,7 @@ class PreventiveAgent(BaseAgent):
         Args:
             context_data: Dados do contexto coletado
             recommendations: Lista de recomendações geradas
+            context: Contexto do agente para logging de uso
 
         Returns:
             String com resumo ou None se LLM indisponível
@@ -455,9 +456,10 @@ Responda apenas com o texto do resumo, sem JSON."""
                 user_prompt=prompt,
                 temperature=0.3,
                 max_tokens=300,
+                context=context,
             )
 
-            if response.success:
+            if response.content:
                 return response.content.strip()
 
         except Exception as e:

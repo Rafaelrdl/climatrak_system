@@ -63,7 +63,16 @@ class OpenAICompatProvider(BaseLLMProvider):
         return body
 
     def _parse_response(self, response_data: dict) -> LLMResponse:
-        """Parseia resposta da API."""
+        """
+        Parseia resposta da API.
+        
+        Suporta dois formatos:
+        1. OpenAI compat: usage.prompt_tokens, usage.completion_tokens, usage.total_tokens
+        2. Ollama native: prompt_eval_count, eval_count (campos no root)
+        
+        Campos Ollama adicionais preservados em raw_response:
+        - total_duration, load_duration, prompt_eval_duration, eval_duration (nanosegundos)
+        """
         try:
             choices = response_data.get("choices", [])
             if not choices:
@@ -74,11 +83,24 @@ class OpenAICompatProvider(BaseLLMProvider):
             message = choice.get("message", {})
             usage = response_data.get("usage", {})
 
+            # Tentar formato OpenAI primeiro
+            tokens_prompt = usage.get("prompt_tokens", 0)
+            tokens_completion = usage.get("completion_tokens", 0)
+            tokens_total = usage.get("total_tokens", 0)
+
+            # Fallback para formato Ollama native (campos no root)
+            if tokens_prompt == 0 and tokens_completion == 0:
+                tokens_prompt = response_data.get("prompt_eval_count", 0)
+                tokens_completion = response_data.get("eval_count", 0)
+                # Recalcular total se não vier
+                if tokens_total == 0:
+                    tokens_total = tokens_prompt + tokens_completion
+
             return LLMResponse(
                 content=message.get("content", ""),
-                tokens_prompt=usage.get("prompt_tokens", 0),
-                tokens_completion=usage.get("completion_tokens", 0),
-                tokens_total=usage.get("total_tokens", 0),
+                tokens_prompt=tokens_prompt,
+                tokens_completion=tokens_completion,
+                tokens_total=tokens_total,
                 model=response_data.get("model", self.config.model),
                 finish_reason=choice.get("finish_reason", ""),
                 raw_response=response_data,

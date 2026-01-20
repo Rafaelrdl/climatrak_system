@@ -518,3 +518,161 @@ class AIKnowledgeViewSet(viewsets.ViewSet):
             "page_size": page_size,
         })
 
+
+# ==============================================================================
+# AI USAGE METRICS
+# ==============================================================================
+
+
+@extend_schema_view(
+    monthly=extend_schema(
+        summary="Métricas de uso mensal de tokens",
+        description=(
+            "Retorna uso agregado de tokens LLM por mês. "
+            "Suporta filtros por agent, model e user_id."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="months",
+                description="Número de meses para análise (default: 12, max: 36)",
+                required=False,
+                type=int,
+            ),
+            OpenApiParameter(
+                name="agent",
+                description="Filtrar por chave do agente (ex: preventive, predictive)",
+                required=False,
+                type=str,
+            ),
+            OpenApiParameter(
+                name="model",
+                description="Filtrar por modelo LLM (ex: mistral-nemo)",
+                required=False,
+                type=str,
+            ),
+            OpenApiParameter(
+                name="user_id",
+                description="Filtrar por ID do usuário",
+                required=False,
+                type=int,
+            ),
+        ],
+    ),
+)
+class AIUsageViewSet(viewsets.ViewSet):
+    """
+    ViewSet para métricas de uso de tokens LLM.
+
+    Endpoints:
+    - GET /api/ai/usage/monthly/ - Retorna uso agregado por mês
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def _get_tenant_uuid(self) -> uuid.UUID:
+        """Retorna UUID determinístico do tenant atual."""
+        schema_name = connection.schema_name
+        return uuid.uuid5(uuid.NAMESPACE_DNS, f"tenant:{schema_name}")
+
+    @action(detail=False, methods=["get"], url_path="monthly")
+    def monthly(self, request):
+        """
+        Retorna uso de tokens agregado por mês.
+
+        Query Parameters:
+            - months: Número de meses (default: 12, max: 36)
+            - agent: Filtrar por chave do agente
+            - model: Filtrar por modelo LLM
+            - user_id: Filtrar por ID do usuário
+        """
+        from django.db.models import Sum, Count
+        from django.db.models.functions import TruncMonth
+        from dateutil.relativedelta import relativedelta
+
+        from .models import AIUsageLog
+        from .serializers import AIUsageMonthlyResponseSerializer
+
+        tenant_id = self._get_tenant_uuid()
+        tenant_schema = connection.schema_name
+
+        # Parâmetros
+        months = min(int(request.query_params.get("months", 12)), 36)
+        agent_filter = request.query_params.get("agent")
+        model_filter = request.query_params.get("model")
+        user_id_filter = request.query_params.get("user_id")
+
+        # Data de corte
+        from django.utils import timezone
+        now = timezone.now()
+        cutoff_date = now - relativedelta(months=months)
+
+        # Query base
+        queryset = AIUsageLog.objects.filter(
+            tenant_id=tenant_id,
+            created_at__gte=cutoff_date,
+        )
+
+        # Aplicar filtros
+        if agent_filter:
+            queryset = queryset.filter(agent_key=agent_filter)
+        if model_filter:
+            queryset = queryset.filter(model=model_filter)
+        if user_id_filter:
+            try:
+                queryset = queryset.filter(created_by_id=int(user_id_filter))
+            except (ValueError, TypeError):
+                pass
+
+        # Agregar por mês
+        monthly_data = (
+            queryset
+            .annotate(month=TruncMonth("created_at"))
+            .values("month")
+            .annotate(
+                input_tokens=Sum("input_tokens"),
+                output_tokens=Sum("output_tokens"),
+                total_tokens=Sum("total_tokens"),
+                calls=Count("id"),
+            )
+            .order_by("-month")
+        )
+
+        # Formatar buckets
+        buckets = [
+            {
+                "month": item["month"].strftime("%Y-%m"),
+                "input_tokens": item["input_tokens"] or 0,
+                "output_tokens": item["output_tokens"] or 0,
+                "total_tokens": item["total_tokens"] or 0,
+                "calls": item["calls"] or 0,
+            }
+            for item in monthly_data
+        ]
+
+        # Calcular totais
+        totals = {
+            "input_tokens": sum(b["input_tokens"] for b in buckets),
+            "output_tokens": sum(b["output_tokens"] for b in buckets),
+            "total_tokens": sum(b["total_tokens"] for b in buckets),
+            "calls": sum(b["calls"] for b in buckets),
+        }
+
+        response_data = {
+            "tenant_id": tenant_id,
+            "tenant_schema": tenant_schema,
+            "months_requested": months,
+            "filters": {
+                "agent": agent_filter,
+                "model": model_filter,
+                "user_id": user_id_filter,
+            },
+            "buckets": buckets,
+            "totals": totals,
+        }
+
+        serializer = AIUsageMonthlyResponseSerializer(data=response_data)
+        serializer.is_valid(raise_exception=True)
+
+        return Response(response_data)
+
+

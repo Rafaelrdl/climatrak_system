@@ -333,7 +333,7 @@ class PredictiveAgent(BaseAgent):
             )
 
         # Tentar resumo LLM
-        output["llm_summary"] = self._try_llm_summary(context_data, risk_score, risk_drivers)
+        output["llm_summary"] = self._try_llm_summary(context_data, risk_score, risk_drivers, context)
 
         execution_time_ms = int((time.time() - start_time) * 1000)
 
@@ -478,7 +478,7 @@ class PredictiveAgent(BaseAgent):
         }
 
     def _try_llm_summary(
-        self, context_data: dict, risk_score: int, drivers: list[str]
+        self, context_data: dict, risk_score: int, drivers: list[str], context: AgentContext
     ) -> str | None:
         """Tenta gerar resumo via LLM."""
         try:
@@ -507,9 +507,10 @@ Responda apenas com o texto do resumo."""
                 user_prompt=prompt,
                 temperature=0.3,
                 max_tokens=200,
+                context=context,
             )
 
-            if response.success:
+            if response.content:
                 return response.content.strip()
 
         except Exception as e:
