@@ -192,8 +192,8 @@ GET /api/ai/health/
   "llm": {
     "healthy": true,
     "provider": "openai_compat",
-    "base_url": "http://ollama:11434/v1",
-    "model": "mistral-nemo"
+    "base_url": "https://api.z.ai/api/paas/v4",
+    "model": "glm-4.7-flash"
   },
   "agents": [
     {

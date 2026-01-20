@@ -57,7 +57,7 @@ class BaseLLMProvider(ABC):
     """
     Interface abstrata para provedores de LLM.
 
-    Todas as implementações (OpenAI, Ollama, vLLM) devem herdar desta classe.
+    Todas as implementações (OpenAI, Z.ai, vLLM) devem herdar desta classe.
     """
 
     def __init__(self, config: LLMConfig):

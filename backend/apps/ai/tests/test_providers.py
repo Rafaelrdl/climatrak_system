@@ -234,16 +234,16 @@ class OpenAICompatProviderTests(TestCase):
 
         self.assertFalse(result)
 
-    def test_parse_response_ollama_native_format(self):
+    def test_parse_response_fallback_token_fields(self):
         """
-        Test parsing Ollama native format with prompt_eval_count and eval_count.
+        Test parsing fallback token format with prompt_eval_count and eval_count.
         
-        Ollama responses include tokens in root level fields:
+        Some LLM providers include tokens in root level fields (fallback format):
         - prompt_eval_count: input tokens
         - eval_count: output tokens
         """
         response_data = {
-            "model": "gemma3",
+            "model": "test-model",
             "choices": [
                 {
                     "message": {"role": "assistant", "content": "Test response"},
@@ -265,18 +265,18 @@ class OpenAICompatProviderTests(TestCase):
         self.assertEqual(result.tokens_prompt, 11)
         self.assertEqual(result.tokens_completion, 18)
         self.assertEqual(result.tokens_total, 29)
-        self.assertEqual(result.model, "gemma3")
+        self.assertEqual(result.model, "test-model")
         # Verify raw_response preserved
         self.assertEqual(result.raw_response["prompt_eval_count"], 11)
         self.assertEqual(result.raw_response["eval_count"], 18)
         self.assertEqual(result.raw_response["total_duration"], 5000000000)
 
-    def test_parse_response_ollama_fallback_when_usage_empty(self):
+    def test_parse_response_fallback_when_usage_empty(self):
         """
-        Test that Ollama fields are used when usage dict is empty or missing.
+        Test that fallback fields are used when usage dict is empty or missing.
         """
         response_data = {
-            "model": "mistral-nemo",
+            "model": "test-model",
             "choices": [
                 {
                     "message": {"role": "assistant", "content": "Response text"},
@@ -296,7 +296,7 @@ class OpenAICompatProviderTests(TestCase):
 
     def test_parse_response_openai_format_takes_precedence(self):
         """
-        Test that OpenAI usage format takes precedence over Ollama fields.
+        Test that OpenAI usage format takes precedence over fallback fields.
         """
         response_data = {
             "model": "gpt-4",
@@ -311,14 +311,14 @@ class OpenAICompatProviderTests(TestCase):
                 "completion_tokens": 50,
                 "total_tokens": 150,
             },
-            # Ollama fields also present (should be ignored)
+            # Fallback fields also present (should be ignored)
             "prompt_eval_count": 11,
             "eval_count": 18,
         }
 
         result = self.provider._parse_response(response_data)
 
-        # Should use OpenAI format, not Ollama
+        # Should use OpenAI format, not fallback fields
         self.assertEqual(result.tokens_prompt, 100)
         self.assertEqual(result.tokens_completion, 50)
         self.assertEqual(result.tokens_total, 150)

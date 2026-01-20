@@ -26,7 +26,7 @@ class AIUsageService:
 
     Responsabilidades:
     - Gravar log de uso após cada chamada LLM
-    - Mapear métricas OpenAI compat e Ollama
+    - Mapear métricas OpenAI compat e fallback
     - Garantir best-effort (não propaga exceções)
     """
 
@@ -93,12 +93,12 @@ class AIUsageService:
             output_tokens = response.tokens_completion
             total_tokens = response.tokens_total or (input_tokens + output_tokens)
 
-            # Construir raw_usage com dados relevantes do Ollama
+            # Construir raw_usage com dados relevantes do provider
             raw_usage = {}
             raw_response = response.raw_response or {}
             
-            # Preservar métricas Ollama específicas
-            ollama_fields = [
+            # Preservar métricas de performance (formato fallback)
+            extended_fields = [
                 "prompt_eval_count",
                 "eval_count",
                 "total_duration",
@@ -106,7 +106,7 @@ class AIUsageService:
                 "prompt_eval_duration",
                 "eval_duration",
             ]
-            for field in ollama_fields:
+            for field in extended_fields:
                 if field in raw_response:
                     raw_usage[field] = raw_response[field]
             

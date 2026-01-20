@@ -40,7 +40,9 @@ O modelo possui índices otimizados para queries por tenant:
 
 ## Mapeamento de Métricas
 
-### Formato OpenAI Compat
+### Formato OpenAI Compat (Padrão)
+
+O ClimaTrak usa Z.ai GLM-4.7-Flash como provider default, que retorna métricas no formato OpenAI-compat:
 
 ```json
 {
@@ -52,33 +54,15 @@ O modelo possui índices otimizados para queries por tenant:
 }
 ```
 
-### Formato Ollama Native
-
-Quando o Ollama responde via endpoint nativo (não `/v1`), as métricas vêm no root:
-
-```json
-{
-  "model": "mistral-nemo",
-  "response": "...",
-  "done": true,
-  "prompt_eval_count": 11,
-  "eval_count": 18,
-  "total_duration": 5000000000,
-  "load_duration": 100000000,
-  "prompt_eval_duration": 200000000,
-  "eval_duration": 4700000000
-}
-```
-
 **Mapeamento:**
 
-| Campo Ollama | Campo AIUsageLog |
+| Campo OpenAI | Campo AIUsageLog |
 |--------------|------------------|
-| `prompt_eval_count` | `input_tokens` |
-| `eval_count` | `output_tokens` |
-| Calculado | `total_tokens` (input + output) |
+| `prompt_tokens` | `input_tokens` |
+| `completion_tokens` | `output_tokens` |
+| `total_tokens` | `total_tokens` |
 
-**Observação sobre tempos:** Os campos de duração do Ollama (`total_duration`, etc.) são expressos em **nanossegundos**. Eles são preservados no campo `raw_usage` para análise detalhada.
+Este formato é compatível com Z.ai, OpenAI, vLLM, LocalAI e outros providers OpenAI-compat.
 
 ### Streaming
 
@@ -202,4 +186,4 @@ curl -X GET http://localhost:8000/api/ai/usage/monthly/ \
 
 - [01-visao-geral.md](01-visao-geral.md) - Visão geral do módulo AI
 - [02-contrato-api.md](02-contrato-api.md) - Contrato da API de agentes
-- Ollama API: https://ollama.ai/api
+- Z.ai API: https://www.bigmodel.cn/dev/api

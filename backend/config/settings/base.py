@@ -550,14 +550,16 @@ else:
 EMQX_URL = os.getenv("EMQX_URL", "mqtt://emqx:1883")
 
 # ============================================================================
-# AI / LLM Configuration - OpenAI-compatible API (Ollama, vLLM, etc.)
+# AI / LLM Configuration - OpenAI-compatible API (Z.ai, vLLM, OpenAI, etc.)
 # ============================================================================
-# LLM Provider settings (supports Ollama, vLLM, OpenAI, etc.)
-# LLM_PROVIDER: "ollama" (native API), "openai" or "openai_compat" (OpenAI API)
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
-LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://ollama:11434/v1")
-LLM_MODEL = os.getenv("LLM_MODEL", "mistral-nemo")
-LLM_API_KEY = os.getenv("LLM_API_KEY", "")  # Optional for local providers
+# LLM Provider settings (supports Z.ai GLM, vLLM, OpenAI, etc.)
+# LLM_PROVIDER: "openai_compat" (recommended for Z.ai and compatible APIs)
+# Default uses Z.ai cloud with GLM-4.7-Flash (Free tier)
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai_compat")
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.z.ai/api/paas/v4")
+LLM_MODEL = os.getenv("LLM_MODEL", "glm-4.7-flash")
+# API Key: LLM_API_KEY takes priority, ZAI_API_KEY as fallback for convenience
+LLM_API_KEY = os.getenv("LLM_API_KEY") or os.getenv("ZAI_API_KEY", "")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.2"))
 LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 LLM_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", "60"))

@@ -26,7 +26,7 @@ apps/ai/
 ├── providers/               # Clientes LLM
 │   ├── __init__.py
 │   ├── base.py              # Interface abstrata
-│   ├── openai_compat.py     # Cliente OpenAI-compat (Ollama, vLLM)
+│   ├── openai_compat.py     # Cliente OpenAI-compat (Z.ai, vLLM)
 │   └── factory.py           # Factory para providers
 ├── agents/                  # Implementações de agentes
 │   ├── __init__.py
@@ -99,7 +99,7 @@ job, created = AIJobService.create_job(
 
 O sistema usa API OpenAI-compatível, permitindo:
 
-- **Ollama** (local, dev)
+- **Z.ai** (cloud, default) - GLM-4.7-Flash (Free tier)
 - **vLLM** (GPU, produção)
 - **OpenAI** (cloud)
 - **LocalAI**, **Mistral**, etc.
@@ -107,9 +107,11 @@ O sistema usa API OpenAI-compatível, permitindo:
 ### Configuração (.env)
 
 ```bash
-LLM_BASE_URL=http://ollama:11434/v1
-LLM_MODEL=mistral-nemo
-LLM_API_KEY=             # Opcional para providers locais
+# Z.ai GLM-4.7-Flash (Free tier) - default
+LLM_PROVIDER=openai_compat
+LLM_BASE_URL=https://api.z.ai/api/paas/v4
+LLM_MODEL=glm-4.7-flash
+LLM_API_KEY=your-api-key  # ou ZAI_API_KEY
 LLM_TEMPERATURE=0.2
 LLM_MAX_TOKENS=4096
 LLM_TIMEOUT_SECONDS=60

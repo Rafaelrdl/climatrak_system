@@ -2,6 +2,7 @@
 AI Providers - Factory e configuração.
 
 Centraliza criação de providers LLM a partir de settings.
+Default: Z.ai com GLM-4.7-Flash (Free tier, OpenAI-compatible API).
 """
 
 import logging
@@ -11,7 +12,6 @@ from typing import Optional
 from django.conf import settings
 
 from .base import BaseLLMProvider, LLMConfig
-from .ollama import OllamaNativeProvider
 from .openai_compat import OpenAICompatProvider
 
 logger = logging.getLogger(__name__)
@@ -21,17 +21,17 @@ def get_llm_config() -> LLMConfig:
     """
     Retorna configuração LLM a partir de settings.
 
-    Settings esperados (com defaults):
-    - LLM_BASE_URL: URL base da API (default: http://localhost:11434/v1)
-    - LLM_MODEL: Modelo a usar (default: mistral-nemo)
-    - LLM_API_KEY: API key (default: "")
+    Settings esperados (com defaults para Z.ai GLM-4.7-Flash):
+    - LLM_BASE_URL: URL base da API (default: https://api.z.ai/api/paas/v4)
+    - LLM_MODEL: Modelo a usar (default: glm-4.7-flash)
+    - LLM_API_KEY: API key (obrigatório para Z.ai)
     - LLM_TEMPERATURE: Temperatura (default: 0.2)
     - LLM_MAX_TOKENS: Max tokens (default: 4096)
     - LLM_TIMEOUT_SECONDS: Timeout (default: 60)
     """
     return LLMConfig(
-        base_url=getattr(settings, "LLM_BASE_URL", "http://localhost:11434/v1"),
-        model=getattr(settings, "LLM_MODEL", "mistral-nemo"),
+        base_url=getattr(settings, "LLM_BASE_URL", "https://api.z.ai/api/paas/v4"),
+        model=getattr(settings, "LLM_MODEL", "glm-4.7-flash"),
         api_key=getattr(settings, "LLM_API_KEY", ""),
         temperature=float(getattr(settings, "LLM_TEMPERATURE", 0.2)),
         max_tokens=int(getattr(settings, "LLM_MAX_TOKENS", 4096)),
@@ -50,20 +50,18 @@ def get_llm_provider() -> BaseLLMProvider:
     Para limpar cache: get_llm_provider.cache_clear()
     
     Providers disponíveis (LLM_PROVIDER setting):
-    - "ollama": API nativa Ollama (/api/chat) - recomendado para Ollama
-    - "openai" ou "openai_compat": API OpenAI/compatível (/v1/chat/completions)
+    - "openai_compat": API OpenAI-compatible (Z.ai, vLLM, LocalAI, etc.) - default
+    - "openai": Alias para openai_compat
     """
     config = get_llm_config()
-    provider_type = getattr(settings, "LLM_PROVIDER", "ollama").lower()
+    provider_type = getattr(settings, "LLM_PROVIDER", "openai_compat").lower()
     
     logger.info(
         f"Initializing LLM provider: type={provider_type}, "
         f"url={config.base_url}, model={config.model}"
     )
     
-    if provider_type == "ollama":
-        return OllamaNativeProvider(config)
-    elif provider_type in ("openai", "openai_compat"):
+    if provider_type in ("openai", "openai_compat"):
         return OpenAICompatProvider(config)
     else:
         # Fallback para OpenAI compat
@@ -80,11 +78,9 @@ def get_fresh_llm_provider() -> BaseLLMProvider:
     Útil para testes ou quando config muda.
     """
     config = get_llm_config()
-    provider_type = getattr(settings, "LLM_PROVIDER", "ollama").lower()
+    provider_type = getattr(settings, "LLM_PROVIDER", "openai_compat").lower()
     
-    if provider_type == "ollama":
-        return OllamaNativeProvider(config)
-    elif provider_type in ("openai", "openai_compat"):
+    if provider_type in ("openai", "openai_compat"):
         return OpenAICompatProvider(config)
     else:
         return OpenAICompatProvider(config)
@@ -101,7 +97,7 @@ def check_llm_health() -> dict:
         provider = get_fresh_llm_provider()
         is_healthy = provider.health_check()
         config = get_llm_config()
-        provider_type = getattr(settings, "LLM_PROVIDER", "ollama").lower()
+        provider_type = getattr(settings, "LLM_PROVIDER", "openai_compat").lower()
 
         return {
             "healthy": is_healthy,

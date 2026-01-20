@@ -93,19 +93,19 @@ class AIUsageServiceTests(TenantTestCase):
         self.assertEqual(log.agent_key, "contextless_agent")
         self.assertEqual(log.total_tokens, 30)
 
-    def test_record_llm_call_preserves_ollama_fields(self):
-        """Test that Ollama-specific fields are preserved in raw_usage."""
+    def test_record_llm_call_preserves_extended_fields(self):
+        """Test that extended performance fields are preserved in raw_usage."""
         context = AgentContext(
             tenant_id=str(uuid.uuid4()),
-            tenant_schema="ollama_test",
+            tenant_schema="compat_test",
         )
 
         response = LLMResponse(
-            content="Ollama response",
+            content="Test response",
             tokens_prompt=11,
             tokens_completion=18,
             tokens_total=29,
-            model="gemma3",
+            model="test-model",
             raw_response={
                 "prompt_eval_count": 11,
                 "eval_count": 18,
@@ -118,7 +118,7 @@ class AIUsageServiceTests(TenantTestCase):
 
         AIUsageService.record_llm_call(
             context=context,
-            agent_key="ollama_agent",
+            agent_key="compat_agent",
             response=response,
         )
 

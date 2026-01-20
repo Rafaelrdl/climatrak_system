@@ -2,7 +2,7 @@
 AI Providers - OpenAI-Compatible Client
 
 Cliente LLM compatível com API OpenAI.
-Funciona com: OpenAI, Ollama (/v1), vLLM, LocalAI, etc.
+Funciona com: OpenAI, Z.ai, vLLM, LocalAI, etc.
 """
 
 import logging
@@ -22,7 +22,7 @@ class OpenAICompatProvider(BaseLLMProvider):
 
     Compatível com:
     - OpenAI oficial
-    - Ollama (endpoint /v1)
+    - Z.ai (GLM-4)
     - vLLM (--api-key / OpenAI compat)
     - LocalAI
     - Azure OpenAI (com ajustes)
@@ -68,9 +68,9 @@ class OpenAICompatProvider(BaseLLMProvider):
         
         Suporta dois formatos:
         1. OpenAI compat: usage.prompt_tokens, usage.completion_tokens, usage.total_tokens
-        2. Ollama native: prompt_eval_count, eval_count (campos no root)
+        2. Fallback: prompt_eval_count, eval_count (campos no root)
         
-        Campos Ollama adicionais preservados em raw_response:
+        Campos extras preservados em raw_response:
         - total_duration, load_duration, prompt_eval_duration, eval_duration (nanosegundos)
         """
         try:
@@ -88,7 +88,7 @@ class OpenAICompatProvider(BaseLLMProvider):
             tokens_completion = usage.get("completion_tokens", 0)
             tokens_total = usage.get("total_tokens", 0)
 
-            # Fallback para formato Ollama native (campos no root)
+            # Fallback para formato alternativo (campos no root)
             if tokens_prompt == 0 and tokens_completion == 0:
                 tokens_prompt = response_data.get("prompt_eval_count", 0)
                 tokens_completion = response_data.get("eval_count", 0)
@@ -224,16 +224,46 @@ class OpenAICompatProvider(BaseLLMProvider):
         """
         Verifica se o provider está disponível.
 
-        Tenta fazer uma requisição simples de listagem de modelos.
+        Estratégia em 2 etapas:
+        1. Tenta GET /models (padrão OpenAI)
+        2. Se falhar, tenta POST /chat/completions mínimo (fallback para Z.ai e outros)
         """
         try:
-            with httpx.Client(timeout=5) as client:
-                # Tenta endpoint de modelos (padrão OpenAI)
-                response = client.get(
-                    f"{self.base_url}/models",
-                    headers=self._get_headers(),
-                )
-                return response.status_code == 200
+            with httpx.Client(timeout=10) as client:
+                # Etapa A: Tenta endpoint de modelos (padrão OpenAI)
+                try:
+                    response = client.get(
+                        f"{self.base_url}/models",
+                        headers=self._get_headers(),
+                    )
+                    if response.status_code == 200:
+                        return True
+                    self.logger.debug(f"GET /models returned status {response.status_code}")
+                except Exception as e:
+                    self.logger.debug(f"GET /models failed: {e}")
+
+                # Etapa B: Fallback - POST mínimo em /chat/completions
+                try:
+                    body = {
+                        "model": self.config.model,
+                        "messages": [{"role": "user", "content": "ping"}],
+                        "max_tokens": 1,
+                        "temperature": 0,
+                        "stream": False,
+                    }
+                    response = client.post(
+                        self.chat_endpoint,
+                        json=body,
+                        headers=self._get_headers(),
+                    )
+                    if response.status_code == 200:
+                        self.logger.debug("Health check via chat/completions succeeded")
+                        return True
+                    self.logger.debug(f"POST /chat/completions returned status {response.status_code}")
+                except Exception as e:
+                    self.logger.debug(f"POST /chat/completions failed: {e}")
+
+                return False
         except Exception as e:
             self.logger.warning(f"LLM health check failed: {e}")
             return False

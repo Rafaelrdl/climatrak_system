@@ -419,13 +419,13 @@ class AIUsageLog(models.Model):
     Log de uso de LLM por chamada.
 
     Registra métricas de tokens (entrada/saída) para cada chamada ao LLM.
-    Suporta tanto formato OpenAI compat quanto Ollama nativo.
+    Suporta formato OpenAI compat e fallback de campos alternativos.
 
     Multi-tenant:
     - tenant_id: UUID determinístico do tenant
     - tenant_schema: nome do schema (auditoria/debug)
 
-    Mapeamento de campos Ollama:
+    Mapeamento de campos alternativos (fallback):
     - prompt_eval_count → input_tokens
     - eval_count → output_tokens
     - Tempos em nanossegundos salvos em raw_usage
@@ -468,19 +468,19 @@ class AIUsageLog(models.Model):
         max_length=50,
         default="openai_compat",
         verbose_name="Provider",
-        help_text="Provider LLM (openai_compat, ollama, etc)",
+        help_text="Provider LLM (openai_compat, etc)",
     )
 
     # Contagem de tokens
     input_tokens = models.PositiveIntegerField(
         default=0,
         verbose_name="Tokens de Entrada",
-        help_text="Mapeado de usage.prompt_tokens ou prompt_eval_count (Ollama)",
+        help_text="Mapeado de usage.prompt_tokens ou prompt_eval_count (fallback)",
     )
     output_tokens = models.PositiveIntegerField(
         default=0,
         verbose_name="Tokens de Saída",
-        help_text="Mapeado de usage.completion_tokens ou eval_count (Ollama)",
+        help_text="Mapeado de usage.completion_tokens ou eval_count (fallback)",
     )
     total_tokens = models.PositiveIntegerField(
         default=0,

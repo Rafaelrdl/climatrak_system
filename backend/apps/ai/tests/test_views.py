@@ -340,8 +340,8 @@ class AIHealthViewSetTests(TenantTestCase):
         mock_health.return_value = {
             "healthy": True,
             "provider": "openai_compat",
-            "base_url": "http://ollama:11434/v1",
-            "model": "mistral-nemo",
+            "base_url": "https://api.z.ai/api/paas/v4",
+            "model": "glm-4.7-flash",
         }
 
         request = self._get_authenticated_request("GET", "/api/ai/health/")

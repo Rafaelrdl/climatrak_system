@@ -36,13 +36,17 @@ ai/
 ## Configuração (.env)
 
 ```bash
-LLM_BASE_URL=http://ollama:11434/v1
-LLM_MODEL=mistral-nemo
-LLM_API_KEY=
+# Z.ai GLM-4.7-Flash (Free tier) - default
+LLM_PROVIDER=openai_compat
+LLM_BASE_URL=https://api.z.ai/api/paas/v4
+LLM_MODEL=glm-4.7-flash
+LLM_API_KEY=your-zai-api-key  # ou use ZAI_API_KEY
 LLM_TEMPERATURE=0.2
 LLM_MAX_TOKENS=4096
 LLM_TIMEOUT_SECONDS=60
 ```
+
+Também compatível com outros providers OpenAI-compat (vLLM, LocalAI, etc.).
 
 ## Exemplo de Uso
 
