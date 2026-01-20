@@ -27,7 +27,9 @@ def get_llm_config() -> LLMConfig:
     - LLM_API_KEY: API key (obrigatório para Z.ai)
     - LLM_TEMPERATURE: Temperatura (default: 0.2)
     - LLM_MAX_TOKENS: Max tokens (default: 4096)
-    - LLM_TIMEOUT_SECONDS: Timeout (default: 120)
+    - LLM_TIMEOUT_SECONDS: Timeout (default: 180)
+    - LLM_RATE_LIMIT_DELAY: Delay entre requisições (default: 3.0)
+    - LLM_RATE_LIMIT_BACKOFF: Backoff após 429 (default: 15.0)
     """
     return LLMConfig(
         base_url=getattr(settings, "LLM_BASE_URL", "https://api.z.ai/api/paas/v4"),
@@ -35,9 +37,11 @@ def get_llm_config() -> LLMConfig:
         api_key=getattr(settings, "LLM_API_KEY", ""),
         temperature=float(getattr(settings, "LLM_TEMPERATURE", 0.2)),
         max_tokens=int(getattr(settings, "LLM_MAX_TOKENS", 4096)),
-        timeout_seconds=int(getattr(settings, "LLM_TIMEOUT_SECONDS", 120)),
-        retry_attempts=int(getattr(settings, "LLM_RETRY_ATTEMPTS", 3)),
-        retry_delay=float(getattr(settings, "LLM_RETRY_DELAY", 1.0)),
+        timeout_seconds=int(getattr(settings, "LLM_TIMEOUT_SECONDS", 180)),
+        retry_attempts=int(getattr(settings, "LLM_RETRY_ATTEMPTS", 2)),
+        retry_delay=float(getattr(settings, "LLM_RETRY_DELAY", 2.0)),
+        rate_limit_delay=float(getattr(settings, "LLM_RATE_LIMIT_DELAY", 3.0)),
+        rate_limit_backoff=float(getattr(settings, "LLM_RATE_LIMIT_BACKOFF", 15.0)),
     )
 
 

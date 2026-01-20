@@ -51,6 +51,9 @@ class LLMConfig:
     timeout_seconds: int = 120
     retry_attempts: int = 3
     retry_delay: float = 1.0
+    # Rate limiting
+    rate_limit_delay: float = 2.0  # Delay mínimo entre requisições (segundos)
+    rate_limit_backoff: float = 10.0  # Backoff adicional após erro 429
 
 
 class BaseLLMProvider(ABC):

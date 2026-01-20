@@ -6,6 +6,7 @@ Funciona com: OpenAI, Z.ai, vLLM, LocalAI, etc.
 """
 
 import logging
+import threading
 import time
 from typing import List, Optional
 
@@ -14,6 +15,11 @@ import httpx
 from .base import BaseLLMProvider, LLMConfig, LLMMessage, LLMResponse
 
 logger = logging.getLogger(__name__)
+
+# Rate limiter global (singleton por processo)
+_rate_limiter_lock = threading.Lock()
+_last_request_time: float = 0.0
+_rate_limit_backoff_until: float = 0.0
 
 
 class OpenAICompatProvider(BaseLLMProvider):
@@ -26,12 +32,55 @@ class OpenAICompatProvider(BaseLLMProvider):
     - vLLM (--api-key / OpenAI compat)
     - LocalAI
     - Azure OpenAI (com ajustes)
+    
+    Features:
+    - Rate limiting automático com delay entre requisições
+    - Backoff exponencial em caso de erro 429
     """
 
     def __init__(self, config: LLMConfig):
         super().__init__(config)
         self.base_url = config.base_url.rstrip("/")
         self.chat_endpoint = f"{self.base_url}/chat/completions"
+    
+    def _wait_for_rate_limit(self) -> None:
+        """
+        Aguarda o delay mínimo entre requisições para evitar rate limiting.
+        
+        Implementa:
+        1. Delay mínimo entre requisições (rate_limit_delay)
+        2. Backoff adicional após erros 429 (rate_limit_backoff)
+        """
+        global _last_request_time, _rate_limit_backoff_until
+        
+        with _rate_limiter_lock:
+            now = time.time()
+            
+            # Verificar se estamos em período de backoff
+            if now < _rate_limit_backoff_until:
+                wait_time = _rate_limit_backoff_until - now
+                self.logger.info(f"Rate limit backoff: waiting {wait_time:.1f}s")
+                time.sleep(wait_time)
+                now = time.time()
+            
+            # Aplicar delay mínimo entre requisições
+            elapsed = now - _last_request_time
+            if elapsed < self.config.rate_limit_delay:
+                wait_time = self.config.rate_limit_delay - elapsed
+                self.logger.debug(f"Rate limit delay: waiting {wait_time:.1f}s")
+                time.sleep(wait_time)
+            
+            _last_request_time = time.time()
+    
+    def _set_rate_limit_backoff(self) -> None:
+        """Define período de backoff após erro 429."""
+        global _rate_limit_backoff_until
+        
+        with _rate_limiter_lock:
+            _rate_limit_backoff_until = time.time() + self.config.rate_limit_backoff
+            self.logger.warning(
+                f"Rate limit hit, backing off for {self.config.rate_limit_backoff}s"
+            )
 
     def _get_headers(self) -> dict:
         """Retorna headers para requisições."""
@@ -178,7 +227,10 @@ class OpenAICompatProvider(BaseLLMProvider):
         """
         Envia mensagens para o LLM de forma síncrona.
 
-        Implementa retry com backoff exponencial.
+        Implementa:
+        - Rate limiting com delay entre requisições
+        - Retry com backoff exponencial
+        - Backoff adicional após erro 429
         """
         body = self._build_request_body(messages, temperature, max_tokens, **kwargs)
         headers = self._get_headers()
@@ -187,6 +239,9 @@ class OpenAICompatProvider(BaseLLMProvider):
         self.logger.debug(f"LLM request body: model={body.get('model')}, messages_count={len(body.get('messages', []))}")
 
         for attempt in range(self.config.retry_attempts):
+            # Aplicar rate limiting antes de cada requisição
+            self._wait_for_rate_limit()
+            
             try:
                 with httpx.Client(timeout=self.config.timeout_seconds) as client:
                     response = client.post(
@@ -214,8 +269,13 @@ class OpenAICompatProvider(BaseLLMProvider):
                     self.logger.error(f"LLM error response body: {error_body}")
                 except Exception:
                     pass
-                # Não retry para erros 4xx (exceto rate limit)
-                if 400 <= e.response.status_code < 500 and e.response.status_code != 429:
+                
+                # Rate limit - aplicar backoff e tentar novamente
+                if e.response.status_code == 429:
+                    self._set_rate_limit_backoff()
+                    # Continua para o retry
+                # Não retry para outros erros 4xx
+                elif 400 <= e.response.status_code < 500:
                     raise
             except Exception as e:
                 last_error = e
@@ -224,6 +284,7 @@ class OpenAICompatProvider(BaseLLMProvider):
             # Backoff exponencial
             if attempt < self.config.retry_attempts - 1:
                 delay = self.config.retry_delay * (2**attempt)
+                self.logger.info(f"Retrying in {delay}s...")
                 time.sleep(delay)
 
         raise RuntimeError(f"LLM request failed after {self.config.retry_attempts} attempts: {last_error}")

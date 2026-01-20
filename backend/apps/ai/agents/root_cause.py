@@ -186,55 +186,50 @@ class RootCauseAgent(BaseAgent):
         related_sensors = context_data["related_sensors"]
         cmms = context_data.get("cmms_context", {})
         correlated = context_data.get("correlated_alerts", {})
+        
+        # Limitar sensores relacionados para reduzir tamanho do prompt
+        related_sensors_summary = []
+        if related_sensors:
+            for sensor in related_sensors[:3]:  # Máximo 3 sensores
+                related_sensors_summary.append({
+                    "tag": sensor.get("tag"),
+                    "last_value": sensor.get("last_value"),
+                    "unit": sensor.get("unit"),
+                })
+        
+        # Limitar histórico CMMS
+        cmms_summary = []
+        recent_wos = cmms.get("recent_work_orders", [])
+        if recent_wos:
+            for wo in recent_wos[:2]:  # Máximo 2 OSs
+                cmms_summary.append({
+                    "id": wo.get("id"),
+                    "title": wo.get("title", "")[:50],
+                    "status": wo.get("status"),
+                })
 
-        prompt = f"""
-# Análise de Causa Raiz (RCA) — Alerta de IoT/HVAC
+        prompt = f"""Análise de Causa Raiz - Alerta IoT/HVAC
 
-## Alerta Acionado
-- **ID:** {alert['id']}
-- **Severidade:** {alert['severity']}
-- **Equipamento:** {alert['asset_tag']}
-- **Parâmetro:** {alert['parameter_key']} (Unidade: {alert['unit'] or 'N/A'})
-- **Valor atual:** {alert['current_value']}
-- **Limiar:** {alert['threshold_value']}
-- **Acionado em:** {alert['triggered_at']}
+ALERTA:
+- Equipamento: {alert['asset_tag']}
+- Parâmetro: {alert['parameter_key']} = {alert['current_value']} (limite: {alert['threshold_value']})
+- Severidade: {alert['severity']}
+- Acionado: {alert['triggered_at']}
 
-## Telemetria (últimas {telemetry.get('window_minutes', 120)} minutos)
-Sensor primário: {alert['parameter_key']}
-- Mín: {telemetry.get('primary_sensor', {}).get('min')}
-- Máx: {telemetry.get('primary_sensor', {}).get('max')}
-- Média: {telemetry.get('primary_sensor', {}).get('avg')}
+TELEMETRIA ({telemetry.get('window_minutes', 60)} min):
+- Mín/Máx/Média: {telemetry.get('primary_sensor', {}).get('min')}/{telemetry.get('primary_sensor', {}).get('max')}/{telemetry.get('primary_sensor', {}).get('avg')}
 - Tendência: {telemetry.get('primary_sensor', {}).get('trend')}
-- Último valor: {telemetry.get('primary_sensor', {}).get('last_value')}
 
-Sensores relacionados:
-{json.dumps(related_sensors, indent=2) if related_sensors else "Nenhum sensor relacionado encontrado"}
+SENSORES RELACIONADOS: {json.dumps(related_sensors_summary) if related_sensors_summary else "Nenhum"}
 
-## Histórico CMMS
-Últimas ordens de serviço do equipamento:
-{json.dumps(cmms.get('recent_work_orders', []), indent=2) if cmms.get('recent_work_orders') else "Nenhuma OS anterior"}
+HISTÓRICO CMMS: {json.dumps(cmms_summary) if cmms_summary else "Nenhuma OS anterior"}
 
-## Alertas Correlatos
-{json.dumps(correlated, indent=2) if correlated else "Nenhum alerta correlato"}
+TAREFA: Analise e retorne JSON com:
+- hypotheses: lista de 2-3 hipóteses (title, confidence 0-1, evidence[], recommended_actions[])
+- immediate_actions: lista de ações imediatas
+- recommended_work_order: sugestão de OS (priority, title, description)
 
----
-
-## Tarefa
-Analise o alerta e retorne **APENAS um JSON válido** (sem ```json fences) com as seguintes chaves:
-
-- **schema_version**: "1.0"
-- **alert**: resumo do alerta (igual ao fornecido)
-- **telemetry_summary**: resumo da telemetria
-- **hypotheses**: lista de objetos com id, title, confidence (0-1), evidence[], checks[], recommended_actions[], risk
-- **immediate_actions**: lista de ações imediatas (strings)
-- **recommended_work_order**: sugestão de OS (type, priority, title, description, suggested_parts)
-- **notes**: observações sobre a análise
-
-**Regra importante:** Não invente dados. Se não houver evidência, indique "unknown" ou omita o campo.
-Se houver correlação clara com sensores relacionados ou histórico CMMS, destaque.
-
-Retorne apenas JSON válido.
-"""
+Retorne APENAS JSON válido sem markdown fences."""
         return prompt
 
     def execute(
