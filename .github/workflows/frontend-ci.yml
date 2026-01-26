@@ -213,7 +213,7 @@ jobs:
           path: frontend/dist
 
       - name: Run Cypress E2E tests
-        uses: cypress-io/github-action@v6
+        uses: cypress-io/github-action@v7
         with:
           working-directory: frontend
           start: npm run preview -- --port 5173
