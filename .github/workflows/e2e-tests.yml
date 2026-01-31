@@ -133,7 +133,7 @@ jobs:
       
       # ----- Cypress Smoke Tests -----
       - name: 🧪 Run Smoke Tests
-        uses: cypress-io/github-action@v6
+        uses: cypress-io/github-action@v7
         with:
           working-directory: frontend
           browser: chrome
@@ -234,7 +234,7 @@ jobs:
           sleep 5
       
       - name: 🧪 Run Critical Tests
-        uses: cypress-io/github-action@v6
+        uses: cypress-io/github-action@v7
         with:
           working-directory: frontend
           browser: chrome
@@ -340,7 +340,7 @@ jobs:
       
       # Roda todos os testes E2E
       - name: 🧪 Run Full E2E Suite
-        uses: cypress-io/github-action@v6
+        uses: cypress-io/github-action@v7
         with:
           working-directory: frontend
           browser: chrome
